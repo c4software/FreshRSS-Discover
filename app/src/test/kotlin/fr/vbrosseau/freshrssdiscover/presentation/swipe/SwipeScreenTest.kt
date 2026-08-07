@@ -2,9 +2,6 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -12,7 +9,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
-import androidx.compose.ui.unit.height
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
@@ -36,9 +32,6 @@ private const val LONG_FEED_SIZE = 10
 
 /** Rang à partir duquel une page de dix articles réclame la suivante. */
 private const val PREFETCH_TRIGGER_PAGE = 7
-
-/** Cible tactile minimale exigée par SPECS.md §7.1. */
-private const val MIN_TOUCH_TARGET_DP = 48
 
 @RunWith(RobolectricTestRunner::class)
 class SwipeScreenTest {
@@ -109,48 +102,6 @@ class SwipeScreenTest {
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
-    // ----- Accessibilité (GOAL-012-T07) ---------------------------------------
-
-    @Test
-    fun theFeedIsEntirelyNavigableWithoutAnyGesture() {
-        // SPECS.md §7.1 : un balayage horizontal n'est praticable ni par un
-        // lecteur d'écran, qui réserve ce geste, ni par qui manque de mobilité.
-        show(feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")))
-
-        composeRule.onNodeWithTag(SwipeTestTags.NEXT).performClick()
-
-        composeRule.onNodeWithText("Second").assertIsDisplayed()
-    }
-
-    @Test
-    fun theBackButtonReturnsToThePreviousArticle() {
-        show(
-            feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")),
-            initialPage = 1,
-        )
-
-        composeRule.onNodeWithTag(SwipeTestTags.PREVIOUS).performClick()
-
-        composeRule.onNodeWithText("Premier").assertIsDisplayed()
-    }
-
-    @Test
-    fun thereIsNothingBeforeTheFirstArticleAndTheButtonSaysSo() {
-        show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)))
-
-        composeRule.onNodeWithTag(SwipeTestTags.PREVIOUS).assertIsNotEnabled()
-        composeRule.onNodeWithTag(SwipeTestTags.NEXT).assertIsEnabled()
-    }
-
-    @Test
-    fun theNavigationButtonsAreLargeEnoughToBeTouched() {
-        show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)))
-
-        val height = composeRule.onNodeWithTag(SwipeTestTags.NEXT).getBoundsInRoot().height
-
-        assertTrue(height.value >= MIN_TOUCH_TARGET_DP, "hauteur mesurée : $height")
-    }
-
     // ----- Chargement anticipé (GOAL-012-T02) ---------------------------------
 
     @Test
@@ -212,7 +163,11 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.RETRY).performClick()
 
         assertTrue(retried)
-        composeRule.onNodeWithTag(SwipeTestTags.PREVIOUS).assertIsEnabled()
+        // Les articles déjà chargés sont toujours là : l'échec de la page
+        // suivante n'a pas remplacé le flux par un écran d'erreur, et un
+        // balayage en arrière les retrouve.
+        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeRight() }
+        composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
     // ----- Flux sans article --------------------------------------------------

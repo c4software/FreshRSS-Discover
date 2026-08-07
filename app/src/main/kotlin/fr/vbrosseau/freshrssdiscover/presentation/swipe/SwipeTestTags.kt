@@ -10,8 +10,6 @@ object SwipeTestTags {
     const val ILLUSTRATION = "swipe:illustration"
     const val NO_LINK = "swipe:no-link"
     const val OPEN = "swipe:open"
-    const val PREVIOUS = "swipe:previous"
-    const val NEXT = "swipe:next"
     const val OFFLINE_NOTICE = "swipe:offline-notice"
     const val OFFLINE_NOTICE_DISMISS = "swipe:offline-notice-dismiss"
 

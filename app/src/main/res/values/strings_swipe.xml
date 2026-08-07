@@ -37,8 +37,6 @@
       explicites : ils sont lus tels quels par le lecteur d'écran, et le
       contexte — un article à l'écran — suffit à savoir de quoi ils parlent.
     -->
-    <string name="swipe_previous">Précédent</string>
-    <string name="swipe_next">Suivant</string>
 
     <!-- Flux sans aucun article à montrer : « vous avez tout lu » n'expliquerait rien. -->
     <string name="swipe_empty_title">Rien à découvrir</string>

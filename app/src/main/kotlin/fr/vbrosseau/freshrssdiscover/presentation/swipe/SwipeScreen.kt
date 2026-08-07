@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +14,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -30,9 +30,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -57,7 +59,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
-import kotlinx.coroutines.launch
 
 /**
  * Nombre d'articles restants sous lequel la page suivante est demandée
@@ -92,22 +93,32 @@ private const val ILLUSTRATION_ASPECT_RATIO = 16f / 9f
  */
 private const val ILLUSTRATION_PLACEHOLDER_ALPHA = 0.12f
 
-/**
- * Opacité du libellé d'un bouton de navigation indisponible.
- *
- * Material peint un `TextButton` désactivé à 0,38 d'opacité, ce qui passe sous
- * le contraste AA exigé par SPECS.md §7.1 — et rend le bouton illisible plutôt
- * qu'indisponible. Ce défaut précis a déjà été constaté sur une capture de ce
- * dépôt. 0,60 conserve la différence perceptible avec un bouton actif tout en
- * gardant le mot lisible dans les deux thèmes.
- */
-private const val DISABLED_LABEL_ALPHA = 0.60f
-
 /** Clé de la page de fin, distincte de tout identifiant d'article. */
 private const val TRAILING_PAGE_KEY = "swipe:trailing"
 
 /** Cible tactile minimale (SPECS.md §7.1) : Material s'arrête à 40 dp. */
 private val MinTouchTarget = 48.dp
+
+/** Arrondi de la carte, celui des surfaces larges de Material 3. */
+private val CardShape = RoundedCornerShape(28.dp)
+
+/**
+ * Ombre portée de la carte du dessus.
+ *
+ * C'est elle qui dit qu'il y a une **pile** : sans ombre, la carte du dessous,
+ * simplement plus petite, se lirait comme un cadre dessiné autour de l'autre
+ * plutôt que comme un second objet placé derrière.
+ */
+private val CardElevation = 6.dp
+
+/**
+ * Le point autour duquel la carte pivote : sous son bord inférieur.
+ *
+ * `1,6` fois la hauteur depuis le haut, donc bien au-delà de la carte. Un pivot
+ * central la ferait tourner sur elle-même comme une aiguille ; placé en
+ * dessous, il produit l'arc d'un objet que l'on écarte de la main.
+ */
+private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 1.6f)
 
 /**
  * Le flux en mode Balayage : un article en plein écran (SPECS.md §4.8).
@@ -228,27 +239,78 @@ private fun ArticlePager(
         )
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(SwipeTestTags.PAGER),
-            // Clé stable : sans elle, l'insertion d'articles en tête
-            // déplacerait l'article affiché sous le doigt.
-            key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
-        ) { page ->
-            val article = uiState.articles.getOrNull(page)
+    HorizontalPager(
+        state = pagerState,
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(SwipeTestTags.PAGER),
+        // Clé stable : sans elle, l'insertion d'articles en tête déplacerait
+        // l'article affiché sous le doigt.
+        key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
+    ) { page ->
+        val article = uiState.articles.getOrNull(page)
 
+        SwipeCard(pagerState = pagerState, page = page) {
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
                 ArticlePage(article = article, onOpen = { onArticleClick(article.id) })
             }
         }
-
-        SwipeNavigation(pagerState = pagerState)
     }
+}
+
+/**
+ * Une carte de la pile, et son mouvement (GOAL-012-T09).
+ *
+ * La géométrie est calculée par [swipeCardTransform], hors de tout `Composable`
+ * et éprouvée à part ; il ne reste ici que de l'application.
+ *
+ * **Trois détails sans lesquels le motif ne fonctionne pas :**
+ *
+ * L'**encart**. Une carte qui touche les bords ne peut pas pivoter : la
+ * rotation découvrirait les coins du fond, et le mouvement se lirait comme un
+ * défaut d'affichage. La marge est ce qui donne à l'inclinaison un endroit où
+ * exister — elle n'est pas décorative.
+ *
+ * Le **pivot sous la carte**. Une rotation autour du centre fait tourner la
+ * carte sur elle-même, comme une aiguille. Placé au-delà du bord inférieur, le
+ * pivot produit l'arc d'un objet que l'on écarte de la main, ce qui est le
+ * geste que l'on imite.
+ *
+ * `graphicsLayer` **et non des modificateurs de mise en page** : rien n'est
+ * remesuré à chaque image du geste. Un `padding` animé relancerait la mise en
+ * page du texte à chaque pixel parcouru, sur un écran entier de contenu.
+ */
+@Composable
+private fun SwipeCard(
+    pagerState: PagerState,
+    page: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val transform = swipeCardTransform(
+        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
+    )
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = CardShape,
+        shadowElevation = CardElevation,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .zIndex(transform.drawOrder)
+            .graphicsLayer {
+                translationX = transform.translationXFraction * size.width
+                rotationZ = transform.rotationDegrees
+                scaleX = transform.scale
+                scaleY = transform.scale
+                alpha = transform.alpha
+                transformOrigin = CardPivot
+            },
+        content = content,
+    )
 }
 
 /**
@@ -421,61 +483,6 @@ private fun EndOfFeedMessage(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-    }
-}
-
-/**
- * L'alternative au geste (GOAL-012-T07).
- *
- * Les deux boutons sont **désactivés aux bouts du flux** plutôt que masqués :
- * un bouton qui disparaît déplace l'autre sous le doigt, et ne dit pas
- * pourquoi il n'y a rien avant le premier article.
- */
-@Composable
-private fun SwipeNavigation(pagerState: PagerState, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        NavigationButton(
-            label = stringResource(R.string.swipe_previous),
-            enabled = pagerState.currentPage > 0,
-            testTag = SwipeTestTags.PREVIOUS,
-            onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-        )
-        NavigationButton(
-            label = stringResource(R.string.swipe_next),
-            enabled = pagerState.currentPage < pagerState.pageCount - 1,
-            testTag = SwipeTestTags.NEXT,
-            onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-        )
-    }
-}
-
-@Composable
-private fun NavigationButton(
-    label: String,
-    enabled: Boolean,
-    testTag: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
-            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_LABEL_ALPHA),
-        ),
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .testTag(testTag),
-    ) {
-        Text(label)
     }
 }
 

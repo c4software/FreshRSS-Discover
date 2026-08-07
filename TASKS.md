@@ -659,15 +659,28 @@ suivant, comme les Stories d'un réseau social.
       proche introduite par `GOAL-009-T05` lève cet obstacle — c'est elle qu'il
       faut désormais brancher ici, plutôt qu'un second mécanisme
 - [x] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
-- [x] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
+- [!] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
       par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que
-      l'application reste utilisable, et un geste unique ne le garantit pas
+      l'application reste utilisable, et un geste unique ne le garantit pas.
+      **Rouvert.** Les deux boutons « Précédent » / « Suivant » qui répondaient
+      à cette tâche ont été retirés à la demande de l'auteur, qui les juge
+      superflus une fois l'animation en place. Le balayage horizontal est donc
+      redevenu le seul moyen d'avancer — or c'est précisément le geste qu'un
+      lecteur d'écran se réserve pour sa propre exploration. Une alternative
+      reste à trouver qui n'encombre pas l'écran : action d'accessibilité
+      personnalisée, ou appui sur les bords
 - [x] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
       **et regardées** : six images enregistrées. Puis **exécution réelle sur
       appareil** (Pixel 10 Pro, Android 17), qui est ce qui compte : le mode
       Liste avait montré que trois défauts sur trois n'étaient visibles
       qu'ainsi. Le réglage bascule, le mode se relit au démarrage suivant, le
       balayage passe à l'article suivant et « Précédent » s'active alors
+
+- [x] `GOAL-012-T09` **Animation de pile de cartes**, demandée par l'auteur :
+      la carte qui part s'incline et s'efface, celle du dessous reste centrée et
+      grandit. La géométrie est une fonction pure éprouvée à part
+      (`swipeCardTransform`), parce qu'aucune capture ne montre le milieu d'un
+      geste. Constaté sur appareil, capture à l'appui, à mi-parcours
 
 ### Question tranchée
 
