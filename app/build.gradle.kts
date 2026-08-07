@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -67,8 +68,35 @@ android {
         }
     }
 
+    /**
+     * Signature de production, entièrement pilotée par l'environnement.
+     *
+     * Rien n'est écrit dans le dépôt : ni chemin, ni alias, ni mot de passe.
+     *
+     * **L'absence des variables ne fait pas échouer la construction** :
+     * `assembleRelease` produit alors un artefact non signé. C'est délibéré —
+     * quiconque construit le projet sans elles doit y parvenir, et un échec à
+     * cet endroit ressemblerait à une erreur de configuration de sa part.
+     */
+    val releaseKeystore =
+        providers.environmentVariable("RELEASE_KEYSTORE").orNull
+            ?.let(::File)
+            ?.takeIf(File::exists)
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = providers.environmentVariable("RELEASE_KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("RELEASE_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("RELEASE_KEY_PASSWORD").orNull
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -150,7 +178,7 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
-    // Cache local des articles (ARCHITECTURE.md §5.1) : Room porte les
+    // Cache local des articles (ARCHITECTURE.md §5.4) : Room porte les
     // collections, DataStore les scalaires.
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
