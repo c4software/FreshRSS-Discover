@@ -153,19 +153,27 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       jamais journalisé. **Traité avant T07**, dont le dépôt s'appuie dessus.
       **A modifié SPECS.md §3.4** : le mot de passe API n'est plus enregistré du
       tout, le jeton n'expirant pas.
-- [ ] `GOAL-002-T09` Récupération et conservation du jeton de modification `T`
-- [ ] `GOAL-002-T10` Tests de la couche API au `MockEngine` : succès, chaque
-      code d'erreur, réponse tronquée, réponse JSON là où du texte est attendu
-- [ ] `GOAL-002-T11` Tests du repository, stockage chiffré compris
-- [ ] `GOAL-002-T12` `LoginViewModel` et son `UiState`
+- [ ] ~~`GOAL-002-T09` Récupération et conservation du jeton de modification `T`~~
+      **Reporté à GOAL-008** (synchronisation du statut lu). Le jeton `T` ne sert
+      qu'aux opérations modifiantes : le récupérer ici produirait un appel dont
+      personne n'a l'usage, et du code mort jusqu'à GOAL-008 (AGENTS.md §2).
+      `AuthSession` le porte déjà, en option, et `SessionStore` sait le
+      conserver — ce qu'un test couvre.
+- [x] `GOAL-002-T10` Tests de la couche API au `MockEngine` : succès, chaque
+      code d'erreur, réponse tronquée, réponse JSON là où du texte est attendu.
+      Écrits dans le même incrément que le code qu'ils couvrent (AGENTS.md §4),
+      donc livrés par T04, T05 et T06 plutôt qu'en une passe séparée.
+- [x] `GOAL-002-T11` Tests du repository, stockage chiffré compris — livrés par
+      T07 et T08, même raison.
+- [x] `GOAL-002-T12` `LoginViewModel` et son `UiState`
 - [ ] `GOAL-002-T13` Écran de connexion, avec l'explication du mot de passe API
       (SPECS.md §3.2) et un message distinct par cause d'échec
 - [ ] `GOAL-002-T14` Redirection sur `401` vers l'écran de connexion, adresse et
       identifiant préservés
 - [ ] `GOAL-002-T15` Captures Roborazzi de l'écran de connexion, clair et sombre,
       états d'erreur compris — **et regardées**
-- [ ] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève
-      `GOAL-001-T14`)
+- [x] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève
+      `GOAL-001-T14`) — fait dès T02 : le seuil a réellement échoué à 86,2 %.
 - [ ] `GOAL-002-T17` Mettre à jour `ARCHITECTURE.md` §9 et `SPECS.md` §8
 
 ---
