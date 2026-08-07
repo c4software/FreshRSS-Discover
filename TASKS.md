@@ -29,9 +29,12 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 ## Phase courante
 
 **Phase 0 — Harness** ✅ terminée
-**Phase 1 — API FreshRSS** — GOAL-002 terminé, GOAL-003 en cours
+**Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
+**Phase 2 — Flux Discover** — non commencée
 
-Prochaine tâche : `GOAL-003-T01`.
+Prochaine action : `/goal Implémenter le cache local` (GOAL-004) ou
+`/goal Implémenter le mélange des sources` (GOAL-005). Aucun des deux n'est
+encore découpé en tâches.
 
 ---
 
@@ -41,7 +44,7 @@ Prochaine tâche : `GOAL-003-T01`.
 |---|---|---|
 | GOAL-001 | Harness et initialisation | `[x]` |
 | GOAL-002 | Authentification FreshRSS | `[x]` |
-| GOAL-003 | Récupération paginée des articles | `[-]` |
+| GOAL-003 | Récupération paginée des articles | `[x]` |
 | GOAL-004 | Cache local et résilience réseau | `[ ]` |
 | GOAL-005 | Mélange des sources | `[ ]` |
 | GOAL-006 | Flux Discover — interface | `[ ]` |
@@ -217,7 +220,7 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 
 ## GOAL-003 — Récupération paginée des articles
 
-**Statut : IN PROGRESS**
+**Statut : DONE**
 
 Couvre SPECS.md §4.1 et §4.4. Point délicat : le curseur `continuation` est
 relatif et non positionnel, et un curseur invalide provoque une **répétition
@@ -242,7 +245,7 @@ Tranche SPECS.md §8 question 1 (taille de page).
 - [x] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8 —
       **40**, et la question 6 (illustration) tranchée au passage. Une septième
       question s'est ouverte : le serveur ne tronque pas utilement le résumé.
-- [ ] `GOAL-003-T08` Mettre à jour `ARCHITECTURE.md` §9
+- [x] `GOAL-003-T08` Mettre à jour `ARCHITECTURE.md` §9
 
 ---
 

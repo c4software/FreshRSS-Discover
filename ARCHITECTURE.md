@@ -178,6 +178,15 @@ requête interdite — sont documentées dans docs/freshrss-api.md §1.
 
 ### 4.2 Pagination
 
+> ⚠️ **Le piège le plus dangereux de cette API, et il est confirmé par
+> l'expérience.** Un curseur invalide — vide, non numérique — ne produit
+> **aucune erreur** : le serveur le ramène silencieusement au début du flux et
+> renvoie à nouveau la première page, avec le même `continuation`. Une faute de
+> sérialisation du curseur se manifeste donc par une boucle infinie muette.
+> C'est pourquoi le paramètre `c` n'est **jamais** émis avec une valeur vide, et
+> pourquoi `PageCursor` est un type dédié plutôt qu'une `String` nue.
+
+
 Le curseur de FreshRSS est **relatif**, non positionnel : la réponse porte un
 `continuation` égal à l'identifiant du dernier article renvoyé, et la requête
 suivante le repasse en `c`. Voir [docs/freshrss-api.md §3.5](./docs/freshrss-api.md).
@@ -413,10 +422,14 @@ dépôt est une incohérence — voir AGENTS.md §8.
 │       │   ├── auth/            AuthError · AuthResult · AuthRepository
 │       │   │                    Credentials · AuthToken · AuthSession
 │       │   │                    ServerAddress · SignInHint
+│       │   ├── core/Outcome.kt  issue générique <valeur, erreur>
+│       │   ├── feed/            Article · ArticleId · FeedRef · PageCursor
+│       │   │                    ArticlePage · FeedError · ArticleRepository
 │       │   └── time/Clock.kt
 │       ├── test/…/domain/auth/  couverture ~100 %
 │       └── testFixtures/…/domain/
 │           ├── auth/FakeAuthRepository.kt
+│           ├── feed/Articles.kt  fabriques d'articles
 │           └── time/FakeClock.kt
 │
 └── app/                         Android
@@ -424,11 +437,12 @@ dépôt est une incohérence — voir AGENTS.md §8.
         ├── main/…/freshrssdiscover/
         │   ├── FreshRssDiscoverApplication.kt · MainActivity.kt
         │   ├── data/
-        │   │   ├── api/         FreshRssApi · ApiOutcome
+        │   │   ├── api/         FreshRssApi · ApiOutcome · StreamContentsDto
         │   │   │                FreshRssHttpClient · AuthErrorMapping
+        │   │   │                ArticleMapping
         │   │   ├── local/       SessionStore
         │   │   ├── network/     NetworkAvailability
-        │   │   ├── repository/  DefaultAuthRepository
+        │   │   ├── repository/  DefaultAuthRepository · DefaultArticleRepository
         │   │   └── security/    SecretCipher · KeystoreSecretCipher
         │   ├── di/              Dispatchers · portées · DataStore · Clock
         │   │                    Network · Repository · Security
@@ -455,10 +469,9 @@ dépôt est une incohérence — voir AGENTS.md §8.
 
 Aucune ligne de code métier n'est écrite. Précisément, sont **absents** :
 
-- la récupération des articles, le cache, et tout ce qui suit la connexion ;
-- les modèles d'article, de flux et de curseur dans `:domain` ;
+- le cache local, et donc toute résilience hors ligne ;
 - l'algorithme de mélange ;
-- l'écran de connexion, le flux Discover, l'écran de réglages ;
+- le flux Discover et l'écran de réglages — l'écran de connexion, lui, existe ;
 - Room (voir §5.4), déclaré mais non câblé.
 
 ### 9.2 Ce qui est hérité du template, délibérément
