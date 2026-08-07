@@ -231,7 +231,7 @@ Tranche SPECS.md §8 question 1 (taille de page).
       pour créer l'abstraction, pas avant
 - [x] `GOAL-003-T02` Modèles de `:domain` : `Article`, `ArticleId`, `FeedRef`,
       `PageCursor`, `ArticlePage`, `FeedError`
-- [ ] `GOAL-003-T03` DTO de `stream/contents` et désérialisation — champs
+- [x] `GOAL-003-T03` DTO de `stream/contents` et désérialisation — champs
       facultatifs, unités de temps hétérogènes, `categories` porteur de l'état lu
 - [ ] `GOAL-003-T04` Conversion DTO → domaine : identifiant hexadécimal vers
       décimal, extraction de l'illustration, article sans lien exploitable
