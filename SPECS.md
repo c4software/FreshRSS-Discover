@@ -176,7 +176,9 @@ Chaque article expose :
 - le **nom de son flux d'origine**, sans lequel le mélange serait déroutant ;
 - sa **date de publication**, en forme relative (« il y a 2 h ») ;
 - son **image d'illustration**, lorsqu'elle existe ;
-- un **extrait** de son contenu.
+- un **extrait** de son contenu, écourté par l'application : le serveur envoie
+  le résumé complet, qui atteint plusieurs dizaines de milliers de caractères sur
+  certains flux (§8, question 7).
 
 Un article sans image reste lisible : l'absence d'illustration ne doit pas
 produire un espace vide, ni une image de remplacement générique.
@@ -311,11 +313,19 @@ d'un lien dans le navigateur, l'une et l'autre à l'initiative de l'utilisateur.
 Décisions volontairement différées. Chacune doit être arbitrée par le Goal qui
 la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 
+### Tranchées
+
+| # | Question | Réponse, et ce qui l'a décidée |
+|---|---|---|
+| 1 | Taille de page de l'API (`n`) | **40 articles.** Mesuré sur un flux réel : résumé médian de 1 324 caractères, 90ᵉ centile à 4 379. Une page de 40 pèse donc environ 55 ko, ce qui reste raisonnable sur réseau mobile tout en laissant assez d'avance pour que le défilement ne s'interrompe pas (§4.4). Le serveur accepte des valeurs bien supérieures — `n=100000` a renvoyé 4 645 articles sans broncher — mais tout demander d'un coup ne servirait qu'à retarder le premier affichage. |
+| 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
+
+### Encore ouvertes
+
 | # | Question | Quand la trancher |
 |---|---|---|
-| 1 | Taille de page de l'API (`n`) | Au premier flux réel : compromis entre latence et nombre d'appels |
 | 2 | Formulation exacte de l'algorithme de mélange | Au Goal du mélange, à partir de données réelles |
 | 3 | Seuil d'ancienneté de purge du cache | Au Goal du cache |
 | 4 | Taille du lot de marquage et délai de regroupement | Au Goal de la synchronisation |
 | 5 | Comportement si un flux ne contient que des articles lus | Au Goal du flux |
-| 6 | Origine de l'image d'illustration : `enclosure` ou extraction du contenu | Au Goal de la présentation |
+| 7 | Longueur de l'extrait affiché | Au Goal de la présentation. Le serveur ne tronque pas utilement : un résumé réel atteint 34 777 caractères. L'extrait doit donc être écourté côté application |

@@ -233,13 +233,15 @@ Tranche SPECS.md §8 question 1 (taille de page).
       `PageCursor`, `ArticlePage`, `FeedError`
 - [x] `GOAL-003-T03` DTO de `stream/contents` et désérialisation — champs
       facultatifs, unités de temps hétérogènes, `categories` porteur de l'état lu
-- [ ] `GOAL-003-T04` Conversion DTO → domaine : identifiant hexadécimal vers
+- [x] `GOAL-003-T04` Conversion DTO → domaine : identifiant hexadécimal vers
       décimal, extraction de l'illustration, article sans lien exploitable
-- [ ] `GOAL-003-T05` `FreshRssApi.streamContents()` — en-tête d'autorisation,
+- [x] `GOAL-003-T05` `FreshRssApi.streamContents()` — en-tête d'autorisation,
       `n`, `c`, `xt`, et l'absence de `continuation` comme seul signal de fin
 - [ ] `GOAL-003-T06` `ArticleRepository` : interface `:domain`, implémentation
       `:app/data`, et `401` → `invalidateSession()` (lève `GOAL-002-T20`)
-- [ ] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8
+- [x] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8 —
+      **40**, et la question 6 (illustration) tranchée au passage. Une septième
+      question s'est ouverte : le serveur ne tronque pas utilement le résumé.
 - [ ] `GOAL-003-T08` Mettre à jour `ARCHITECTURE.md` §9
 
 ---
@@ -292,6 +294,12 @@ Seuils nommés et injectés, `Clock` pour le temps.
 ## GOAL-008 — Synchronisation du statut lu
 
 **Statut : TODO** — à découper par `/goal`
+
+> ⚠️ **Piège identifié d'avance.** Un identifiant d'article dépassant
+> `Long.MAX_VALUE` est conservé sous forme de bits, donc **négatif** en Kotlin.
+> Le reformater avec `toString()` enverrait `-1` au serveur : c'est
+> `java.lang.Long.toUnsignedString` qu'il faut employer pour le paramètre `i`
+> d'`edit-tag`. Constaté en écrivant les tests de conversion (GOAL-003-T04).
 
 Couvre SPECS.md §4.5 (envoi par lots, optimiste, rejeu). S'appuie sur
 `edit-tag` — voir docs/freshrss-api.md §4.1, dont le traitement par lot via `i`

@@ -12,19 +12,22 @@ Deux sources, de valeur inégale :
 | [Documentation officielle « Accès mobile »](https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html) | L'URL de base, `ClientLogin`, l'en-tête d'autorisation, la liste des points d'entrée principaux, le mot de passe API |
 | [`p/api/greader.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/p/api/greader.php) et [`app/Models/Entry.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/app/Models/Entry.php), branche `edge` | Les **noms exacts des paramètres**, leurs valeurs par défaut, la forme des réponses, la sémantique de pagination |
 | **`https://demo.freshrss.org/`**, interrogé le 2026-08-07 | Les **codes et corps réellement renvoyés** sur les chemins non authentifiés |
+| Une **instance personnelle**, interrogée le 2026-08-07 | Tout ce qui exige un compte : la réponse de `ClientLogin` en succès, le jeton de modification, la forme réelle des articles, le comportement effectif de la pagination |
+
+L'instance personnelle n'est pas nommée ici, et ne doit pas l'être : elle n'a
+servi que de banc d'essai. Les constats qu'elle a permis sont reproductibles sur
+n'importe quelle installation FreshRSS disposant d'un mot de passe API.
 
 La documentation officielle ne détaille pas les paramètres de pagination ni la
 forme du JSON renvoyé. Tout ce qui figure ci-dessous sans mention contraire a
 donc été **lu dans le code source**, et non deviné.
 
-Ce qui porte la mention **« constaté »** a été vérifié contre le serveur de
-démonstration. Cela a d'ailleurs **corrigé une erreur de lecture** : voir §2.1,
-où la frontière entre `400` et `401` n'est pas celle que la source laissait
-supposer. Les points qui restent incertains sont regroupés en fin de document.
-
-> ⚠️ Le serveur de démonstration n'a **pas** de mot de passe API exploitable :
-> aucun point d'entrée authentifié n'a pu y être constaté. Tout le §3 et le §4
-> reposent donc encore sur la seule lecture de la source.
+Ce qui porte la mention **« constaté »** a été vérifié contre un serveur réel —
+le serveur de démonstration pour les chemins ouverts, une instance personnelle
+pour les chemins authentifiés. Cela a d'ailleurs **corrigé une erreur de
+lecture** : voir §2.1, où la frontière entre `400` et `401` n'est pas celle que
+la source laissait supposer. Les points qui restent incertains sont regroupés en
+fin de document.
 
 > ⚠️ Cette page est un relevé, pas un contrat. FreshRSS peut la faire évoluer.
 > Un Goal qui touche à l'API relit la source avant d'implémenter (AGENTS.md §7).
@@ -107,15 +110,24 @@ de connexion. Il se définit dans FreshRSS sous *Profil → Mot de passe API*. U
 compte sans mot de passe API configuré ne peut pas se connecter : le champ
 correspondant est vide côté serveur et la comparaison échoue systématiquement.
 
-**Réponse** — `text/plain`, une paire par ligne :
+**Réponse en succès** — *constaté contre une instance personnelle, le
+2026-08-07* : statut `200`, `text/plain`, **exactement trois lignes, dans cet
+ordre** :
 
 ```
-SID=<utilisateur>/<jeton>
+SID=<utilisateur>/<condensat>
 LSID=null
-Auth=<utilisateur>/<jeton>
+Auth=<utilisateur>/<condensat>
 ```
 
-`SID` et `Auth` portent la même valeur. Seule `Auth` nous intéresse.
+`SID` et `Auth` portent bien la **même** valeur — la source le laissait
+entendre, l'expérience le confirme. `LSID` vaut littéralement la chaîne `null`,
+et non une valeur absente : un analyseur qui traiterait les trois lignes de la
+même façon récupérerait la chaîne `"null"`, pas un vide.
+
+Seule `Auth` nous intéresse. L'ordre étant stable, il reste néanmoins plus sûr
+de chercher la ligne par son préfixe `Auth=` que par son rang : rien dans la
+source ne garantit contractuellement cet ordre.
 
 Le jeton est un condensat déterministe de (sel du serveur + utilisateur +
 condensat du mot de passe API). Conséquences pratiques :
@@ -176,7 +188,13 @@ GET /api/greader.php/reader/api/0/token
 ```
 
 Renvoie en texte brut une chaîne de **57 caractères** (condensat complété par
-des `Z`), suivie d'un saut de ligne.
+des `Z`), suivie d'un saut de ligne. La longueur a été *constatée contre une
+instance personnelle, le 2026-08-07* : elle vaut exactement 57, ce que la
+lecture de la source laissait attendre.
+
+Cette longueur ne doit pas pour autant être codée en dur comme critère de
+validité : elle n'est garantie par aucun contrat, et un jeton refusé se signale
+de toute façon par un `401`, pas par sa taille.
 
 Ce jeton se transmet dans le champ **`T`** du corps `POST` de toute opération
 modifiante (`edit-tag`, `mark-all-as-read`, `rename-tag`, `disable-tag`).
@@ -190,6 +208,32 @@ Le jeton étant lui aussi déterministe, il peut être obtenu une fois puis
 réutilisé. Un `401` sur une opération modifiante signifie que le jeton n'est
 plus valable : le redemander une fois, et si l'échec persiste, traiter comme une
 perte de session.
+
+### 2.4 Identité du compte connecté — *constaté*
+
+```
+GET /api/greader.php/reader/api/0/user-info?output=json
+```
+
+*Constaté contre une instance personnelle, le 2026-08-07* :
+
+```json
+{
+  "userId": "…",
+  "userName": "…",
+  "userProfileId": "…",
+  "userEmail": ""
+}
+```
+
+Un point à retenir : **`userEmail` peut être vide**. FreshRSS n'impose pas
+d'adresse de courriel à ses comptes, et le champ est alors présent mais réduit à
+la chaîne vide — il n'est pas omis. Un client qui s'en servirait pour afficher
+l'utilisateur doit donc se rabattre sur `userName`, jamais sur `userEmail`.
+
+Ce point d'entrée est le moyen le plus léger de vérifier qu'un jeton stocké est
+toujours valable au démarrage : il ne renvoie aucun article et se contente de
+`401` si le jeton a été invalidé.
 
 ---
 
@@ -317,6 +361,11 @@ que laisse entendre la documentation historique de Google Reader.
 Le champ `id` vaut **toujours** `user/-/state/com.google/reading-list`, quel que
 soit le flux demandé : il ne peut pas servir à identifier la requête.
 
+*Constaté contre une instance personnelle, le 2026-08-07* : la racine de la
+réponse ne porte **que** ces quatre clés — `id`, `updated`, `items`,
+`continuation` — et `continuation` disparaît en fin de flux (voir §3.5). Aucune
+clé de métadonnée supplémentaire n'est à attendre.
+
 Forme d'un article (mode `compat`, celui de ce point d'entrée) :
 
 ```json
@@ -345,6 +394,22 @@ Forme d'un article (mode `compat`, celui de ce point d'entrée) :
 }
 ```
 
+*Constaté contre une instance personnelle, le 2026-08-07*, sur des articles
+réels : les clés effectivement présentes sont `id`, `crawlTimeMsec`,
+`timestampUsec`, `published`, `title`, `canonical`, `alternate`, `categories`,
+`origin`, `summary` et `author` — `origin` portant lui-même `streamId`,
+`htmlUrl` et `title`. Deux absences méritent d'être notées :
+
+- **`content` est absent**, comme annoncé plus bas : seul `summary` existe dans
+  ce mode. Le constat confirme la lecture de la source ;
+- **`enclosure` est absent** de tous les articles observés. Ce n'est pas une
+  particularité de l'instance : beaucoup de flux RSS n'émettent tout simplement
+  aucune pièce jointe. La conséquence est directe pour ce projet — un client qui
+  ne chercherait l'illustration d'un article que dans `enclosure` n'en trouverait
+  presque jamais. **Il faut se rabattre sur les balises `<img>` du contenu HTML**
+  de `summary.content`, et ne traiter `enclosure` que comme un bonus quand il est
+  là.
+
 Points à retenir, tous vérifiés dans `Entry.php` :
 
 - **`id` est hexadécimal**, préfixé de `tag:google.com,2005:reader/item/`. Le
@@ -361,6 +426,36 @@ Points à retenir, tous vérifiés dans `Entry.php` :
 - `published` est en secondes ; `timestampUsec` en microsecondes ;
   `crawlTimeMsec` en millisecondes. Trois unités différentes dans le même objet.
 
+#### `categories` mélange trois formes hétérogènes — *constaté*
+
+C'est le piège le moins visible de cette réponse. *Constaté contre une instance
+personnelle, le 2026-08-07* : un même tableau `categories` peut contenir, côte à
+côte, trois natures d'entrées qui ne partagent aucune convention de nommage.
+
+| Nature | Forme | Exemples constatés |
+|---|---|---|
+| État système | préfixée `user/-/state/…` | `user/-/state/com.google/reading-list`, `user/-/state/org.freshrss/main`, `user/-/state/com.google/read` |
+| Catégorie (dossier) | préfixée `user/-/label/…` | `user/-/label/Sans catégorie` |
+| **Étiquette utilisateur** | **texte nu, sans aucun préfixe** | `AirPods Ultra`, `iPhone Ultra`, `MacBook Ultra` |
+
+Deux conséquences, l'une immédiate, l'autre plus sournoise.
+
+**On ne peut pas supposer que toute entrée est préfixée.** Un client qui
+découperait chaque entrée sur `user/-/label/` pour en extraire un nom lisible
+laisserait tomber les étiquettes utilisateur, qui sont pourtant les plus
+susceptibles d'intéresser le lecteur. Il faut traiter le cas « pas de préfixe
+connu » comme un cas nominal, et non comme une donnée corrompue.
+
+**Le test d'appartenance doit être une égalité exacte, jamais un `startsWith`
+ni un `contains`.** Puisque les étiquettes utilisateur sont du texte libre, rien
+n'empêche en théorie un utilisateur d'en nommer une littéralement
+`user/-/state/com.google/read`. Un test approximatif ferait alors passer pour lus
+tous les articles ainsi étiquetés — et, symétriquement, une étiquette contenant
+le mot `read` suffirait à égarer un `contains`. L'état de lecture d'un article
+est une information trop structurante pour être déduite d'une correspondance
+partielle : la seule règle sûre est l'égalité de chaîne complète avec
+`user/-/state/com.google/read`.
+
 ### 3.5 Pagination
 
 Le mécanisme n'est **pas** un simple décalage. Il fonctionne ainsi, tel que lu
@@ -374,13 +469,69 @@ dans `streamContents()` :
 4. Le serveur demande alors `n + 1` articles à partir de cet identifiant inclus,
    puis **écarte le premier** — celui déjà transmis.
 
-Conséquences pour le client :
+#### Ce que l'expérience confirme — *constaté*
+
+*Constaté contre une instance personnelle, le 2026-08-07.* Les trois
+affirmations ci-dessus ne sont plus des déductions de lecture : elles ont été
+éprouvées, et elles se vérifient.
+
+**1. Le `continuation` est bien l'identifiant décimal du dernier article
+renvoyé.** Une page de trois articles dont les `id` hexadécimaux se terminent
+respectivement par `dde5`, `dde4` et `dde3` s'est accompagnée d'un
+`continuation` valant `1786131047833059` — c'est-à-dire exactement la valeur
+décimale de l'identifiant `…dde3`, le dernier de la page. La conversion
+hexadécimal ↔ décimal évoquée plus haut n'est donc pas théorique : elle est la
+clé de tout raisonnement sur la pagination.
+
+**2. La page suivante ne contient aucun doublon.** Rappelée avec
+`c=1786131047833059`, la requête a renvoyé `dde2`, `dde1`, `dde0` — et **pas**
+`dde3`. L'article servant de curseur n'est pas retransmis : le rejet du premier
+élément décrit au point 4 fonctionne comme annoncé. Un client n'a donc aucune
+déduplication à faire de son côté.
+
+**3. Un curseur invalide répète silencieusement la première page.** C'est le
+point le plus grave, et il mérite d'être isolé.
+
+> ⚠️ **Le piège le plus dangereux de cette API.** Interrogé avec
+> `c=nimportequoi`, le serveur ne renvoie **aucune erreur** : ni `400`, ni
+> message, ni champ signalant l'anomalie. Il répond `200`, avec **la première
+> page** du flux et **le même `continuation`** que celui d'un appel sans `c` du
+> tout.
+>
+> Constaté. La conséquence est sévère : une erreur de sérialisation du curseur —
+> un entier passé sous une forme que PHP ne sait pas lire, une valeur
+> hexadécimale envoyée là où le décimal est attendu, une chaîne vide, un `null`
+> textuel — ne produit **jamais un échec**, mais une **boucle infinie sur la
+> première page**. Le client croit paginer, reçoit indéfiniment les mêmes
+> articles, et rien dans la réponse ne le lui signale.
+>
+> Deux protections s'imposent côté client : sérialiser le curseur en décimal de
+> façon vérifiée, et **détecter la répétition** — si une page renvoie un
+> `continuation` identique au précédent, ou des identifiants déjà vus, il faut
+> arrêter la boucle et traiter cela comme une anomalie, jamais continuer.
+
+#### Fin de flux — *constaté*
+
+L'absence de `continuation` est bien le **seul** signal de fin, et il est
+fiable. *Constaté contre une instance personnelle, le 2026-08-07* : appelée avec
+`n=100000`, la requête a renvoyé 4645 articles — la totalité du flux — et la
+réponse ne portait **aucun champ `continuation`**. Il n'y a donc pas d'autre
+marqueur à chercher : un client s'arrête quand la clé est absente, point.
+
+Au passage, `n=100000` a été **accepté sans erreur** : aucune borne supérieure
+n'a été rencontrée à cette valeur. Il ne faut pas en conclure qu'il n'y en a
+pas — seulement qu'aucune n'a été atteinte ici. Et surtout, demander tout le
+flux d'un seul appel reste **déconseillé** : la réponse est intégralement
+matérialisée en mémoire, côté serveur comme côté client, et la latence croît
+avec le nombre d'articles. La pagination existe pour être utilisée.
+
+#### Conséquences pour le client
 
 - La pagination est **relative à un curseur**, pas à un rang : insérer un
   article en tête du flux entre deux pages ne provoque ni doublon ni saut.
 - Un `c` non numérique est silencieusement ramené à `0`, c'est-à-dire au début
   du flux. Une erreur de sérialisation du curseur se manifeste donc par une
-  **répétition de la première page**, jamais par une erreur.
+  **répétition de la première page**, jamais par une erreur — constaté.
 - Le curseur n'est valable que pour un même jeu de paramètres (`n` compris) : le
   conserver en changeant de filtre n'a pas de sens.
 
@@ -488,19 +639,15 @@ Ces éléments n'ont pas pu être établis avec certitude par la seule lecture. 
 doivent être **constatés** avant d'être tenus pour acquis — et cette section
 mise à jour en conséquence.
 
-Le serveur de démonstration n'ayant **aucun mot de passe API exploitable**, tout
-ce qui suit la connexion n'a pas pu être constaté.
-
 | # | Point | Pourquoi c'est incertain |
 |---|---|---|
-| 1 | Valeur maximale acceptée pour `n` | Aucune borne dans le code lu ; une limite peut exister en aval (mémoire, temps d'exécution PHP) |
+| 1 | Valeur maximale acceptée pour `n` | `n=100000` a été **accepté sans erreur** (§3.5) : aucune borne n'a été atteinte à cette valeur. Cela ne prouve pas qu'il n'en existe aucune — une limite peut exister en aval (mémoire, temps d'exécution PHP), et n'apparaîtrait que sur un flux plus volumineux |
 | 2 | Longueur réelle de la troncature de `summary.content` | La constante `API_MAX_COMPAT_CONTENT_LENGTH` n'a pas été lue |
-| 3 | Comportement de `continuation` en ordre croissant (`r=o`) | La logique de curseur a été lue en ordre décroissant ; l'ordre inverse n'a pas été éprouvé |
-| 4 | Présence effective de `enclosure` selon les flux | Dépend des flux RSS sources, pas de FreshRSS |
+| 3 | Comportement de `continuation` en ordre croissant (`r=o`) | La logique de curseur a été éprouvée en ordre décroissant seulement (§3.5) ; l'ordre inverse n'a pas été essayé |
+| 4 | Présence effective de `enclosure` selon les flux | Dépend des flux RSS sources, pas de FreshRSS. Constat partiel : **absente de tous les articles observés** (§3.4), ce qui suffit à décider de ne pas s'y fier |
 | 5 | Nombre d'`i` acceptés dans un `edit-tag` | Limité en pratique par la taille du corps POST et `max_input_vars` de PHP |
 | 6 | Forme exacte de `frss:priority` | Valeurs issues d'une énumération non lue |
 | 7 | **Réponse d'un serveur dont l'API est désactivée** | Le `503` est lu dans la source, jamais observé — aucun serveur de test ne l'expose |
-| 8 | **Forme exacte de la réponse `ClientLogin` en cas de succès** | Lue dans la source (`SID` / `LSID=null` / `Auth`), jamais observée : aucun compte de test |
 
 Chacun de ces points est porté par une tâche dans [TASKS.md](../TASKS.md). Aucun
 ne doit être « supposé » dans le code : si un Goal en a besoin, il commence par
@@ -516,3 +663,26 @@ le constater.
 - utilisateur inconnu et mot de passe faux sont **indistinguables** (§2.1) ;
 - chemin inconnu sous `/reader/api/0/` → `401`, jamais `404` (§5) ;
 - corps d'erreur en `text/plain; charset=UTF-8` (§5).
+
+Acquis depuis l'accès à une instance personnelle *(2026-08-07)* :
+
+- **`ClientLogin` en succès** : `200`, `text/plain`, exactement trois lignes
+  `SID` / `LSID=null` / `Auth`, `SID` et `Auth` portant la même valeur (§2.1) ;
+- **le jeton de modification fait exactement 57 caractères** (§2.3) ;
+- `user-info` renvoie `userId`, `userName`, `userProfileId`, `userEmail` — ce
+  dernier pouvant être **vide** (§2.4) ;
+- **forme réelle d'un article** : racine à quatre clés, article à onze clés,
+  `origin` à trois. **`content` est absent**, **`enclosure` aussi** sur tous les
+  articles observés — l'illustration doit être cherchée dans les `<img>` du
+  contenu (§3.4) ;
+- **`categories` mélange trois formes** : états système préfixés, catégories
+  préfixées, et **étiquettes utilisateur en texte nu**. Le test d'appartenance
+  doit être une **égalité exacte** (§3.4) ;
+- **le `continuation` est bien l'identifiant décimal du dernier article
+  renvoyé**, et la page suivante ne contient **aucun doublon** (§3.5) ;
+- **un curseur invalide répète silencieusement la première page**, sans erreur
+  HTTP — donc boucle infinie possible, à détecter côté client (§3.5) ;
+- **l'absence de `continuation` est bien le seul signal de fin de flux** :
+  4645 articles renvoyés d'un coup, sans `continuation` (§3.5) ;
+- `n=100000` est **accepté sans erreur** ; aucune borne atteinte, ce qui ne veut
+  pas dire qu'il n'en existe pas (§3.5 et §6, point 1).

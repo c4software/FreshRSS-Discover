@@ -3,15 +3,18 @@ package fr.vbrosseau.freshrssdiscover.data.api
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
+import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
+import kotlinx.serialization.SerializationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -97,6 +100,53 @@ internal class FreshRssApi @Inject constructor(
         }
     }
 
+    /**
+     * Récupère une page du flux de lecture.
+     *
+     * Trois précautions, chacune tirée d'un constat (docs/freshrss-api.md §3.4
+     * et §3.5) :
+     *
+     * - l'en-tête `Authorization` est **obligatoire** ici, contrairement à
+     *   `ClientLogin` : sans lui le serveur répond `401` ;
+     * - le paramètre `c` n'est ajouté **que** si un curseur existe. Un `c` vide
+     *   ou non numérique est silencieusement ramené au début du flux : la
+     *   requête réussit, et renvoie à nouveau la première page. Envoyer un `c`
+     *   vide produirait donc une boucle infinie muette, jamais une erreur ;
+     * - le corps est désérialisé à la main plutôt que par `response.body()` :
+     *   un JSON tronqué doit devenir [ApiOutcome.MalformedResponse], pas une
+     *   exception que chaque appelant devrait rattraper.
+     *
+     * @param unreadOnly exclut les articles déjà lus, via `xt`.
+     */
+    suspend fun streamContents(
+        address: ServerAddress,
+        token: AuthToken,
+        pageSize: Int,
+        cursor: PageCursor? = null,
+        unreadOnly: Boolean = true,
+    ): ApiOutcome<StreamContentsDto> = call {
+        val response = httpClient.get(address.apiEndpoint + STREAM_CONTENTS_PATH) {
+            header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
+            parameter(PARAM_COUNT, pageSize)
+            cursor?.let { parameter(PARAM_CONTINUATION, it.value) }
+            if (unreadOnly) parameter(PARAM_EXCLUDE_TARGET, READ_STATE)
+        }
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            else -> streamContentsFrom(response.bodyAsText())
+        }
+    }
+
+    /**
+     * Les corps d'erreur de FreshRSS sont en texte brut ; un `2xx` illisible
+     * relève donc du corps malformé, pas du transport.
+     */
+    private fun streamContentsFrom(body: String): ApiOutcome<StreamContentsDto> = try {
+        ApiOutcome.Success(FreshRssJson.decodeFromString(StreamContentsDto.serializer(), body))
+    } catch (@Suppress("SwallowedException") failure: SerializationException) {
+        ApiOutcome.MalformedResponse("réponse de stream/contents illisible : ${failure.message}")
+    }
+
     private suspend fun tokenFrom(response: HttpResponse): ApiOutcome<AuthToken> {
         val auth = response.bodyAsText()
             .lineSequence()
@@ -128,7 +178,15 @@ internal class FreshRssApi @Inject constructor(
     private companion object {
         const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
         const val COMPATIBILITY_PATH = "/check/compatibility"
+        const val STREAM_CONTENTS_PATH = "/reader/api/0/stream/contents/reading-list"
         const val AUTH_PREFIX = "Auth="
+        const val AUTHORIZATION_SCHEME = "GoogleLogin auth="
+        const val PARAM_COUNT = "n"
+        const val PARAM_CONTINUATION = "c"
+        const val PARAM_EXCLUDE_TARGET = "xt"
+
+        /** Seul état utile ici : `xt` l'exclut, ce qui ne laisse que les non-lus. */
+        const val READ_STATE = "user/-/state/com.google/read"
         const val PROBE_RESPONSE = "OK"
         const val COMPATIBILITY_PASS = "PASS"
 
