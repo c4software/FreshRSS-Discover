@@ -26,6 +26,91 @@ val isScreenshotRun =
         it.contains("roborazzi", ignoreCase = true)
     }
 
+/**
+ * Version utilisée quand rien ne permet de la déduire — dépôt sans étiquette,
+ * archive téléchargée, `git` absent de la machine.
+ *
+ * Elle est **volontairement invalide comme numéro de publication** : une
+ * construction qui ne descend d'aucune étiquette n'est pas une version, et lui
+ * en donner une plausible ferait passer un artefact local pour une livraison.
+ */
+val fallbackVersionName = "0.0.0-inconnue"
+
+/**
+ * Le nom que `git describe` donne au commit construit.
+ *
+ * Trois formes, et chacune dit quelque chose de différent :
+ * - `v1.0.0` — le commit **est** l'étiquette : c'est une version ;
+ * - `v1.0.0-3-gabc1234` — trois commits après elle : ce n'en est pas une ;
+ * - `v1.0.0-3-gabc1234-dirty` — et l'arbre de travail est modifié.
+ *
+ * `RELEASE_VERSION` a la priorité, pour deux raisons pratiques : la CI connaît
+ * l'étiquette (`GITHUB_REF_NAME`) sans avoir à rapatrier tout l'historique, et
+ * une construction hors dépôt Git reste possible.
+ *
+ * `providers.exec` et non `"…".runCommand()` : c'est ce qui rend l'appel
+ * compatible avec le cache de configuration, que ce dépôt utilise. Un appel
+ * direct à `ProcessBuilder` invaliderait ce cache à chaque construction.
+ *
+ * L'échec n'est pas une erreur : `isIgnoreExitValue` puis contrôle du code de
+ * retour. `git describe` échoue légitimement dans un dépôt sans aucune
+ * étiquette, et faire échouer la construction pour cela empêcherait quiconque
+ * de compiler le projet depuis un clone frais.
+ */
+val describedVersion: String =
+    providers.environmentVariable("RELEASE_VERSION").orNull?.takeIf(String::isNotBlank)
+        ?: providers.exec {
+            commandLine("git", "describe", "--tags", "--always", "--dirty")
+            isIgnoreExitValue = true
+        }.let { execution ->
+            execution.standardOutput.asText.get().trim()
+                .takeIf { execution.result.get().exitValue == 0 && it.isNotEmpty() }
+        }
+        ?: fallbackVersionName
+
+/** Les trois nombres d'une version sémantique, où qu'ils commencent. */
+val semanticVersion = Regex("""^v?(\d+)\.(\d+)\.(\d+)""").find(describedVersion)
+
+/**
+ * Le `versionCode`, dérivé des **mêmes** nombres que le nom de version.
+ *
+ * Il ne se saisit pas à la main : deux sources de vérité pour une même version
+ * sont une divergence programmée, et c'est celle-là qu'on découvre le jour où
+ * l'on publie une 1.1 portant encore le code de la 1.0.
+ *
+ * `major × 1 000 000 + minor × 1 000 + patch` : strictement croissant avec la
+ * version tant que `minor` et `patch` restent sous 1 000, ce qui laisse de la
+ * marge, et borné bien en deçà du maximum d'un entier signé — Google Play
+ * refuse au-delà de 2 100 000 000.
+ *
+ * Le plancher à **1** n'est pas une précaution de style : Android refuse un
+ * `versionCode` nul, et le repli `0.0.0-inconnue` en produisait précisément un
+ * — l'expression régulière y trouve trois zéros. Le défaut n'était visible sur
+ * aucune construction faite depuis ce dépôt, qui a une étiquette ; il ne serait
+ * apparu que chez quelqu'un compilant depuis une archive.
+ *
+ * Une construction intermédiaire porte le code de l'étiquette dont elle
+ * descend : `v1.0.0-3-gabc1234` vaut donc autant que `v1.0.0`. C'est sans
+ * conséquence — son **nom** dit qu'elle n'est pas publiable, et rien ne la
+ * publie — mais l'installer par-dessus la version publiée est possible.
+ */
+val derivedVersionCode: Int =
+    semanticVersion
+        ?.destructured
+        ?.let { (major, minor, patch) -> major.toInt() * 1_000_000 + minor.toInt() * 1_000 + patch.toInt() }
+        ?.coerceAtLeast(1)
+        ?: 1
+
+/**
+ * Le nom affiché dans les réglages (SPECS.md §6).
+ *
+ * Le `v` initial de l'étiquette est retiré — il appartient à la convention de
+ * nommage Git, pas au numéro de version — et tout ce que `git describe` ajoute
+ * est **conservé**. C'est précisément ce qui distingue, dans une capture d'écran
+ * de rapport de bogue, une version publiée d'une construction intermédiaire.
+ */
+val derivedVersionName: String = describedVersion.removePrefix("v")
+
 android {
     namespace = "fr.vbrosseau.freshrssdiscover"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -34,8 +119,8 @@ android {
         applicationId = "fr.vbrosseau.freshrssdiscover"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = derivedVersionCode
+        versionName = derivedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -96,6 +96,29 @@ Installer sur un appareil connecté :
 ./gradlew :app:installDebug
 ```
 
+### Version
+
+Elle n'est **pas écrite dans le dépôt** : `versionName` et `versionCode` sont
+tous deux dérivés de l'étiquette Git, pour qu'ils ne puissent pas diverger.
+
+| Ce qui est construit | `versionName` | `versionCode` |
+|---|---|---|
+| l'étiquette `v1.2.13` | `1.2.13` | `1002013` |
+| trois commits après elle | `1.2.13-3-gabc1234` | `1002013` |
+| sans étiquette ni `git` | `0.0.0-inconnue` | `1` |
+
+Le nom dit donc de lui-même si la construction est publiable, ce qu'une capture
+d'écran de rapport de bogue suffit à lire. La variable `RELEASE_VERSION` prend
+le pas sur `git describe` — c'est par elle que la CI transmet l'étiquette, son
+`checkout` ne rapatriant pas l'historique.
+
+**Publier une version, c'est donc poser une étiquette** : rien d'autre à
+modifier.
+
+```bash
+git tag -a v1.1.0 -m "…" && git push origin v1.1.0
+```
+
 ### Construction de production
 
 `assembleRelease` produit un artefact **signé** si quatre variables

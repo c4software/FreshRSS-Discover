@@ -590,6 +590,22 @@ Le travail restant n'est plus de l'assemblage à rattraper : il est décrit tâc
 par tâche dans [TASKS.md](./TASKS.md), qui est le seul document à jour sur ce
 point.
 
+### 9.4 La version ne se saisit pas
+
+`versionName` et `versionCode` sont dérivés de la même étiquette Git, dans
+`app/build.gradle.kts`. Deux sources de vérité pour une même version sont une
+divergence programmée : c'est celle qu'on découvre le jour où l'on publie une
+1.1 portant encore le code de la 1.0.
+
+Le code vaut `major × 1 000 000 + minor × 1 000 + patch`, strictement croissant
+avec la version et borné loin sous le maximum accepté par Google Play. Il est
+plancher à 1, parce qu'Android refuse un code nul et que le repli `0.0.0-…` en
+produisait un.
+
+`providers.exec` plutôt qu'un appel direct à `ProcessBuilder` : le dépôt utilise
+le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
+chaque construction.
+
 ### 9.2 Ce qui est hérité du template, délibérément
 
 Le dépôt provient de `c4software/tailscale-auto-rules`, dont la logique métier a
