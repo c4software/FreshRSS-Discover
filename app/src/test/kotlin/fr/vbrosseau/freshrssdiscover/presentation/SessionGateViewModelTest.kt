@@ -6,16 +6,17 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
-import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import kotlin.test.assertEquals
 
 class SessionGateViewModelTest {
     @get:Rule
@@ -43,7 +44,7 @@ class SessionGateViewModelTest {
         override fun observeSession(): Flow<AuthSession?> = emptyFlow()
         override fun observeLastSignInHint(): Flow<SignInHint?> = emptyFlow()
         override suspend fun signIn(address: ServerAddress, credentials: Credentials) =
-            AuthResult.Failure(AuthError.NoNetwork)
+            Outcome.Failure(AuthError.NoNetwork)
         override suspend fun invalidateSession() = Unit
         override suspend fun signOut() = Unit
     }

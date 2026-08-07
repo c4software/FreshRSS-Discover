@@ -14,11 +14,12 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 internal class DefaultAuthRepository @Inject constructor(
@@ -68,12 +69,12 @@ internal class DefaultAuthRepository @Inject constructor(
         return when {
             forwarding !is ApiOutcome.Success -> failure(forwarding)
 
-            !forwarding.value -> AuthResult.Failure(AuthError.AuthorizationHeaderNotForwarded)
+            !forwarding.value -> Outcome.Failure(AuthError.AuthorizationHeaderNotForwarded)
 
             else -> {
                 val session = AuthSession(server = address, username = username, token = token)
                 sessionStore.save(session)
-                AuthResult.Success(session)
+                Outcome.Success(session)
             }
         }
     }
@@ -94,5 +95,5 @@ internal class DefaultAuthRepository @Inject constructor(
      * pendant la requête, ce qui est exactement le cas à diagnostiquer.
      */
     private fun failure(outcome: ApiOutcome<*>): AuthResult<Nothing> =
-        AuthResult.Failure(outcome.toAuthError(isOnline = network.isOnline()))
+        Outcome.Failure(outcome.toAuthError(isOnline = network.isOnline()))
 }

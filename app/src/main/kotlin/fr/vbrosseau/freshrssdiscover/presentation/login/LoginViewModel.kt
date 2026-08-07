@@ -8,13 +8,14 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -82,7 +83,7 @@ class LoginViewModel @Inject constructor(
             )
 
             when (val result = authRepository.signIn(address, credentials)) {
-                is AuthResult.Success ->
+                is Outcome.Success ->
                     /*
                      * Le mot de passe est retiré de l'état dès qu'il a servi :
                      * un `UiState` survit à l'écran qui l'affiche, et se
@@ -91,7 +92,7 @@ class LoginViewModel @Inject constructor(
                      */
                     update { it.copy(isSubmitting = false, apiPassword = "") }
 
-                is AuthResult.Failure ->
+                is Outcome.Failure ->
                     update { it.copy(isSubmitting = false, failure = LoginFailure.Server(result.error)) }
             }
         }

@@ -6,16 +6,17 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
+import org.junit.Test
 
 class LoginViewModelTest {
     @get:Rule
@@ -241,7 +242,7 @@ class LoginViewModelTest {
     @Test
     fun aServerFailureIsSurfacedWithItsCause() {
         fillValidForm()
-        repository.nextResult = AuthResult.Failure(AuthError.ApiDisabled)
+        repository.nextResult = Outcome.Failure(AuthError.ApiDisabled)
 
         viewModel.submit()
 
@@ -254,7 +255,7 @@ class LoginViewModelTest {
         // Retaper l'adresse et l'identifiant après chaque échec serait
         // pénible, et l'erreur porte souvent sur le seul mot de passe.
         fillValidForm()
-        repository.nextResult = AuthResult.Failure(AuthError.InvalidCredentials)
+        repository.nextResult = Outcome.Failure(AuthError.InvalidCredentials)
 
         viewModel.submit()
 
@@ -267,7 +268,7 @@ class LoginViewModelTest {
     @Test
     fun dismissingTheFailureKeepsTheForm() {
         fillValidForm()
-        repository.nextResult = AuthResult.Failure(AuthError.NoNetwork)
+        repository.nextResult = Outcome.Failure(AuthError.NoNetwork)
         viewModel.submit()
 
         viewModel.dismissFailure()
@@ -279,7 +280,7 @@ class LoginViewModelTest {
     @Test
     fun aNewAttemptClearsThePreviousFailure() {
         fillValidForm()
-        repository.nextResult = AuthResult.Failure(AuthError.NoNetwork)
+        repository.nextResult = Outcome.Failure(AuthError.NoNetwork)
         viewModel.submit()
 
         repository.nextResult = successFor("rss.exemple.org")
@@ -288,8 +289,8 @@ class LoginViewModelTest {
         assertNull(viewModel.uiState.value.failure)
     }
 
-    private fun successFor(raw: String): AuthResult.Success<fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession> {
+    private fun successFor(raw: String): Outcome.Success<fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession> {
         val address = (ServerAddress.parse(raw) as ServerAddressResult.Valid).address
-        return AuthResult.Success(repository.sessionOf(address))
+        return Outcome.Success(repository.sessionOf(address))
     }
 }

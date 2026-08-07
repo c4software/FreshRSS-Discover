@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ class FakeAuthRepository(
     private val session: MutableStateFlow<AuthSession?> = MutableStateFlow(null),
 ) : AuthRepository {
     /** Issue renvoyée par le prochain `signIn`, si aucune attente n'est armée. */
-    var nextResult: AuthResult<AuthSession> = AuthResult.Failure(AuthError.InvalidCredentials)
+    var nextResult: AuthResult<AuthSession> = Outcome.Failure(AuthError.InvalidCredentials)
 
     /** Arme une connexion qui ne se terminera qu'une fois [completeSignIn] appelée. */
     var pendingSignIn: CompletableDeferred<AuthResult<AuthSession>>? = null
@@ -49,7 +50,7 @@ class FakeAuthRepository(
         lastCredentials = credentials
 
         val result = pendingSignIn?.await() ?: nextResult
-        if (result is AuthResult.Success) {
+        if (result is Outcome.Success) {
             session.value = result.value
         }
         return result

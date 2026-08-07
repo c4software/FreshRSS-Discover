@@ -13,13 +13,21 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
-import fr.vbrosseau.freshrssdiscover.domain.auth.errorOrNull
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.io.File
+import java.io.IOException
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -31,13 +39,6 @@ import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
-import java.io.IOException
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAuthRepositoryTest {
@@ -113,7 +114,7 @@ class DefaultAuthRepositoryTest {
 
         val result = repository.signIn(address, credentials)
 
-        val session = assertIs<AuthResult.Success<*>>(result).value
+        val session = assertIs<Outcome.Success<*>>(result).value
         assertNotNull(session)
         assertEquals("alice/c0ffee", assertNotNull(repository.observeSession().first()).token.value)
     }

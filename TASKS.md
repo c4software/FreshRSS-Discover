@@ -29,10 +29,9 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 ## Phase courante
 
 **Phase 0 — Harness** ✅ terminée
-**Phase 1 — API FreshRSS** — GOAL-002 terminé, GOAL-003 non commencé
+**Phase 1 — API FreshRSS** — GOAL-002 terminé, GOAL-003 en cours
 
-Prochaine action : `/goal Implémenter la récupération paginée des articles`
-(GOAL-003 existe déjà et n'est pas encore découpé en tâches).
+Prochaine tâche : `GOAL-003-T01`.
 
 ---
 
@@ -42,7 +41,7 @@ Prochaine action : `/goal Implémenter la récupération paginée des articles`
 |---|---|---|
 | GOAL-001 | Harness et initialisation | `[x]` |
 | GOAL-002 | Authentification FreshRSS | `[x]` |
-| GOAL-003 | Récupération paginée des articles | `[ ]` |
+| GOAL-003 | Récupération paginée des articles | `[-]` |
 | GOAL-004 | Cache local et résilience réseau | `[ ]` |
 | GOAL-005 | Mélange des sources | `[ ]` |
 | GOAL-006 | Flux Discover — interface | `[ ]` |
@@ -202,10 +201,14 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [ ] `GOAL-002-T18` **`KeystoreSecretCipher` n'est couvert par aucun test** —
       Robolectric ne simule pas `AndroidKeyStore`. À éprouver sur appareil, ou
       par un test instrumenté, avant toute publication.
-- [ ] `GOAL-002-T19` **Deux points de l'API restent non constatés** : la réponse
+- [!] `GOAL-002-T19` **Deux points de l'API restent non constatés** : la réponse
       de succès de `ClientLogin` et le `503` d'une API désactivée
-      (docs/freshrss-api.md §6, points 7 et 8). Le serveur de démonstration n'a
-      pas de mot de passe API exploitable.
+      (docs/freshrss-api.md §6, points 7 et 8).
+      > `demo/demodemo` sont les identifiants **web** de
+      > `https://demo.freshrss.org/`, et `ClientLogin` les refuse en `401` :
+      > ce point d'entrée n'accepte que le **mot de passe API**, défini
+      > séparément dans *Profil → Mot de passe API*, et absent de cette instance
+      > publique. À reprendre sur une instance personnelle.
 - [ ] `GOAL-002-T20` **Aucun appel authentifié n'existe encore**, donc rien
       n'appelle `invalidateSession()`. Le mécanisme est en place et testé ; son
       déclencheur arrive avec GOAL-003.
@@ -214,14 +217,30 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 
 ## GOAL-003 — Récupération paginée des articles
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS**
 
 Couvre SPECS.md §4.1 et §4.4. Point délicat : le curseur `continuation` est
 relatif et non positionnel, et un curseur invalide provoque une **répétition
 silencieuse de la première page** — voir docs/freshrss-api.md §3.5 et
-ARCHITECTURE.md §4.1.
+ARCHITECTURE.md §4.2.
 
-Tranche aussi SPECS.md §8 question 1 (taille de page).
+Tranche SPECS.md §8 question 1 (taille de page).
+
+- [x] `GOAL-003-T01` Généraliser `AuthResult` en `Outcome<T, E>` — l'échec des
+      articles est le deuxième cas d'usage, donc le moment prévu par AGENTS.md §2
+      pour créer l'abstraction, pas avant
+- [ ] `GOAL-003-T02` Modèles de `:domain` : `Article`, `ArticleId`, `FeedRef`,
+      `PageCursor`, `ArticlePage`, `FeedError`
+- [ ] `GOAL-003-T03` DTO de `stream/contents` et désérialisation — champs
+      facultatifs, unités de temps hétérogènes, `categories` porteur de l'état lu
+- [ ] `GOAL-003-T04` Conversion DTO → domaine : identifiant hexadécimal vers
+      décimal, extraction de l'illustration, article sans lien exploitable
+- [ ] `GOAL-003-T05` `FreshRssApi.streamContents()` — en-tête d'autorisation,
+      `n`, `c`, `xt`, et l'absence de `continuation` comme seul signal de fin
+- [ ] `GOAL-003-T06` `ArticleRepository` : interface `:domain`, implémentation
+      `:app/data`, et `401` → `invalidateSession()` (lève `GOAL-002-T20`)
+- [ ] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8
+- [ ] `GOAL-003-T08` Mettre à jour `ARCHITECTURE.md` §9
 
 ---
 
