@@ -528,7 +528,7 @@ Tranche SPECS.md §8 question 4.
 
 ## GOAL-009 — Tirer-pour-rafraîchir
 
-**Statut : IN PROGRESS** — reste à valider sur appareil
+**Statut : DONE** — validé sur appareil
 
 Couvre SPECS.md §4.6.
 
@@ -550,9 +550,11 @@ Couvre SPECS.md §4.6.
       pouvait presque jamais aboutir. La date de publication part désormais avec
       l'identifiant, et `ReadingPosition` reprend au plus proche, ce que §5.3
       demandait déjà
-- [ ] `GOAL-009-T06` **Valider sur appareil** : rechargement au tirage, remontée
-      automatique, et reprise de position après un arrêt forcé. Le téléphone
-      s'est déconnecté avant que je puisse le faire
+- [x] `GOAL-009-T06` **Validé sur appareil** (Pixel 10 Pro, Android 17) :
+      tirage → la liste est vidée, rechargée et remontée en haut ; six écrans de
+      défilement puis un `am force-stop` → l'application rouvre exactement sur
+      l'article qui était en tête. C'est cet essai qui avait révélé le défaut de
+      reprise corrigé en `GOAL-009-T05`
 
 ---
 
@@ -618,7 +620,8 @@ Couvre SPECS.md §6.
 
 ## GOAL-012 — Vue Balayage, article par article
 
-**Statut : IN PROGRESS** — le mode existe et se choisit ; `T05` reste ouvert
+**Statut : IN PROGRESS** — le mode existe, se choisit et a été essayé sur
+appareil ; `T05` reste ouvert
 
 Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
 alternatif : un article en plein écran, balayage horizontal pour passer au
@@ -659,10 +662,12 @@ suivant, comme les Stories d'un réseau social.
 - [x] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
       par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que
       l'application reste utilisable, et un geste unique ne le garantit pas
-- [-] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
-      **et regardées** : six images enregistrées. L'exécution réelle sur
-      appareil reste à faire, et c'est elle qui compte : le mode Liste a montré
-      que trois défauts sur trois n'étaient visibles qu'ainsi
+- [x] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
+      **et regardées** : six images enregistrées. Puis **exécution réelle sur
+      appareil** (Pixel 10 Pro, Android 17), qui est ce qui compte : le mode
+      Liste avait montré que trois défauts sur trois n'étaient visibles
+      qu'ainsi. Le réglage bascule, le mode se relit au démarrage suivant, le
+      balayage passe à l'article suivant et « Précédent » s'active alors
 
 ### Question tranchée
 
