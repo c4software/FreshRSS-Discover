@@ -293,12 +293,10 @@ Couvre SPECS.md §5.
       `purgeReadOlderThan` — 12 tests sur base en mémoire
 - [x] `GOAL-004-T04` Câbler l'écriture : chaque page récupérée est déposée au
       cache, et la déconnexion le vide (SPECS.md §3.5)
-- [ ] `GOAL-004-T05` Câbler la **lecture** : afficher le cache immédiatement au
-      lancement, avant toute requête (SPECS.md §5.1). Demande d'étendre
-      l'interface `ArticleRepository`, ce qui n'était pas possible tant que
-      l'écran Discover était écrit en parallèle
-- [ ] `GOAL-004-T06` Repli sur le cache hors ligne (SPECS.md §5.2) : le flux
-      reste consultable, l'état est signalé sans être alarmant
+- [x] `GOAL-004-T05` `observeCachedArticles()` : le cache s'affiche avant toute
+      requête (SPECS.md §5.1)
+- [x] `GOAL-004-T06` Repli hors ligne (SPECS.md §5.2) — côté dépôt. **Reste à
+      l'écran** de montrer le contenu du cache sans afficher une erreur bloquante
 - [ ] `GOAL-004-T07` Déclencher la purge et trancher son seuil (SPECS.md §8
       question 3) — `purgeReadOlderThan` n'est appelée nulle part
 - [ ] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
@@ -324,12 +322,11 @@ Cœur de l'application (SPECS.md §4.2). Tranche SPECS.md §8 question 2.
       14 tests, 100 % de couverture
 - [x] `GOAL-005-T02` Inscrire dans SPECS.md §4.2 l'arbitrage entre les règles 1
       et 2, que la spécification ne tranchait pas
-- [ ] `GOAL-005-T03` **Appliquer le mélange au flux réel.** La fonction n'est
-      appelée nulle part : c'est du code mort tant que le dépôt ou le ViewModel
-      ne s'en sert pas (AGENTS.md §2)
-- [ ] `GOAL-005-T04` Cas du rafraîchissement (SPECS.md §4.6) : le mélange ne doit
-      porter que sur les **nouveaux** articles, l'ancienne tête servant de
-      `previousTail`. La signature actuelle ne couvre pas ce cas
+- [x] `GOAL-005-T03` **Mélange appliqué** : `loadPage` et `refresh` rendent
+      désormais l'ordre d'affichage. La fonction n'est plus du code mort
+- [x] `GOAL-005-T04` Cas du rafraîchissement tranché : `refresh()` mélange la
+      première page **entre ses seuls articles** — rien ne la précède — et le
+      dédoublonnage revient à l'appelant, seul à savoir ce qui est à l'écran
 
 ### Décisions prises
 
@@ -394,12 +391,25 @@ Couvre SPECS.md §4.5.
       seuils injectés, `Clock` pour le temps — 18 tests, 100 % de couverture
 - [x] `GOAL-007-T02` Lever les deux ambiguïtés de SPECS.md §4.5 que
       l'implémentation a révélées
-- [ ] `GOAL-007-T03` **Mesurer réellement la visibilité** dans la liste Discover
-      et alimenter le détecteur. C'est la moitié difficile de ce Goal
-- [ ] `GOAL-007-T04` **Émettre une observation périodique quand la liste est
-      immobile.** Sans cela, un article resté dix secondes à l'écran ne sera
-      jamais marqué lu : la durée ne s'écoule pas toute seule
-- [ ] `GOAL-007-T05` Relier le détecteur au marquage optimiste et au cache
+- [x] `GOAL-007-T03` Mesure de la visibilité dans la `LazyColumn` — fonction
+      pure `visibleFraction`, 22 tests
+- [x] `GOAL-007-T04` Observation périodique à 200 ms, arrêtée hors premier plan
+- [x] `GOAL-007-T05` Détecteur relié au marquage optimiste : `markAsRead` puis
+      `flush`, et rejeu au démarrage
+- [x] `GOAL-007-T06` `onVisibilityChanged` passé depuis `AppNavHost` — la mesure
+      s'exécute réellement
+- [x] `GOAL-007-T07` `ReadDetector` construit depuis les réglages observés, et
+      reconstruit à chaque changement — sans redémarrage
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| La fraction se mesure sur `min(hauteur de l'article, hauteur de la fenêtre)` | Un article plus haut que l'écran plafonnerait sinon sous 60 % et ne serait **jamais** marqué lu |
+| Cadence d'observation à 200 ms | Le retard maximal vaut une période : le seuil d'une seconde se déclenche entre 1,0 s et 1,2 s. À 16 ms on réveillerait la coroutine 60 fois par seconde pour une règle dont l'unité est la seconde ; à 1 s on pourrait doubler le seuil annoncé |
+| Observation liée à `RESUMED`, pas `STARTED` | `STARTED` inclut l'écran derrière une boîte de dialogue : des articles seraient marqués lus sans être lus |
+| `onVisibilityChanged` **nullable**, nul par défaut | Armer une boucle périodique sans destinataire brûlerait de la batterie et rendrait les tests de rendu perpétuellement occupés. `null` dit « personne n'écoute », ce qu'un `{}` ne peut pas exprimer |
+| `ReadDetector` construit dans le ViewModel, non injecté | Son état est propre à cette liste ; injecté, il survivrait à l'écran et croirait déjà signalés des articles réaffichés |
 
 ### Décisions prises
 
@@ -422,13 +432,18 @@ Couvre SPECS.md §4.5.
       `DatabaseModule`, avec `providePendingMarkDao`. Sans elle, tout appareil
       déjà en version 1 aurait planté au premier accès — invisible aux tests,
       qui construisent la base en mémoire, donc toujours à la version courante
-- [ ] `GOAL-008-T04` Orchestrer : `enqueue` → jeton → `markAsRead` →
-      `acknowledge`, plus le rejeu au démarrage
-- [ ] `GOAL-008-T05` Sur `401` pendant `markAsRead`, redemander **une fois** le
-      jeton de modification avant de conclure à une perte de session
-- [ ] `GOAL-008-T06` Vider la file à la déconnexion, là où le cache l'est déjà
-- [ ] `GOAL-008-T07` Trancher la taille de lot et le délai de regroupement
-      (SPECS.md §8 question 4)
+- [x] `GOAL-008-T04` `ReadSyncRepository` : marquage optimiste, lots de 100,
+      acquittement après confirmation, rejeu au démarrage — 30 tests
+- [x] `GOAL-008-T05` Sur `401`, le jeton de modification est redemandé **une
+      seule fois** ; un second `401` conclut à une session perdue **sans vider
+      la file**
+- [x] `GOAL-008-T06` La déconnexion vide la file, là où le cache l'est déjà
+- [x] `GOAL-008-T08` Le marquage local repasse par `ArticleCache` et non par le
+      DAO. L'agent avait dû court-circuiter l'enveloppe, faute d'accès en
+      écriture dans son périmètre ; il l'a signalé plutôt que de le taire
+- [x] `GOAL-008-T07` Taille de lot tranchée : **100**. Reste à trancher le
+      **délai de regroupement** — le marquage part aujourd'hui à chaque lot
+      détecté, sans temporisation
 
 ### Décisions prises
 
@@ -439,6 +454,8 @@ Couvre SPECS.md §4.5.
 | `acknowledge` distincte de `pending` | Retirer avant confirmation perdrait le marquage sur un échec réseau — précisément ce que la file existe pour empêcher |
 | Migration réelle, pas de `fallbackToDestructiveMigration` | Une migration destructive viderait le cache et **les marquages non transmis** de tout utilisateur existant |
 | La longueur du jeton n'est pas validée | Un jeton refusé se signale par un `401`, pas par sa taille |
+| Lot de **100** articles | Par le bas : une page fait 40 articles, un lot plus petit ferait plusieurs requêtes pour une page parcourue. Par le haut : chaque article est un champ `i`, et PHP n'accepte par défaut que 1 000 champs (`max_input_vars`) — au-delà **les champs excédentaires sont ignorés en silence**, et `edit-tag` répond `OK` sans compte-rendu. La perte serait totalement muette |
+| Un `5xx` sur `/token` ne déconnecte pas | Seul un `401` signifie « jeton refusé ». Une panne serveur ferait sinon perdre la session à chaque hoquet |
 
 > ⚠️ **Piège identifié d'avance.** Un identifiant d'article dépassant
 > `Long.MAX_VALUE` est conservé sous forme de bits, donc **négatif** en Kotlin.
@@ -456,10 +473,15 @@ Tranche SPECS.md §8 question 4.
 
 ## GOAL-009 — Tirer-pour-rafraîchir
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — la moitié « données » est livrée
 
-Couvre SPECS.md §4.6. Contrainte forte : préserver la position de lecture et ne
-pas réordonner l'existant.
+Couvre SPECS.md §4.6.
+
+- [x] `GOAL-009-T01` `ArticleRepository.refresh()` — rend la première page du
+      jour, sans toucher au curseur de pagination
+- [ ] `GOAL-009-T02` Le geste lui-même dans `DiscoverScreen`, et l'indicateur
+- [ ] `GOAL-009-T03` Insertion **en tête** des seuls articles inconnus, sans
+      réordonner l'existant ni perdre la position de lecture
 
 ---
 
@@ -502,9 +524,9 @@ Couvre SPECS.md §6.
       issues sont testées, l'annulation n'appelle pas `signOut()`
 - [x] `GOAL-011-T03` Écran branché sur la destination Réglages, dernier
       `PlaceholderScreen` retiré (lève `GOAL-001-T15`)
-- [ ] `GOAL-011-T04` **Persister les seuils de marquage.** Aucun stockage de
-      réglages n'existe : les valeurs affichées **recopient** les défauts privés
-      de `ReadDetector`, et rien n'empêche les deux déclarations de diverger
+- [x] `GOAL-011-T04` **Seuils modifiables et persistés**, curseurs à crans,
+      bornes validées dans le domaine — 36 tests. La duplication des défauts est
+      supprimée : l'affichage observe le dépôt, il ne recopie plus rien
 - [ ] `GOAL-011-T05` Mesurer la taille du cache et brancher la purge manuelle —
       le bouton est volontairement **désactivé plutôt qu'absent**, pour que la
       fonctionnalité soit annoncée

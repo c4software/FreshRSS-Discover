@@ -16,6 +16,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -27,6 +28,7 @@ internal class DefaultAuthRepository @Inject constructor(
     private val api: FreshRssApi,
     private val sessionStore: SessionStore,
     private val articleCache: ArticleCache,
+    private val readSyncRepository: ReadSyncRepository,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
@@ -88,15 +90,21 @@ internal class DefaultAuthRepository @Inject constructor(
     }
 
     /**
-     * Efface la session **et le cache**.
+     * Efface la session, le cache **et les marquages en attente**.
      *
      * SPECS.md §3.5 : la déconnexion est destructrice et assumée comme telle.
      * Laisser les articles derrière soi exposerait ce que l'utilisateur lisait
      * au prochain compte connecté sur l'appareil.
+     *
+     * La file de marquages part avec eux, et c'est le seul cas où elle est vidée
+     * sans confirmation du serveur : ces marquages désignent des articles qui
+     * n'existent plus localement, et les transmettre après une reconnexion sur
+     * un **autre** compte serait pire que de les perdre.
      */
     override suspend fun signOut() = withContext(ioDispatcher) {
         sessionStore.clear()
         articleCache.clear()
+        readSyncRepository.clearPending()
     }
 
     /**

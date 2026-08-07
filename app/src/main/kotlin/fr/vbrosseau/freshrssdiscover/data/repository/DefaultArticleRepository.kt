@@ -9,13 +9,17 @@ import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedResult
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
+import fr.vbrosseau.freshrssdiscover.domain.shuffle.interleaveBySource
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,24 +44,86 @@ internal class DefaultArticleRepository @Inject constructor(
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ArticleRepository {
-    override suspend fun loadPage(cursor: PageCursor?): FeedResult<ArticlePage> = withContext(ioDispatcher) {
-        val session = sessionStore.observeSession().first()
+    /**
+     * Dernier article rendu par la pagination, ou rien avant la première page.
+     *
+     * Le mélange a besoin de savoir ce qui précède pour que la règle 4 de
+     * SPECS.md §4.2 tienne à la jonction entre deux pages. Cet état vit ici
+     * plutôt que chez l'appelant pour une raison mécanique : `loadPage` ne
+     * prend pas la fin de page en paramètre, et lui en ajouter un ferait porter
+     * à l'écran une contrainte de l'algorithme de mélange, qu'il ne peut pas
+     * satisfaire sans savoir combien d'éléments la règle consomme.
+     *
+     * Un seul article est conservé : la monotonie ne se juge qu'entre voisins
+     * immédiats, retenir la page entière garderait quarante articles en mémoire
+     * pour n'en lire qu'un.
+     *
+     * Ni verrou ni volatile : les chargements sont sérialisés par l'appelant,
+     * et l'unique conséquence d'un entrelacement serait une jonction moins bien
+     * répartie — jamais un état incohérent.
+     */
+    private var paginationTail: List<Article> = emptyList()
 
-        if (session == null) {
-            /*
-             * Aucune session : l'aiguillage racine a déjà dû basculer vers
-             * l'écran de connexion. Le signaler quand même plutôt que de
-             * renvoyer une page vide, qui se lirait comme « plus d'articles ».
-             */
-            Outcome.Failure(FeedError.SessionExpired)
-        } else {
-            api.streamContents(
-                address = session.server,
-                token = session.token,
-                pageSize = PAGE_SIZE,
-                cursor = cursor,
-            ).toFeedResult()
+    override suspend fun loadPage(cursor: PageCursor?): FeedResult<ArticlePage> = withContext(ioDispatcher) {
+        // Rien ne précède le début du flux : un rechargement complet doit
+        // produire exactement le même ordre que le premier affichage (règle 3).
+        if (cursor == null) paginationTail = emptyList()
+        fetchPage(cursor, continuesPagination = true)
+    }
+
+    /**
+     * Le mélange repart de zéro et la continuité de la pagination n'est pas
+     * touchée : la page rendue est la tête du flux, alors que [paginationTail]
+     * en décrit le bas.
+     */
+    override suspend fun refresh(): FeedResult<ArticlePage> = withContext(ioDispatcher) {
+        fetchPage(cursor = null, continuesPagination = false)
+    }
+
+    /**
+     * Les articles lus sont écartés ici, faute de pouvoir l'être par la requête.
+     *
+     * Le cache les conserve jusqu'à la purge (SPECS.md §5.3) alors que le flux
+     * ne présente que des non-lus (§4.1). La borne s'applique donc avant le
+     * filtrage : un cache chargé d'articles lus rend une liste plus courte que
+     * demandée — sans conséquence, la première page réseau la complète aussitôt.
+     */
+    override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
+        cache.observeArticles(limit).map { articles ->
+            interleaveBySource(articles.filterNot(Article::isRead))
         }
+
+    private suspend fun fetchPage(
+        cursor: PageCursor?,
+        continuesPagination: Boolean,
+    ): FeedResult<ArticlePage> {
+        /*
+         * Aucune session : l'aiguillage racine a déjà dû basculer vers l'écran
+         * de connexion. Le signaler quand même plutôt que de renvoyer une page
+         * vide, qui se lirait comme « plus d'articles ».
+         */
+        val session = sessionStore.observeSession().first() ?: return Outcome.Failure(FeedError.SessionExpired)
+
+        return api.streamContents(
+            address = session.server,
+            token = session.token,
+            pageSize = PAGE_SIZE,
+            cursor = cursor,
+        ).toFeedResult(continuesPagination)
+    }
+
+    /**
+     * Applique le mélange (SPECS.md §4.2) à la page rendue.
+     *
+     * Le cache, lui, reçoit l'ordre du serveur : il est relu trié par date, et
+     * le mélange y est réappliqué à la lecture. Persister un ordre déjà mélangé
+     * n'apporterait rien et le figerait alors que de nouveaux articles doivent
+     * pouvoir s'y insérer.
+     */
+    private fun ArticlePage.interleaved(continuesPagination: Boolean): ArticlePage {
+        val ordered = interleaveBySource(articles, if (continuesPagination) paginationTail else emptyList())
+        if (continuesPagination) paginationTail = listOfNotNull(ordered.lastOrNull())
+        return copy(articles = ordered)
     }
 
     /**
@@ -68,11 +134,13 @@ internal class DefaultArticleRepository @Inject constructor(
      * ici plutôt que par l'appelant : un appelant qui l'oublierait produirait un
      * cache incomplet, et le défaut ne se verrait qu'au lancement suivant.
      */
-    private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(): FeedResult<ArticlePage> = when (this) {
+    private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(
+        continuesPagination: Boolean,
+    ): FeedResult<ArticlePage> = when (this) {
         is ApiOutcome.Success -> {
             val page = value.toArticlePage()
             cache.save(page.articles)
-            Outcome.Success(page)
+            Outcome.Success(page.interleaved(continuesPagination))
         }
 
         is ApiOutcome.HttpError -> httpFailure(status)

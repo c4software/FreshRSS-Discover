@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.BuildConfig
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
+import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
+import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.presentation.UiStateSharing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,18 +16,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/*
- * TODO(GOAL-011) : ces deux valeurs recopient les défauts de `ReadDetector`
- *  parce qu'aucun stockage de réglages n'existe encore. Tant qu'il manque, les
- *  seuils de SPECS.md §4.5 sont affichés mais ni modifiables ni persistés, et
- *  rien n'empêche les deux déclarations de diverger.
- */
-private const val DEFAULT_VISIBLE_FRACTION_PERCENT = 60
-private const val DEFAULT_CONTINUOUS_VISIBILITY_SECONDS = 1
+private const val PERCENT = 100f
+private const val MILLIS_PER_SECOND = 1_000L
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
     /**
      * Séparée de la session : la confirmation est un état d'interface, la
@@ -35,15 +32,34 @@ class SettingsViewModel @Inject constructor(
      */
     private val signOutConfirmation = MutableStateFlow(false)
 
+    /**
+     * Les seuils affichés viennent du dépôt, jamais d'une copie locale.
+     *
+     * C'est le cœur de GOAL-011-T04 : la valeur montrée est celle qui sera
+     * relue par le détecteur de lecture. Une modification n'est pas appliquée
+     * à l'état d'interface puis enregistrée « aussi » — elle est enregistrée,
+     * et l'affichage suit parce qu'il observe la même source. Les deux ne
+     * peuvent donc pas diverger, même si une écriture échoue.
+     */
     val uiState: StateFlow<SettingsUiState> = combine(
         authRepository.observeSession(),
+        settingsRepository.observeReadingSettings(),
         signOutConfirmation,
-    ) { session, confirming -> stateOf(session, confirming) }
+    ) { session, settings, confirming -> stateOf(session, settings, confirming) }
         .stateIn(
             scope = viewModelScope,
             started = UiStateSharing,
-            initialValue = stateOf(session = null, confirming = false),
+            initialValue = stateOf(session = null, settings = ReadingSettings.Default, confirming = false),
         )
+
+    /** @param percent une position du curseur, donc déjà dans les bornes du domaine. */
+    fun setVisibleFractionPercent(percent: Int) {
+        viewModelScope.launch { settingsRepository.setVisibleFraction(percent / PERCENT) }
+    }
+
+    fun setContinuousVisibilitySeconds(seconds: Int) {
+        viewModelScope.launch { settingsRepository.setContinuousVisibilityMillis(seconds * MILLIS_PER_SECOND) }
+    }
 
     /**
      * Demande la confirmation plutôt que de déconnecter.
@@ -71,10 +87,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { authRepository.signOut() }
     }
 
-    private fun stateOf(session: AuthSession?, confirming: Boolean): SettingsUiState = SettingsUiState(
+    private fun stateOf(
+        session: AuthSession?,
+        settings: ReadingSettings,
+        confirming: Boolean,
+    ): SettingsUiState = SettingsUiState(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
-        visibleFractionPercent = DEFAULT_VISIBLE_FRACTION_PERCENT,
-        continuousVisibilitySeconds = DEFAULT_CONTINUOUS_VISIBILITY_SECONDS,
+        visibleFraction = visibleFractionThresholdOf(settings),
+        continuousVisibility = continuousVisibilityThresholdOf(settings),
         appVersion = BuildConfig.VERSION_NAME,
         isSignOutConfirmationVisible = confirming,
     )

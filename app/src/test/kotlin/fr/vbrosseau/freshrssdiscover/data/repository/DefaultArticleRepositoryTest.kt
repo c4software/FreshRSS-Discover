@@ -21,6 +21,7 @@ import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
 import fr.vbrosseau.freshrssdiscover.domain.core.valueOrNull
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
+import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -48,6 +49,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** Plus large que ce que les tests écrivent : la borne n'est jamais ce qu'ils éprouvent. */
+private const val CACHE_LIMIT = 100
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DefaultArticleRepositoryTest {
@@ -60,6 +64,7 @@ class DefaultArticleRepositoryTest {
     private val server = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
     private var online = true
     private var lastRequest: HttpRequestData? = null
+    private var servedResponses = 0
 
     private lateinit var sessionStore: SessionStore
     private lateinit var dataStore: DataStore<Preferences>
@@ -82,6 +87,12 @@ class DefaultArticleRepositoryTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
 
+                is MockEngineResponse.Bodies -> respond(
+                    content = respond.texts[servedResponses++],
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+
                 // Une **nouvelle** exception à chaque appel : relancer la même
                 // instance la fait décorer deux fois par la pile de coroutines,
                 // et elle finit par échapper au rattrapage.
@@ -92,23 +103,32 @@ class DefaultArticleRepositoryTest {
         return DefaultArticleRepository(
             api = FreshRssApi(createFreshRssHttpClient(engine)),
             sessionStore = sessionStore,
-            cache = articleCache(),
+            cache = cache,
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
     }
 
-    /** Base en mémoire : le dépôt dépose chaque page au cache avant de la rendre. */
-    private fun articleCache(): ArticleCache {
+    /**
+     * Base en mémoire, partagée par le dépôt et par le test.
+     *
+     * Le test doit pouvoir garnir le cache **avant** que le dépôt n'existe :
+     * c'est exactement la situation d'un lancement d'application, où le contenu
+     * précède la première requête.
+     */
+    private val cache: ArticleCache by lazy {
         val database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        return ArticleCache(database.articleDao(), Clock { 0L })
+        ArticleCache(database.articleDao(), Clock { 0L })
     }
 
     private sealed interface MockEngineResponse {
         data class Body(val text: String, val status: HttpStatusCode = HttpStatusCode.OK) : MockEngineResponse
+
+        /** Réponses servies dans l'ordre, pour éprouver deux pages successives. */
+        data class Bodies(val texts: List<String>) : MockEngineResponse
 
         data class Failure(val newCause: () -> Throwable) : MockEngineResponse
     }
@@ -117,6 +137,28 @@ class DefaultArticleRepositoryTest {
         sessionStore.save(
             AuthSession(server = server, username = "alice", token = AuthToken("alice/c0ffee")),
         )
+    }
+
+    /**
+     * Une page dont chaque article porte le flux demandé.
+     *
+     * Les identifiants voyagent en hexadécimal, les dates décroissent avec eux :
+     * l'ordre du serveur est ainsi celui de la liste, et une inversion due au
+     * mélange devient lisible dans l'assertion.
+     */
+    private fun page(
+        vararg items: Pair<Long, String>,
+        continuation: String? = null,
+    ): String {
+        val entries = items.joinToString(",") { (id, feedId) ->
+            """
+            {"id":"tag:google.com,2005:reader/item/${"%016x".format(id)}","title":"Article $id",
+             "published":${1_700_000_000L - id},
+             "origin":{"streamId":"$feedId","title":"Flux $feedId"}}
+            """.trimIndent()
+        }
+        val tail = continuation?.let { ""","continuation":"$it"""" }.orEmpty()
+        return """{"items":[$entries]$tail}"""
     }
 
     private val onePage = """
@@ -326,6 +368,166 @@ class DefaultArticleRepositoryTest {
         val page = assertNotNull(repository.loadPage().valueOrNull())
 
         assertEquals(listOf("Conservé"), page.articles.map { it.title })
+    }
+
+    @Test
+    fun theCachedFeedIsReadableBeforeAnyRequest() = runTest {
+        // SPECS.md §5.1 : un écran vide pendant une requête donnerait
+        // l'impression d'une application sans contenu, alors qu'elle en a.
+        cache.save(listOf(article(id = 1L, title = "Déjà là")))
+        val repository = repository(MockEngineResponse.Body(onePage))
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first()
+
+        assertEquals(listOf("Déjà là"), cached.map { it.title })
+        assertNull(lastRequest, "aucune requête ne doit précéder l'affichage du cache")
+    }
+
+    @Test
+    fun readArticlesAreNotShownFromTheCache() = runTest {
+        // Le cache garde les articles lus jusqu'à la purge (SPECS.md §5.3), le
+        // flux ne présente que des non-lus (§4.1).
+        cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
+        val repository = repository(MockEngineResponse.Body(onePage))
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first()
+
+        assertEquals(listOf("Non lu"), cached.map { it.title })
+    }
+
+    @Test
+    fun offlineTheCachedFeedRemainsReadable() = runTest {
+        // SPECS.md §5.2 : sans réseau, le flux reste consultable.
+        online = false
+        cache.save(listOf(article(id = 1L, title = "Hors ligne")))
+        val repository = repository(MockEngineResponse.Failure { IOException("pas de réseau") })
+        signedIn()
+
+        val result = repository.loadPage()
+
+        assertEquals(FeedError.NoNetwork, result.errorOrNull())
+        assertEquals(listOf("Hors ligne"), repository.observeCachedArticles(CACHE_LIMIT).first().map { it.title })
+    }
+
+    @Test
+    fun offlineWithAnEmptyCacheIsAFailureNotAnEndOfFeed() = runTest {
+        // Le piège : rendre le cache sous forme de page ferait afficher « vous
+        // avez tout lu » à un utilisateur simplement privé de réseau, un
+        // `nextCursor` nul ne signifiant rien d'autre que la fin du flux.
+        online = false
+        val repository = repository(MockEngineResponse.Failure { IOException("pas de réseau") })
+        signedIn()
+
+        val result = repository.loadPage()
+
+        assertEquals(FeedError.NoNetwork, result.errorOrNull())
+        assertNull(result.valueOrNull())
+        assertTrue(repository.observeCachedArticles(CACHE_LIMIT).first().isEmpty())
+    }
+
+    @Test
+    fun aNetworkPageFeedsTheCache() = runTest {
+        val repository = repository(MockEngineResponse.Body(onePage))
+        signedIn()
+
+        repository.loadPage()
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first()
+        assertEquals(listOf("Un titre"), cached.map { it.title })
+    }
+
+    @Test
+    fun twoArticlesOfTheSameSourceAreSeparatedWhenAnotherSourceExists() = runTest {
+        // SPECS.md §4.2, règle 1 : un flux prolifique ne doit pas occuper
+        // l'écran d'affilée.
+        val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")))
+        signedIn()
+
+        val page = assertNotNull(repository.loadPage().valueOrNull())
+
+        assertEquals(listOf("feed/1", "feed/2", "feed/1"), page.articles.map { it.feed.id })
+    }
+
+    @Test
+    fun theMixKeepsItsContinuityAcrossTwoPages() = runTest {
+        // Règle 4 : la jonction entre deux pages obéit à la règle 1. Le dépôt
+        // est le seul à savoir comment il a ordonné la page précédente.
+        val repository = repository(
+            MockEngineResponse.Bodies(
+                listOf(
+                    page(1L to "feed/1", continuation = "45219"),
+                    page(2L to "feed/1", 3L to "feed/2"),
+                ),
+            ),
+        )
+        signedIn()
+
+        val first = assertNotNull(repository.loadPage().valueOrNull())
+        val second = assertNotNull(repository.loadPage(first.nextCursor).valueOrNull())
+
+        assertEquals("feed/1", first.articles.single().feed.id)
+        assertEquals(listOf("feed/2", "feed/1"), second.articles.map { it.feed.id })
+    }
+
+    @Test
+    fun askingForTheFirstPageAgainRestartsTheMixFromScratch() = runTest {
+        // Règle 3 : le même ensemble d'articles produit le même ordre. Une fin
+        // de page rémanente ferait dépendre le premier écran de ce qui a été
+        // affiché avant lui.
+        val body = page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")
+        val repository = repository(MockEngineResponse.Body(body))
+        signedIn()
+
+        val first = assertNotNull(repository.loadPage().valueOrNull())
+        val again = assertNotNull(repository.loadPage().valueOrNull())
+
+        assertEquals(first.articles, again.articles)
+    }
+
+    @Test
+    fun refreshAsksForTheHeadOfTheFeed() = runTest {
+        // SPECS.md §4.6 : le rafraîchissement redemande le début, sans curseur.
+        val repository = repository(MockEngineResponse.Body(onePage))
+        signedIn()
+
+        repository.loadPage(cursor = PageCursor("45219"))
+        repository.refresh()
+
+        assertNull(lastRequest?.url?.parameters?.get("c"))
+    }
+
+    @Test
+    fun refreshLosesNoArticle() = runTest {
+        // Le mélange est une permutation exacte : rafraîchir ne doit rien
+        // écarter, pas même un article déjà affiché.
+        val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")))
+        signedIn()
+
+        val refreshed = assertNotNull(repository.refresh().valueOrNull())
+
+        assertEquals(setOf(1L, 2L, 3L), refreshed.articles.map { it.id.value }.toSet())
+    }
+
+    @Test
+    fun refreshDoesNotDisturbThePaginationContinuity() = runTest {
+        // La page rafraîchie est la tête du flux ; la fin de page conservée
+        // décrit son bas. Les confondre réordonnerait la jonction suivante.
+        val repository = repository(
+            MockEngineResponse.Bodies(
+                listOf(
+                    page(1L to "feed/1", continuation = "45219"),
+                    page(9L to "feed/2"),
+                    page(2L to "feed/1", 3L to "feed/2"),
+                ),
+            ),
+        )
+        signedIn()
+
+        val first = assertNotNull(repository.loadPage().valueOrNull())
+        repository.refresh()
+        val second = assertNotNull(repository.loadPage(first.nextCursor).valueOrNull())
+
+        assertEquals(listOf("feed/2", "feed/1"), second.articles.map { it.feed.id })
     }
 
     @Test

@@ -45,6 +45,21 @@ internal interface ArticleDao {
     }
 
     /**
+     * Bascule des articles à « lu » **localement**, sans rien attendre du
+     * serveur.
+     *
+     * C'est le geste optimiste de SPECS.md §4.5 : l'état local change tout de
+     * suite, la transmission suit. La mise à jour est volontairement partielle
+     * — seul `is_read` bouge — parce que le reste de l'article n'a pas changé
+     * et qu'une réécriture complète exigerait de le relire d'abord.
+     *
+     * Un identifiant absent du cache ne produit rien : l'article part quand
+     * même vers le serveur, la file ne dépend pas de la présence en cache.
+     */
+    @Query("UPDATE articles SET is_read = 1 WHERE id IN (:articleIds)")
+    suspend fun markAsRead(articleIds: List<Long>)
+
+    /**
      * Supprime les articles lus entrés dans le cache avant [thresholdEpochMillis].
      *
      * La condition `is_read = 1` est la garantie demandée par SPECS.md §5.3 :

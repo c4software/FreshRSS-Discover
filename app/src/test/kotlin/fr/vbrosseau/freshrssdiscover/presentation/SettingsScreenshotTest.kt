@@ -1,9 +1,12 @@
 package fr.vbrosseau.freshrssdiscover.presentation
 
 import androidx.compose.runtime.Composable
+import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsAccount
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsUiState
+import fr.vbrosseau.freshrssdiscover.presentation.settings.continuousVisibilityThresholdOf
+import fr.vbrosseau.freshrssdiscover.presentation.settings.visibleFractionThresholdOf
 import org.junit.Test
 
 /**
@@ -15,14 +18,32 @@ import org.junit.Test
  */
 class SettingsScreenshotTest : ScreenshotTest() {
 
+    /**
+     * Les seuils aux valeurs de SPECS.md §4.5 : la durée est alors sur le cran
+     * le plus à gauche, position où un curseur mal contraint déborde de sa piste.
+     */
     @Test
     fun settingsScreen() {
         capture("reglages") {
+            settings(SettingsUiState(account = ACCOUNT, appVersion = APP_VERSION))
+        }
+    }
+
+    /**
+     * Les deux curseurs poussés à leur maximum.
+     *
+     * C'est l'état où la piste est entièrement remplie : la couleur active
+     * couvre alors toute la largeur, et un contraste insuffisant entre elle et
+     * le fond ne se voit nulle part ailleurs (SPECS.md §7.1).
+     */
+    @Test
+    fun settingsScreenWithThresholdsAtTheirMaximum() {
+        capture("reglages-seuils-maximum") {
             settings(
                 SettingsUiState(
                     account = ACCOUNT,
-                    visibleFractionPercent = VISIBLE_FRACTION_PERCENT,
-                    continuousVisibilitySeconds = CONTINUOUS_VISIBILITY_SECONDS,
+                    visibleFraction = visibleFractionThresholdOf(MAXIMUM),
+                    continuousVisibility = continuousVisibilityThresholdOf(MAXIMUM),
                     appVersion = APP_VERSION,
                 ),
             )
@@ -42,8 +63,6 @@ class SettingsScreenshotTest : ScreenshotTest() {
             settings(
                 SettingsUiState(
                     account = ACCOUNT,
-                    visibleFractionPercent = VISIBLE_FRACTION_PERCENT,
-                    continuousVisibilitySeconds = CONTINUOUS_VISIBILITY_SECONDS,
                     appVersion = APP_VERSION,
                     isSignOutConfirmationVisible = true,
                 ),
@@ -58,13 +77,17 @@ class SettingsScreenshotTest : ScreenshotTest() {
             onSignOutRequest = {},
             onSignOutConfirm = {},
             onSignOutDismiss = {},
+            onVisibleFractionChange = {},
+            onContinuousVisibilityChange = {},
         )
     }
 
     private companion object {
         val ACCOUNT = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice")
+        val MAXIMUM = ReadingSettings(
+            visibleFraction = ReadingSettings.VisibleFractionRange.endInclusive,
+            continuousVisibilityMillis = ReadingSettings.ContinuousVisibilityRange.last,
+        )
         const val APP_VERSION = "0.1.0"
-        const val VISIBLE_FRACTION_PERCENT = 60
-        const val CONTINUOUS_VISIBILITY_SECONDS = 1
     }
 }

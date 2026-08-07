@@ -72,6 +72,15 @@ data class ArticleUiModel(
      * fournir d'adresse.
      */
     val isOpenable: Boolean = url != null,
+    /**
+     * Vraie une fois l'article resté assez longtemps à l'écran (SPECS.md §4.5).
+     *
+     * L'article marqué **reste dans la liste et à sa place** : le drapeau
+     * n'existe que pour que l'état local dise la vérité — et que le marquage
+     * survive à une recomposition — jamais pour le faire disparaître, ce qui
+     * déplacerait le contenu en cours de lecture.
+     */
+    val isRead: Boolean = false,
 )
 
 /**

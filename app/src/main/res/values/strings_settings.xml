@@ -15,12 +15,11 @@
 
     <!-- Seuils du marquage automatique (SPECS.md §4.5). -->
     <string name="settings_section_reading">Marquage automatique</string>
-    <string name="settings_reading_help">Un article devient lu lorsqu\'il est resté suffisamment visible à l\'écran.</string>
+    <string name="settings_reading_help">Un article devient lu lorsqu\'il est resté suffisamment visible à l\'écran. Les deux conditions doivent être réunies en même temps.</string>
     <string name="settings_visible_fraction_label">Proportion visible</string>
     <string name="settings_visible_fraction_value">au moins %1$d %%</string>
     <string name="settings_continuous_visibility_label">Durée continue</string>
     <string name="settings_continuous_visibility_value">au moins %1$d s</string>
-    <string name="settings_reading_not_editable">Ces seuils ne sont pas encore modifiables : leur enregistrement reste à écrire.</string>
 
     <!-- Cache local (SPECS.md §5.1 et §5.3). -->
     <string name="settings_section_cache">Cache local</string>

@@ -252,6 +252,16 @@ Correction automatique du formatage :
 ./gradlew ktlintFormat
 ```
 
+⚠️ **`ktlintFormat` ne corrige que `:domain`.** Le greffon ktlint-gradle ne
+découvre pas les jeux de sources Android d'AGP 9 : sur `:app`, il n'enregistre
+de tâche que pour les fichiers `.kts`. Les règles de style y sont appliquées par
+**`detekt-formatting`**, qui les signale sans les corriger.
+
+Conséquence pratique : dans `:app`, une violation de style se répare à la main.
+La plus fréquente est l'ordre des imports — lexicographique, avec `java`,
+`javax`, `kotlin` et les alias en fin. Voir ARCHITECTURE.md §8.0 pour l'histoire
+de ce garde-fou, qui est resté vide pendant plusieurs Goals.
+
 Rien n'est déclaré terminé sans que cette commande soit passée **et sa sortie
 réellement constatée**. En cas d'échec, rapporter la sortie ; ne jamais annoncer
 un succès non observé.

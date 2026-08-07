@@ -289,18 +289,7 @@ consommée par un Composable **sans état**.
 entrée, et rien d'autre. `AppNavigationBarTest` constate cette dérivation, ce
 qui vaut donc pour toute destination ajoutée ensuite.
 
-### 6.3 L'écran d'attente
-
-`PlaceholderScreen` occupe les destinations qui n'ont pas encore leur écran
-réel. Il existe pour que l'ossature — thème, barre de titre, barre de
-navigation, graphe, chaîne de captures — soit **exécutable et vérifiable dès la
-Phase 0**, sans anticiper le contenu des écrans.
-
-Chaque appel disparaît avec le Goal qui livre l'écran correspondant. Un
-`PlaceholderScreen` encore présent après le Goal concerné est une dette :
-TASKS.md la recense.
-
-### 6.4 Aiguillage racine
+### 6.3 Aiguillage racine
 
 `SessionGate` décide entre l'écran de connexion et l'application, à partir de la
 seule présence d'une session. Aucun écran n'a donc à gérer de redirection : un
@@ -310,6 +299,25 @@ L'état `Unknown` n'est pas décoratif : la session vit sur disque, et sa premi�
 lecture n'est pas instantanée. Partir de « déconnecté » ferait apparaître
 l'écran de connexion un instant à chaque lancement, y compris pour un
 utilisateur déjà connecté.
+
+### 6.4 Le cache n'est jamais habillé en page
+
+Question que l'assemblage a posée, et dont la réponse structure tout le reste :
+**comment rendre une page issue du cache sans la faire passer pour une fin de
+flux ?**
+
+`ArticlePage.nextCursor == null` signifie « fin du flux », et rien d'autre. Une
+page de cache n'a pas de curseur : la rendre comme une `ArticlePage` ferait donc
+afficher « vous avez tout lu » à un utilisateur simplement privé de réseau.
+
+Le cache est donc une **source parallèle et permanente** —
+`observeCachedArticles()`, un flux qui réémet à chaque écriture — pendant que
+`loadPage()` continue de rapporter honnêtement `FeedError.NoNetwork`. L'appelant
+dispose ainsi du **contenu** et de la **cause** séparément, ce qui lui permet de
+signaler l'état sans alarmer, et surtout sans mentir.
+
+Le même flux sert l'affichage immédiat au lancement (SPECS.md §5.1) et la
+consultation hors ligne (§5.2) : ce sont deux usages d'un seul mécanisme.
 
 ### 6.5 Deux décisions du domaine que l'interface se contente d'appliquer
 
@@ -532,8 +540,10 @@ Sont **absents** au sens propre :
 - la file des marquages en attente, et donc la synchronisation du statut lu ;
 - le tirer-pour-rafraîchir ;
 - le marquage d'un article à son ouverture (SPECS.md §4.7) ;
-- la persistance des réglages : l'écran affiche les seuils, il ne les enregistre
-  pas.
+- le tirer-pour-rafraîchir : le dépôt sait rafraîchir, l'écran n'a pas le geste ;
+- l'affichage du cache au lancement et hors ligne : le dépôt l'expose, l'écran ne
+  le consomme pas encore ;
+- la mesure de la taille du cache et la purge manuelle.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 

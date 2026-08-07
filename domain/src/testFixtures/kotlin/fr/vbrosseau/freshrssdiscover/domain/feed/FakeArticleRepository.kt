@@ -2,6 +2,9 @@ package fr.vbrosseau.freshrssdiscover.domain.feed
 
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /**
  * Dépôt d'articles piloté, pour les tests.
@@ -36,12 +39,40 @@ class FakeArticleRepository : ArticleRepository {
      */
     val requestedCursors: MutableList<PageCursor?> = mutableListOf()
 
+    var refreshCallCount: Int = 0
+        private set
+
+    /**
+     * Contenu du cache, modifiable en cours de test.
+     *
+     * Un `MutableStateFlow` plutôt qu'une liste figée : le flux du cache émet à
+     * chaque écriture, et un écran qui ne se mettrait à jour qu'au premier
+     * émis passerait le test sans que rien ne le trahisse.
+     */
+    val cachedArticles: MutableStateFlow<List<Article>> = MutableStateFlow(emptyList())
+
     override suspend fun loadPage(cursor: PageCursor?): FeedResult<ArticlePage> {
         loadCallCount++
         requestedCursors += cursor
 
-        return pendingLoad?.await() ?: programmed.removeFirstOrNull() ?: fallbackResult
+        return nextResult()
     }
+
+    /**
+     * Sert la même file que [loadPage] : un test de rafraîchissement programme
+     * ses pages sans avoir à savoir par quelle méthode elles seront demandées.
+     */
+    override suspend fun refresh(): FeedResult<ArticlePage> {
+        refreshCallCount++
+
+        return nextResult()
+    }
+
+    override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
+        cachedArticles.map { articles -> articles.take(limit) }
+
+    private suspend fun nextResult(): FeedResult<ArticlePage> =
+        pendingLoad?.await() ?: programmed.removeFirstOrNull() ?: fallbackResult
 
     /** Programme une page, avec son curseur de suite — `null` pour une fin de flux. */
     fun enqueuePage(

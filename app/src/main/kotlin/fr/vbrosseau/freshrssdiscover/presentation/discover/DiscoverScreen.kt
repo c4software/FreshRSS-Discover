@@ -34,9 +34,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
@@ -81,6 +85,14 @@ private val MinTouchTarget = 48.dp
  * Sans état métier : il affiche [uiState] et remonte les gestes, ce qui le rend
  * prévisualisable et testable sans graphe d'injection (AGENTS.md §9). Le seul
  * état qu'il tient est la position de défilement, qui n'appartient qu'à lui.
+ *
+ * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
+ *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
+ *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
+ *   jeter son résultat — c'est-à-dire dépenser de la batterie pour rien, et
+ *   rendre les prévisualisations et les tests de rendu perpétuellement occupés.
+ *   `null` dit donc « personne n'écoute », ce qu'un `{}` par défaut ne saurait
+ *   exprimer.
  */
 @Composable
 fun DiscoverScreen(
@@ -90,6 +102,7 @@ fun DiscoverScreen(
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     val phase = uiState.phase
 
@@ -101,6 +114,7 @@ fun DiscoverScreen(
             onArticleClick = onArticleClick,
             modifier = modifier,
             listState = listState,
+            onVisibilityChanged = onVisibilityChanged,
         )
 
         /*
@@ -129,12 +143,17 @@ private fun ArticleList(
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     PrefetchNextPage(
         listState = listState,
         articleCount = uiState.articles.size,
         onLoadMore = onLoadMore,
     )
+
+    if (onVisibilityChanged != null) {
+        ObserveArticleVisibility(listState = listState, onVisibilityChanged = onVisibilityChanged)
+    }
 
     LazyColumn(
         state = listState,
@@ -179,6 +198,43 @@ private fun PrefetchNextPage(
 
     LaunchedEffect(shouldLoadMore, articleCount) {
         if (shouldLoadMore) onLoadMore()
+    }
+}
+
+/**
+ * Relève périodiquement la visibilité des articles (SPECS.md §4.5).
+ *
+ * **Périodiquement, et non à chaque défilement.** Le seuil porte sur une durée
+ * continue : un article immobile à l'écran ne produit aucun événement, et une
+ * mesure déclenchée par le seul défilement ne le signalerait donc jamais. La
+ * cadence retenue et sa justification sont dans
+ * [VISIBILITY_SAMPLING_PERIOD_MILLIS].
+ *
+ * **`repeatOnLifecycle(RESUMED)` et non un simple `LaunchedEffect`.** Une
+ * boucle liée à la seule composition continuerait de tourner écran éteint ou
+ * application en arrière-plan : elle marquerait comme lus des articles que
+ * personne ne regarde — un faux positif irréversible, puisque le marquage part
+ * ensuite au serveur — tout en réveillant l'appareil cinq fois par seconde.
+ * `RESUMED` plutôt que `STARTED` : c'est le seul état où l'écran est réellement
+ * au premier plan et non simplement visible derrière une boîte de dialogue.
+ *
+ * Le calcul vit dans un effet, jamais dans le corps d'un Composable
+ * (AGENTS.md §9) : il lit une disposition, il ne produit pas d'affichage.
+ */
+@Composable
+private fun ObserveArticleVisibility(
+    listState: LazyListState,
+    onVisibilityChanged: (Map<ArticleId, Float>) -> Unit,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(listState, onVisibilityChanged, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            sampleVisibility(
+                visibility = { listState.layoutInfo.articleVisibility() },
+                onVisibilityChanged = onVisibilityChanged,
+            )
+        }
     }
 }
 

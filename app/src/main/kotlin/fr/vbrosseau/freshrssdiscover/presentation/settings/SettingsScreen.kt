@@ -14,17 +14,21 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
+import kotlin.math.roundToInt
 
 /**
  * Hauteur minimale des cibles tactiles (SPECS.md §7.1).
@@ -40,9 +44,8 @@ private val MinTouchTarget = 48.dp
  * Sans état : il affiche [uiState] et remonte les gestes, ce qui le rend
  * prévisualisable et testable sans graphe d'injection (AGENTS.md §9).
  *
- * Une seule action est réellement branchée, la déconnexion. Les seuils de
- * lecture et le cache sont affichés en lecture seule — voir les `TODO` posés
- * plus bas et dans [SettingsViewModel].
+ * Les seuils de lecture sont modifiables et enregistrés. Le cache reste en
+ * lecture seule — voir le `TODO` posé plus bas.
  */
 @Composable
 fun SettingsScreen(
@@ -51,6 +54,10 @@ fun SettingsScreen(
     onSignOutConfirm: () -> Unit,
     onSignOutDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /*
+     */
+    onVisibleFractionChange: (Int) -> Unit,
+    onContinuousVisibilityChange: (Int) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -66,7 +73,11 @@ fun SettingsScreen(
 
         AccountSection(account = uiState.account)
         HorizontalDivider()
-        ReadingSection(uiState = uiState)
+        ReadingSection(
+            uiState = uiState,
+            onVisibleFractionChange = onVisibleFractionChange,
+            onContinuousVisibilityChange = onContinuousVisibilityChange,
+        )
         HorizontalDivider()
         CacheSection()
         HorizontalDivider()
@@ -107,38 +118,91 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
 }
 
 /**
- * Seuils du marquage automatique (SPECS.md §4.5), en lecture seule.
- *
- * TODO(GOAL-011) : les rendre modifiables et les enregistrer. Aucun stockage de
- *  réglages n'existe encore ; tant qu'il manque, ces valeurs sont celles
- *  compilées dans `ReadDetector` et un contrôle de saisie ne serait qu'un
- *  leurre.
+ * Seuils du marquage automatique (SPECS.md §4.5), modifiables et enregistrés.
  */
 @Composable
-private fun ReadingSection(uiState: SettingsUiState, modifier: Modifier = Modifier) {
+private fun ReadingSection(
+    uiState: SettingsUiState,
+    onVisibleFractionChange: (Int) -> Unit,
+    onContinuousVisibilityChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     SettingsSection(title = stringResource(R.string.settings_section_reading), modifier = modifier) {
         Text(
             text = stringResource(R.string.settings_reading_help),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        SettingsRow(
+        ThresholdSlider(
             label = stringResource(R.string.settings_visible_fraction_label),
-            value = stringResource(R.string.settings_visible_fraction_value, uiState.visibleFractionPercent),
-            testTag = SettingsTestTags.VISIBLE_FRACTION,
+            value = stringResource(R.string.settings_visible_fraction_value, uiState.visibleFraction.value),
+            threshold = uiState.visibleFraction,
+            onValueChange = onVisibleFractionChange,
+            valueTestTag = SettingsTestTags.VISIBLE_FRACTION,
+            sliderTestTag = SettingsTestTags.VISIBLE_FRACTION_SLIDER,
         )
-        SettingsRow(
+        ThresholdSlider(
             label = stringResource(R.string.settings_continuous_visibility_label),
             value = stringResource(
                 R.string.settings_continuous_visibility_value,
-                uiState.continuousVisibilitySeconds,
+                uiState.continuousVisibility.value,
             ),
-            testTag = SettingsTestTags.CONTINUOUS_VISIBILITY,
+            threshold = uiState.continuousVisibility,
+            onValueChange = onContinuousVisibilityChange,
+            valueTestTag = SettingsTestTags.CONTINUOUS_VISIBILITY,
+            sliderTestTag = SettingsTestTags.CONTINUOUS_VISIBILITY_SLIDER,
+        )
+    }
+}
+
+/**
+ * Un seuil réglable : sa valeur courante en toutes lettres, puis un curseur à crans.
+ *
+ * Un curseur plutôt qu'une liste de valeurs parce que le geste de l'utilisateur
+ * est comparatif — « marquer plus tôt » ou « plus tard » — et non le choix d'un
+ * chiffre : la position du pouce montre du même coup où l'on se trouve dans la
+ * plage, ce qu'une liste de boutons radio n'indique pas. Les crans, eux,
+ * évitent une précision illusoire et rendent chaque valeur atteignable
+ * (SPECS.md §7.1).
+ *
+ * La valeur reste écrite au-dessus : SPECS.md §6 demande d'afficher les seuils,
+ * et un curseur seul ne dit pas ce qu'il vaut.
+ */
+@Composable
+private fun ThresholdSlider(
+    label: String,
+    value: String,
+    threshold: SettingsThreshold,
+    onValueChange: (Int) -> Unit,
+    valueTestTag: String,
+    sliderTestTag: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = stringResource(R.string.settings_reading_not_editable),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag(valueTestTag),
+        )
+        Slider(
+            value = threshold.value.toFloat(),
+            // L'arrondi est imposé par `Slider`, qui ne travaille qu'en `Float` :
+            // les crans le font tomber sur une position exacte, mais la
+            // conversion doit être explicite pour que le dépôt reçoive bien une
+            // des valeurs qu'il accepte.
+            onValueChange = { onValueChange(it.roundToInt()) },
+            valueRange = threshold.range.first.toFloat()..threshold.range.last.toFloat(),
+            steps = threshold.stepCount,
+            modifier = Modifier
+                .heightIn(min = MinTouchTarget)
+                .semantics { contentDescription = label }
+                .testTag(sliderTestTag),
         )
     }
 }
@@ -302,13 +366,13 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             uiState = SettingsUiState(
                 account = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice"),
-                visibleFractionPercent = 60,
-                continuousVisibilitySeconds = 1,
                 appVersion = "0.1.0",
             ),
             onSignOutRequest = {},
             onSignOutConfirm = {},
             onSignOutDismiss = {},
+            onVisibleFractionChange = {},
+            onContinuousVisibilityChange = {},
         )
     }
 }
@@ -320,14 +384,14 @@ private fun SettingsScreenSignOutPreview() {
         SettingsScreen(
             uiState = SettingsUiState(
                 account = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice"),
-                visibleFractionPercent = 60,
-                continuousVisibilitySeconds = 1,
                 appVersion = "0.1.0",
                 isSignOutConfirmationVisible = true,
             ),
             onSignOutRequest = {},
             onSignOutConfirm = {},
             onSignOutDismiss = {},
+            onVisibleFractionChange = {},
+            onContinuousVisibilityChange = {},
         )
     }
 }

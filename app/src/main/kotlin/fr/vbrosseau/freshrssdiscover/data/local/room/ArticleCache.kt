@@ -50,6 +50,19 @@ internal class ArticleCache @Inject constructor(
     fun observeArticles(limit: Int): Flow<List<Article>> =
         dao.observeArticles(limit).map { entities -> entities.map(ArticleEntity::toDomain) }
 
+    /**
+     * Marque des articles comme lus **localement**, sans rien transmettre.
+     *
+     * C'est la moitié « optimiste » du marquage (SPECS.md §4.5) : l'état change
+     * tout de suite, la transmission suit. Passer par le cache plutôt que par le
+     * DAO garde la règle du projet — les entités Room ne franchissent pas cette
+     * frontière, et rien au-dessus n'a à connaître le nom d'une colonne.
+     */
+    suspend fun markAsRead(ids: Collection<ArticleId>) {
+        if (ids.isEmpty()) return
+        dao.markAsRead(ids.map(ArticleId::value))
+    }
+
     /** Vide le cache. Appelé à la déconnexion (SPECS.md §3.5). */
     suspend fun clear() {
         dao.deleteAll()

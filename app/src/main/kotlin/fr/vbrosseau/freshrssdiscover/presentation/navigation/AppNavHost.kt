@@ -59,6 +59,9 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
         onArticleClick = { articleId ->
             articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
         },
+        // Sans ce rappel, la mesure de visibilité ne s'arme pas : `null` signifie
+        // « personne n'écoute », et le marquage automatique resterait inerte.
+        onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
 }
@@ -73,6 +76,8 @@ private fun SettingsRoute(modifier: Modifier = Modifier) {
         onSignOutRequest = viewModel::requestSignOut,
         onSignOutConfirm = viewModel::confirmSignOut,
         onSignOutDismiss = viewModel::dismissSignOut,
+        onVisibleFractionChange = viewModel::setVisibleFractionPercent,
+        onContinuousVisibilityChange = viewModel::setContinuousVisibilitySeconds,
         modifier = modifier,
     )
 }

@@ -18,6 +18,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
+import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -59,6 +60,9 @@ class DefaultAuthRepositoryTest {
     private val credentials = Credentials("alice", "mot-de-passe-api")
 
     private var online = true
+
+    /** Constate que la déconnexion vide bien la file de marquages (SPECS.md §3.5). */
+    private val readSyncRepository = FakeReadSyncRepository()
     private val requestedPaths = mutableListOf<String>()
 
     private lateinit var dataStore: DataStore<Preferences>
@@ -100,6 +104,7 @@ class DefaultAuthRepositoryTest {
             api = FreshRssApi(createFreshRssHttpClient(engine)),
             sessionStore = sessionStore,
             articleCache = ArticleCache(database.articleDao(), Clock { 0L }),
+            readSyncRepository = readSyncRepository,
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
@@ -259,6 +264,19 @@ class DefaultAuthRepositoryTest {
     }
 
     // ----- Déconnexion -------------------------------------------------------
+
+    @Test
+    fun signingOutAlsoEmptiesThePendingMarkQueue() = runTest {
+        // Ces marquages désignent des articles qui n'existent plus localement :
+        // les transmettre après une reconnexion sur un autre compte serait pire
+        // que de les perdre.
+        val repository = repository(*validLogin)
+        repository.signIn(address, credentials)
+
+        repository.signOut()
+
+        assertEquals(1, readSyncRepository.clearPendingCallCount)
+    }
 
     @Test
     fun signingOutErasesTheSession() = runTest {
