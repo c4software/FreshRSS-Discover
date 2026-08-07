@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +22,27 @@ class LoginViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    init {
+        /*
+         * Préremplissage après un jeton refusé : l'utilisateur n'a
+         * probablement qu'un mot de passe API à renouveler, lui faire retaper
+         * l'adresse de son serveur serait gratuit (SPECS.md §3.4).
+         *
+         * `first()` et non une collecte continue : la saisie en cours ne doit
+         * jamais être écrasée par une écriture du dépôt.
+         */
+        viewModelScope.launch {
+            val hint = authRepository.observeLastSignInHint().first() ?: return@launch
+            update { state ->
+                if (state.serverAddress.isEmpty() && state.username.isEmpty()) {
+                    state.copy(serverAddress = hint.server.baseUrl, username = hint.username)
+                } else {
+                    state
+                }
+            }
+        }
+    }
 
     fun onServerAddressChange(value: String) = update { it.copy(serverAddress = value) }
 

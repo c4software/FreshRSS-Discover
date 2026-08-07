@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Œil barré : le mot de passe est affiché, toucher le masque.
+    Tracé Material Symbols, 24 dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="960"
+  android:viewportHeight="960">
+  <path
+    android:fillColor="@android:color/white"
+    android:pathData="M792,880L624,714Q589,725 552.5,732.5Q516,740 480,740Q349,740 241,667.5Q133,595 80,460Q101,407 133.5,361Q166,315 208,278L80,150L136,94L848,824L792,880ZM480,620Q490,620 498.5,619Q507,618 516,615L323,422Q320,431 319,439.5Q318,448 318,458Q318,525 365,572.5Q412,620 480,620ZM686,584L610,508Q617,494 620.5,478.5Q624,463 624,446Q624,386 582,344Q540,302 480,302Q463,302 447.5,305.5Q432,309 418,316L347,245Q378,232 411,226Q444,220 480,220Q611,220 719,292.5Q827,365 880,500Q858,555 823,600Q788,645 686,584Z" />
+</vector>

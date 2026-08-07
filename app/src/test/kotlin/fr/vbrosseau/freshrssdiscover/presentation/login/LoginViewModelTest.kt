@@ -5,6 +5,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -21,7 +22,15 @@ class LoginViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeAuthRepository()
-    private val viewModel = LoginViewModel(repository)
+
+    /**
+     * Construit **paresseusement**, et c'est nécessaire : le ViewModel lance
+     * son préremplissage dès sa création, sur `Dispatchers.Main`. Un
+     * initialiseur de propriété s'exécute avant que [MainDispatcherRule] ne
+     * l'ait substitué — la coroutine partirait alors sur le vrai dispatcher
+     * principal, absent hors Android.
+     */
+    private val viewModel: LoginViewModel by lazy { LoginViewModel(repository) }
 
     private fun fillValidForm() {
         viewModel.onServerAddressChange("rss.exemple.org")
@@ -130,6 +139,44 @@ class LoginViewModelTest {
             LoginFailure.Address.UnsupportedScheme("ftp"),
             viewModel.uiState.value.failure,
         )
+    }
+
+    // ----- Préremplissage après un jeton refusé ------------------------------
+
+    @Test
+    fun theFormIsPrefilledWithTheLastServerAndUsername() {
+        // Après un jeton refusé, l'utilisateur n'a probablement qu'un mot de
+        // passe API à renouveler : lui faire retaper l'adresse serait gratuit.
+        repository.hint.value = SignInHint(
+            server = (ServerAddress.parse("rss.exemple.org") as ServerAddressResult.Valid).address,
+            username = "alice",
+        )
+
+        val prefilled = LoginViewModel(repository)
+
+        assertEquals("https://rss.exemple.org", prefilled.uiState.value.serverAddress)
+        assertEquals("alice", prefilled.uiState.value.username)
+    }
+
+    @Test
+    fun theApiPasswordIsNeverPrefilled() {
+        // Il n'est pas enregistré, et ne doit pas l'être : c'est le seul
+        // secret que l'utilisateur ressaisit.
+        repository.hint.value = SignInHint(
+            server = (ServerAddress.parse("rss.exemple.org") as ServerAddressResult.Valid).address,
+            username = "alice",
+        )
+
+        val prefilled = LoginViewModel(repository)
+
+        assertEquals("", prefilled.uiState.value.apiPassword)
+        assertFalse(prefilled.uiState.value.canSubmit)
+    }
+
+    @Test
+    fun anAbsentHintLeavesAnEmptyForm() {
+        assertEquals("", viewModel.uiState.value.serverAddress)
+        assertEquals("", viewModel.uiState.value.username)
     }
 
     // ----- Connexion ---------------------------------------------------------

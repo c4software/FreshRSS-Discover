@@ -32,6 +32,12 @@ class FakeAuthRepository(
     var signOutCallCount: Int = 0
         private set
 
+    var invalidateCallCount: Int = 0
+        private set
+
+    /** Rappel de saisie renvoyé par `observeLastSignInHint`. */
+    val hint: MutableStateFlow<SignInHint?> = MutableStateFlow(null)
+
     override fun observeSession(): StateFlow<AuthSession?> = session
 
     override suspend fun signIn(
@@ -49,9 +55,17 @@ class FakeAuthRepository(
         return result
     }
 
+    override fun observeLastSignInHint(): StateFlow<SignInHint?> = hint
+
+    override suspend fun invalidateSession() {
+        invalidateCallCount++
+        session.value = null
+    }
+
     override suspend fun signOut() {
         signOutCallCount++
         session.value = null
+        hint.value = null
     }
 
     /** Débloque la connexion armée par [pendingSignIn]. */

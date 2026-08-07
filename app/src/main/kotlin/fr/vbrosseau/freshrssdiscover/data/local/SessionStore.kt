@@ -10,6 +10,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -57,11 +58,33 @@ internal class SessionStore @Inject constructor(
         }
     }
 
-    /** Efface tout. Appelée à la déconnexion et lorsque le serveur refuse le jeton. */
+    /**
+     * Adresse et identifiant du dernier accès, même sans session valide.
+     *
+     * Aucun secret n'y figure : c'est ce qui permet de les conserver après un
+     * jeton refusé, là où les jetons sont effacés.
+     */
+    fun observeLastSignInHint(): Flow<SignInHint?> = dataStore.data.map(::readHint)
+
+    /** Efface les jetons, conserve le rappel de saisie. */
+    suspend fun invalidateTokens() {
+        dataStore.edit { preferences ->
+            preferences.remove(Keys.AuthToken)
+            preferences.remove(Keys.ModificationToken)
+        }
+    }
+
+    /** Efface tout, rappel de saisie compris. Geste délibéré de l'utilisateur. */
     suspend fun clear() {
         dataStore.edit { preferences ->
             Keys.all.forEach(preferences::remove)
         }
+    }
+
+    private fun readHint(preferences: Preferences): SignInHint? {
+        val server = preferences[Keys.ServerBaseUrl]?.let(ServerAddress::parse) as? ServerAddressResult.Valid
+        val username = preferences[Keys.Username]
+        return if (server == null || username == null) null else SignInHint(server.address, username)
     }
 
     private fun readSession(preferences: Preferences): AuthSession? {

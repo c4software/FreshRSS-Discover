@@ -131,6 +131,50 @@ class SessionStoreTest {
     }
 
     @Test
+    fun invalidatingTokensKeepsTheSignInHint() = runTest {
+        // SPECS.md §3.4 : ramener à l'écran de connexion sans faire tout
+        // retaper. L'utilisateur n'a probablement qu'un mot de passe API à
+        // renouveler.
+        val store = store()
+        store.save(session)
+
+        store.invalidateTokens()
+
+        assertNull(store.observeSession().first())
+        val hint = assertNotNull(store.observeLastSignInHint().first())
+        assertEquals("https://exemple.org", hint.server.baseUrl)
+        assertEquals("alice", hint.username)
+    }
+
+    @Test
+    fun signingOutErasesTheSignInHintToo() = runTest {
+        // Geste délibéré de l'utilisateur : il n'a aucune raison de laisser
+        // une trace de son serveur sur l'appareil.
+        val store = store()
+        store.save(session)
+
+        store.clear()
+
+        assertNull(store.observeLastSignInHint().first())
+    }
+
+    @Test
+    fun thereIsNoHintBeforeAnyConnection() = runTest {
+        assertNull(store().observeLastSignInHint().first())
+    }
+
+    @Test
+    fun aLostKeystoreKeyStillLeavesTheSignInHint() = runTest {
+        // Le rappel de saisie ne passe pas par le chiffreur : une clé perdue
+        // ne doit pas obliger à retaper l'adresse.
+        val store = store()
+        store.save(session)
+        cipher.keyIsLost = true
+
+        assertNotNull(store.observeLastSignInHint().first())
+    }
+
+    @Test
     fun aLostKeystoreKeyIsReportedAsNoSessionRatherThanCrashing() = runTest {
         // Cas réel : changement de verrouillage d'écran, ou restauration d'une
         // sauvegarde sur un autre appareil. Le secret devient illisible ; la

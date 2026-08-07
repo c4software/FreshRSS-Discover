@@ -29,6 +29,24 @@ interface AuthRepository {
         credentials: Credentials,
     ): AuthResult<AuthSession>
 
-    /** Efface la session. Appelée à la déconnexion et sur refus du jeton. */
+    /**
+     * Dernière adresse et dernier identifiant employés, même sans session.
+     *
+     * Ils survivent à un jeton refusé : SPECS.md §3.4 demande de ramener
+     * l'utilisateur à l'écran de connexion **sans lui faire tout retaper**,
+     * alors qu'il n'a probablement qu'un mot de passe API à renouveler.
+     */
+    fun observeLastSignInHint(): Flow<SignInHint?>
+
+    /**
+     * Le serveur a refusé le jeton : la session tombe, le rappel de saisie
+     * demeure.
+     *
+     * Distinct de [signOut], qui est un geste délibéré de l'utilisateur et
+     * n'a aucune raison de laisser une trace.
+     */
+    suspend fun invalidateSession()
+
+    /** Efface la session **et** le rappel de saisie. Geste délibéré de l'utilisateur. */
     suspend fun signOut()
 }

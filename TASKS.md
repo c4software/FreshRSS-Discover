@@ -166,10 +166,10 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [x] `GOAL-002-T11` Tests du repository, stockage chiffré compris — livrés par
       T07 et T08, même raison.
 - [x] `GOAL-002-T12` `LoginViewModel` et son `UiState`
-- [ ] `GOAL-002-T13` Écran de connexion, avec l'explication du mot de passe API
+- [x] `GOAL-002-T13` Écran de connexion, avec l'explication du mot de passe API
       (SPECS.md §3.2) et un message distinct par cause d'échec
-- [ ] `GOAL-002-T14` Redirection sur `401` vers l'écran de connexion, adresse et
-      identifiant préservés
+- [x] `GOAL-002-T14` Aiguillage racine par la présence d'une session ; jeton
+      refusé → écran de connexion prérempli de l'adresse et de l'identifiant
 - [ ] `GOAL-002-T15` Captures Roborazzi de l'écran de connexion, clair et sombre,
       états d'erreur compris — **et regardées**
 - [x] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève

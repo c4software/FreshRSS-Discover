@@ -13,6 +13,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
+import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -75,6 +76,12 @@ internal class DefaultAuthRepository @Inject constructor(
                 AuthResult.Success(session)
             }
         }
+    }
+
+    override fun observeLastSignInHint(): Flow<SignInHint?> = sessionStore.observeLastSignInHint()
+
+    override suspend fun invalidateSession() = withContext(ioDispatcher) {
+        sessionStore.invalidateTokens()
     }
 
     override suspend fun signOut() = withContext(ioDispatcher) {
