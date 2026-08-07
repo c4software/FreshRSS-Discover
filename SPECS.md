@@ -251,13 +251,28 @@ Comportement associé :
 
 ### 4.6 Rafraîchissement
 
-Un **tirer-pour-rafraîchir** repart de zéro : il **vide la liste affichée**,
-recharge le début du flux, et **remonte automatiquement en haut**.
+Recharger repart de zéro : cela **vide ce qui est affiché**, recharge le début
+du flux, et **revient automatiquement au premier article**.
 
-- La liste est remplacée, pas complétée. Ce qui était affiché disparaît.
-- La position de lecture n'est **pas** préservée : le geste ramène en tête, et
-  c'est ce qu'il annonce.
+Deux commandes le déclenchent, et elles font exactement la même chose :
+
+| Commande | Disponible en | Pourquoi |
+|---|---|---|
+| **Tirer-pour-rafraîchir** | mode Liste | La convention du geste sur un flux vertical |
+| **Bouton, sur la ligne du titre** | les deux modes | En plein écran il n'y a pas de liste à tirer ; et un tirage n'est pas praticable par tout le monde (§7.1) |
+
+Le bouton n'est donc pas un doublon du geste : il est **la seule** commande du
+mode Balayage — y superposer un tirage vertical donnerait deux gestes
+concurrents sur la même surface — et il est l'alternative au geste en mode
+Liste, où rien ne le remplaçait.
+
+- Ce qui est affiché est remplacé, pas complété. Ce qui était là disparaît.
+- La position de lecture n'est **pas** préservée : le rechargement ramène au
+  début, et c'est ce qu'il annonce.
 - La pagination repart du début : le curseur précédent est abandonné.
+- Pendant l'attente, la commande **montre qu'elle travaille** plutôt que de se
+  griser ou de disparaître : grisée elle dirait « indisponible » et non « en
+  cours » ; disparue, l'appui semblerait perdu.
 
 **Ce choix a été fait contre l'option inverse**, et il vaut d'être expliqué.
 Insérer les nouveaux articles en tête sans bouger l'utilisateur préserve sa
@@ -267,12 +282,12 @@ au geste un effet immédiat et lisible, au prix de la position de lecture ; c'es
 la convention des applications où le flux est le contenu principal, et c'est
 celle-ci qui a été retenue.
 
-Conséquence assumée : un utilisateur qui tire par réflexe perd l'endroit où il
-lisait. Le geste doit donc rester délibéré — il n'est déclenché que par un
+Conséquence assumée : un utilisateur qui recharge par réflexe perd l'endroit où
+il lisait. Le geste doit donc rester délibéré — il n'est déclenché que par un
 tirage franc, jamais par un simple défilement vers le haut.
 
-**Cela ne vaut que pour le tirage.** Voir §5.3 : la position de lecture, elle,
-survit à la fermeture de l'application.
+**Cela ne vaut que pour un rechargement demandé.** Voir §5.3 : la position de
+lecture, elle, survit à la fermeture de l'application.
 
 ### 4.7 Ouverture d'un article
 
@@ -318,6 +333,14 @@ Ce que ce mode implique, et qui n'est pas neutre :
   propre au mode Liste.
 - **Le mode est un réglage persistant** (§6) : l'application rouvre dans le
   mode que l'utilisateur a quitté.
+- **Le geste est animé en pile de cartes.** L'article qui s'en va s'incline et
+  s'efface en suivant le doigt ; le suivant attend derrière, centré et
+  légèrement réduit, et grandit à mesure qu'il se découvre. C'est ce qui
+  distingue une pile d'objets d'un défilement de plus, et c'est ce que le geste
+  promet — mettre une carte de côté.
+- **Il n'y a pas d'alternative au geste**, et c'est une lacune connue plutôt
+  qu'un choix : §7.1 exige que l'application reste utilisable sans lui. Voir la
+  tâche `GOAL-012-T07` de TASKS.md.
 
 Le choix du mode ne modifie **jamais** l'ordre des articles : un utilisateur qui
 bascule de l'un à l'autre retrouve le flux au même endroit, dans le même ordre
@@ -405,6 +428,11 @@ L'écran de réglages reste minimal :
 - Les cibles tactiles font au moins 48 dp.
 - L'application reste utilisable avec une taille de police système augmentée.
 - Le contraste respecte le niveau **AA** en thème clair **et** sombre.
+- **Aucune fonction ne dépend d'un seul geste.** Un lecteur d'écran se réserve
+  le balayage horizontal pour sa propre exploration, et tout le monde n'a pas la
+  précision ou la mobilité qu'un tirage demande. Le rechargement satisfait cette
+  règle depuis §4.6 ; **avancer d'un article en mode Balayage ne la satisfait
+  pas encore** — écart connu, suivi en `GOAL-012-T07`.
 
 ### 7.2 Interface
 

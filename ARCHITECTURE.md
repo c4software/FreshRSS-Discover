@@ -515,11 +515,22 @@ app/
 └── presentation/
     ├── browser/              ouverture de l'article d'origine
     ├── discover/             flux en liste
+    ├── feed/                 ce que les deux modes partagent (rechargement)
+    ├── lifecycle/            ce qui réagit au passage en arrière-plan
     ├── login/                connexion
-    ├── navigation/           destinations et graphe
+    ├── navigation/           destinations, graphe, mode de présentation
     ├── settings/             réglages
+    ├── swipe/                flux en pile de cartes, un article par écran
     └── theme/                couleurs, espacements
 ```
+
+**Deux paquets pour un même flux, et c'est voulu.** `discover/` et `swipe/`
+présentent les mêmes articles selon SPECS.md §4.8, mais rien de leur mise en
+page n'est commun : une liste paresseuse et un pagineur n'ont ni le même état,
+ni la même mesure de visibilité, ni les mêmes composants. Ce qu'ils partagent
+vraiment — le modèle d'article affiché, les phases du flux, le bouton de
+rechargement — vit dans `discover/` pour les deux premiers, hérités, et dans
+`feed/` pour ce qui est né commun.
 
 Les tests suivent la même structure, plus `startup/` pour ce qui n'appartient à
 aucune couche — construction du graphe, migration de base, démarrage.
@@ -543,19 +554,37 @@ régression détachait une décision du domaine de son appelant.
 | Pièce de `:domain` | Consommée par |
 |---|---|
 | `interleaveBySource` (14 tests) | `DefaultArticleRepository` — page serveur et flux du cache |
-| `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste |
+| `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste ; `SwipeViewModel`, alimenté par `pagerVisibility` depuis le pagineur |
 | `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — regroupement des lots |
-| `ReadSyncRepository` | `DiscoverViewModel` (marquage, rejeu au démarrage) et `DefaultAuthRepository` (déconnexion) |
-| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3) |
+| `ReadSyncRepository` | `DiscoverViewModel` et `SwipeViewModel` (marquage, rejeu au démarrage), `ReadFlushOnBackgroundObserver` (passage en arrière-plan) et `DefaultAuthRepository` (déconnexion) |
+| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3), **mode Liste seulement** — voir `GOAL-012-T05` |
+| `ReadingPosition` | `DiscoverScreen`, pour reprendre au plus proche quand l'article mémorisé a disparu du flux |
+| `FeedPresentation` | `FeedPresentationViewModel`, qui aiguille la destination Discover vers l'un des deux modes |
 | `CacheRepository` | `SettingsViewModel` — état du cache et purge manuelle |
-| `SettingsRepository` | `SettingsViewModel`, et `DiscoverViewModel` pour les seuils |
+| `SettingsRepository` | `SettingsViewModel`, les deux ViewModels du flux pour les seuils, et `FeedPresentationViewModel` pour le mode de présentation |
 
 Côté `:app`, les mécanismes que la section signalait comme absents sont en place
 et couverts : le cache alimente le premier affichage (SPECS.md §5.1) et le hors
-ligne (§5.2), le tirer-pour-rafraîchir est câblé de `DiscoverScreen` à
-`ArticleRepository.refresh()` (§4.6), l'ouverture d'un article le marque lu
-(§4.7), et la purge d'ancienneté est déclenchée une fois par démarrage de
-processus par `CacheMaintenance` (§5.4).
+ligne (§5.2), le rechargement est câblé jusqu'à `ArticleRepository.refresh()`
+depuis les deux modes (§4.6), l'ouverture d'un article le marque lu (§4.7), et
+la purge d'ancienneté est déclenchée une fois par démarrage de processus par
+`CacheMaintenance` (§5.4).
+
+### 9.3 Le rechargement franchit la frontière de l'ossature
+
+Le bouton de rechargement est posé sur la barre de titre (SPECS.md §4.6), qui
+appartient à `MainActivity` — au-dessus du graphe de navigation. L'action, elle,
+appartient au ViewModel de la destination affichée, que l'ossature n'a aucune
+raison de connaître.
+
+C'est donc l'**action** qui remonte, sous la forme d'un `FeedRefresh` que la
+destination publie et que la barre consomme. L'inverse — descendre la barre dans
+chaque écran — obligerait chacun à redessiner un titre et une barre de
+navigation, et ferait exister trois barres là où il en faut une.
+
+La publication se fait par `DisposableEffect`, et le **retrait** y compte autant
+que la pose : sans lui, quitter le flux pour les réglages y laisserait un bouton
+branché sur un ViewModel qu'on ne regarde plus.
 
 Le travail restant n'est plus de l'assemblage à rattraper : il est décrit tâche
 par tâche dans [TASKS.md](./TASKS.md), qui est le seul document à jour sur ce

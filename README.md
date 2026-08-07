@@ -7,6 +7,10 @@ unique, mélangé, sans fin apparente.
 Pas de liste de flux à parcourir, pas de compteur de non-lus à faire descendre.
 On fait défiler ; ce qui a été suffisamment vu devient lu.
 
+Deux façons de le parcourir, au choix : la **liste** verticale, ou le
+**balayage** — un article en plein écran, que l'on met de côté d'un geste
+horizontal comme une carte d'une pile.
+
 <p align="center">
   <img src="docs/demo.jpg"
        alt="Le flux Discover sur un téléphone Android : deux articles en cartes, chacun avec son illustration, le nom de son flux d'origine, son ancienneté relative et un extrait. En bas, la navigation entre Discover et Paramètres."
@@ -15,26 +19,32 @@ On fait défiler ; ce qui a été suffisamment vu devient lu.
 
 <p align="center"><em>Le flux Discover, alimenté par une instance FreshRSS réelle.</em></p>
 
-> **État : en cours de développement.** La connexion au serveur, l'écran
-> Discover et sa pagination, le mélange des sources, le cache local et sa purge,
-> la détection de lecture et la file de marquages sont en place et éprouvés.
-> Le travail restant — finitions d'interface, réglages, cycle de vie — est
-> détaillé dans [TASKS.md](./TASKS.md), qui donne l'avancement tâche par tâche ;
-> [ARCHITECTURE.md §9](./ARCHITECTURE.md) décrit l'état réel du dépôt.
+> **État : utilisable, et éprouvé sur appareil.** Connexion au serveur, flux et
+> pagination, mélange des sources, cache local et purge, détection de lecture et
+> file de marquages, rechargement, reprise de la lecture, ouverture des articles,
+> écran de réglages et les deux modes de présentation sont en place.
+>
+> Ce qui reste ouvert est écrit comme tel : le mode Balayage n'a **pas encore
+> d'alternative à son geste** (`GOAL-012-T07`) et **ne mémorise pas la position
+> de lecture** (`GOAL-012-T05`). [TASKS.md](./TASKS.md) donne l'avancement tâche
+> par tâche, [ARCHITECTURE.md §9](./ARCHITECTURE.md) l'état réel du dépôt.
 
 ---
 
-## Ce que fera l'application
+## Ce que fait l'application
 
 - connexion à un serveur FreshRSS via son API compatible Google Reader ;
-- flux vertical unique, tous abonnements mélangés ;
-- défilement infini paginé ;
-- marquage automatique comme lu selon la visibilité réelle d'un article ;
-- synchronisation du statut lu avec le serveur, y compris après une coupure ;
-- tirer-pour-rafraîchir, qui recharge le flux et remonte en tête ;
+- flux unique, tous abonnements mélangés, pagination sans fin apparente ;
+- **deux modes de présentation** au choix, liste ou balayage, sur le même flux
+  et dans le même ordre ;
+- marquage automatique comme lu selon la visibilité réelle d'un article, avec
+  seuils réglables ;
+- synchronisation du statut lu avec le serveur, y compris après une coupure, et
+  transmission forcée au passage en arrière-plan ;
+- rechargement du flux : tirer en mode Liste, bouton dans les deux modes ;
 - reprise de la lecture à l'endroit quitté après fermeture de l'application ;
 - ouverture de l'article d'origine dans le navigateur ;
-- cache local consultable hors ligne ;
+- cache local consultable hors ligne, avec purge automatique et manuelle ;
 - interface Material 3, thèmes clair et sombre.
 
 La spécification complète est dans [SPECS.md](./SPECS.md).
@@ -86,6 +96,17 @@ Installer sur un appareil connecté :
 ./gradlew :app:installDebug
 ```
 
+### Construction de production
+
+`assembleRelease` produit un artefact **signé** si quatre variables
+d'environnement décrivent un keystore — `RELEASE_KEYSTORE`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — et un
+artefact **non signé** sinon, sans échouer : quiconque construit le projet sans
+elles doit y parvenir. Rien de tout cela n'est écrit dans le dépôt.
+
+Le workflow `release.yml` fait de même en CI. Il n'est **jamais** déclenché par
+un `push` : seulement à la main, ou par une étiquette `v*`.
+
 ---
 
 ## Structure
@@ -104,6 +125,7 @@ Le détail est dans [ARCHITECTURE.md](./ARCHITECTURE.md).
 | Fichier | Contenu |
 |---|---|
 | [SPECS.md](./SPECS.md) | Ce que l'application doit faire |
+| [LICENSE](./LICENSE) | Licence MIT |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Comment elle est conçue |
 | [TASKS.md](./TASKS.md) | Ce qui est fait, en cours, et à faire |
 | [AGENTS.md](./AGENTS.md) | Les règles de développement |
