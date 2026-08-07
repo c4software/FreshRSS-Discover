@@ -133,8 +133,9 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       > d'une API désactivée. Suivis en `docs/freshrss-api.md` §6, points 7 et 8.
 - [x] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
       `AuthToken`, type d'erreur scellé couvrant les cinq causes de SPECS.md §3.3
-- [ ] `GOAL-002-T03` Normalisation de l'adresse saisie (schéma implicite, dérivation
-      de `…/api/greader.php`, `http://` toléré et signalé) — pur, testé exhaustivement
+- [x] `GOAL-002-T03` `ServerAddress` et `AuthSession` : normalisation de l'adresse
+      saisie (schéma implicite, dérivation de `…/api/greader.php`, `http://` toléré
+      et signalé) — pure, testée exhaustivement
 - [ ] `GOAL-002-T04` Câbler Ktor dans `app/build.gradle.kts` (moteur OkHttp,
       `ContentNegotiation` restreint aux `2xx`, journalisation sans secrets)
 - [ ] `GOAL-002-T05` `FreshRssApi.clientLogin()` — réponse en texte brut, paires
