@@ -246,12 +246,6 @@ C'est exactement ce que fait `/verify`.
 
 `koverVerify` échoue sous 98 % de couverture sur `:domain`.
 
-> ⚠️ **Ce garde-fou est actuellement vide.** `:domain` ne contient que
-> l'interface `Clock`, sans code exécutable : la vérification passe sans rien
-> mesurer. Elle ne redevient significative qu'au premier vrai code de domaine —
-> ne pas en tirer un faux sentiment de sécurité d'ici là. TASKS.md porte cette
-> dette.
-
 Correction automatique du formatage :
 
 ```bash

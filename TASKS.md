@@ -29,9 +29,10 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 ## Phase courante
 
 **Phase 0 — Harness** ✅ terminée
-**Phase 1 — API FreshRSS** — prochaine, non commencée
+**Phase 1 — API FreshRSS** — GOAL-002 terminé, GOAL-003 non commencé
 
-Prochaine tâche : `GOAL-002-T01`.
+Prochaine action : `/goal Implémenter la récupération paginée des articles`
+(GOAL-003 existe déjà et n'est pas encore découpé en tâches).
 
 ---
 
@@ -40,7 +41,7 @@ Prochaine tâche : `GOAL-002-T01`.
 | Goal | Titre | État |
 |---|---|---|
 | GOAL-001 | Harness et initialisation | `[x]` |
-| GOAL-002 | Authentification FreshRSS | `[ ]` |
+| GOAL-002 | Authentification FreshRSS | `[x]` |
 | GOAL-003 | Récupération paginée des articles | `[ ]` |
 | GOAL-004 | Cache local et résilience réseau | `[ ]` |
 | GOAL-005 | Mélange des sources | `[ ]` |
@@ -109,7 +110,7 @@ fonctionnalité applicative.
 
 ## GOAL-002 — Authentification FreshRSS
 
-**Statut : TODO**
+**Statut : DONE**
 
 Permettre à l'utilisateur de connecter l'application à son serveur FreshRSS et
 de conserver sa session. Couvre SPECS.md §3.
@@ -176,7 +177,32 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       désactivé.
 - [x] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève
       `GOAL-001-T14`) — fait dès T02 : le seuil a réellement échoué à 86,2 %.
-- [ ] `GOAL-002-T17` Mettre à jour `ARCHITECTURE.md` §9 et `SPECS.md` §8
+- [x] `GOAL-002-T17` Mettre à jour `ARCHITECTURE.md` §9 et `SPECS.md`
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Le mot de passe API n'est pas enregistré | Le jeton n'expire pas : le conserver suffit. **A modifié SPECS.md §3.4** |
+| Sixième cause d'échec : en-tête `Authorization` non transmis | Sans elle, un reverse-proxy fautif ferait accuser les identifiants. **A modifié SPECS.md §3.3** |
+| Chiffrement AES/GCM écrit à la main | `androidx.security:security-crypto` est déprécié (AGENTS.md §2) |
+| `SecretCipher` abstrait | Robolectric ne simule pas `AndroidKeyStore` ; sans lui, persistance et effacement seraient inéprouvables |
+| Sonde de reconnaissance **avant** l'envoi des identifiants | Une faute de frappe enverrait sinon le mot de passe à un serveur tiers |
+| Sonde de transmission d'en-tête **après** l'obtention du jeton | Plus tôt : un aller-retour gaspillé par tentative. Plus tard : une session vouée à boucler sur des 401 |
+| `invalidateSession()` distinct de `signOut()` | Un jeton refusé conserve adresse et identifiant ; une déconnexion efface tout |
+
+### Dettes ouvertes par ce Goal
+
+- [ ] `GOAL-002-T18` **`KeystoreSecretCipher` n'est couvert par aucun test** —
+      Robolectric ne simule pas `AndroidKeyStore`. À éprouver sur appareil, ou
+      par un test instrumenté, avant toute publication.
+- [ ] `GOAL-002-T19` **Deux points de l'API restent non constatés** : la réponse
+      de succès de `ClientLogin` et le `503` d'une API désactivée
+      (docs/freshrss-api.md §6, points 7 et 8). Le serveur de démonstration n'a
+      pas de mot de passe API exploitable.
+- [ ] `GOAL-002-T20` **Aucun appel authentifié n'existe encore**, donc rien
+      n'appelle `invalidateSession()`. Le mécanisme est en place et testé ; son
+      déclencheur arrive avec GOAL-003.
 
 ---
 

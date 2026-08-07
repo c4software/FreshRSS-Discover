@@ -132,11 +132,7 @@ C'est ce qui rend éprouvable la durée de visibilité du marquage automatique
 
 ---
 
-## 4. Accès réseau — Ktor *(à câbler)*
-
-Ktor est **déclaré dans le catalogue de versions** (`gradle/libs.versions.toml`)
-mais **pas encore branché** dans `app/build.gradle.kts` : une dépendance s'ajoute
-avec son premier usage (AGENTS.md §2). Le Goal de l'authentification la câble.
+## 4. Accès réseau — Ktor
 
 Choix retenu et raisons :
 
@@ -161,7 +157,26 @@ Contraintes propres à FreshRSS, à respecter dans l'implémentation :
   dans `items[].id`, décimal dans `continuation` et dans le paramètre `i`. La
   conversion appartient à la couche API et à elle seule.
 
-### 4.1 Pagination
+### 4.1 Deux sondes avant toute connexion
+
+`FreshRssApi` expose deux vérifications que rien n'oblige à faire, et qu'il faut
+pourtant faire — chacune évite un diagnostic faux :
+
+- **`probe()`** cherche le corps `OK` d'un `GET` nu sur le point d'entrée. Sans
+  elle, une faute de frappe dans l'adresse enverrait le mot de passe API à un
+  serveur qui n'est pas celui de l'utilisateur, et produirait un `401` qu'il
+  imputerait à ses identifiants.
+- **`checkAuthorizationForwarding()`** constate que le serveur web transmet bien
+  l'en-tête `Authorization`. Elle n'a de sens qu'**après** l'obtention du jeton :
+  `ClientLogin` n'exige aucun en-tête, et la payer plus tôt coûterait un
+  aller-retour à chaque tentative, y compris à celles vouées à échouer sur les
+  identifiants. La payer plus tard conserverait une session vouée à boucler sur
+  des `401`.
+
+Leurs particularités — statut toujours `200`, en-tête factice requis, chaîne de
+requête interdite — sont documentées dans docs/freshrss-api.md §1.
+
+### 4.2 Pagination
 
 Le curseur de FreshRSS est **relatif**, non positionnel : la réponse porte un
 `continuation` égal à l'identifiant du dernier article renvoyé, et la requête
@@ -189,7 +204,35 @@ Deux conséquences que le code doit refléter :
 La règle est stricte : une donnée vit dans l'un **ou** l'autre, jamais dans les
 deux. Un réglage dupliqué finit toujours par diverger.
 
-### 5.2 Room n'est pas encore appliqué
+### 5.2 Le mot de passe API n'est jamais enregistré
+
+Le jeton FreshRSS n'expirant pas, le conserver suffit à rouvrir l'application
+sans reconnexion. Garder en plus le mot de passe n'apporterait rien et
+doublerait la surface exposée (SPECS.md §3.4).
+
+Le chiffrement passe par **AES/GCM sur `AndroidKeyStore`**, écrit à la main :
+`androidx.security:security-crypto` aurait fait le même travail, mais la
+bibliothèque est dépréciée et AGENTS.md §2 l'interdit.
+
+`SecretCipher` abstrait le chiffrement pour une raison précise : Robolectric ne
+simule pas `AndroidKeyStore`. Sans cette interface, ni la persistance ni
+l'effacement à la déconnexion ne seraient éprouvables — c'est-à-dire précisément
+la partie où les fautes se logent. Seule l'implémentation *keystore* reste non
+couverte, et le dit.
+
+### 5.3 Jeton refusé et déconnexion sont deux choses différentes
+
+| Opération | Jetons | Adresse et identifiant |
+|---|---|---|
+| `invalidateSession()` — le serveur refuse le jeton | effacés | **conservés** |
+| `signOut()` — geste délibéré de l'utilisateur | effacés | effacés |
+
+Le rappel de saisie (`SignInHint`) ne contient aucun secret : c'est ce qui
+permet de le conserver. L'utilisateur dont le jeton est refusé n'a probablement
+qu'un mot de passe API à renouveler ; lui faire retaper l'adresse de son serveur
+serait gratuit (SPECS.md §3.4).
+
+### 5.4 Room n'est pas encore appliqué
 
 Le plugin, ses dépendances et le bloc `room { schemaDirectory(…) }` ont été
 retirés d'`app/build.gradle.kts` pendant la Phase 0 : une base sans entité ne
@@ -248,7 +291,18 @@ Chaque appel disparaît avec le Goal qui livre l'écran correspondant. Un
 `PlaceholderScreen` encore présent après le Goal concerné est une dette :
 TASKS.md la recense.
 
-### 6.4 Le flux Discover *(à concevoir)*
+### 6.4 Aiguillage racine
+
+`SessionGate` décide entre l'écran de connexion et l'application, à partir de la
+seule présence d'une session. Aucun écran n'a donc à gérer de redirection : un
+jeton refusé fait disparaître la session, et la racine bascule d'elle-même.
+
+L'état `Unknown` n'est pas décoratif : la session vit sur disque, et sa première
+lecture n'est pas instantanée. Partir de « déconnecté » ferait apparaître
+l'écran de connexion un instant à chaque lancement, y compris pour un
+utilisateur déjà connecté.
+
+### 6.5 Le flux Discover *(à concevoir)*
 
 Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
 
@@ -308,10 +362,9 @@ suite de `when(...).thenReturn(...)`.
 `koverVerify` impose 98 % sur `:domain`. Le seuil constate un acquis plutôt
 qu'il ne fixe un objectif.
 
-**État réel à ce jour** : `:domain` ne contient que l'interface `Clock`, sans
-code exécutable. La vérification passe donc **sans rien mesurer** — le garde-fou
-est en place mais vide. Il ne redevient significatif qu'au premier vrai code de
-domaine. TASKS.md porte cette dette.
+**Levé.** Le garde-fou mesure réellement depuis les premiers modèles
+d'authentification : il a immédiatement échoué à 86,2 %, puis à 94,2 %, avant
+d'être satisfait. Il n'était pas décoratif.
 
 ### 8.2 Rendu visuel
 
@@ -356,50 +409,65 @@ dépôt est une incohérence — voir AGENTS.md §8.
 │
 ├── domain/                      Kotlin/JVM pur
 │   └── src/
-│       ├── main/…/domain/time/Clock.kt
-│       └── testFixtures/…/domain/time/FakeClock.kt
+│       ├── main/…/domain/
+│       │   ├── auth/            AuthError · AuthResult · AuthRepository
+│       │   │                    Credentials · AuthToken · AuthSession
+│       │   │                    ServerAddress · SignInHint
+│       │   └── time/Clock.kt
+│       ├── test/…/domain/auth/  couverture ~100 %
+│       └── testFixtures/…/domain/
+│           ├── auth/FakeAuthRepository.kt
+│           └── time/FakeClock.kt
 │
 └── app/                         Android
     └── src/
         ├── main/…/freshrssdiscover/
-        │   ├── FreshRssDiscoverApplication.kt
-        │   ├── MainActivity.kt
-        │   ├── di/              Dispatchers, portées, DataStore, Clock
+        │   ├── FreshRssDiscoverApplication.kt · MainActivity.kt
+        │   ├── data/
+        │   │   ├── api/         FreshRssApi · ApiOutcome
+        │   │   │                FreshRssHttpClient · AuthErrorMapping
+        │   │   ├── local/       SessionStore
+        │   │   ├── network/     NetworkAvailability
+        │   │   ├── repository/  DefaultAuthRepository
+        │   │   └── security/    SecretCipher · KeystoreSecretCipher
+        │   ├── di/              Dispatchers · portées · DataStore · Clock
+        │   │                    Network · Repository · Security
         │   └── presentation/
         │       ├── LoadingIndicator.kt · UiStateSharing.kt
-        │       ├── PlaceholderScreen.kt
+        │       ├── PlaceholderScreen.kt · SessionGate.kt
+        │       ├── login/       LoginScreen · LoginViewModel · LoginUiState
+        │       │                LoginFailureLabels
         │       ├── navigation/  AppDestination · AppNavHost · AppNavigationBar
         │       └── theme/       Color · Spacing · Theme
         └── test/…/freshrssdiscover/
             ├── TestApplication.kt
+            ├── data/            api · local · repository · security (FakeSecretCipher)
             ├── di/DispatcherModuleTest.kt
             └── presentation/
                 ├── ScreenshotTest.kt          base Roborazzi
-                ├── ScreensScreenshotTest.kt
-                ├── PlaceholderScreenTest.kt
-                ├── MainDispatcherRule.kt      outillage, premier usage à venir
-                ├── UiStateCollector.kt        outillage, premier usage à venir
-                └── navigation/AppNavigationBarTest.kt
+                ├── ScreensScreenshotTest.kt   12 références versionnées
+                ├── MainDispatcherRule.kt · UiStateCollector.kt
+                ├── login/ · navigation/
+                └── SessionGateViewModelTest.kt
 ```
 
 ### 9.1 Ce qui n'existe pas encore
 
 Aucune ligne de code métier n'est écrite. Précisément, sont **absents** :
 
-- toute la couche `data` (API FreshRSS, repositories, cache) ;
-- tous les modèles de `:domain` (article, flux, curseur, erreurs) ;
+- la récupération des articles, le cache, et tout ce qui suit la connexion ;
+- les modèles d'article, de flux et de curseur dans `:domain` ;
 - l'algorithme de mélange ;
 - l'écran de connexion, le flux Discover, l'écran de réglages ;
-- Room (voir §5.2) et Ktor (voir §4), déclarés mais non câblés.
+- Room (voir §5.4), déclaré mais non câblé.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 
 Le dépôt provient de `c4software/tailscale-auto-rules`, dont la logique métier a
-été retirée. Deux fichiers de test n'ont pas encore d'usage —
-`MainDispatcherRule` et `UiStateCollector` — et sont conservés : ce sont des
-outils standards de test de ViewModel, dont le premier Goal de présentation aura
-besoin, et ils encodent des contraintes non évidentes (dispatcher principal
-absent hors Android, publication en `WhileSubscribed`).
+été retirée.
 
-C'est une exception assumée à l'interdit « pas de code mort » (AGENTS.md §2),
-inscrite ici pour qu'elle soit visible plutôt que tacite.
+`MainDispatcherRule` a trouvé son usage avec le premier ViewModel.
+`UiStateCollector` n'en a pas encore : il sert aux ViewModels publiant en
+`WhileSubscribed`, ce qu'aucun ne fait pour l'instant. Il est conservé — c'est
+une exception assumée à l'interdit « pas de code mort » (AGENTS.md §2), inscrite
+ici pour qu'elle soit visible plutôt que tacite.
