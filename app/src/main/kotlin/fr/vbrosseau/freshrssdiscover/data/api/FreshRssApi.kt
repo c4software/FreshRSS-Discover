@@ -1,0 +1,141 @@
+package fr.vbrosseau.freshrssdiscover.data.api
+
+import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
+import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
+import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
+import io.ktor.client.HttpClient
+import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
+import io.ktor.http.parameters
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Point de contact unique avec l'API compatible Google Reader de FreshRSS.
+ *
+ * Tout ce qui est propre à cette API — chemins, en-têtes, forme des réponses,
+ * jetons — s'arrête ici (ARCHITECTURE.md §2.1). Rien de tout cela ne doit
+ * apparaître au-dessus.
+ *
+ * Aucune méthode ne lève : les défaillances sont rapportées par [ApiOutcome].
+ * Une exception qui traverserait cette couche obligerait chaque appelant à
+ * connaître les exceptions de Ktor.
+ */
+@Singleton
+internal class FreshRssApi @Inject constructor(
+    private val httpClient: HttpClient,
+) {
+    /**
+     * Vérifie que l'adresse désigne bien une instance FreshRSS.
+     *
+     * Le seul discriminant fiable est le corps `OK` renvoyé par un `GET` nu sur
+     * le point d'entrée (docs/freshrss-api.md §1.1). Deux pièges constatés : le
+     * `Content-Type` est `text/html`, et **la moindre chaîne de requête** fait
+     * répondre `400` au lieu de `OK`.
+     *
+     * Cette sonde se passe avant toute tentative de connexion : sans elle, une
+     * faute de frappe dans l'adresse produirait un `401` que l'utilisateur
+     * imputerait à son mot de passe.
+     */
+    suspend fun probe(address: ServerAddress): ApiOutcome<Unit> = call {
+        val response = httpClient.get(address.apiEndpoint)
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            response.bodyAsText().trim() == PROBE_RESPONSE -> ApiOutcome.Success(Unit)
+            else -> ApiOutcome.MalformedResponse("la racine de l'API n'a pas répondu « $PROBE_RESPONSE »")
+        }
+    }
+
+    /**
+     * Vérifie que le serveur web transmet bien l'en-tête `Authorization`.
+     *
+     * Certains reverse-proxies le suppriment ; toute connexion échouerait alors
+     * en `401`, accusant à tort les identifiants de l'utilisateur.
+     *
+     * Deux particularités constatées, sans lesquelles la sonde ne vaut rien :
+     * le statut est **toujours `200`** — le verdict est dans le corps — et la
+     * requête doit elle-même porter un en-tête `Authorization`, fût-il factice,
+     * puisque c'est sa présence en réception qui est constatée.
+     */
+    suspend fun checkAuthorizationForwarding(address: ServerAddress): ApiOutcome<Boolean> = call {
+        val response = httpClient.get(address.apiEndpoint + COMPATIBILITY_PATH) {
+            header(HttpHeaders.Authorization, "GoogleLogin auth=$COMPATIBILITY_PROBE_TOKEN")
+        }
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            else -> ApiOutcome.Success(response.bodyAsText().trim().startsWith(COMPATIBILITY_PASS))
+        }
+    }
+
+    /**
+     * Ouvre une session.
+     *
+     * Le mot de passe attendu est le **mot de passe API**, distinct de celui de
+     * connexion. Il part en `POST` : FreshRSS accepte aussi la méthode `GET`,
+     * mais journalise alors un avertissement — le mot de passe apparaîtrait
+     * dans les journaux du serveur.
+     *
+     * La réponse est du texte brut, une paire `clé=valeur` par ligne. Seule
+     * `Auth` est retenue ; `SID` porte la même valeur et `LSID` vaut `null`.
+     */
+    suspend fun clientLogin(address: ServerAddress, credentials: Credentials): ApiOutcome<AuthToken> = call {
+        val response = httpClient.submitForm(
+            url = address.apiEndpoint + CLIENT_LOGIN_PATH,
+            formParameters = parameters {
+                append("Email", credentials.username)
+                append("Passwd", credentials.apiPassword)
+            },
+        )
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            else -> tokenFrom(response)
+        }
+    }
+
+    private suspend fun tokenFrom(response: HttpResponse): ApiOutcome<AuthToken> {
+        val auth = response.bodyAsText()
+            .lineSequence()
+            .mapNotNull { line -> line.trim().takeIf { it.startsWith(AUTH_PREFIX) } }
+            .map { it.removePrefix(AUTH_PREFIX).trim() }
+            .firstOrNull { it.isNotEmpty() }
+
+        return when (auth) {
+            null -> ApiOutcome.MalformedResponse("aucune ligne « ${AUTH_PREFIX}… » dans la réponse")
+            else -> ApiOutcome.Success(AuthToken(auth))
+        }
+    }
+
+    /**
+     * Rabat toute exception de transport sur [ApiOutcome.TransportError].
+     *
+     * `CancellationException` doit en revanche continuer à remonter : la
+     * rattraper ferait survivre une coroutine à l'annulation de sa portée, et
+     * l'écran qui l'attend a déjà disparu.
+     */
+    private suspend fun <T> call(block: suspend () -> ApiOutcome<T>): ApiOutcome<T> = try {
+        block()
+    } catch (cancellation: kotlinx.coroutines.CancellationException) {
+        throw cancellation
+    } catch (@Suppress("TooGenericExceptionCaught") failure: Exception) {
+        ApiOutcome.TransportError(failure)
+    }
+
+    private companion object {
+        const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
+        const val COMPATIBILITY_PATH = "/check/compatibility"
+        const val AUTH_PREFIX = "Auth="
+        const val PROBE_RESPONSE = "OK"
+        const val COMPATIBILITY_PASS = "PASS"
+
+        /**
+         * Jeton factice de la sonde de compatibilité : elle constate la
+         * *présence* de l'en-tête, jamais sa validité.
+         */
+        const val COMPATIBILITY_PROBE_TOKEN = "x/y"
+    }
+}

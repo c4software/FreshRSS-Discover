@@ -139,7 +139,8 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [x] `GOAL-002-T04` Câbler Ktor dans `app/build.gradle.kts` (moteur OkHttp,
       négociation de contenu limitée à `application/json`, journalisation sans
       secrets) et fournir le client par Hilt
-- [ ] `GOAL-002-T05` `FreshRssApi.clientLogin()` — réponse en texte brut, paires
+- [x] `GOAL-002-T05` `FreshRssApi` : sonde de reconnaissance, sonde de
+      transmission de l'en-tête, `clientLogin()` — réponse en texte brut, paires
       `clé=valeur`
 - [ ] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
       (`400/401/503`, corps en texte brut)
