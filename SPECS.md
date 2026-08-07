@@ -102,9 +102,20 @@ Chaque cause a son message. Un « échec de connexion » générique est un déf
 La session est conservée entre deux lancements : l'utilisateur ne se connecte
 qu'une fois.
 
-Le jeton d'authentification et le mot de passe API sont des secrets : ils sont
-stockés **chiffrés**, jamais journalisés, jamais inclus dans un rapport
-d'erreur.
+**Le mot de passe API n'est jamais enregistré.** Le jeton délivré par FreshRSS
+n'expire pas : le conserver suffit à rouvrir l'application sans reconnexion.
+Garder en plus le mot de passe n'apporterait rien et doublerait la surface
+exposée.
+
+Le jeton est un secret : il est stocké **chiffré**, adossé au *keystore* de
+l'appareil, jamais journalisé, jamais inclus dans un rapport d'erreur.
+L'adresse du serveur et l'identifiant, qui n'en sont pas, restent lisibles —
+les masquer compliquerait le diagnostic sans rien protéger.
+
+Si le secret devient illisible — la clé du *keystore* est perdue lorsque
+l'utilisateur change son verrouillage d'écran ou restaure une sauvegarde sur un
+autre appareil — l'application se comporte comme s'il n'y avait pas de session,
+et ramène à l'écran de connexion. Elle ne plante pas.
 
 Si le serveur refuse le jeton — cas réel lorsque l'utilisateur change son mot de
 passe API — l'application revient à l'écran de connexion en expliquant pourquoi,

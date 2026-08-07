@@ -147,8 +147,10 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       « hors ligne » de « injoignable »)
 - [ ] `GOAL-002-T07` `AuthRepository` : interface dans `:domain`, implémentation
       dans `:app/data`
-- [ ] `GOAL-002-T08` Stockage chiffré du jeton et du mot de passe API
-      (DataStore adossé au keystore) — jamais journalisés
+- [x] `GOAL-002-T08` Stockage chiffré du jeton (DataStore adossé au keystore) —
+      jamais journalisé. **Traité avant T07**, dont le dépôt s'appuie dessus.
+      **A modifié SPECS.md §3.4** : le mot de passe API n'est plus enregistré du
+      tout, le jeton n'expirant pas.
 - [ ] `GOAL-002-T09` Récupération et conservation du jeton de modification `T`
 - [ ] `GOAL-002-T10` Tests de la couche API au `MockEngine` : succès, chaque
       code d'erreur, réponse tronquée, réponse JSON là où du texte est attendu
