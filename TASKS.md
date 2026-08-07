@@ -170,8 +170,10 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       (SPECS.md §3.2) et un message distinct par cause d'échec
 - [x] `GOAL-002-T14` Aiguillage racine par la présence d'une session ; jeton
       refusé → écran de connexion prérempli de l'adresse et de l'identifiant
-- [ ] `GOAL-002-T15` Captures Roborazzi de l'écran de connexion, clair et sombre,
-      états d'erreur compris — **et regardées**
+- [x] `GOAL-002-T15` Tests d'écran, et captures Roborazzi de la connexion en
+      clair et sombre — vide, remplie, en cours, en erreur. **Regardées** : elles
+      ont révélé un indicateur de progression quasi invisible dans un bouton
+      désactivé.
 - [x] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève
       `GOAL-001-T14`) — fait dès T02 : le seuil a réellement échoué à 86,2 %.
 - [ ] `GOAL-002-T17` Mettre à jour `ARCHITECTURE.md` §9 et `SPECS.md` §8

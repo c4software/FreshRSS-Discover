@@ -6,14 +6,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,14 +32,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
-
-private val ProgressSize = 18.dp
-private val ProgressStroke = 2.dp
 
 /**
  * Écran de connexion.
@@ -109,6 +104,10 @@ fun LoginScreen(
         uiState.failure?.let { failure -> FailureMessage(failure) }
 
         SubmitButton(uiState = uiState, onSubmit = onSubmit)
+
+        if (uiState.isSubmitting) {
+            ConnectingIndicator()
+        }
     }
 }
 
@@ -228,18 +227,28 @@ private fun SubmitButton(uiState: LoginUiState, onSubmit: () -> Unit, modifier: 
             .fillMaxWidth()
             .testTag(LoginTestTags.SUBMIT),
     ) {
-        if (uiState.isSubmitting) {
-            CircularProgressIndicator(
-                strokeWidth = ProgressStroke,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .padding(end = Spacing.sm)
-                    .size(ProgressSize)
-                    .testTag(LoginTestTags.PROGRESS),
-            )
-        }
         Text(stringResource(if (uiState.isSubmitting) R.string.login_submitting else R.string.login_submit))
     }
+}
+
+/**
+ * Progression **hors** du bouton, et non dedans.
+ *
+ * Le bouton est désactivé pendant l'appel — c'est ce qui empêche un double
+ * envoi — et Material atténue tout son contenu, indicateur compris. Placé à
+ * l'intérieur, il devenait quasi invisible : la capture de l'état « connexion
+ * en cours » ne montrait qu'un point gris sur fond gris, et l'utilisateur
+ * n'avait aucun signe que quelque chose se passait. Constaté sur
+ * `connexion-en-cours-clair.png`.
+ */
+@Composable
+private fun ConnectingIndicator(modifier: Modifier = Modifier) {
+    LinearProgressIndicator(
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(LoginTestTags.PROGRESS),
+    )
 }
 
 @Preview(showBackground = true)
