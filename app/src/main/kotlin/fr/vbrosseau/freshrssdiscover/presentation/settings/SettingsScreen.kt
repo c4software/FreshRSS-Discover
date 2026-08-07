@@ -20,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,8 +45,8 @@ private val MinTouchTarget = 48.dp
  * Sans état : il affiche [uiState] et remonte les gestes, ce qui le rend
  * prévisualisable et testable sans graphe d'injection (AGENTS.md §9).
  *
- * Les seuils de lecture sont modifiables et enregistrés. Le cache reste en
- * lecture seule — voir le `TODO` posé plus bas.
+ * Les seuils de lecture sont modifiables et enregistrés, et le cache se purge
+ * depuis cet écran.
  */
 @Composable
 fun SettingsScreen(
@@ -58,6 +59,15 @@ fun SettingsScreen(
      */
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
+    /**
+     * Purge manuelle du cache (SPECS.md §6).
+     *
+     * Avec une valeur par défaut, contrairement aux autres rappels : la
+     * destination Réglages (`AppNavHost`) sort du périmètre de la tâche qui a
+     * livré cette section, et un paramètre obligatoire l'aurait empêchée de
+     * compiler. **À câbler sur `viewModel::purgeCache`** — voir GOAL-011-T05.
+     */
+    onPurgeCache: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -66,11 +76,13 @@ fun SettingsScreen(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            text = stringResource(R.string.settings_title),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
+        /*
+         * Pas de titre d'écran ici : la barre du `Scaffold` affiche déjà le
+         * libellé de la destination. Les deux se sont retrouvés empilés à la
+         * première exécution sur appareil — « Paramètres » puis « Réglages »,
+         * deux mots pour la même chose. Aucune capture ne pouvait le montrer :
+         * elles rendent l'écran seul, sans son ossature.
+         */
         AccountSection(account = uiState.account)
         HorizontalDivider()
         ReadingSection(
@@ -79,7 +91,7 @@ fun SettingsScreen(
             onContinuousVisibilityChange = onContinuousVisibilityChange,
         )
         HorizontalDivider()
-        CacheSection()
+        CacheSection(cache = uiState.cache, onPurge = onPurgeCache)
         HorizontalDivider()
         AboutSection(appVersion = uiState.appVersion)
 
@@ -208,33 +220,62 @@ private fun ThresholdSlider(
 }
 
 /**
- * Taille du cache et purge manuelle (SPECS.md §6), en lecture seule.
+ * Taille du cache et purge manuelle (SPECS.md §6).
  *
- * TODO(GOAL-011) : mesurer la taille du cache et brancher la purge manuelle.
- *  Le bouton est volontairement désactivé plutôt qu'absent : SPECS.md §6 annonce
- *  l'action, et la masquer laisserait croire qu'elle n'est pas prévue.
+ * La taille est un **nombre d'articles**, pas un poids : c'est le seul chiffre
+ * qui réponde à la question que pose le bouton — ce que l'on perd — et le seul
+ * qui bouge visiblement quand on appuie dessus (voir `CacheStatus`).
+ *
+ * Aucune confirmation : la purge n'emporte que du lu déjà transmis au serveur.
+ * Le bouton se désactive quand il n'y a rien à supprimer, plutôt que de laisser
+ * appuyer sur une action sans effet.
  */
 @Composable
-private fun CacheSection(modifier: Modifier = Modifier) {
+private fun CacheSection(cache: SettingsCache, onPurge: () -> Unit, modifier: Modifier = Modifier) {
     SettingsSection(title = stringResource(R.string.settings_section_cache), modifier = modifier) {
         SettingsRow(
             label = stringResource(R.string.settings_cache_size_label),
-            value = stringResource(R.string.settings_cache_size_unavailable),
+            value = pluralStringResource(
+                R.plurals.settings_cache_article_count,
+                cache.articleCount,
+                cache.articleCount,
+            ),
             testTag = SettingsTestTags.CACHE_SIZE,
         )
         Text(
-            text = stringResource(R.string.settings_cache_not_available),
+            text = if (cache.purgeableCount == 0) {
+                stringResource(R.string.settings_cache_nothing_to_purge)
+            } else {
+                pluralStringResource(
+                    R.plurals.settings_cache_purgeable,
+                    cache.purgeableCount,
+                    cache.purgeableCount,
+                )
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(SettingsTestTags.CACHE_PURGEABLE),
         )
         OutlinedButton(
-            onClick = {},
-            enabled = false,
+            onClick = onPurge,
+            enabled = cache.purgeableCount > 0,
             modifier = Modifier
                 .heightIn(min = MinTouchTarget)
                 .testTag(SettingsTestTags.PURGE_CACHE),
         ) {
             Text(stringResource(R.string.settings_purge_cache))
+        }
+        if (cache.lastPurgedCount != null) {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.settings_cache_purged,
+                    cache.lastPurgedCount,
+                    cache.lastPurgedCount,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag(SettingsTestTags.CACHE_PURGE_RESULT),
+            )
         }
     }
 }
@@ -366,6 +407,7 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             uiState = SettingsUiState(
                 account = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice"),
+                cache = SettingsCache(articleCount = 1_240, purgeableCount = 812),
                 appVersion = "0.1.0",
             ),
             onSignOutRequest = {},
@@ -384,6 +426,7 @@ private fun SettingsScreenSignOutPreview() {
         SettingsScreen(
             uiState = SettingsUiState(
                 account = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice"),
+                cache = SettingsCache(articleCount = 1_240, purgeableCount = 812),
                 appVersion = "0.1.0",
                 isSignOutConfirmationVisible = true,
             ),

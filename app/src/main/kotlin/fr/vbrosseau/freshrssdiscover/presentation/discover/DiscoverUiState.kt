@@ -11,6 +11,34 @@ package fr.vbrosseau.freshrssdiscover.presentation.discover
 data class DiscoverUiState(
     val articles: List<ArticleUiModel> = emptyList(),
     val phase: DiscoverPhase = DiscoverPhase.InitialLoading,
+    /**
+     * Rafraîchissement demandé par le geste de tirage (SPECS.md §4.6).
+     *
+     * Hors de [phase], et c'est délibéré : le tirage se fait **par-dessus** un
+     * flux qui a déjà son état — au repos, terminé, en échec — et le fondre
+     * dans la phase obligerait à mémoriser celle à laquelle revenir. Les deux
+     * indicateurs ne sont d'ailleurs pas au même endroit : l'un en haut, sous
+     * le doigt, l'autre en pied de liste.
+     */
+    val isRefreshing: Boolean = false,
+    /**
+     * La dernière requête a échoué faute de réseau (SPECS.md §5.2).
+     *
+     * Distinct de `DiscoverPhase.Failed(NoNetwork)`, qui dit qu'un *chargement*
+     * a échoué : celui-ci dit dans quel **régime** est l'application, et c'est
+     * lui qui décide du bandeau. Un même échec produit donc deux signaux de
+     * portée différente — l'un calme et permanent en tête, l'autre local et
+     * accompagné de sa reprise en pied.
+     */
+    val isOffline: Boolean = false,
+    /**
+     * Une ouverture d'article a été refusée faute de réseau (SPECS.md §5.2).
+     *
+     * Un booléen plutôt qu'un type de message : c'est le seul avis transitoire
+     * de cet écran, et une abstraction arrive avec son deuxième cas d'usage
+     * (AGENTS.md §2).
+     */
+    val isOfflineOpenNoticeVisible: Boolean = false,
 ) {
     /**
      * Vrai quand le flux est arrivé au bout **sans avoir rien à montrer**.
@@ -20,6 +48,16 @@ data class DiscoverUiState(
      */
     val isEmptyFeed: Boolean
         get() = articles.isEmpty() && phase == DiscoverPhase.EndOfFeed
+
+    /**
+     * Le bandeau ne s'affiche qu'**au-dessus de quelque chose à lire**.
+     *
+     * Sans article, l'absence de réseau n'est plus un régime dégradé mais la
+     * seule chose à dire : c'est alors le message plein cadre qui l'explique,
+     * et le doubler d'un bandeau reviendrait à écrire deux fois la même panne.
+     */
+    val showsOfflineBanner: Boolean
+        get() = isOffline && articles.isNotEmpty()
 }
 
 /**

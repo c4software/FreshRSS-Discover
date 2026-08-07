@@ -5,7 +5,6 @@
       l'écran dans le sien évite de faire converger plusieurs travaux sur un
       unique fichier.
     -->
-    <string name="settings_title">Réglages</string>
 
     <!-- Compte connecté, en lecture seule : il vient de la session observée. -->
     <string name="settings_section_account">Compte</string>
@@ -21,12 +20,34 @@
     <string name="settings_continuous_visibility_label">Durée continue</string>
     <string name="settings_continuous_visibility_value">au moins %1$d s</string>
 
-    <!-- Cache local (SPECS.md §5.1 et §5.3). -->
+    <!--
+      Cache local (SPECS.md §5.1 et §5.3). La taille est un nombre d'articles et
+      non un poids en octets : SQLite ne rend pas ses pages au système après une
+      suppression, donc des mégaoctets resteraient identiques après une purge.
+    -->
     <string name="settings_section_cache">Cache local</string>
     <string name="settings_cache_size_label">Taille du cache</string>
-    <string name="settings_cache_size_unavailable">Non disponible</string>
+    <!--
+      Le séparateur de milliers (`,` en drapeau de format) n'est pas cosmétique :
+      « 1240 articles » se lit comme un identifiant, « 1 240 articles » comme une
+      quantité. Constaté sur la capture de référence.
+    -->
+    <plurals name="settings_cache_article_count">
+        <item quantity="one">%1$,d article</item>
+        <item quantity="other">%1$,d articles</item>
+    </plurals>
+    <!-- Dit ce que la purge emporterait, seule question que pose le bouton. -->
+    <plurals name="settings_cache_purgeable">
+        <item quantity="one">dont %1$d déjà lu et transmis au serveur</item>
+        <item quantity="other">dont %1$d déjà lus et transmis au serveur</item>
+    </plurals>
+    <string name="settings_cache_nothing_to_purge">Aucun article lu à supprimer pour l\'instant.</string>
     <string name="settings_purge_cache">Purger le cache</string>
-    <string name="settings_cache_not_available">La mesure de la taille et la purge manuelle restent à écrire.</string>
+    <!-- Compte rendu après coup : la purge ne demande pas de confirmation avant. -->
+    <plurals name="settings_cache_purged">
+        <item quantity="one">%1$d article supprimé.</item>
+        <item quantity="other">%1$d articles supprimés.</item>
+    </plurals>
 
     <!-- Déconnexion (SPECS.md §3.5) : destructrice, donc confirmée. -->
     <string name="settings_sign_out">Se déconnecter</string>

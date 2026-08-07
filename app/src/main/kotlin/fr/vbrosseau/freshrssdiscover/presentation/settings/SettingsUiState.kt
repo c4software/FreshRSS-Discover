@@ -39,6 +39,8 @@ data class SettingsUiState(
     val visibleFraction: SettingsThreshold = visibleFractionThresholdOf(ReadingSettings.Default),
     /** Durée d'affichage continu exigée par SPECS.md §4.5, en secondes. */
     val continuousVisibility: SettingsThreshold = continuousVisibilityThresholdOf(ReadingSettings.Default),
+    /** Contenu du cache local et suite de la dernière purge (SPECS.md §5.4, §6). */
+    val cache: SettingsCache = SettingsCache(),
     /** Nom de version de l'application, tel que produit par la compilation. */
     val appVersion: String = "",
     /**
@@ -67,6 +69,30 @@ data class SettingsThreshold(
     val value: Int,
     val range: IntRange,
     val stepCount: Int,
+)
+
+/**
+ * Ce que la section « Cache local » affiche.
+ *
+ * [lastPurgedCount] remplace la confirmation que la purge manuelle ne demande
+ * pas. Le raisonnement est celui de SPECS.md §5.4 : la purge n'emporte que des
+ * articles **lus et déjà connus du serveur comme lus** — jamais un non-lu,
+ * jamais un marquage en attente. Elle ne détruit donc rien qui ne soit à la fois
+ * déjà consommé et retéléchargeable ; il n'y a pas de promesse à faire arracher
+ * à l'utilisateur avant. La déconnexion, elle, en demande une (SPECS.md §3.5)
+ * parce qu'elle efface le jeton, **tout** le cache — non-lus compris — et les
+ * marquages non transmis : sans réseau ni mot de passe, rien n'en revient.
+ * Confirmer les deux nivellerait la différence et apprendrait à congédier la
+ * boîte de dialogue qui compte. Un compte rendu **après** coup informe mieux
+ * qu'une question posée avant.
+ */
+data class SettingsCache(
+    /** Articles conservés, lus comme non lus. */
+    val articleCount: Int = 0,
+    /** Ce qu'une purge emporterait maintenant : lus et synchronisés. */
+    val purgeableCount: Int = 0,
+    /** Nombre d'articles supprimés par la dernière purge, `null` tant qu'aucune n'a eu lieu. */
+    val lastPurgedCount: Int? = null,
 )
 
 /** Le compte connecté, en lecture seule (SPECS.md §6). */

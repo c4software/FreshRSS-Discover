@@ -396,6 +396,305 @@ class DiscoverViewModelTest {
         assertTrue(reportedBatches.isEmpty())
     }
 
+    // ----- Cache local (SPECS.md §5.1) ----------------------------------------
+
+    @Test
+    fun theCachedArticlesAreShownBeforeAnyNetworkResponse() {
+        // Un écran vide pendant une requête donnerait l'impression d'une
+        // application sans contenu, alors qu'elle en a.
+        repository.pendingLoad = CompletableDeferred()
+        repository.cachedArticles.value = listOf(article(id = 1L, title = "Du cache"))
+
+        assertEquals(listOf("Du cache"), state.articles.map { it.title })
+        assertEquals(DiscoverPhase.InitialLoading, state.phase)
+    }
+
+    @Test
+    fun aCacheThatGrowsBeforeTheNetworkAnswersOnlyAddsWhatIsMissing() {
+        // Le flux du cache réémet à chaque écriture : réappliquer la liste
+        // entière remplacerait ce qui est affiché, et la lecture sauterait.
+        repository.pendingLoad = CompletableDeferred()
+        repository.cachedArticles.value = listOf(article(id = 1L))
+        assertEquals(listOf(1L), state.articles.map { it.id })
+
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
+
+        assertEquals(listOf(1L, 2L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun theFirstPageDoesNotDuplicateWhatTheCacheHasAlreadyShown() {
+        // La page réseau contient les mêmes articles que le cache : seuls les
+        // inconnus s'ajoutent, et en tête — ce sont les plus récents.
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
+        repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)), nextCursor = null)
+
+        assertEquals(listOf(3L, 1L, 2L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun aPageAlreadyEntirelyShownDoesNotStopTheFeed() {
+        // Sans enchaînement, la liste cesserait de s'allonger sans rien dire —
+        // indistinguable d'une panne (SPECS.md §4.4).
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
+
+        assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
+        assertEquals(listOf(null, PageCursor("c1")), repository.requestedCursors)
+    }
+
+    @Test
+    fun theCacheStopsFeedingTheListOnceTheServerHasAnswered() {
+        // Passé la première page, l'ordre appartient au serveur : une écriture
+        // de cache ne doit plus insérer d'article dans une liste parcourue.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        assertEquals(listOf(1L), state.articles.map { it.id })
+
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 9L))
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+    }
+
+    // ----- Hors ligne (SPECS.md §5.2) -----------------------------------------
+
+    @Test
+    fun beingOfflineWithCachedArticlesKeepsThemAndRaisesTheBanner() {
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        assertEquals(listOf(1L, 2L), state.articles.map { it.id })
+        assertTrue(state.isOffline)
+        assertTrue(state.showsOfflineBanner)
+    }
+
+    @Test
+    fun beingOfflineWithoutAnyCacheShowsNoBannerToHangOn() {
+        // Sans article, l'absence de réseau n'est plus un régime dégradé mais
+        // la seule chose à dire : le message plein cadre s'en charge.
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        assertTrue(state.isOffline)
+        assertFalse(state.showsOfflineBanner)
+        assertTrue(state.articles.isEmpty())
+    }
+
+    @Test
+    fun anUnreachableServerIsNotTheOfflineRegime() {
+        // Le serveur qui ne répond pas est un incident, pas une absence de
+        // réseau : le bandeau mentirait sur l'état de l'appareil.
+        repository.enqueueFailure(FeedError.ServerUnreachable)
+
+        assertFalse(state.isOffline)
+    }
+
+    @Test
+    fun aSuccessfulPageLeavesTheOfflineRegime() {
+        repository.enqueueFailure(FeedError.NoNetwork)
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
+
+        viewModel.retry()
+
+        assertFalse(state.isOffline)
+    }
+
+    // ----- Rafraîchissement (SPECS.md §4.6) -----------------------------------
+
+    @Test
+    fun refreshingReplacesTheListWithTheFreshPage() {
+        // SPECS.md §4.6 : le tirage vide l'affichage plutôt que de le compléter.
+        // L'ordre rendu est celui du dépôt, sans réarrangement.
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(
+            listOf(article(id = 2L), article(id = 3L), article(id = 1L)),
+            nextCursor = PageCursor("c9"),
+        )
+
+        viewModel.refresh()
+
+        assertEquals(listOf(2L, 3L, 1L), state.articles.map { it.id })
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun refreshingDropsArticlesThatAreNoLongerInTheFeed() {
+        // Un article devenu lu entre-temps disparaît : la liste est remplacée,
+        // pas complétée, donc rien ne le maintient à l'écran.
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = null)
+
+        viewModel.refresh()
+
+        assertEquals(listOf(2L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun refreshingWithNothingNewChangesNothingAtAll() {
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+
+        viewModel.refresh()
+
+        assertEquals(listOf(1L, 2L), state.articles.map { it.id })
+        assertEquals(DiscoverPhase.Idle, state.phase)
+    }
+
+    @Test
+    fun refreshingRestartsThePaginationFromTheFreshPage() {
+        // La liste ayant été remplacée, l'ancien curseur désignerait un endroit
+        // qui n'est plus affiché : la suite se redéroule à partir de la page
+        // que le tirage vient de rendre.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
+        repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
+
+        viewModel.refresh()
+        viewModel.loadMore()
+
+        assertEquals(listOf(null, PageCursor("c9")), repository.requestedCursors)
+        assertEquals(listOf(2L, 3L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun theRefreshIndicatorLastsExactlyAsLongAsTheRequest() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        repository.pendingLoad = CompletableDeferred()
+
+        viewModel.refresh()
+        assertTrue(state.isRefreshing)
+
+        repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 2L)), PageCursor("c9"))))
+
+        assertFalse(state.isRefreshing)
+        assertEquals(listOf(2L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun aSecondRefreshWhileTheFirstIsInFlightIsIgnored() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        repository.pendingLoad = CompletableDeferred()
+
+        viewModel.refresh()
+        viewModel.refresh()
+
+        assertEquals(1, repository.refreshCallCount)
+        repository.completeLoad(Outcome.Success(ArticlePage(emptyList(), null)))
+    }
+
+    @Test
+    fun noPageIsRequestedWhileARefreshIsInFlight() {
+        // Les deux requêtes portent sur les deux bouts du flux : les mener de
+        // front mêlerait leurs insertions.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        repository.pendingLoad = CompletableDeferred()
+        viewModel.refresh()
+
+        viewModel.loadMore()
+
+        assertEquals(1, repository.loadCallCount)
+        repository.completeLoad(Outcome.Success(ArticlePage(emptyList(), null)))
+    }
+
+    @Test
+    fun aSuccessfulRefreshLiftsThePreviousFailure() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueueFailure(FeedError.NoNetwork)
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
+
+        viewModel.loadMore()
+        viewModel.refresh()
+
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        assertFalse(state.isOffline)
+    }
+
+    @Test
+    fun aRefreshThatReturnsTheWholeFeedEndsIt() {
+        // La phase suit la page rendue, et non l'état précédent : une page sans
+        // curseur est une fin de flux, quel que soit l'endroit d'où l'on tire.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = null)
+
+        viewModel.refresh()
+
+        assertEquals(DiscoverPhase.EndOfFeed, state.phase)
+    }
+
+    @Test
+    fun aRefreshThatFindsMoreReopensTheFeed() {
+        // Symétrique : le flux s'était terminé, le serveur a du neuf.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
+
+        viewModel.refresh()
+
+        assertEquals(DiscoverPhase.Idle, state.phase)
+    }
+
+    @Test
+    fun aFailedRefreshKeepsTheArticlesAndSignalsTheCause() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        viewModel.refresh()
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+        assertTrue(state.isOffline)
+        assertFalse(state.isRefreshing)
+    }
+
+    // ----- Ouverture d'un article (SPECS.md §4.7 et §5.2) ----------------------
+
+    @Test
+    fun openingAnArticleMarksItReadWhateverItsPastVisibility() {
+        // Aucune observation de visibilité n'a eu lieu : le geste suffit.
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = null)
+
+        val opened = viewModel.onArticleOpened(2L)
+
+        assertTrue(opened)
+        assertEquals(listOf(false, true), state.articles.map { it.isRead })
+        assertEquals(setOf(ArticleId(2L)), readArticles)
+    }
+
+    @Test
+    fun anArticleOpenedThenScrolledPastIsNotReportedTwice() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
+
+        viewModel.onArticleOpened(1L)
+        markAsRead(ArticleId(1L))
+
+        assertEquals(1, reportedBatches.size)
+    }
+
+    @Test
+    fun openingAnArticleOfflineIsRefusedAndExplained() {
+        // Ouvrir l'onglet n'afficherait que la page d'erreur du navigateur, et
+        // l'article passerait pour lu sans avoir pu l'être (SPECS.md §5.2).
+        repository.cachedArticles.value = listOf(article(id = 1L))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        val opened = viewModel.onArticleOpened(1L)
+
+        assertFalse(opened)
+        assertTrue(state.isOfflineOpenNoticeVisible)
+        assertFalse(state.articles.single().isRead)
+        assertTrue(readArticles.isEmpty())
+    }
+
+    @Test
+    fun theOfflineOpeningNoticeIsAcknowledged() {
+        repository.enqueueFailure(FeedError.NoNetwork)
+        viewModel.onArticleOpened(1L)
+
+        viewModel.dismissOfflineOpenNotice()
+
+        assertFalse(state.isOfflineOpenNoticeVisible)
+    }
+
     /** Amène [id] au-delà des deux seuils, en deux observations séparées d'une seconde. */
     private fun markAsRead(id: ArticleId) {
         viewModel.onVisibilityChanged(mapOf(id to 1f))

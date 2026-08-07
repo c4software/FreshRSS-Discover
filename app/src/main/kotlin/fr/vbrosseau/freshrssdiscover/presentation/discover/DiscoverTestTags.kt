@@ -9,6 +9,9 @@ object DiscoverTestTags {
     const val RETRY = "discover:retry"
     const val ILLUSTRATION = "discover:illustration"
     const val NO_LINK = "discover:no-link"
+    const val OFFLINE_BANNER = "discover:offline-banner"
+    const val OFFLINE_NOTICE = "discover:offline-notice"
+    const val OFFLINE_NOTICE_DISMISS = "discover:offline-notice-dismiss"
 
     fun card(id: Long) = "discover:card:$id"
 }

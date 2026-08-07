@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
@@ -38,6 +40,8 @@ class DiscoverScreenTest {
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
         onArticleClick: (Long) -> Unit = {},
+        onRefresh: () -> Unit = {},
+        onOfflineNoticeDismiss: () -> Unit = {},
     ) {
         composeRule.setContent {
             DiscoverScreen(
@@ -45,6 +49,8 @@ class DiscoverScreenTest {
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onRefresh = onRefresh,
+                onOfflineNoticeDismiss = onOfflineNoticeDismiss,
             )
         }
     }
@@ -266,6 +272,116 @@ class DiscoverScreenTest {
 
         composeRule.onNodeWithTag(DiscoverTestTags.FAILURE).assertDoesNotExist()
         composeRule.onNodeWithTag(DiscoverTestTags.EMPTY).assertDoesNotExist()
+    }
+
+    // ----- Hors ligne (SPECS.md §5.2) -----------------------------------------
+
+    @Test
+    fun beingOfflineOverSomeContentShowsABannerAndNotAFullScreenError() {
+        // Un écran d'erreur plein cadre par-dessus un cache utilisable ferait
+        // croire à une application vide.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle()),
+                phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork),
+                isOffline = true,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_BANNER).assertExists()
+        composeRule.onNodeWithTag(DiscoverTestTags.LIST).assertExists()
+        composeRule.onNodeWithText("Un titre").assertExists()
+    }
+
+    @Test
+    fun theOfflineBannerReplacesTheErrorBlockButNotItsRetry() {
+        // Deux messages pour une seule cause, dont un en rouge, feraient une
+        // alarme là où le bandeau suffit (SPECS.md §5.2).
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle()),
+                phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork),
+                isOffline = true,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.FAILURE).assertDoesNotExist()
+        composeRule.onNodeWithText("Aucune connexion réseau.").assertDoesNotExist()
+        composeRule.onNodeWithTag(DiscoverTestTags.RETRY).assertExists()
+    }
+
+    @Test
+    fun beingOfflineWithoutContentShowsTheMessageAloneWithoutTheBanner() {
+        show(DiscoverUiState(phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork), isOffline = true))
+
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_BANNER).assertDoesNotExist()
+        composeRule.onNodeWithTag(DiscoverTestTags.FAILURE).assertExists()
+    }
+
+    @Test
+    fun theOfflineBannerSaysTheStateWithoutSoundingLikeABreakdown() {
+        show(DiscoverUiState(articles = listOf(uiArticle()), isOffline = true, phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithText("Hors ligne", substring = true).assertExists()
+    }
+
+    @Test
+    fun aRefusedOpeningIsExplainedAndAcknowledged() {
+        var dismissed = 0
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle()),
+                phase = DiscoverPhase.Idle,
+                isOffline = true,
+                isOfflineOpenNoticeVisible = true,
+            ),
+            onOfflineNoticeDismiss = { dismissed++ },
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertExists()
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE_DISMISS).performClick()
+
+        assertEquals(1, dismissed)
+    }
+
+    @Test
+    fun nothingIsSaidAboutOpeningWhenNothingHasBeenRefused() {
+        show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
+    }
+
+    // ----- Rafraîchissement (SPECS.md §4.6) -----------------------------------
+
+    @Test
+    fun pullingTheFeedDownAsksForARefresh() {
+        var refreshed = 0
+        show(
+            DiscoverUiState(articles = List(10) { uiArticle(id = it.toLong()) }, phase = DiscoverPhase.Idle),
+            onRefresh = { refreshed++ },
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.LIST).performTouchInput {
+            swipeDown(startY = centerY, endY = bottom)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(1, refreshed)
+    }
+
+    @Test
+    fun aRefreshInProgressLeavesTheArticlesInPlace() {
+        // Le rafraîchissement se fait **par-dessus** le flux : il ne le
+        // remplace pas par un indicateur, sinon la lecture serait perdue.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle()),
+                phase = DiscoverPhase.Idle,
+                isRefreshing = true,
+            ),
+        )
+
+        composeRule.onNodeWithText("Un titre").assertExists()
     }
 
     // ----- Chargement anticipé ------------------------------------------------

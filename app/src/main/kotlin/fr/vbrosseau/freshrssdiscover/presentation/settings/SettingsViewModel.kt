@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.BuildConfig
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
+import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
+import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.presentation.UiStateSharing
@@ -23,6 +25,7 @@ private const val MILLIS_PER_SECOND = 1_000L
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val settingsRepository: SettingsRepository,
+    private val cacheRepository: CacheRepository,
 ) : ViewModel() {
     /**
      * Séparée de la session : la confirmation est un état d'interface, la
@@ -31,6 +34,16 @@ class SettingsViewModel @Inject constructor(
      * dialogue, donc à la dupliquer.
      */
     private val signOutConfirmation = MutableStateFlow(false)
+
+    /**
+     * Résultat de la dernière purge manuelle, `null` tant qu'il n'y en a pas eu.
+     *
+     * Il ne peut pas venir du dépôt : celui-ci publie ce que le cache contient,
+     * pas ce qu'un geste vient d'en retirer. Or c'est bien cette différence
+     * qu'il faut montrer — sans confirmation préalable, le compte rendu est le
+     * seul retour que l'utilisateur obtient de son appui.
+     */
+    private val lastPurgedCount = MutableStateFlow<Int?>(null)
 
     /**
      * Les seuils affichés viennent du dépôt, jamais d'une copie locale.
@@ -45,11 +58,19 @@ class SettingsViewModel @Inject constructor(
         authRepository.observeSession(),
         settingsRepository.observeReadingSettings(),
         signOutConfirmation,
-    ) { session, settings, confirming -> stateOf(session, settings, confirming) }
+        cacheRepository.observeCacheStatus(),
+        lastPurgedCount,
+    ) { session, settings, confirming, cache, purged -> stateOf(session, settings, confirming, cache, purged) }
         .stateIn(
             scope = viewModelScope,
             started = UiStateSharing,
-            initialValue = stateOf(session = null, settings = ReadingSettings.Default, confirming = false),
+            initialValue = stateOf(
+                session = null,
+                settings = ReadingSettings.Default,
+                confirming = false,
+                cache = CacheStatus.Empty,
+                purged = null,
+            ),
         )
 
     /** @param percent une position du curseur, donc déjà dans les bornes du domaine. */
@@ -87,14 +108,33 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { authRepository.signOut() }
     }
 
+    /**
+     * Purge le cache **sans rien demander**.
+     *
+     * Ce que le geste détruit — des articles lus et déjà connus du serveur
+     * comme lus (SPECS.md §5.4) — ne justifie pas la confirmation qu'exige la
+     * déconnexion, qui emporte le jeton, les non-lus et les marquages en
+     * attente. Le compte rendu tient lieu de retour : voir [lastPurgedCount].
+     */
+    fun purgeCache() {
+        viewModelScope.launch { lastPurgedCount.value = cacheRepository.purgeReadArticles() }
+    }
+
     private fun stateOf(
         session: AuthSession?,
         settings: ReadingSettings,
         confirming: Boolean,
+        cache: CacheStatus,
+        purged: Int?,
     ): SettingsUiState = SettingsUiState(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
         visibleFraction = visibleFractionThresholdOf(settings),
         continuousVisibility = continuousVisibilityThresholdOf(settings),
+        cache = SettingsCache(
+            articleCount = cache.articleCount,
+            purgeableCount = cache.purgeableCount,
+            lastPurgedCount = purged,
+        ),
         appVersion = BuildConfig.VERSION_NAME,
         isSignOutConfirmationVisible = confirming,
     )

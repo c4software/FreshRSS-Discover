@@ -83,7 +83,7 @@ internal class DefaultArticleRepository @Inject constructor(
     /**
      * Les articles lus sont écartés ici, faute de pouvoir l'être par la requête.
      *
-     * Le cache les conserve jusqu'à la purge (SPECS.md §5.3) alors que le flux
+     * Le cache les conserve jusqu'à la purge (SPECS.md §5.4) alors que le flux
      * ne présente que des non-lus (§4.1). La borne s'applique donc avant le
      * filtrage : un cache chargé d'articles lus rend une liste plus courte que
      * demandée — sans conséquence, la première page réseau la complète aussitôt.

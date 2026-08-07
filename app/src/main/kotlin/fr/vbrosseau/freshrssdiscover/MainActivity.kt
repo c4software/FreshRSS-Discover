@@ -7,8 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,7 +42,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                AppRoot()
+                /*
+                 * `Surface` à la racine, et ce n'est pas décoratif : il est le
+                 * seul à installer `LocalContentColor`. Sans lui, tout texte qui
+                 * ne fixe pas sa couleur retombe sur du **noir**, invisible en
+                 * thème sombre — c'est ce qui est arrivé au titre de l'écran de
+                 * connexion, servi hors de tout `Scaffold`.
+                 *
+                 * Le défaut avait été rencontré en Phase 0 sur les captures
+                 * Roborazzi, et « corrigé » là où il se voyait : dans le harnais
+                 * de capture. Les images sont alors redevenues correctes pendant
+                 * que l'application, elle, restait fautive — le harnais peignait
+                 * un `Surface` que la production n'avait pas. Une capture ne vaut
+                 * que si elle rend ce que l'application rend.
+                 */
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    AppRoot()
+                }
             }
         }
     }
@@ -61,13 +80,25 @@ private fun AppRoot(modifier: Modifier = Modifier) {
         // La session vit sur disque : afficher l'écran de connexion pendant sa
         // première lecture le ferait clignoter à chaque lancement.
         SessionGate.Unknown -> Box(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .safeDrawingPadding(),
             contentAlignment = Alignment.Center,
         ) {
             LoadingIndicator()
         }
 
-        SessionGate.SignedOut -> LoginRoute(modifier = modifier)
+        /*
+         * `safeDrawingPadding` ici, et pas dans le `Scaffold` du cas connecté :
+         * lui gère déjà ses encarts. L'écran de connexion, servi nu sous
+         * `enableEdgeToEdge`, passait sinon **sous la barre d'état** — son titre
+         * était chevauché par l'heure.
+         *
+         * Aucune capture Roborazzi ne pouvait le voir : elles rendent le
+         * Composable isolé, sans barres système. Seule une exécution sur
+         * appareil l'a montré.
+         */
+        SessionGate.SignedOut -> LoginRoute(modifier = modifier.safeDrawingPadding())
 
         SessionGate.SignedIn -> SignedInScaffold(modifier = modifier)
     }

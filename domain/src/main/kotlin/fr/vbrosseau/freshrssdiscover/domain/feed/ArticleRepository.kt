@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * Cinq pages : de quoi retrouver plusieurs écrans de défilement au lancement,
  * sans lire tout le cache pour n'en afficher que le haut. La borne est
- * indispensable — le cache n'est purgé que de ses articles lus (SPECS.md §5.3),
+ * indispensable — le cache n'est purgé que de ses articles lus (SPECS.md §5.4),
  * un flux prolifique y accumulerait donc des milliers de lignes à charger avant
  * la première image.
  *

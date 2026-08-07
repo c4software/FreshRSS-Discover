@@ -345,7 +345,19 @@ l'appelant doit assumer, et que SPECS.md §4.5 consigne désormais :
   durée, et la durée ne s'écoule pas toute seule : sans observation périodique,
   un article immobile dix secondes ne serait jamais marqué lu.
 
-### 6.6 Le flux Discover
+### 6.6 Deux ViewModels pour un seul écran
+
+Le flux Discover en emploie deux, et ce n'est pas un accident de découpage.
+
+`DiscoverViewModel` porte le flux : pagination, rafraîchissement, marquage,
+ouverture. `ReadingPositionViewModel` porte la seule position de lecture.
+
+Leurs cycles diffèrent — le flux est rechargé, rafraîchi, vidé, sans que la
+position cesse d'avoir un sens — et les réunir avait fait franchir à
+`DiscoverViewModel` le seuil de cohésion que Detekt surveille. Le signal était
+juste : il ne fallait pas relâcher la règle, mais séparer les préoccupations.
+
+### 6.7 Le flux Discover
 
 Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
 

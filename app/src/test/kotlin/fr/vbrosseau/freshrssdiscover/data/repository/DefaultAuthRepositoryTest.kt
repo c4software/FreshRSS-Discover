@@ -18,6 +18,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
+import fr.vbrosseau.freshrssdiscover.domain.feed.FakeReadingPositionRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
@@ -63,6 +64,9 @@ class DefaultAuthRepositoryTest {
 
     /** Constate que la déconnexion vide bien la file de marquages (SPECS.md §3.5). */
     private val readSyncRepository = FakeReadSyncRepository()
+
+    /** Constate que la déconnexion oublie aussi la position de lecture. */
+    private val readingPositionRepository = FakeReadingPositionRepository()
     private val requestedPaths = mutableListOf<String>()
 
     private lateinit var dataStore: DataStore<Preferences>
@@ -105,6 +109,7 @@ class DefaultAuthRepositoryTest {
             sessionStore = sessionStore,
             articleCache = ArticleCache(database.articleDao(), Clock { 0L }),
             readSyncRepository = readSyncRepository,
+            readingPositionRepository = readingPositionRepository,
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
@@ -276,6 +281,7 @@ class DefaultAuthRepositoryTest {
         repository.signOut()
 
         assertEquals(1, readSyncRepository.clearPendingCallCount)
+        assertEquals(1, readingPositionRepository.forgetCallCount)
     }
 
     @Test

@@ -7,6 +7,14 @@ unique, mélangé, sans fin apparente.
 Pas de liste de flux à parcourir, pas de compteur de non-lus à faire descendre.
 On fait défiler ; ce qui a été suffisamment vu devient lu.
 
+<p align="center">
+  <img src="docs/demo.jpg"
+       alt="Le flux Discover sur un téléphone Android : deux articles en cartes, chacun avec son illustration, le nom de son flux d'origine, son ancienneté relative et un extrait. En bas, la navigation entre Discover et Paramètres."
+       width="320">
+</p>
+
+<p align="center"><em>Le flux Discover, alimenté par une instance FreshRSS réelle.</em></p>
+
 > **État : en cours de développement.** La connexion au serveur, la lecture
 > paginée du flux, le cache local et l'écran Discover fonctionnent. Le mélange
 > des sources, la détection de lecture, la file de marquages et l'écran de

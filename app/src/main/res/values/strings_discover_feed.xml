@@ -1,0 +1,24 @@
+<resources>
+    <!--
+      Comportement réseau du flux Discover (SPECS.md §5.1 et §5.2). Fichier
+      distinct de `strings.xml` : Android fusionne les ressources d'un même
+      dossier, et garder ce lot dans le sien évite de faire converger plusieurs
+      travaux sur un unique fichier.
+    -->
+
+    <!--
+      Bandeau hors ligne. Ni « erreur » ni « échec » : SPECS.md §5.2 demande de
+      signaler l'état « sans être alarmant », et ce que l'utilisateur a sous les
+      yeux fonctionne — ce sont ses articles, simplement pas les plus récents.
+      Le message dit donc ce qu'il lit, pas ce qui manque.
+    -->
+    <string name="discover_offline_banner">Hors ligne · vous lisez les articles déjà enregistrés</string>
+
+    <!--
+      Ouverture refusée faute de réseau (SPECS.md §5.2). Explicite sur la cause
+      **et** sur ce qui a été fait : ouvrir l'onglet personnalisé n'aurait
+      montré que la page d'erreur du navigateur, sans dire pourquoi.
+    -->
+    <string name="discover_offline_open_blocked">Sans connexion, cet article ne peut pas être ouvert. Il reste dans votre flux.</string>
+    <string name="discover_offline_notice_dismiss">Fermer</string>
+</resources>

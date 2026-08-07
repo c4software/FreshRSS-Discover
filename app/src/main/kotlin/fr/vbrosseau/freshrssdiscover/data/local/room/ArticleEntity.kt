@@ -43,7 +43,7 @@ internal data class ArticleEntity(
     /**
      * Date d'entrée — ou de rafraîchissement — de l'article dans le cache.
      *
-     * Distincte de la date de publication : la purge (SPECS.md §5.3) borne
+     * Distincte de la date de publication : la purge (SPECS.md §5.4) borne
      * l'ancienneté **dans le cache**, pas celle de l'article. Purger sur la
      * publication ferait disparaître dans la seconde un vieil article qu'on
      * vient de lire, alors qu'il est encore visible à l'écran.

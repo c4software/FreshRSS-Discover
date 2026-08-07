@@ -2,7 +2,9 @@ package fr.vbrosseau.freshrssdiscover
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
+import fr.vbrosseau.freshrssdiscover.data.local.room.CacheMaintenance
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * Point d'entrée de l'application et racine du graphe d'injection.
@@ -15,6 +17,9 @@ import timber.log.Timber
 @HiltAndroidApp
 class FreshRssDiscoverApplication : Application() {
 
+    @Inject
+    internal lateinit var cacheMaintenance: CacheMaintenance
+
     override fun onCreate() {
         super.onCreate()
 
@@ -22,5 +27,17 @@ class FreshRssDiscoverApplication : Application() {
             Timber.plant(Timber.DebugTree())
         }
         Timber.i("Processus démarré")
+
+        /*
+         * Une fois par démarrage de processus, et rien ne l'attend.
+         *
+         * Après chaque page, ce serait vingt à trente balayages de table par
+         * session, chacun pendant que l'utilisateur fait défiler — précisément
+         * l'instant où une saccade se voit. Périodiquement, il faudrait
+         * WorkManager pour une opération qui n'a aucune raison de tourner
+         * application fermée. Ici, le premier affichage (SPECS.md §5.1) n'est
+         * suspendu à rien.
+         */
+        cacheMaintenance.purgeExpiredInBackground()
     }
 }

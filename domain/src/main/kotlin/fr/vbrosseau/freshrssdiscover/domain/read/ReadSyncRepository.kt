@@ -24,13 +24,20 @@ import kotlinx.coroutines.flow.Flow
  */
 interface ReadSyncRepository {
     /**
-     * Marque des articles comme lus **localement**, et met la transmission en
-     * file.
+     * Marque des articles comme lus **localement**, met la transmission en file
+     * et programme son envoi.
      *
      * Ne rend aucune issue, et c'est délibéré : du point de vue de l'appelant,
      * cette opération ne peut pas échouer. Elle n'attend pas le réseau — elle
      * ne le touche même pas. Un `ReadSyncOutcome` ici obligerait l'écran à
      * traiter un échec qu'il n'a pas à montrer (SPECS.md §4.5).
+     *
+     * **L'appelant n'a rien à envoyer après cet appel.** Le regroupement
+     * temporel est du ressort de l'implémentation
+     * ([ReadTransmissionScheduler]) : un défilement continu produit un lot
+     * toutes les 200 ms, et les faire partir un par un serait la requête par
+     * article que le marquage par lots de SPECS.md §4.5 écarte. Enchaîner un
+     * [flush] ici annulerait précisément ce regroupement.
      *
      * Idempotent : le flux repasse sur les mêmes articles au gré du
      * défilement, remarquer un article déjà lu ne produit rien.
@@ -38,11 +45,14 @@ interface ReadSyncRepository {
     suspend fun markAsRead(ids: Set<ArticleId>)
 
     /**
-     * Transmet ce qui attend, par lots, et n'acquitte qu'après confirmation.
+     * Transmet **sans attendre** ce qui attend, par lots, et n'acquitte
+     * qu'après confirmation.
      *
-     * Appelée après un marquage et au démarrage — c'est ce second appel qui
-     * réalise le rejeu promis par SPECS.md §4.5 pour ce qui n'a pas pu partir
-     * avant la fermeture de l'application.
+     * C'est la sortie de secours du regroupement : au démarrage — le rejeu
+     * promis par SPECS.md §4.5 pour ce qui n'a pas pu partir avant la fermeture
+     * de l'application — et partout où attendre n'aurait plus de sens, un
+     * passage en arrière-plan par exemple. Le marquage ordinaire, lui, n'a pas
+     * à l'appeler.
      *
      * Sans rien en file, ne touche pas au réseau et rend
      * [ReadSyncOutcome.Synchronized] : il serait absurde de payer un

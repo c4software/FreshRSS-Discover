@@ -139,7 +139,7 @@ class ArticleCacheTest {
 
     @Test
     fun purgingNeverRemovesUnreadArticlesHoweverOldTheyAre() = runTest {
-        // SPECS.md §5.3 : les non lus sont le contenu même de l'application.
+        // SPECS.md §5.4 : les non lus sont le contenu même de l'application.
         cache.save(listOf(article(id = 1L, isRead = false)))
         clock.advanceBy(365.days.inWholeMilliseconds)
 

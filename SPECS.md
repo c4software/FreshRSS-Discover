@@ -240,7 +240,10 @@ Comportement associé :
 
 - Un article marqué lu **reste affiché** et à sa place. Le faire disparaître
   sous le doigt déplacerait le contenu en cours de lecture.
-- Le marquage est **envoyé au serveur par lots**, pas un appel par article.
+- Le marquage est **envoyé au serveur par lots**, pas un appel par article : les
+  marquages sont regroupés pendant quelques secondes avant d'être transmis
+  (§8, question 4). Rien n'est perdu pendant ce délai — la file survit à la
+  fermeture — mais la lecture n'est alors connue que de l'appareil.
 - Le marquage est **optimiste** : l'état local change immédiatement, la
   synchronisation suit. Un échec réseau ne doit pas se voir pendant la lecture.
 - Un marquage non transmis est **conservé** et rejoué à la prochaine occasion,
@@ -248,14 +251,28 @@ Comportement associé :
 
 ### 4.6 Rafraîchissement
 
-Un **tirer-pour-rafraîchir** demande les articles parus depuis la dernière
-récupération.
+Un **tirer-pour-rafraîchir** repart de zéro : il **vide la liste affichée**,
+recharge le début du flux, et **remonte automatiquement en haut**.
 
-- Les nouveaux articles sont insérés **en tête**.
-- La position de lecture est **préservée** : l'utilisateur ne se retrouve pas
-  déplacé.
-- Le rafraîchissement ne réordonne pas ce qui est déjà affiché — voir la règle
-  de déterminisme (§4.2).
+- La liste est remplacée, pas complétée. Ce qui était affiché disparaît.
+- La position de lecture n'est **pas** préservée : le geste ramène en tête, et
+  c'est ce qu'il annonce.
+- La pagination repart du début : le curseur précédent est abandonné.
+
+**Ce choix a été fait contre l'option inverse**, et il vaut d'être expliqué.
+Insérer les nouveaux articles en tête sans bouger l'utilisateur préserve sa
+lecture, mais laisse le flux s'allonger indéfiniment et rend le geste presque
+invisible — on tire, et rien ne semble se passer. Le rechargement complet donne
+au geste un effet immédiat et lisible, au prix de la position de lecture ; c'est
+la convention des applications où le flux est le contenu principal, et c'est
+celle-ci qui a été retenue.
+
+Conséquence assumée : un utilisateur qui tire par réflexe perd l'endroit où il
+lisait. Le geste doit donc rester délibéré — il n'est déclenché que par un
+tirage franc, jamais par un simple défilement vers le haut.
+
+**Cela ne vaut que pour le tirage.** Voir §5.3 : la position de lecture, elle,
+survit à la fermeture de l'application.
 
 ### 4.7 Ouverture d'un article
 
@@ -266,6 +283,45 @@ et retrouve sa session et ses réglages de navigateur.
 Ouvrir un article le marque comme lu, quelle que soit sa visibilité passée.
 
 Un article sans lien exploitable n'est pas cliquable, et le donne à voir.
+
+### 4.8 Deux modes de présentation
+
+Le flux se parcourt de deux façons, au choix de l'utilisateur. **Le contenu est
+le même** : mêmes articles, même mélange, mêmes règles de lecture et de
+chargement. Seule la présentation change.
+
+| Mode | Geste | Ce qu'il montre |
+|---|---|---|
+| **Liste** (par défaut) | défilement vertical | plusieurs articles à l'écran, en cartes |
+| **Balayage** | balayage horizontal | **un** article à la fois, en plein écran |
+
+Le mode Balayage reprend le geste des réseaux sociaux : on passe à l'article
+suivant d'un balayage de gauche à droite, et on revient au précédent en sens
+inverse. Ce n'est **pas** une navigation entre flux ou entre catégories — §1 et
+§2 les excluent, et cela reste vrai ici. C'est le même flux mélangé, présenté
+article par article.
+
+Ce que ce mode implique, et qui n'est pas neutre :
+
+- **Un article plein écran est intégralement visible.** La règle de §4.5
+  s'applique telle quelle : il devient lu après la durée continue requise. Le
+  seuil de surface, lui, est satisfait d'emblée — c'est donc la durée seule qui
+  décide, et elle prend ici tout son sens.
+- **Le retour en arrière ne « délit » pas.** Revenir sur un article déjà lu ne
+  le remet pas en non-lu : le marquage n'est pas réversible par un geste de
+  navigation.
+- **Le chargement anticipé demeure** (§4.4) : la page suivante est demandée
+  avant d'atteindre le dernier article chargé, et la fin du flux se dit
+  explicitement plutôt que de bloquer le balayage.
+- **L'extrait laisse place au contenu.** Le plein écran permet d'en montrer
+  davantage que les trois lignes d'une carte ; la limite de §8 question 7 est
+  propre au mode Liste.
+- **Le mode est un réglage persistant** (§6) : l'application rouvre dans le
+  mode que l'utilisateur a quitté.
+
+Le choix du mode ne modifie **jamais** l'ordre des articles : un utilisateur qui
+bascule de l'un à l'autre retrouve le flux au même endroit, dans le même ordre
+(règle de déterminisme de §4.2).
 
 ---
 
@@ -289,11 +345,42 @@ Sans réseau :
   réseau ;
 - l'ouverture d'un article échoue avec un message explicite.
 
-### 5.3 Purge
+### 5.3 Reprise de la lecture
+
+La position de lecture **survit à la fermeture de l'application**, y compris
+lorsque le système tue le processus. Rouvrir l'application ramène à l'article où
+l'on s'était arrêté, pas en haut du flux.
+
+C'est la contrepartie exacte de §4.6 : le tirage remonte en haut parce que
+l'utilisateur l'a demandé ; une fermeture, elle, n'est pas une demande. Perdre
+sa place à chaque retour rendrait le flux impraticable — il est continu et sans
+repère, et rien ne permettrait de retrouver ce qu'on avait déjà parcouru.
+
+Ce qui est mémorisé est l'**article** en tête d'écran, pas son rang : le flux
+peut s'être allongé entre-temps, et un rang ne désignerait plus le même contenu.
+Si cet article n'est plus disponible — purgé, ou lu et disparu du flux — la
+reprise se fait au plus proche, et à défaut en haut.
+
+### 5.4 Purge
 
 Le cache est borné. Les articles **lus et synchronisés** sont supprimés au-delà
-d'un seuil d'ancienneté ; les articles non lus et les marquages en attente ne
-sont jamais purgés.
+d'un seuil d'ancienneté (§8, question 3) ; les articles non lus ne sont jamais
+purgés.
+
+« **Et synchronisés** » se lit littéralement : un article dont le marquage attend
+encore d'être transmis n'est **jamais** supprimé, même passé le seuil. Ce n'est
+pas une précaution abstraite. La mémoire locale du « déjà lu » vit dans le cache
+et nulle part ailleurs : effacer la ligne avant que le serveur ne connaisse le
+marquage ferait redécrire l'article comme non lu au rafraîchissement suivant, et
+il **réapparaîtrait dans le flux comme jamais lu**. Le cas se produit dès qu'un
+appareil reste hors ligne plus longtemps que le seuil.
+
+La purge manuelle, elle, ne demande **pas** de confirmation : elle n'emporte que
+ce qui est à la fois lu, transmis et retéléchargeable. La déconnexion en demande
+une parce qu'elle efface le jeton, les articles non lus et les marquages en
+attente — rien n'en revient sans réseau ni mot de passe. Confirmer les deux
+nivellerait la différence, et apprendrait à congédier la boîte de dialogue qui
+compte.
 
 ---
 
@@ -302,6 +389,7 @@ sont jamais purgés.
 L'écran de réglages reste minimal :
 
 - adresse du serveur et identifiant connectés (en lecture seule) ;
+- **mode de présentation du flux** : Liste ou Balayage (§4.8) ;
 - seuils du marquage automatique (§4.5) ;
 - taille du cache et action de purge manuelle ;
 - déconnexion ;
@@ -348,14 +436,15 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | # | Question | Réponse, et ce qui l'a décidée |
 |---|---|---|
 | 1 | Taille de page de l'API (`n`) | **40 articles.** Mesuré sur un flux réel : résumé médian de 1 324 caractères, 90ᵉ centile à 4 379. Une page de 40 pèse donc environ 55 ko, ce qui reste raisonnable sur réseau mobile tout en laissant assez d'avance pour que le défilement ne s'interrompe pas (§4.4). Le serveur accepte des valeurs bien supérieures — `n=100000` a renvoyé 4 645 articles sans broncher — mais tout demander d'un coup ne servirait qu'à retarder le premier affichage. |
-| 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
+| 2 | Formulation exacte de l'algorithme de mélange | **La récence l'emporte sur la répartition des sources**, avec une borne dure de sept positions, exprimée en rangs et non en durée (§4.2). Les deux règles sont structurellement incompatibles au-delà d'une certaine amplitude, et il fallait dire laquelle gagne. |
+| 3 | Seuil d'ancienneté de purge du cache | **7 jours.** Au-delà, un article lu n'a plus de lecteur ; en deçà, il en a deux. Le **défilement arrière** d'abord : le flux est continu et sans repère, y remonter est le seul moyen de retrouver ce qu'on a survolé la veille — à 24 h le passé disparaîtrait entre deux lancements. Une semaine couvre le rythme réel : on revient le lundi, on retrouve son flux de vendredi. La **mémoire du « déjà lu »** ensuite, portée par le cache lui-même. 30 jours quadrupleraient le cache pour du contenu déjà consommé. |
+| 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
+| 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
 
 ### Encore ouvertes
 
 | # | Question | Quand la trancher |
 |---|---|---|
-| 2 | Formulation exacte de l'algorithme de mélange | Au Goal du mélange, à partir de données réelles |
-| 3 | Seuil d'ancienneté de purge du cache | Au Goal du cache |
-| 4 | Taille du lot de marquage et délai de regroupement | Au Goal de la synchronisation |
 | 5 | Comportement si un flux ne contient que des articles lus | Au Goal du flux |
+| 8 | Longueur de l'extrait en mode Balayage (§4.8) | Au Goal de la vue Balayage. Le plein écran permet bien plus que les 240 caractères d'une carte |

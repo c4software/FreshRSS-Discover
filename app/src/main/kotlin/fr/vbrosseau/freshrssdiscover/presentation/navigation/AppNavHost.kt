@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 
@@ -52,13 +53,27 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
     // dans la pile de l'application — sinon le retour ne ramènerait pas au flux.
     val articleOpener = rememberArticleOpener()
 
+    // ViewModel distinct : la position de lecture a son propre cycle, elle
+    // survit aux rechargements et aux rafraîchissements du flux.
+    val positionViewModel: ReadingPositionViewModel = hiltViewModel()
+    val restoreToArticleId by positionViewModel.restoreToArticleId.collectAsStateWithLifecycle()
+
     DiscoverScreen(
         uiState = uiState,
         onLoadMore = viewModel::loadMore,
         onRetry = viewModel::retry,
+        // Le ViewModel décide s'il y a lieu d'ouvrir : il marque l'article lu
+        // et refuse hors ligne, où l'ouverture échouerait sans rien expliquer.
         onArticleClick = { articleId ->
-            articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
+            if (viewModel.onArticleOpened(articleId)) {
+                articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
+            }
         },
+        onRefresh = viewModel::refresh,
+        onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
+        onFirstVisibleArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
+        onPositionRestored = positionViewModel::onPositionRestored,
+        restoreToArticleId = restoreToArticleId,
         // Sans ce rappel, la mesure de visibilité ne s'arme pas : `null` signifie
         // « personne n'écoute », et le marquage automatique resterait inerte.
         onVisibilityChanged = viewModel::onVisibilityChanged,
@@ -76,6 +91,7 @@ private fun SettingsRoute(modifier: Modifier = Modifier) {
         onSignOutRequest = viewModel::requestSignOut,
         onSignOutConfirm = viewModel::confirmSignOut,
         onSignOutDismiss = viewModel::dismissSignOut,
+        onPurgeCache = viewModel::purgeCache,
         onVisibleFractionChange = viewModel::setVisibleFractionPercent,
         onContinuousVisibilityChange = viewModel::setContinuousVisibilitySeconds,
         modifier = modifier,

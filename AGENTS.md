@@ -187,6 +187,24 @@ chaque commit et à chaque Pull Request ne se justifie pas.
 personne automatiquement. **Quiconque touche à l'interface lance
 `verifyRoborazziDebug` avant de committer** — c'est le seul filet.
 
+### Une capture ne vaut que si elle rend ce que l'application rend
+
+Le harnais de capture enveloppe le contenu dans un `Surface`. Ce n'est pas un
+détail de mise en scène : `Surface` installe `LocalContentColor`, et sans lui
+tout texte qui ne fixe pas sa couleur retombe sur du **noir**.
+
+En Phase 0, ce défaut est apparu sur une capture — un titre noir sur fond noir —
+et il a été « corrigé » **là où il se voyait**, c'est-à-dire dans le harnais. Les
+images sont redevenues correctes ; l'application, elle, est restée fautive. Le
+défaut n'a été retrouvé que des Goals plus tard, à la première exécution sur
+appareil, et il rendait alors **tout l'écran de connexion illisible**.
+
+La règle qui en découle : **quand une capture révèle un défaut, corriger
+l'application, jamais le harnais** — sauf à démontrer que le harnais s'écarte de
+ce que fait la production, et alors le rapprocher d'elle plutôt que l'inverse.
+Un harnais plus indulgent que l'application transforme une suite de captures en
+décor.
+
 **Réenregistrer n'est pas anodin** : un `record` accepte en bloc toute
 différence, y compris une régression. Ne le lancer qu'après avoir constaté que
 le changement visuel est celui qu'on voulait, et **regarder les images**

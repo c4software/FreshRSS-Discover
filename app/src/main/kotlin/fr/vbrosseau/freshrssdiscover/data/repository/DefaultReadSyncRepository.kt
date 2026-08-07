@@ -6,12 +6,15 @@ import fr.vbrosseau.freshrssdiscover.data.api.ModificationToken
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkQueue
+import fr.vbrosseau.freshrssdiscover.di.ApplicationScope
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncOutcome
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
+import fr.vbrosseau.freshrssdiscover.domain.read.ReadTransmissionScheduler
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -56,39 +59,72 @@ internal class DefaultReadSyncRepository @Inject constructor(
     private val articleCache: ArticleCache,
     private val queue: PendingMarkQueue,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:ApplicationScope applicationScope: CoroutineScope,
 ) : ReadSyncRepository {
     /**
-     * Bascule l'état local, puis met en file. **Dans cet ordre**, et il compte :
-     * l'état local est ce que l'utilisateur voit, la file n'est qu'un moyen. Si
-     * le processus était tué entre les deux, l'article resterait lu à l'écran —
-     * une conséquence sans gravité — là où l'ordre inverse laisserait un
-     * marquage en file pour un article affiché comme non lu.
+     * Regroupe les transmissions dans le temps (SPECS.md §4.5).
+     *
+     * La portée est l'applicative, et non celle de l'appelant : une fenêtre
+     * ouverte pendant la lecture doit survivre à la disparition de l'écran qui
+     * l'a ouverte, sans quoi le marquage attendrait le lancement suivant pour
+     * partir.
+     *
+     * La file est consultée **avant** la session : sans rien à transmettre, il
+     * n'y a ni requête à faire ni session à exiger. C'est le cas courant du
+     * démarrage, où `flush()` est appelée sans savoir s'il reste quelque chose.
+     */
+    private val scheduler = ReadTransmissionScheduler(scope = applicationScope) {
+        withContext(ioDispatcher) {
+            val session = sessionStore.observeSession().first()
+            when {
+                queue.pending(limit = 1).isEmpty() -> ReadSyncOutcome.Synchronized(transmittedCount = 0)
+                session == null -> ReadSyncOutcome.SessionLost
+                else -> transmit(session)
+            }
+        }
+    }
+
+    /**
+     * Bascule l'état local, met en file, **puis** ouvre la fenêtre de
+     * regroupement. L'ordre compte deux fois :
+     *
+     * - l'état local d'abord, parce que c'est ce que l'utilisateur voit et que
+     *   la file n'est qu'un moyen. Si le processus était tué entre les deux,
+     *   l'article resterait lu à l'écran — une conséquence sans gravité — là où
+     *   l'ordre inverse laisserait un marquage en file pour un article affiché
+     *   comme non lu ;
+     * - la fenêtre en dernier, parce que c'est cet ordre qui garantit qu'une
+     *   fenêtre déjà ouverte emportera bien ce qui vient d'être mis en file.
+     *
+     * Rien ici n'attend le réseau : la fenêtre s'ouvre et cet appel rend la
+     * main.
      */
     override suspend fun markAsRead(ids: Set<ArticleId>) = withContext(ioDispatcher) {
         if (ids.isNotEmpty()) {
             val ordered = ids.toList()
             articleCache.markAsRead(ordered)
             queue.enqueue(ordered)
+            scheduler.schedule()
         }
     }
 
     /**
-     * La file est consultée **avant** la session : sans rien à transmettre, il
-     * n'y a ni requête à faire ni session à exiger. C'est le cas courant du
-     * démarrage, où `flush()` est appelée sans savoir s'il reste quelque chose.
+     * Force la transmission, sans attendre la fenêtre en cours.
+     *
+     * C'est le sens que `flush()` avait déjà — le rejeu au démarrage — et le
+     * regroupement ne le change pas : ce qui est différé, c'est le marquage
+     * ordinaire, pas la demande explicite d'envoyer.
      */
-    override suspend fun flush(): ReadSyncOutcome = withContext(ioDispatcher) {
-        val session = sessionStore.observeSession().first()
-        when {
-            queue.pending(limit = 1).isEmpty() -> ReadSyncOutcome.Synchronized(transmittedCount = 0)
-            session == null -> ReadSyncOutcome.SessionLost
-            else -> transmit(session)
-        }
-    }
+    override suspend fun flush(): ReadSyncOutcome = scheduler.transmitNow()
 
     override fun observePendingCount(): Flow<Int> = queue.observePendingCount()
 
+    /**
+     * La fenêtre en cours est abandonnée avec la file : à la déconnexion, elle
+     * n'aurait plus rien à dire au serveur.
+     */
     override suspend fun clearPending() = withContext(ioDispatcher) {
+        scheduler.cancelScheduled()
         queue.clear()
     }
 

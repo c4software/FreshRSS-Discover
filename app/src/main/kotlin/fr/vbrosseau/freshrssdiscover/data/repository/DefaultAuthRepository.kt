@@ -16,6 +16,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPositionRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ internal class DefaultAuthRepository @Inject constructor(
     private val sessionStore: SessionStore,
     private val articleCache: ArticleCache,
     private val readSyncRepository: ReadSyncRepository,
+    private val readingPositionRepository: ReadingPositionRepository,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
@@ -90,7 +92,8 @@ internal class DefaultAuthRepository @Inject constructor(
     }
 
     /**
-     * Efface la session, le cache **et les marquages en attente**.
+     * Efface la session, le cache, les marquages en attente **et la position de
+     * lecture**.
      *
      * SPECS.md §3.5 : la déconnexion est destructrice et assumée comme telle.
      * Laisser les articles derrière soi exposerait ce que l'utilisateur lisait
@@ -105,6 +108,7 @@ internal class DefaultAuthRepository @Inject constructor(
         sessionStore.clear()
         articleCache.clear()
         readSyncRepository.clearPending()
+        readingPositionRepository.forget()
     }
 
     /**

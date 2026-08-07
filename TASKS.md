@@ -102,6 +102,51 @@ fonctionnalité applicative.
 - [x] `GOAL-001-T15` ~~Retirer `PlaceholderScreen`~~ **Levé** : les deux
       destinations ont leur écran réel, l'écran d'attente et ses chaînes ont été
       supprimés.
+- [x] `GOAL-001-T22` ~~L'application n'a jamais été lancée.~~ **Levé le
+      2026-08-07** : installée et exécutée sur un Pixel 10 Pro, connectée à une
+      instance FreshRSS réelle. Le parcours complet fonctionne — connexion, flux
+      d'articles réels avec illustrations, marquage automatique **transmis au
+      serveur** (49 articles en cache dont 11 lus et synchronisés), réglages,
+      déconnexion avec confirmation.
+      > **Trois défauts que 487 tests et 30 captures n'avaient pas vus** :
+      > 1. l'écran de connexion passait **sous la barre d'état**, son titre
+      >    chevauché par l'heure. Les captures rendent le Composable isolé, sans
+      >    barres système : elles ne pouvaient pas le voir ;
+      > 2. son titre était **noir sur noir** en thème sombre, faute de `Surface`
+      >    à la racine. Voir ci-dessous, c'est le plus instructif ;
+      > 3. l'écran de réglages affiche **deux titres empilés** — « Paramètres »
+      >    dans la barre, « Réglages » dans l'écran.
+- [x] `GOAL-001-T23` **Le harnais de capture masquait un défaut de production.**
+      > Le titre noir sur noir avait déjà été rencontré en Phase 0, sur une
+      > capture. Il avait été corrigé **dans le harnais** — un `Surface` ajouté à
+      > `ScreenshotTest` — plutôt que dans l'application. Les images sont
+      > redevenues correctes pendant que la production restait fautive, et le
+      > défaut n'a resurgi qu'à la première exécution réelle, des Goals plus tard.
+      >
+      > Corrigé à la racine : `MainActivity` enveloppe désormais l'application
+      > dans un `Surface`. Le harnais et la production coïncident enfin.
+      > La règle est inscrite dans AGENTS.md §4.1 : **quand une capture révèle un
+      > défaut, on corrige l'application, jamais le harnais.**
+- [x] `GOAL-001-T24` ~~Deux titres empilés dans l'écran de réglages~~ **Levé** :
+      le titre d'écran est retiré, la barre du `Scaffold` suffit. Énoncé initial :
+      « Paramètres » (barre de titre) et « Réglages » (en-tête d'écran). La barre
+      affiche déjà le libellé de la destination — l'en-tête est redondant, et les
+      deux mots diffèrent pour désigner la même chose.
+      > 487 tests passent, 30 captures sont conformes, et pourtant **aucune
+      > exécution réelle n'a eu lieu** : ni sur appareil, ni sur émulateur.
+      > Tenté le 2026-08-07, `adb devices` ne renvoie aucun appareil.
+      >
+      > Ce que les tests ne peuvent pas établir, et qui n'est donc pas établi :
+      > l'ouverture réelle de la base Room sur disque, le fonctionnement du
+      > chiffrement `AndroidKeyStore` — non couvert par construction, voir
+      > `GOAL-002-T18` — l'onglet personnalisé, le chargement d'images par le
+      > réseau, et le comportement de la liste au défilement réel, sur lequel
+      > repose tout le marquage automatique.
+      >
+      > **À faire avant toute annonce de fonctionnement** :
+      > `./gradlew :app:installDebug` puis
+      > `adb shell am start -n fr.vbrosseau.freshrssdiscover/.MainActivity`,
+      > avec une instance FreshRSS réelle.
 - [ ] `GOAL-001-T16` **Icône de l'application** : celle du template est encore en
       place.
 - [x] `GOAL-001-T21` ~~ktlint ne vérifie aucune source Kotlin de `:app`~~
@@ -295,10 +340,19 @@ Couvre SPECS.md §5.
       cache, et la déconnexion le vide (SPECS.md §3.5)
 - [x] `GOAL-004-T05` `observeCachedArticles()` : le cache s'affiche avant toute
       requête (SPECS.md §5.1)
-- [x] `GOAL-004-T06` Repli hors ligne (SPECS.md §5.2) — côté dépôt. **Reste à
-      l'écran** de montrer le contenu du cache sans afficher une erreur bloquante
-- [ ] `GOAL-004-T07` Déclencher la purge et trancher son seuil (SPECS.md §8
-      question 3) — `purgeReadOlderThan` n'est appelée nulle part
+- [x] `GOAL-004-T06` Repli hors ligne complet : bandeau discret par-dessus le
+      contenu du cache, écran plein cadre réservé au cas **sans aucun article**
+- [x] `GOAL-004-T07` **Purge déclenchée, seuil tranché à 7 jours** (SPECS.md §8,
+      question 3), une fois par démarrage de processus.
+      > ⚠️ **Un défaut sérieux corrigé au passage.** La purge ne testait que
+      > « lu **et** assez ancien » : sur un appareil hors ligne plus longtemps
+      > que le seuil, elle effaçait un article dont le marquage attendait encore
+      > d'être transmis. La file survivait, mais **la mémoire locale du « déjà
+      > lu » partait avec la ligne** — elle ne vit nulle part ailleurs. Au
+      > rafraîchissement suivant le serveur redécrivait l'article comme non lu,
+      > plus rien ne le contredisait, et il **réapparaissait dans le flux**.
+      > Corrigé par une exclusion explicite des marquages en attente, et
+      > SPECS.md §5.3 dit désormais littéralement pourquoi.
 - [ ] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
       seconde entité et migration en version 2
 
@@ -365,10 +419,8 @@ Couvre SPECS.md §4.3 et §4.4.
       `discover-flux-clair.png` : `surfaceVariant` sur un conteneur de carte quasi
       identique le rend presque invisible, alors qu'il se distingue nettement en
       sombre.
-- [ ] `GOAL-006-T07` Appliquer `interleaveBySource` au flux affiché — lève
-      `GOAL-005-T03`
-- [ ] `GOAL-006-T08` Mesurer la visibilité et alimenter `ReadDetector` — lève
-      `GOAL-007-T03` et `GOAL-007-T04`
+- [x] `GOAL-006-T07` Mélange appliqué par le dépôt
+- [x] `GOAL-006-T08` Visibilité mesurée et détecteur alimenté
 
 ### Décisions prises
 
@@ -441,9 +493,10 @@ Couvre SPECS.md §4.5.
 - [x] `GOAL-008-T08` Le marquage local repasse par `ArticleCache` et non par le
       DAO. L'agent avait dû court-circuiter l'enveloppe, faute d'accès en
       écriture dans son périmètre ; il l'a signalé plutôt que de le taire
-- [x] `GOAL-008-T07` Taille de lot tranchée : **100**. Reste à trancher le
-      **délai de regroupement** — le marquage part aujourd'hui à chaque lot
-      détecté, sans temporisation
+- [x] `GOAL-008-T07` Taille de lot **100**, fenêtre de regroupement **5 s à
+      échéance fixe** (SPECS.md §8, question 4) — 17 tests
+- [ ] `GOAL-008-T09` Forcer la transmission au passage en arrière-plan
+      (`ON_STOP`) : `flush()` existe déjà, il n'y a qu'à le brancher
 
 ### Décisions prises
 
@@ -455,6 +508,7 @@ Couvre SPECS.md §4.5.
 | Migration réelle, pas de `fallbackToDestructiveMigration` | Une migration destructive viderait le cache et **les marquages non transmis** de tout utilisateur existant |
 | La longueur du jeton n'est pas validée | Un jeton refusé se signale par un `401`, pas par sa taille |
 | Lot de **100** articles | Par le bas : une page fait 40 articles, un lot plus petit ferait plusieurs requêtes pour une page parcourue. Par le haut : chaque article est un champ `i`, et PHP n'accepte par défaut que 1 000 champs (`max_input_vars`) — au-delà **les champs excédentaires sont ignorés en silence**, et `edit-tag` répond `OK` sans compte-rendu. La perte serait totalement muette |
+| Fenêtre de regroupement **fixe**, non glissante | Un défilement continu produit un lot toutes les 200 ms : une fenêtre relançable ne se refermerait **jamais** tant que l'utilisateur lit, et la transmission n'aurait lieu qu'à la fermeture |
 | Un `5xx` sur `/token` ne déconnecte pas | Seul un `401` signifie « jeton refusé ». Une panne serveur ferait sinon perdre la session à chaque hoquet |
 
 > ⚠️ **Piège identifié d'avance.** Un identifiant d'article dépassant
@@ -473,15 +527,25 @@ Tranche SPECS.md §8 question 4.
 
 ## GOAL-009 — Tirer-pour-rafraîchir
 
-**Statut : IN PROGRESS** — la moitié « données » est livrée
+**Statut : IN PROGRESS** — reste à valider sur appareil
 
 Couvre SPECS.md §4.6.
 
 - [x] `GOAL-009-T01` `ArticleRepository.refresh()` — rend la première page du
       jour, sans toucher au curseur de pagination
-- [ ] `GOAL-009-T02` Le geste lui-même dans `DiscoverScreen`, et l'indicateur
-- [ ] `GOAL-009-T03` Insertion **en tête** des seuls articles inconnus, sans
-      réordonner l'existant ni perdre la position de lecture
+- [x] `GOAL-009-T02` Geste de tirage et indicateur — 31 tests, 3 captures
+- [x] ~~`GOAL-009-T03` Insertion en tête des seuls inconnus~~ **Remplacé par
+      `GOAL-009-T04`** : la spécification a changé à la demande de l'auteur
+- [x] `GOAL-009-T04` **Le tirage vide la liste, recharge et remonte en haut**
+      (SPECS.md §4.6 réécrit). Insérer en tête préservait la lecture mais rendait
+      le geste presque invisible — on tirait, et rien ne semblait se passer
+- [x] `GOAL-009-T05` **La position de lecture survit à la fermeture**
+      (SPECS.md §5.3, nouvelle section) : `ReadingPositionViewModel` et
+      `ReadingPositionStore`. C'est la contrepartie exacte du tirage — une
+      fermeture n'est pas une demande de l'utilisateur
+- [ ] `GOAL-009-T06` **Valider sur appareil** : rechargement au tirage, remontée
+      automatique, et reprise de position après un arrêt forcé. Le téléphone
+      s'est déconnecté avant que je puisse le faire
 
 ---
 
@@ -495,11 +559,10 @@ Couvre SPECS.md §4.7.
       absence de navigateur traitée — 17 tests
 - [x] `GOAL-010-T02` Ouvreur branché : `ArticleUiModel` transporte désormais
       `url`, et `isOpenable` en est dérivé par défaut
-- [ ] `GOAL-010-T03` Marquer l'article comme lu à l'ouverture, quelle que soit
-      sa visibilité passée (SPECS.md §4.7) — décision de ViewModel
-- [ ] `GOAL-010-T04` Message explicite si l'ouverture échoue hors ligne
-      (SPECS.md §5.2), et si aucun navigateur n'est installé — `ArticleOpener`
-      distingue déjà `Ignored` de `NoBrowser`, personne ne lit encore ce retour
+- [x] `GOAL-010-T03` Article marqué lu à l'ouverture, quelle que soit sa
+      visibilité passée
+- [x] `GOAL-010-T04` Ouverture refusée hors ligne, avec un avis **acquitté à la
+      main** — un message qui s'efface seul se rate. L'article n'est pas marqué
 
 ### Décisions prises
 
@@ -527,9 +590,10 @@ Couvre SPECS.md §6.
 - [x] `GOAL-011-T04` **Seuils modifiables et persistés**, curseurs à crans,
       bornes validées dans le domaine — 36 tests. La duplication des défauts est
       supprimée : l'affichage observe le dépôt, il ne recopie plus rien
-- [ ] `GOAL-011-T05` Mesurer la taille du cache et brancher la purge manuelle —
-      le bouton est volontairement **désactivé plutôt qu'absent**, pour que la
-      fonctionnalité soit annoncée
+- [x] `GOAL-011-T05` Taille du cache affichée et purge manuelle branchée —
+      28 tests. La taille est un **nombre d'articles**, pas des octets : SQLite ne
+      rend pas ses pages au système, une purge laisserait les mégaoctets
+      inchangés et se lirait comme sans effet
 - [x] `GOAL-011-T06` **Licence choisie : MIT.** `LICENSE` ajouté à la racine,
       l'écran de réglages affiche « Licence MIT ». L'agent avait refusé d'en
       inventer une et affichait « Non encore déterminée » — c'était la bonne
@@ -542,6 +606,57 @@ Couvre SPECS.md §6.
 | Les seuils sont affichés mais non modifiables | Les rendre modifiables sans stockage donnerait un réglage qui ne survit pas à la fermeture — pire qu'un réglage absent |
 | Le bouton de purge est désactivé, pas caché | Annoncer la fonctionnalité vaut mieux que la faire découvrir plus tard ; la phrase au-dessus explique pourquoi il ne répond pas |
 | L'unité de conversion est faite dans le ViewModel | `0.6f → 60 %` et `1000 ms → 1 s` sont des calculs : AGENTS.md §9 les interdit dans un Composable |
+
+---
+
+## GOAL-012 — Vue Balayage, article par article
+
+**Statut : TODO** — à découper par `/goal`
+
+Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
+alternatif : un article en plein écran, balayage horizontal pour passer au
+suivant, comme les Stories d'un réseau social.
+
+### Ce qui est déjà tranché
+
+| Point | Décision |
+|---|---|
+| « Flux suivant » désigne l'**article** suivant | Pas la source ni la catégorie : SPECS.md §1 et §2 excluent toute navigation par flux ou par dossier, et cela reste vrai |
+| Les deux modes **coexistent** | L'écran en liste est conservé, avec sa liste paresseuse, son chargement anticipé et sa mesure de visibilité. Le mode se choisit dans les réglages |
+| Le contenu est **identique** | Mêmes articles, même mélange, mêmes règles. Seule la présentation change — basculer de mode ne réordonne rien (règle 3 de §4.2) |
+
+### Ce qui reste à concevoir, et qui n'est pas anodin
+
+- [ ] `GOAL-012-T01` **La mesure de visibilité change de nature.** Un article
+      plein écran est visible à 100 % : le seuil de surface est satisfait
+      d'emblée, et la durée décide seule. `ReadDetector` s'applique tel quel,
+      mais l'alimentation ne peut pas venir de `LazyListState` — il faut une
+      source d'observation propre à ce mode
+- [ ] `GOAL-012-T02` **Le chargement anticipé doit survivre au geste.** Demander
+      la page suivante avant d'atteindre le dernier article chargé, sans que le
+      balayage ne bute
+- [ ] `GOAL-012-T03` **La fin du flux doit se dire**, comme en mode Liste : un
+      balayage qui cesse de répondre est indistinguable d'une panne (§4.4)
+- [ ] `GOAL-012-T04` **Le retour en arrière ne délit pas.** Revenir sur un
+      article lu ne le remet pas en non-lu — le marquage n'est pas réversible
+      par un geste de navigation
+- [ ] `GOAL-012-T05` **Position partagée entre les deux modes.** Basculer de
+      l'un à l'autre doit retrouver le flux au même endroit
+- [ ] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
+- [ ] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
+      par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que
+      l'application reste utilisable, et un geste unique ne le garantit pas
+- [ ] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
+      **et regardées**, puis exécution réelle sur appareil : le mode Liste a
+      montré que trois défauts sur trois n'étaient visibles qu'ainsi
+
+### Question ouverte
+
+L'extrait est limité à 240 caractères en mode Liste (SPECS.md §8, question 7),
+calibré sur trois lignes de carte. Le plein écran permet d'en montrer bien
+davantage. Quelle longueur, et faut-il afficher le contenu entier ? À trancher
+au Goal, avec des articles réels — le résumé médian fait 1 324 caractères, le
+maximum mesuré 34 777.
 
 ---
 

@@ -3,8 +3,10 @@ package fr.vbrosseau.freshrssdiscover.data.local.room
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedRef
+import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,14 +71,42 @@ internal class ArticleCache @Inject constructor(
     }
 
     /**
-     * Purge les articles **lus** présents dans le cache depuis plus de [maxAge].
+     * Purge les articles **lus et synchronisés** présents dans le cache depuis
+     * plus de [maxAge].
      *
-     * Renvoie le nombre de lignes supprimées. Les articles non lus ne sont
-     * jamais purgés (SPECS.md §5.3) : ce sont eux le contenu de l'application,
-     * les effacer priverait l'utilisateur de ce qu'il n'a pas encore vu.
+     * Renvoie le nombre de lignes supprimées. Deux catégories sont épargnées
+     * quoi qu'il arrive (SPECS.md §5.4) : les articles **non lus**, qui sont le
+     * contenu même de l'application, et ceux dont le marquage **attend encore
+     * d'être transmis** — les effacer ferait réapparaître comme non lu ce que
+     * l'utilisateur vient de lire. Voir `ArticleDao.deleteReadCachedBefore`.
      */
     suspend fun purgeReadOlderThan(maxAge: Duration): Int =
         dao.deleteReadCachedBefore(clock.nowEpochMillis() - maxAge.inWholeMilliseconds)
+
+    /**
+     * Purge manuelle : la même règle, **sans condition d'ancienneté**.
+     *
+     * Un seuil explicitement infini plutôt qu'un `purgeReadOlderThan(ZERO)` :
+     * ce dernier compare à l'instant présent, et laisserait donc échapper
+     * exactement les articles enregistrés dans la même milliseconde — c'est-à-
+     * dire, sur une base fraîchement remplie, la totalité de ce que
+     * l'utilisateur voit. Un bouton qui annonce 812 articles et n'en supprime
+     * aucun n'a pas d'explication acceptable.
+     */
+    suspend fun purgeAllRead(): Int = dao.deleteReadCachedBefore(Long.MAX_VALUE)
+
+    /**
+     * Ce que le cache contient, et ce qu'une purge en retirerait.
+     *
+     * Les deux compteurs sont combinés ici plutôt que remontés séparément :
+     * l'écran les affiche côte à côte, et deux flux distincts le feraient passer
+     * par un état transitoire où le total a déjà baissé alors que le nombre
+     * d'articles purgeables n'a pas encore bougé.
+     */
+    fun observeCacheStatus(): Flow<CacheStatus> =
+        combine(dao.observeArticleCount(), dao.observePurgeableCount()) { total, purgeable ->
+            CacheStatus(articleCount = total, purgeableCount = purgeable)
+        }
 }
 
 private fun Article.toEntity(cachedAtEpochMillis: Long): ArticleEntity =

@@ -15,16 +15,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -101,6 +111,58 @@ fun DiscoverScreen(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onRefresh: () -> Unit = {},
+    onOfflineNoticeDismiss: () -> Unit = {},
+    onFirstVisibleArticleChanged: (ArticleId?) -> Unit = {},
+    onPositionRestored: () -> Unit = {},
+    restoreToArticleId: Long? = null,
+    listState: LazyListState = rememberLazyListState(),
+    onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
+) {
+    RestoreReadingPosition(
+        listState = listState,
+        articles = uiState.articles,
+        restoreToArticleId = restoreToArticleId,
+        onPositionRestored = onPositionRestored,
+    )
+    RememberReadingPosition(listState = listState, onFirstVisibleArticleChanged = onFirstVisibleArticleChanged)
+    ScrollToTopAfterRefresh(listState = listState, isRefreshing = uiState.isRefreshing)
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Au-dessus du flux et non par-dessus : le bandeau informe, il ne
+            // masque rien de ce qui reste lisible (SPECS.md §5.2).
+            if (uiState.showsOfflineBanner) OfflineBanner()
+
+            FeedBody(
+                uiState = uiState,
+                onLoadMore = onLoadMore,
+                onRetry = onRetry,
+                onRefresh = onRefresh,
+                onArticleClick = onArticleClick,
+                modifier = Modifier.weight(1f),
+                listState = listState,
+                onVisibilityChanged = onVisibilityChanged,
+            )
+        }
+
+        if (uiState.isOfflineOpenNoticeVisible) {
+            OfflineOpenNotice(
+                onDismiss = onOfflineNoticeDismiss,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedBody(
+    uiState: DiscoverUiState,
+    onLoadMore: () -> Unit,
+    onRetry: () -> Unit,
+    onRefresh: () -> Unit,
+    onArticleClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
@@ -111,6 +173,7 @@ fun DiscoverScreen(
             uiState = uiState,
             onLoadMore = onLoadMore,
             onRetry = onRetry,
+            onRefresh = onRefresh,
             onArticleClick = onArticleClick,
             modifier = modifier,
             listState = listState,
@@ -135,11 +198,20 @@ fun DiscoverScreen(
     }
 }
 
+/**
+ * Le flux et son geste de rafraîchissement (SPECS.md §4.6).
+ *
+ * Le tirage n'est armé qu'ici, sur la liste : les états sans article ont déjà
+ * leur reprise — « Réessayer » — et un geste de défilement sur un écran qui
+ * n'en propose pas ne se découvre pas.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArticleList(
     uiState: DiscoverUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
@@ -155,23 +227,114 @@ private fun ArticleList(
         ObserveArticleVisibility(listState = listState, onVisibilityChanged = onVisibilityChanged)
     }
 
-    LazyColumn(
-        state = listState,
-        modifier = modifier
-            .fillMaxSize()
-            .testTag(DiscoverTestTags.LIST),
-        contentPadding = PaddingValues(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        // Clé stable : sans elle, l'insertion d'articles en tête (SPECS.md
-        // §4.6) recomposerait toute la liste et déplacerait la lecture en cours.
-        items(items = uiState.articles, key = ArticleUiModel::id) { article ->
-            ArticleCard(article = article, onClick = { onArticleClick(article.id) })
-        }
+    val refreshState = rememberPullToRefreshState()
 
-        item(key = FOOTER_KEY) {
-            FeedFooter(phase = uiState.phase, onRetry = onRetry)
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+        state = refreshState,
+        indicator = {
+            /*
+             * L'indicateur par défaut peint son disque en `surfaceContainer` :
+             * posé sur une carte d'article, il s'y confond en thème clair, et
+             * la capture l'a montré effaçant le titre qu'il recouvre. Le
+             * conteneur primaire le détache des deux fonds, et son arc en
+             * `onPrimaryContainer` reste lisible dans les deux thèmes.
+             */
+            PullToRefreshDefaults.Indicator(
+                state = refreshState,
+                isRefreshing = uiState.isRefreshing,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(DiscoverTestTags.LIST),
+            contentPadding = PaddingValues(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            // Clé stable : sans elle, l'insertion d'articles en tête (SPECS.md
+            // §4.6) recomposerait toute la liste et déplacerait la lecture en
+            // cours. Avec elle, la liste repositionne son premier élément
+            // visible sur sa **clé** et non sur son rang : les articles insérés
+            // au-dessus ne poussent donc pas la lecture vers le bas.
+            items(items = uiState.articles, key = ArticleUiModel::id) { article ->
+                ArticleCard(article = article, onClick = { onArticleClick(article.id) })
+            }
+
+            item(key = FOOTER_KEY) {
+                FeedFooter(uiState = uiState, onRetry = onRetry)
+            }
         }
+    }
+}
+
+/**
+ * Le régime hors ligne, dit calmement (SPECS.md §5.2).
+ *
+ * `surfaceVariant` et non `errorContainer` : ce que l'utilisateur a sous les
+ * yeux fonctionne, et le peindre aux couleurs de l'erreur laisserait croire à
+ * une panne de l'application. La paire `surfaceVariant`/`onSurfaceVariant` est
+ * définie dans les deux thèmes, ce qu'une couleur choisie à la main ne
+ * garantirait pas.
+ */
+@Composable
+private fun OfflineBanner(modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(DiscoverTestTags.OFFLINE_BANNER),
+    ) {
+        Text(
+            text = stringResource(R.string.discover_offline_banner),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        )
+    }
+}
+
+/**
+ * L'ouverture refusée faute de réseau (SPECS.md §5.2).
+ *
+ * Une bandelette posée sur le flux, qui ne l'interrompt pas : le geste a
+ * échoué, la lecture continue. Elle est **acquittée à la main** plutôt que
+ * retirée par un minuteur — un message qui s'efface tout seul se rate, et
+ * celui-ci explique pourquoi rien ne s'est passé.
+ *
+ * La couleur de l'action vient de `SnackbarDefaults` : un `TextButton` ordinaire
+ * peindrait son libellé en `primary`, couleur pensée pour la surface du fond et
+ * non pour celle, inversée, de la bandelette.
+ */
+@Composable
+private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Snackbar(
+        modifier = modifier
+            .padding(Spacing.md)
+            .testTag(DiscoverTestTags.OFFLINE_NOTICE),
+        action = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionContentColor),
+                modifier = Modifier
+                    .heightIn(min = MinTouchTarget)
+                    .testTag(DiscoverTestTags.OFFLINE_NOTICE_DISMISS),
+            ) {
+                Text(stringResource(R.string.discover_offline_notice_dismiss))
+            }
+        },
+    ) {
+        Text(stringResource(R.string.discover_offline_open_blocked))
     }
 }
 
@@ -371,10 +534,12 @@ private fun ArticleIllustration(imageUrl: String?, modifier: Modifier = Modifier
  */
 @Composable
 private fun FeedFooter(
-    phase: DiscoverPhase,
+    uiState: DiscoverUiState,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val phase = uiState.phase
+
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         when (phase) {
             DiscoverPhase.LoadingMore -> LoadingIndicator()
@@ -389,7 +554,19 @@ private fun FeedFooter(
                     .testTag(DiscoverTestTags.END_OF_FEED),
             )
 
-            is DiscoverPhase.Failed -> FailureBlock(failure = phase.failure, onRetry = onRetry)
+            /*
+             * Hors ligne, le bandeau a déjà dit la cause en tête du flux : la
+             * répéter en rouge sous le dernier article ferait de deux signaux
+             * une alarme, alors que ce qui est affiché fonctionne (SPECS.md
+             * §5.2). Seule la reprise demeure — c'est elle que SPECS.md §4.4
+             * exige, pas la couleur.
+             */
+            is DiscoverPhase.Failed ->
+                if (uiState.showsOfflineBanner) {
+                    RetryAction(onRetry)
+                } else {
+                    FailureBlock(failure = phase.failure, onRetry = onRetry)
+                }
 
             // Rien à dire : le flux continue, ou la session s'achève.
             DiscoverPhase.Idle,
@@ -420,14 +597,19 @@ private fun FailureBlock(
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
         )
-        TextButton(
-            onClick = onRetry,
-            modifier = Modifier
-                .heightIn(min = MinTouchTarget)
-                .testTag(DiscoverTestTags.RETRY),
-        ) {
-            Text(stringResource(R.string.discover_retry))
-        }
+        RetryAction(onRetry)
+    }
+}
+
+@Composable
+private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    TextButton(
+        onClick = onRetry,
+        modifier = modifier
+            .heightIn(min = MinTouchTarget)
+            .testTag(DiscoverTestTags.RETRY),
+    ) {
+        Text(stringResource(R.string.discover_retry))
     }
 }
 
@@ -500,6 +682,34 @@ private fun DiscoverScreenPreview() {
     }
 }
 
+/** Le régime hors ligne : bandeau calme, cache intact, avis d'ouverture refusée. */
+@Preview(showBackground = true)
+@Composable
+private fun DiscoverScreenOfflinePreview() {
+    AppTheme(dynamicColor = false) {
+        DiscoverScreen(
+            uiState = DiscoverUiState(
+                articles = listOf(
+                    ArticleUiModel(
+                        id = 1L,
+                        title = "Un article venu du cache, toujours lisible sans réseau",
+                        feedTitle = "Le Monde",
+                        publishedAt = RelativeTime.Hours(6),
+                        excerpt = "Le contenu enregistré reste consultable : rien n'est vidé.",
+                        isOpenable = true,
+                    ),
+                ),
+                phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork),
+                isOffline = true,
+                isOfflineOpenNoticeVisible = true,
+            ),
+            onLoadMore = {},
+            onRetry = {},
+            onArticleClick = {},
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun DiscoverScreenEmptyPreview() {
@@ -511,4 +721,65 @@ private fun DiscoverScreenEmptyPreview() {
             onArticleClick = {},
         )
     }
+}
+
+/**
+ * Remonte en haut à la fin d'un tirer-pour-rafraîchir.
+ *
+ * SPECS.md §4.6 : le geste vide la liste et repart du début. Sans cette
+ * remontée, l'utilisateur resterait à un rang qui ne désigne plus rien de ce
+ * qu'il regardait — le contenu a été remplacé sous lui.
+ *
+ * Déclenché sur la **retombée** de l'indicateur, pas sur sa montée : remonter
+ * avant que la nouvelle liste ne soit posée ferait défiler l'ancienne.
+ */
+@Composable
+private fun ScrollToTopAfterRefresh(listState: LazyListState, isRefreshing: Boolean) {
+    var wasRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (wasRefreshing && !isRefreshing) listState.scrollToItem(0)
+        wasRefreshing = isRefreshing
+    }
+}
+
+/**
+ * Ramène la liste à l'article où la lecture s'était arrêtée (SPECS.md §5.3).
+ *
+ * `scrollToItem` et non `animateScrollToItem` : il s'agit de restituer un état,
+ * pas de montrer un mouvement que l'utilisateur n'a pas demandé.
+ *
+ * Si l'article n'est plus là — purgé, ou devenu lu et sorti du flux — rien ne se
+ * produit et la liste reste en haut. La position est acquittée dans tous les
+ * cas : la garder en attente ferait sauter la liste au prochain chargement.
+ */
+@Composable
+private fun RestoreReadingPosition(
+    listState: LazyListState,
+    articles: List<ArticleUiModel>,
+    restoreToArticleId: Long?,
+    onPositionRestored: () -> Unit,
+) {
+    LaunchedEffect(restoreToArticleId, articles) {
+        if (restoreToArticleId == null || articles.isEmpty()) return@LaunchedEffect
+
+        val index = articles.indexOfFirst { it.id == restoreToArticleId }
+        if (index >= 0) listState.scrollToItem(index)
+        onPositionRestored()
+    }
+}
+
+/** Signale l'article en tête d'écran, pour que la lecture puisse reprendre là. */
+@Composable
+private fun RememberReadingPosition(
+    listState: LazyListState,
+    onFirstVisibleArticleChanged: (ArticleId?) -> Unit,
+) {
+    val firstVisible by remember(listState) {
+        derivedStateOf {
+            (listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key as? Long)?.let(::ArticleId)
+        }
+    }
+
+    LaunchedEffect(firstVisible) { onFirstVisibleArticleChanged(firstVisible) }
 }

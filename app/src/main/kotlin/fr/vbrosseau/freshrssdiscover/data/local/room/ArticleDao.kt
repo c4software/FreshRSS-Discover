@@ -60,13 +60,51 @@ internal interface ArticleDao {
     suspend fun markAsRead(articleIds: List<Long>)
 
     /**
-     * Supprime les articles lus entrés dans le cache avant [thresholdEpochMillis].
+     * Supprime les articles lus **et synchronisés** entrés dans le cache avant
+     * [thresholdEpochMillis].
      *
-     * La condition `is_read = 1` est la garantie demandée par SPECS.md §5.3 :
-     * un article non lu n'est jamais purgé, quelle que soit son ancienneté.
+     * La condition `is_read = 1` est la première garantie de SPECS.md §5.4 : un
+     * article non lu n'est jamais purgé, quelle que soit son ancienneté.
+     *
+     * La sous-requête sur `pending_marks` est la seconde, et elle corrige un
+     * défaut réel. Sans elle, un appareil resté hors ligne plus longtemps que le
+     * seuil voyait partir des articles lus dont le marquage n'était pas encore
+     * transmis. La file, elle, survivait — le marquage aurait fini par arriver —
+     * mais la **mémoire locale du « déjà lu »** disparaissait avec la ligne :
+     * `upsertPreservingLocalReadState` la lit dans cette table et nulle part
+     * ailleurs. Au rafraîchissement suivant, le serveur redécrivait l'article
+     * comme non lu, plus rien ne le contredisait, et il **réapparaissait dans le
+     * flux comme jamais lu**. Exactement la régression que tout le reste du
+     * cache s'emploie à empêcher.
      */
-    @Query("DELETE FROM articles WHERE is_read = 1 AND cached_at_epoch_millis < :thresholdEpochMillis")
+    @Query(
+        "DELETE FROM articles WHERE is_read = 1 " +
+            "AND cached_at_epoch_millis < :thresholdEpochMillis " +
+            "AND id NOT IN (SELECT article_id FROM pending_marks)",
+    )
     suspend fun deleteReadCachedBefore(thresholdEpochMillis: Long): Int
+
+    /** Nombre d'articles conservés, observable : l'écran de réglages l'affiche (SPECS.md §6). */
+    @Query("SELECT COUNT(*) FROM articles")
+    fun observeArticleCount(): Flow<Int>
+
+    /**
+     * Nombre d'articles que la purge emporterait **maintenant**.
+     *
+     * La condition est celle de [deleteReadCachedBefore] amputée de
+     * l'ancienneté : c'est ce que le bouton de purge manuelle supprimerait. Elle
+     * est écrite deux fois plutôt que partagée parce qu'une `@Query` est une
+     * chaîne littérale — mais les deux doivent bouger ensemble, sinon l'écran
+     * annoncerait un nombre que la purge ne tiendrait pas.
+     *
+     * Room suit les deux tables citées : retirer un marquage de la file fait
+     * remonter ce compteur de lui-même.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM articles WHERE is_read = 1 " +
+            "AND id NOT IN (SELECT article_id FROM pending_marks)",
+    )
+    fun observePurgeableCount(): Flow<Int>
 
     @Query("DELETE FROM articles")
     suspend fun deleteAll()

@@ -34,7 +34,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -58,6 +62,9 @@ private const val BATCH_SIZE = 100
 
 private const val FRESH_TOKEN = "JETON-FRAIS"
 
+/** Délai de regroupement attendu, tel que le domaine le fixe par défaut. */
+private const val GROUPING_DELAY_MILLIS = 5_000L
+
 /**
  * Ce que ces tests éprouvent tient en une phrase : **la lecture ne dépend jamais
  * du réseau, et rien ne quitte la file sans confirmation du serveur** (SPECS.md
@@ -72,6 +79,14 @@ class DefaultReadSyncRepositoryTest {
 
     private val dispatcher = UnconfinedTestDispatcher()
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
+
+    /**
+     * Portée des transmissions différées, tenue à l'écart de [scope].
+     *
+     * DataStore y ferait vivre des coroutines sans fin, alors que les tests du
+     * regroupement ont besoin d'attendre la fin des seules transmissions.
+     */
+    private val transmissionScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private val server = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
 
@@ -121,6 +136,7 @@ class DefaultReadSyncRepositoryTest {
 
     @After
     fun releaseResources() {
+        transmissionScope.cancel()
         scope.cancel()
         database.close()
     }
@@ -135,6 +151,7 @@ class DefaultReadSyncRepositoryTest {
         articleCache = ArticleCache(articleDao, Clock { 0L }),
         queue = queue,
         ioDispatcher = dispatcher,
+        applicationScope = transmissionScope,
     )
 
     private data class Reply(val body: String, val status: HttpStatusCode = HttpStatusCode.OK)
@@ -295,6 +312,103 @@ class DefaultReadSyncRepositoryTest {
 
         assertEquals(0, tokenRequestCount)
         assertEquals("JETON-CONNU", editTagForms.single()["T"])
+    }
+
+    // ----- Regroupement temporel (GOAL-008-T07) ------------------------------
+
+    /*
+     * Le **minutage** du regroupement se vérifie dans `:domain`
+     * (ReadTransmissionSchedulerTest), où la transmission est un faux et le
+     * temps entièrement virtuel. Ici, la transmission passe par Room, DataStore
+     * et Ktor, qui suspendent réellement : `runTest` avance alors le temps
+     * virtuel de lui-même pendant ces attentes, et la milliseconde n'y veut plus
+     * rien dire. Ces tests-ci éprouvent donc le **câblage** — ce qui part, quand
+     * on le déclenche, et ce qui reste en file — et rien d'autre.
+     */
+
+    /**
+     * Amène la fenêtre à échéance, puis attend la fin de la transmission qu'elle
+     * déclenche : le temps est virtuel, mais Ktor, lui, répond sur un vrai fil.
+     */
+    private suspend fun TestScope.awaitScheduledTransmission() {
+        advanceTimeBy(GROUPING_DELAY_MILLIS)
+        runCurrent()
+        transmissionScope.coroutineContext.job.children.toList().forEach { it.join() }
+    }
+
+    @Test
+    fun aMarkIsAppliedLocallyWithoutBeingTransmitted() = runTest(dispatcher) {
+        // La moitié immédiate et la moitié différée dans le même test : au
+        // retour de `markAsRead`, l'état local a basculé et la file est écrite,
+        // alors que rien n'est encore parti.
+        signedIn()
+        cacheArticle(1L)
+
+        repository.markAsRead(setOf(ArticleId(1L)))
+
+        assertTrue(editTagForms.isEmpty())
+        assertEquals(0, tokenRequestCount)
+        assertEquals(listOf(1L), articleDao.readArticleIds())
+        assertEquals(listOf(1L), pendingIds())
+    }
+
+    @Test
+    fun aMarkIsTransmittedOnceTheGroupingDelayHasElapsed() = runTest(dispatcher) {
+        // Sans `flush` : la fenêtre suffit à faire partir ce qui attend, sans
+        // quoi le marquage attendrait le lancement suivant.
+        signedIn()
+
+        repository.markAsRead(setOf(ArticleId(1L)))
+        awaitScheduledTransmission()
+
+        assertEquals(listOf("1"), sentIds(request = 0))
+        assertTrue(pendingIds().isEmpty())
+    }
+
+    @Test
+    fun aFlushTransmitsAndConsumesTheOpenWindow() = runTest(dispatcher) {
+        // Le rejeu au démarrage ne peut pas attendre une fenêtre : `flush`
+        // force. Et il consomme celle qui était ouverte, plutôt que d'en laisser
+        // une partir à vide derrière lui.
+        signedIn()
+        repository.markAsRead(setOf(ArticleId(1L)))
+
+        val outcome = repository.flush()
+
+        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 1), outcome)
+        assertEquals(1, editTagForms.size)
+        awaitScheduledTransmission()
+        assertEquals(1, editTagForms.size)
+    }
+
+    @Test
+    fun clearingPendingDropsTheScheduledTransmission() = runTest(dispatcher) {
+        // Déconnexion pendant une fenêtre ouverte : la file est abandonnée, et
+        // la transmission programmée n'a plus rien à dire au serveur.
+        signedIn()
+        repository.markAsRead(setOf(ArticleId(1L)))
+
+        repository.clearPending()
+        awaitScheduledTransmission()
+
+        assertTrue(editTagForms.isEmpty())
+        assertTrue(pendingIds().isEmpty())
+    }
+
+    @Test
+    fun aMarkAddedAfterATransmissionGetsItsOwnWindow() = runTest(dispatcher) {
+        // Rien ne se perd d'une fenêtre à l'autre : ce qui arrive après un envoi
+        // ouvre le suivant, sans attendre un `flush`.
+        signedIn()
+        repository.markAsRead(setOf(ArticleId(1L)))
+        awaitScheduledTransmission()
+
+        repository.markAsRead(setOf(ArticleId(2L)))
+        awaitScheduledTransmission()
+
+        assertEquals(2, editTagForms.size)
+        assertEquals(listOf("2"), sentIds(request = 1))
+        assertTrue(pendingIds().isEmpty())
     }
 
     // ----- Échecs : la file survit -------------------------------------------
@@ -494,5 +608,6 @@ class DefaultReadSyncRepositoryTest {
         articleCache = ArticleCache(articleDao, Clock { 0L }),
         queue = queue,
         ioDispatcher = dispatcher,
+        applicationScope = transmissionScope,
     )
 }

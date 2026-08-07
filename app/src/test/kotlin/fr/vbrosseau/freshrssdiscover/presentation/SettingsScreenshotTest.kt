@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation
 import androidx.compose.runtime.Composable
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsAccount
+import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsCache
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsUiState
 import fr.vbrosseau.freshrssdiscover.presentation.settings.continuousVisibilityThresholdOf
@@ -25,7 +26,28 @@ class SettingsScreenshotTest : ScreenshotTest() {
     @Test
     fun settingsScreen() {
         capture("reglages") {
-            settings(SettingsUiState(account = ACCOUNT, appVersion = APP_VERSION))
+            settings(SettingsUiState(account = ACCOUNT, cache = CACHE, appVersion = APP_VERSION))
+        }
+    }
+
+    /**
+     * Le cache vide, purge faite.
+     *
+     * Deux défauts ne se voient que là : le bouton **désactivé**, dont le
+     * contraste dépend d'une couleur atténuée que le thème sombre traite
+     * autrement, et le compte rendu de purge, seule ligne de l'écran peinte en
+     * couleur primaire (SPECS.md §7.1).
+     */
+    @Test
+    fun settingsScreenAfterPurgingTheCache() {
+        capture("reglages-cache-purge") {
+            settings(
+                SettingsUiState(
+                    account = ACCOUNT,
+                    cache = SettingsCache(articleCount = 428, purgeableCount = 0, lastPurgedCount = 812),
+                    appVersion = APP_VERSION,
+                ),
+            )
         }
     }
 
@@ -44,6 +66,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
                     account = ACCOUNT,
                     visibleFraction = visibleFractionThresholdOf(MAXIMUM),
                     continuousVisibility = continuousVisibilityThresholdOf(MAXIMUM),
+                    cache = CACHE,
                     appVersion = APP_VERSION,
                 ),
             )
@@ -63,6 +86,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
             settings(
                 SettingsUiState(
                     account = ACCOUNT,
+                    cache = CACHE,
                     appVersion = APP_VERSION,
                     isSignOutConfirmationVisible = true,
                 ),
@@ -84,6 +108,9 @@ class SettingsScreenshotTest : ScreenshotTest() {
 
     private companion object {
         val ACCOUNT = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice")
+
+        /** Des chiffres à quatre positions : c'est là que le séparateur de milliers peut déborder. */
+        val CACHE = SettingsCache(articleCount = 1_240, purgeableCount = 812)
         val MAXIMUM = ReadingSettings(
             visibleFraction = ReadingSettings.VisibleFractionRange.endInclusive,
             continuousVisibilityMillis = ReadingSettings.ContinuousVisibilityRange.last,

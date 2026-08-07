@@ -385,7 +385,7 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun readArticlesAreNotShownFromTheCache() = runTest {
-        // Le cache garde les articles lus jusqu'à la purge (SPECS.md §5.3), le
+        // Le cache garde les articles lus jusqu'à la purge (SPECS.md §5.4), le
         // flux ne présente que des non-lus (§4.1).
         cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
         val repository = repository(MockEngineResponse.Body(onePage))

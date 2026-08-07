@@ -4,6 +4,8 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
+import fr.vbrosseau.freshrssdiscover.domain.settings.FakeCacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
@@ -26,6 +28,7 @@ class SettingsViewModelTest {
     private val sessions = MutableStateFlow<AuthSession?>(null)
     private val repository = FakeAuthRepository(sessions)
     private val settings = FakeSettingsRepository()
+    private val cache = FakeCacheRepository(CacheStatus(articleCount = 12, purgeableCount = 5))
 
     /**
      * Construit **paresseusement**, et c'est nécessaire : `stateIn` lance sa
@@ -34,7 +37,7 @@ class SettingsViewModelTest {
      * l'ait substitué — la coroutine partirait alors sur le vrai dispatcher
      * principal, absent hors Android.
      */
-    private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository, settings) }
+    private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository, settings, cache) }
 
     private fun address(raw: String): ServerAddress =
         assertIs<ServerAddressResult.Valid>(ServerAddress.parse(raw)).address
@@ -137,7 +140,7 @@ class SettingsViewModelTest {
 
         // Le même dépôt, un autre ViewModel : c'est ce que fait une réouverture
         // de l'écran, et le réglage doit y survivre.
-        val reopened = SettingsViewModel(repository, settings)
+        val reopened = SettingsViewModel(repository, settings, cache)
         keepCollecting(reopened.uiState)
 
         assertEquals(80, reopened.uiState.value.visibleFraction.value)
@@ -148,6 +151,57 @@ class SettingsViewModelTest {
         observe()
 
         assertTrue(viewModel.uiState.value.appVersion.isNotBlank())
+    }
+
+    @Test
+    fun theCacheContentIsExposedAsACountOfArticles() = runTest {
+        observe()
+
+        assertEquals(12, viewModel.uiState.value.cache.articleCount)
+        assertEquals(5, viewModel.uiState.value.cache.purgeableCount)
+    }
+
+    @Test
+    fun nothingHasBeenPurgedBeforeTheFirstPurge() = runTest {
+        observe()
+
+        assertNull(viewModel.uiState.value.cache.lastPurgedCount)
+    }
+
+    /**
+     * La purge part **sans confirmation** : elle n'emporte que du lu déjà
+     * transmis au serveur, contrairement à la déconnexion.
+     */
+    @Test
+    fun purgingRemovesTheReadArticlesRightAway() = runTest {
+        observe()
+
+        viewModel.purgeCache()
+
+        assertEquals(1, cache.purgeCount)
+        assertEquals(7, viewModel.uiState.value.cache.articleCount)
+        assertEquals(0, viewModel.uiState.value.cache.purgeableCount)
+    }
+
+    @Test
+    fun purgingReportsHowManyArticlesWereRemoved() = runTest {
+        observe()
+
+        viewModel.purgeCache()
+
+        // Le compte rendu remplace la question posée avant : c'est le seul
+        // retour que l'utilisateur obtient de son appui.
+        assertEquals(5, viewModel.uiState.value.cache.lastPurgedCount)
+    }
+
+    @Test
+    fun purgingAnAlreadyPurgedCacheReportsZeroRatherThanNothing() = runTest {
+        observe()
+        viewModel.purgeCache()
+
+        viewModel.purgeCache()
+
+        assertEquals(0, viewModel.uiState.value.cache.lastPurgedCount)
     }
 
     @Test
