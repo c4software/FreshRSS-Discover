@@ -145,8 +145,10 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [x] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
       (`400/401/404/503`, corps en texte brut, connectivité pour distinguer
       « hors ligne » de « injoignable »)
-- [ ] `GOAL-002-T07` `AuthRepository` : interface dans `:domain`, implémentation
-      dans `:app/data`
+- [x] `GOAL-002-T07` `AuthRepository` : interface dans `:domain`, implémentation
+      dans `:app/data`, plus `NetworkAvailability`.
+      **A ajouté une sixième cause à SPECS.md §3.3** : en-tête `Authorization`
+      supprimé par un reverse-proxy.
 - [x] `GOAL-002-T08` Stockage chiffré du jeton (DataStore adossé au keystore) —
       jamais journalisé. **Traité avant T07**, dont le dépôt s'appuie dessus.
       **A modifié SPECS.md §3.4** : le mot de passe API n'est plus enregistré du

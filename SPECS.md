@@ -96,6 +96,17 @@ Chaque cause a son message. Un « échec de connexion » générique est un déf
 | API désactivée sur le serveur | L'API est désactivée : l'activer dans l'administration FreshRSS |
 | Identifiant ou mot de passe API refusé | Vérifier l'identifiant et le **mot de passe API** |
 | Absence de réseau | Aucune connexion réseau |
+| En-tête `Authorization` non transmis par le serveur web | Les identifiants sont bons, mais le serveur ne transmet pas l'autorisation : corriger la configuration du reverse-proxy |
+
+Le dernier cas mérite son message propre, même s'il est rare. Sans lui, la
+connexion réussirait puis **tout** échouerait ensuite en « identifiants
+refusés » : l'utilisateur changerait son mot de passe en vain, alors que la
+correction est dans la configuration de son serveur.
+
+L'application ne peut pas distinguer « identifiant inconnu » de « mot de passe
+incorrect » : FreshRSS répond la même chose aux deux, et c'est délibéré — les
+distinguer permettrait d'énumérer les comptes. Le message couvre donc les deux
+hypothèses.
 
 ### 3.4 Persistance de la session
 

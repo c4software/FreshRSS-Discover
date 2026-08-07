@@ -47,6 +47,18 @@ sealed interface AuthError {
     data object InvalidCredentials : AuthError
 
     /**
+     * Les identifiants sont bons, mais le serveur web ne transmet pas l'en-tête
+     * `Authorization` jusqu'à FreshRSS.
+     *
+     * Certains reverse-proxies le suppriment. Sans ce cas distinct, la
+     * connexion réussirait puis **chaque appel suivant** échouerait en `401` :
+     * l'utilisateur verrait « identifiants refusés » alors qu'ils sont
+     * corrects, et changerait son mot de passe en vain. La correction est dans
+     * la configuration du serveur, pas dans l'application.
+     */
+    data object AuthorizationHeaderNotForwarded : AuthError
+
+    /**
      * Défaillance qu'aucun des cas ci-dessus ne décrit.
      *
      * [technicalMessage] est destiné aux journaux, **jamais à l'affichage** :
