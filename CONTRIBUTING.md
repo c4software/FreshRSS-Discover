@@ -66,27 +66,15 @@ Formatage automatique :
 
 ## 5. Vérifier
 
-Avant tout commit :
+La commande de vérification et ses règles sont dans
+[AGENTS.md §5](./AGENTS.md) — **elles n'ont qu'un seul endroit**, et ce n'est pas
+ici. La recopier reviendrait à créer un second endroit à changer, et donc à
+garantir qu'un des deux décrochera.
 
-```bash
-./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug
-```
-
-Si vous avez touché à l'interface, **en plus** :
-
-```bash
-./gradlew :app:verifyRoborazziDebug
-```
-
-En cas de différence voulue :
-
-```bash
-./gradlew :app:recordRoborazziDebug
-```
-
-⚠️ Un `record` accepte en bloc **toute** différence, régression comprise.
-**Regardez les images** dans `app/src/test/screenshots/` avant de committer.
-C'est le seul filet : ces captures ne sont pas exécutées en CI.
+Ce que ce document ajoute, parce que c'est de la procédure et non de la règle :
+lancez-la **avant chaque commit**, pas seulement avant la Pull Request. Un lot de
+dix commits dont on découvre à la fin que le troisième casse la vérification est
+un lot qu'il faut démonter.
 
 ## 6. Committer
 
@@ -121,18 +109,13 @@ une action sortante se confirme explicitement.
 
 ## 8. Mettre à jour la documentation
 
-Elle fait partie de la contribution, pas de sa suite.
+Elle fait partie de la contribution, pas de sa suite. Le tableau « quel
+changement va dans quel fichier » est dans [AGENTS.md §6](./AGENTS.md), pour la
+même raison qu'au point 5 : un seul endroit.
 
-| Changement | Fichier |
-|---|---|
-| Comportement visible par l'utilisateur | [SPECS.md](./SPECS.md) |
-| Décision d'architecture ou dépendance | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| Structure réelle du dépôt | [ARCHITECTURE.md](./ARCHITECTURE.md) §9 |
-| Constat sur l'API FreshRSS | [docs/freshrss-api.md](./docs/freshrss-api.md) |
-| Règle de développement | [AGENTS.md](./AGENTS.md) |
-| Avancement, tâche, blocage | [TASKS.md](./TASKS.md) |
-
-[PROMPT.md](./PROMPT.md) est **figé** et ne se met pas à jour.
+Une seule chose à retenir ici : [PROMPT.md](./PROMPT.md) est **figé**. Il
+conserve l'intention initiale et ne se met jamais à jour, même quand elle a été
+dépassée — les écarts sont consignés à la fin du fichier.
 
 ## 9. Si vous êtes bloqué
 

@@ -5,7 +5,8 @@ par ce projet.
 
 ## Provenance et niveau de confiance
 
-Deux sources, de valeur inégale :
+Quatre sources, de valeur inégale — les deux premières se lisent, les deux
+dernières s'interrogent :
 
 | Source | Ce qu'elle établit |
 |---|---|
@@ -30,7 +31,7 @@ la source laissait supposer. Les points qui restent incertains sont regroupés e
 fin de document.
 
 > ⚠️ Cette page est un relevé, pas un contrat. FreshRSS peut la faire évoluer.
-> Un Goal qui touche à l'API relit la source avant d'implémenter (AGENTS.md §7).
+> Un Goal qui touche à l'API relit la source avant d'implémenter (AGENTS.md §3).
 
 ---
 
@@ -607,6 +608,14 @@ Le champ `i` accepte les deux formes : décimale, ou hexadécimale préfixée
 ce qui permet à un flux Discover de grouper les marquages plutôt que d'émettre
 une requête par article visible.
 
+> ⚠️ **Le lot n'est pas illimité, et son dépassement est muet.** La borne ne
+> vient pas de FreshRSS mais de PHP : `max_input_vars` vaut 1 000 par défaut, et
+> au-delà les champs excédentaires sont **ignorés en silence**. `edit-tag`
+> répondrait alors `OK` sans qu'aucun compte-rendu ne signale les articles
+> perdus — l'API n'en produit de toute façon aucun. Cette limite est déduite du
+> comportement de PHP, elle n'a **pas** été constatée contre un serveur ; c'est
+> précisément pourquoi ce projet plafonne ses lots bien en dessous (100).
+
 `user/-/state/com.google/broadcast`, `…/like` et `…/tracking-kept-unread` sont
 acceptés mais **ignorés** — FreshRSS ne les implémente pas.
 
@@ -667,12 +676,14 @@ mise à jour en conséquence.
 | 2 | Longueur réelle de la troncature de `summary.content` | La constante `API_MAX_COMPAT_CONTENT_LENGTH` n'a pas été lue |
 | 3 | Comportement de `continuation` en ordre croissant (`r=o`) | La logique de curseur a été éprouvée en ordre décroissant seulement (§3.5) ; l'ordre inverse n'a pas été essayé |
 | 4 | Présence effective de `enclosure` selon les flux | Dépend des flux RSS sources, pas de FreshRSS. Constat partiel : **absente de tous les articles observés** (§3.4), ce qui suffit à décider de ne pas s'y fier |
-| 5 | Nombre d'`i` acceptés dans un `edit-tag` | Limité en pratique par la taille du corps POST et `max_input_vars` de PHP |
+| 5 | Nombre d'`i` acceptés dans un `edit-tag` | Limité en pratique par la taille du corps POST et `max_input_vars` de PHP (§4.1). La valeur exacte dépend de la configuration du serveur et **n'a pas été constatée** ; le projet contourne en plafonnant ses lots à 100 plutôt qu'en cherchant la borne |
 | 6 | Forme exacte de `frss:priority` | Valeurs issues d'une énumération non lue |
 
-Chacun de ces points est porté par une tâche dans [TASKS.md](../TASKS.md). Aucun
-ne doit être « supposé » dans le code : si un Goal en a besoin, il commence par
-le constater.
+Ces points sont suivis collectivement par la section « Questions ouvertes » de
+[TASKS.md](../TASKS.md) : chacun est tranché par le Goal qui le rencontre, non
+par une tâche ouverte d'avance. Aucun ne doit être « supposé » dans le code : si
+un Goal en a besoin, il commence par le constater, puis l'inscrit ici et le
+déplace dans la section suivante.
 
 ### Ce qui a été constaté, et vaut désormais acquis
 

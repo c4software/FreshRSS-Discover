@@ -213,7 +213,8 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       > `401` et non `404`.
       > **Reste non constaté** — le serveur de démonstration n'a pas de mot de
       > passe API exploitable : la réponse de succès de `ClientLogin` et le `503`
-      > d'une API désactivée. Suivis en `docs/freshrss-api.md` §6, points 7 et 8.
+      > d'une API désactivée. **Constatés depuis** — voir la section « Ce qui a
+      > été constaté » de `docs/freshrss-api.md`.
 - [x] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
       `AuthToken`, type d'erreur scellé couvrant les cinq causes de SPECS.md §3.3
 - [x] `GOAL-002-T03` `ServerAddress` et `AuthSession` : normalisation de l'adresse
@@ -542,7 +543,13 @@ Couvre SPECS.md §4.6.
 - [x] `GOAL-009-T05` **La position de lecture survit à la fermeture**
       (SPECS.md §5.3, nouvelle section) : `ReadingPositionViewModel` et
       `ReadingPositionStore`. C'est la contrepartie exacte du tirage — une
-      fermeture n'est pas une demande de l'utilisateur
+      fermeture n'est pas une demande de l'utilisateur.
+      **Corrigé après essai sur appareil** : la première version ne retenait que
+      l'identifiant, or l'article de tête est précisément celui que le marquage
+      vient de rendre lu, et le flux ne montre que des non-lus — la reprise ne
+      pouvait presque jamais aboutir. La date de publication part désormais avec
+      l'identifiant, et `ReadingPosition` reprend au plus proche, ce que §5.3
+      demandait déjà
 - [ ] `GOAL-009-T06` **Valider sur appareil** : rechargement au tirage, remontée
       automatique, et reprise de position après un arrêt forcé. Le téléphone
       s'est déconnecté avant que je puisse le faire
@@ -611,7 +618,7 @@ Couvre SPECS.md §6.
 
 ## GOAL-012 — Vue Balayage, article par article
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — le mode existe et se choisit ; `T05` reste ouvert
 
 Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
 alternatif : un article en plein écran, balayage horizontal pour passer au
@@ -627,36 +634,45 @@ suivant, comme les Stories d'un réseau social.
 
 ### Ce qui reste à concevoir, et qui n'est pas anodin
 
-- [ ] `GOAL-012-T01` **La mesure de visibilité change de nature.** Un article
+- [x] `GOAL-012-T01` **La mesure de visibilité change de nature.** Un article
       plein écran est visible à 100 % : le seuil de surface est satisfait
       d'emblée, et la durée décide seule. `ReadDetector` s'applique tel quel,
       mais l'alimentation ne peut pas venir de `LazyListState` — il faut une
       source d'observation propre à ce mode
-- [ ] `GOAL-012-T02` **Le chargement anticipé doit survivre au geste.** Demander
+- [x] `GOAL-012-T02` **Le chargement anticipé doit survivre au geste.** Demander
       la page suivante avant d'atteindre le dernier article chargé, sans que le
       balayage ne bute
-- [ ] `GOAL-012-T03` **La fin du flux doit se dire**, comme en mode Liste : un
+- [x] `GOAL-012-T03` **La fin du flux doit se dire**, comme en mode Liste : un
       balayage qui cesse de répondre est indistinguable d'une panne (§4.4)
-- [ ] `GOAL-012-T04` **Le retour en arrière ne délit pas.** Revenir sur un
+- [x] `GOAL-012-T04` **Le retour en arrière ne délit pas.** Revenir sur un
       article lu ne le remet pas en non-lu — le marquage n'est pas réversible
       par un geste de navigation
 - [ ] `GOAL-012-T05` **Position partagée entre les deux modes.** Basculer de
-      l'un à l'autre doit retrouver le flux au même endroit
-- [ ] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
-- [ ] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
+      l'un à l'autre doit retrouver le flux au même endroit.
+      **Volontairement laissé ouvert, et non oublié.** Le mode Balayage
+      n'enregistre aujourd'hui aucune position : en plein écran, l'article
+      courant est celui que le marquage vient de rendre lu, et le pagineur
+      repartirait donc sur un article absent du flux suivant. La reprise au plus
+      proche introduite par `GOAL-009-T05` lève cet obstacle — c'est elle qu'il
+      faut désormais brancher ici, plutôt qu'un second mécanisme
+- [x] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
+- [x] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
       par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que
       l'application reste utilisable, et un geste unique ne le garantit pas
-- [ ] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
-      **et regardées**, puis exécution réelle sur appareil : le mode Liste a
-      montré que trois défauts sur trois n'étaient visibles qu'ainsi
+- [-] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
+      **et regardées** : six images enregistrées. L'exécution réelle sur
+      appareil reste à faire, et c'est elle qui compte : le mode Liste a montré
+      que trois défauts sur trois n'étaient visibles qu'ainsi
 
-### Question ouverte
+### Question tranchée
 
-L'extrait est limité à 240 caractères en mode Liste (SPECS.md §8, question 7),
-calibré sur trois lignes de carte. Le plein écran permet d'en montrer bien
-davantage. Quelle longueur, et faut-il afficher le contenu entier ? À trancher
-au Goal, avec des articles réels — le résumé médian fait 1 324 caractères, le
-maximum mesuré 34 777.
+L'extrait était limité à 240 caractères en mode Liste (SPECS.md §8, question 7),
+calibré sur trois lignes de carte. En plein écran il monte à **1 400**, coupés sur une
+frontière de mot. Le chiffre n'est pas rond par hasard : le résumé médian mesure
+1 324 caractères, donc l'article ordinaire est montré en entier, et l'écran en
+tient à peu près autant. Pas le contenu entier pour autant — le maximum mesuré
+est de 34 777 caractères, et un article que l'on ferait défiler verticalement
+entrerait en conflit avec le geste horizontal.
 
 ---
 

@@ -92,7 +92,8 @@ La commande `/status` produit cette lecture automatiquement.
 - ❌ Déclarer une tâche terminée sans avoir constaté la sortie de la
   vérification.
 - ❌ Laisser du code mort, une classe inutilisée, un paramètre ignoré.
-  (Une exception, unique et documentée, est inscrite dans ARCHITECTURE.md §9.2.)
+  (Aucune dérogation en cours ; toute exception s'inscrit dans
+  ARCHITECTURE.md §9.2 pour être visible plutôt que tacite.)
 - ❌ Écrire un `TODO` sans tâche correspondante dans [TASKS.md](./TASKS.md).
 - ❌ Utiliser une API Android dépréciée.
 - ❌ Importer `android.*`, `androidx.*`, Room, DataStore, Ktor, Hilt ou Compose
@@ -127,7 +128,7 @@ Avant toute décision touchant à l'authentification, la pagination, la
 récupération des articles, le statut lu, le marquage ou la gestion des erreurs :
 
 1. lire [docs/freshrss-api.md](./docs/freshrss-api.md) ;
-2. si le point n'y figure pas, ou y figure comme incertain (§6 de ce document),
+2. si le point n'y figure pas, ou y figure comme incertain (§6 de ce relevé),
    **lire la source** —
    [`p/api/greader.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/p/api/greader.php)
    fait foi sur les paramètres et la forme des réponses, la
@@ -291,7 +292,9 @@ un succès non observé.
       les références ont été réenregistrées **et regardées**.
 - [ ] Les tests couvrent le comportement ajouté, y compris ses cas limites.
 - [ ] Aucun code mort, aucun `TODO` orphelin.
-- [ ] [ARCHITECTURE.md](./ARCHITECTURE.md) §9 reflète l'état réel du dépôt.
+- [ ] [ARCHITECTURE.md](./ARCHITECTURE.md) §9 reste juste — elle décrit des
+      **paquets et leur rôle**, elle ne se met donc à jour que si l'architecture
+      change, pas à chaque fichier ajouté.
 - [ ] La case correspondante de [TASKS.md](./TASKS.md) est cochée.
 - [ ] Le commit suit §7.
 
@@ -305,7 +308,7 @@ La documentation fait partie de la tâche, pas de sa suite.
 |---|---|
 | Nouveau comportement visible par l'utilisateur | [SPECS.md](./SPECS.md) |
 | Décision d'architecture, dépendance, découpage | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| Structure réelle du dépôt | [ARCHITECTURE.md](./ARCHITECTURE.md) §9 |
+| Nouveau paquet, ou paquet dont le rôle change | [ARCHITECTURE.md](./ARCHITECTURE.md) §9 |
 | Constat sur l'API FreshRSS | [docs/freshrss-api.md](./docs/freshrss-api.md) |
 | Nouvelle règle de développement | ce fichier |
 | Procédure de contribution | [CONTRIBUTING.md](./CONTRIBUTING.md) |

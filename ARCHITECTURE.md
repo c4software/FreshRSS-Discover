@@ -73,6 +73,15 @@ HTTP (Ktor)  ·  SQLite  ·  fichier
 Les dépendances pointent **toutes vers `:domain`**. Aucune classe de `:domain`
 ne connaît Ktor, Room, DataStore ou Compose.
 
+> **Un étage de ce schéma est vide, et c'est délibéré.** Le dépôt n'a
+> aujourd'hui **aucune classe de use case** : les ViewModels appellent les
+> interfaces de dépôt directement. Un use case qui se contenterait de relayer un
+> appel serait l'anticipation qu'AGENTS.md §2 interdit. Les décisions qui
+> auraient justifié cet étage vivent déjà dans `:domain` sous forme de fonctions
+> pures — `interleaveBySource`, `ReadDetector`, `ReadTransmissionScheduler` —
+> appelées par qui en a besoin. L'étage reste dans le schéma parce qu'il est la
+> place réservée à la première règle qui coordonnera plusieurs dépôts.
+
 ### 2.1 Ce qui doit rester confiné à la couche FreshRSS
 
 Rien de ce qui suit ne doit fuir au-dessus de `FreshRssApi` et de son
@@ -107,6 +116,11 @@ Modules, tous dans `app/src/main/kotlin/…/di/` :
 | `CoroutineScopeModule` | La portée `@ApplicationScope` |
 | `DataStoreModule` | Le `DataStore<Preferences>` des réglages |
 | `TimeModule` | L'implémentation de `Clock` |
+| `DatabaseModule` | La base Room et ses DAO |
+| `NetworkModule` | Le `HttpClient` Ktor |
+| `SecurityModule` | L'implémentation de `SecretCipher` |
+| `SettingsModule` | L'implémentation de `SettingsRepository` |
+| `RepositoryModule` | Les liaisons interface `:domain` → implémentation `data` |
 
 ### 3.1 Dispatchers injectés, jamais référencés
 
@@ -208,10 +222,17 @@ Deux conséquences que le code doit refléter :
 | Support | Contenu |
 |---|---|
 | **Room** | Les collections : articles en cache, marquages en attente |
-| **DataStore (chiffré)** | Les scalaires : adresse du serveur, identifiant, jeton, seuils |
+| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, position de lecture |
 
 La règle est stricte : une donnée vit dans l'un **ou** l'autre, jamais dans les
 deux. Un réglage dupliqué finit toujours par diverger.
+
+Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore` et
+`ReadingPositionStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
+global : ce sont les **jetons** qui passent par `SecretCipher` (§5.2), pas
+l'adresse du serveur ni les seuils. Chiffrer ce qui n'est pas un secret coûterait
+le même prix sans rien protéger, et rendrait le stockage illisible au moment
+précis où le lire aide à diagnostiquer.
 
 ### 5.2 Le mot de passe API n'est jamais enregistré
 
@@ -278,9 +299,17 @@ consommée par un Composable **sans état**.
   un `@Composable`.
 - Chaque écran a une `@Preview` privée qui fonctionne **sans injection** — si
   une prévisualisation exige un graphe Hilt, l'écran est trop couplé.
-- Les ViewModels publient en `WhileSubscribed(5 s)` (`UiStateSharing`) : sans
-  abonné, les observations s'arrêtent. Les cinq secondes de grâce couvrent une
-  rotation sans tout réenregistrer.
+- Un ViewModel qui **observe une source** publie en `WhileSubscribed(5 s)`
+  (`UiStateSharing`) : sans abonné, l'observation s'arrête. Les cinq secondes de
+  grâce couvrent une rotation sans tout réenregistrer. C'est le cas de
+  `SettingsViewModel`, qui suit les réglages et l'état du cache.
+  Un ViewModel qui ne fait qu'**accumuler le résultat de ses propres appels** —
+  `DiscoverViewModel`, `LoginViewModel` — porte un `MutableStateFlow` : il n'y a
+  aucune observation à interrompre, et la politique de partage n'aurait rien à
+  arbitrer. `SessionGate` fait exception dans l'autre sens et démarre en
+  `Eagerly` : l'aiguillage racine est observé pendant toute la vie de
+  l'application, et le laisser retomber sur `Unknown` ferait clignoter l'écran
+  de connexion à chaque retour d'arrière-plan.
 
 ### 6.2 Navigation
 
@@ -366,9 +395,12 @@ Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
 - **la visibilité de chaque élément doit être mesurable** — proportion affichée
   et durée continue (SPECS.md §4.5). C'est le point technique le plus délicat de
   l'application, et il détermine largement la structure de la liste ;
-- **la position de lecture doit survivre** à l'insertion d'articles en tête lors
-  d'un rafraîchissement (SPECS.md §4.6) : les éléments doivent donc porter une
-  clé stable ;
+- **la position de lecture doit survivre à la fermeture de l'application**
+  (SPECS.md §5.3), et c'est un **article** qui est mémorisé, jamais un rang : le
+  flux s'allonge entre deux ouvertures. Les éléments de la liste portent donc une
+  clé stable, qui sert à la fois à retrouver cet article et à ne pas recomposer
+  ce qui n'a pas changé. Le tirer-pour-rafraîchir, lui, ne préserve rien : il
+  remonte en tête, et l'annonce (SPECS.md §4.6) ;
 - **l'ordre doit être déterministe** : le mélange est calculé dans `:domain`, à
   partir d'une graine reproductible, et non tiré à l'affichage.
 
@@ -454,108 +486,80 @@ Constaté en Phase 0.
 
 ---
 
-## 9. État réel du dépôt
+## 9. Carte du dépôt
 
-**À maintenir à chaque étape.** Un écart entre cette section et le contenu du
-dépôt est une incohérence — voir AGENTS.md §8.
+**Des paquets et leur rôle, pas une liste de fichiers.** Une arborescence
+recopiée à la main est fausse dès le commit suivant : celle qui figurait ici
+mentait sur une dizaine de fichiers, et la maintenir coûtait plus qu'elle ne
+rapportait. Ce qui suit ne change qu'avec l'architecture, pas avec chaque
+ajout — et se vérifie d'un `find`.
 
 ```
-.
-├── PROMPT.md · SPECS.md · AGENTS.md · ARCHITECTURE.md
-├── TASKS.md · CONTRIBUTING.md · README.md · CLAUDE.md
-│
-├── docs/
-│   └── freshrss-api.md          Relevé de l'API FreshRSS
-│
-├── .claude/
-│   ├── settings.json            Autorisations partagées (versionné)
-│   ├── settings.local.json      JAVA_HOME, ANDROID_HOME (non versionné)
-│   └── commands/
-│       ├── goal.md · task.md · status.md · verify.md
-│
-├── config/detekt/detekt.yml
-├── .github/workflows/ci.yml
-├── gradle/libs.versions.toml    Catalogue de versions
-│
-├── domain/                      Kotlin/JVM pur
-│   └── src/
-│       ├── main/…/domain/
-│       │   ├── auth/            AuthError · AuthResult · AuthRepository
-│       │   │                    Credentials · AuthToken · AuthSession
-│       │   │                    ServerAddress · SignInHint
-│       │   ├── core/Outcome.kt  issue générique <valeur, erreur>
-│       │   ├── feed/            Article · ArticleId · FeedRef · PageCursor
-│       │   │                    ArticlePage · FeedError · ArticleRepository
-│       │   ├── read/            ReadDetector — double seuil surface + durée
-│       │   ├── shuffle/         interleaveBySource — répartition des sources
-│       │   └── time/Clock.kt
-│       ├── test/…/domain/auth/  couverture ~100 %
-│       └── testFixtures/…/domain/
-│           ├── auth/FakeAuthRepository.kt
-│           ├── feed/Articles.kt  fabriques d'articles
-│           └── time/FakeClock.kt
-│
-└── app/                         Android
-    └── src/
-        ├── main/…/freshrssdiscover/
-        │   ├── FreshRssDiscoverApplication.kt · MainActivity.kt
-        │   ├── data/
-        │   │   ├── api/         FreshRssApi · ApiOutcome · StreamContentsDto
-        │   │   │                FreshRssHttpClient · AuthErrorMapping
-        │   │   │                ArticleMapping
-        │   │   ├── local/       SessionStore
-        │   │   │   └── room/    ArticleEntity · ArticleDao · AppDatabase (v2)
-        │   │   │                ArticleCache · PendingMark* · MIGRATION_1_2
-        │   │   ├── network/     NetworkAvailability
-        │   │   ├── repository/  DefaultAuthRepository · DefaultArticleRepository
-        │   │   └── security/    SecretCipher · KeystoreSecretCipher
-        │   ├── di/              Dispatchers · portées · DataStore · Clock
-        │   │                    Network · Repository · Security
-        │   └── presentation/
-        │       ├── LoadingIndicator.kt · UiStateSharing.kt · SessionGate.kt
-        │       ├── browser/     ArticleOpener — onglet personnalisé
-        │       ├── discover/    DiscoverScreen · DiscoverViewModel
-        │       │                ArticleUiModel · RelativeTime
-        │       ├── settings/    SettingsScreen · SettingsViewModel
-        │       ├── login/       LoginScreen · LoginViewModel · LoginUiState
-        │       │                LoginFailureLabels
-        │       ├── navigation/  AppDestination · AppNavHost · AppNavigationBar
-        │       └── theme/       Color · Spacing · Theme
-        └── test/…/freshrssdiscover/
-            ├── TestApplication.kt
-            ├── data/            api · local · repository · security (FakeSecretCipher)
-            ├── di/DispatcherModuleTest.kt
-            └── presentation/
-                ├── ScreenshotTest.kt          base Roborazzi
-                ├── ScreensScreenshotTest.kt   12 références versionnées
-                ├── MainDispatcherRule.kt · UiStateCollector.kt
-                ├── login/ · navigation/
-                └── SessionGateViewModelTest.kt
+domain/                       Kotlin/JVM pur — décide, ne connaît ni HTTP ni disque
+├── auth/                     session, identifiants, adresse du serveur, causes d'échec
+├── core/                     Outcome<valeur, erreur>
+├── feed/                     article, page, curseur, contrats de dépôt
+├── read/                     détection de lecture, file de marquages, ordonnancement
+├── settings/                 réglages de lecture, cache
+├── shuffle/                  répartition des sources
+└── time/                     Clock
+
+app/
+├── data/
+│   ├── api/                  FreshRSS : client, points d'entrée, DTO, conversions
+│   ├── local/                DataStore (scalaires) et room/ (collections)
+│   ├── network/              connectivité
+│   ├── repository/           implémentations des contrats du domaine
+│   └── security/             chiffrement des secrets au repos
+├── di/                       un module Hilt par famille de dépendances
+└── presentation/
+    ├── browser/              ouverture de l'article d'origine
+    ├── discover/             flux en liste
+    ├── login/                connexion
+    ├── navigation/           destinations et graphe
+    ├── settings/             réglages
+    └── theme/                couleurs, espacements
 ```
 
-### 9.1 Ce qui n'existe pas encore
+Les tests suivent la même structure, plus `startup/` pour ce qui n'appartient à
+aucune couche — construction du graphe, migration de base, démarrage.
 
-Plusieurs pièces sont **écrites et éprouvées mais pas encore branchées**. La
-distinction compte : ce n'est pas du travail restant à concevoir, c'est de
-l'assemblage — et tant qu'il n'est pas fait, ce code est mort au sens
-d'AGENTS.md §2.
+Ce que cette carte **ne dit pas**, délibérément : le nombre de tests, le nombre
+de captures, l'état d'avancement. Ces chiffres vieillissent en un commit, et
+[TASKS.md](./TASKS.md) les porte déjà.
 
-| Pièce | État | Ce qui manque |
-|---|---|---|
-| Cache local | écrit à chaque page, vidé à la déconnexion | l'**afficher** au lancement (SPECS.md §5.1) et s'y replier hors ligne (§5.2) |
-| `interleaveBySource` | 14 tests, 100 % | personne ne l'appelle |
-| `ReadDetector` | 18 tests, 100 % | personne ne mesure la visibilité pour l'alimenter |
-| `purgeReadOlderThan` | testée | jamais déclenchée, seuil non tranché |
+### 9.1 Où chaque pièce du domaine est consommée
 
-Sont **absents** au sens propre :
+Cette section a longtemps recensé des pièces **écrites et éprouvées mais pas
+encore branchées**. La distinction avait un sens précis : tant que l'assemblage
+n'est pas fait, ce code est mort au sens d'AGENTS.md §2, quel que soit le nombre
+de tests qui l'entourent.
 
-- la file des marquages en attente, et donc la synchronisation du statut lu ;
-- le tirer-pour-rafraîchir ;
-- le marquage d'un article à son ouverture (SPECS.md §4.7) ;
-- le tirer-pour-rafraîchir : le dépôt sait rafraîchir, l'écran n'a pas le geste ;
-- l'affichage du cache au lancement et hors ligne : le dépôt l'expose, l'écran ne
-  le consomme pas encore ;
-- la mesure de la taille du cache et la purge manuelle.
+**Cet écart est refermé.** Ce qui reste utile, et ce que cette table donne
+désormais, c'est le **point de consommation** de chaque pièce — c'est lui qu'une
+revue doit pouvoir retrouver, et lui qui redeviendrait faux en premier si une
+régression détachait une décision du domaine de son appelant.
+
+| Pièce de `:domain` | Consommée par |
+|---|---|
+| `interleaveBySource` (14 tests) | `DefaultArticleRepository` — page serveur et flux du cache |
+| `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste |
+| `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — regroupement des lots |
+| `ReadSyncRepository` | `DiscoverViewModel` (marquage, rejeu au démarrage) et `DefaultAuthRepository` (déconnexion) |
+| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3) |
+| `CacheRepository` | `SettingsViewModel` — état du cache et purge manuelle |
+| `SettingsRepository` | `SettingsViewModel`, et `DiscoverViewModel` pour les seuils |
+
+Côté `:app`, les mécanismes que la section signalait comme absents sont en place
+et couverts : le cache alimente le premier affichage (SPECS.md §5.1) et le hors
+ligne (§5.2), le tirer-pour-rafraîchir est câblé de `DiscoverScreen` à
+`ArticleRepository.refresh()` (§4.6), l'ouverture d'un article le marque lu
+(§4.7), et la purge d'ancienneté est déclenchée une fois par démarrage de
+processus par `CacheMaintenance` (§5.4).
+
+Le travail restant n'est plus de l'assemblage à rattraper : il est décrit tâche
+par tâche dans [TASKS.md](./TASKS.md), qui est le seul document à jour sur ce
+point.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 
@@ -563,7 +567,11 @@ Le dépôt provient de `c4software/tailscale-auto-rules`, dont la logique métie
 été retirée.
 
 `MainDispatcherRule` a trouvé son usage avec le premier ViewModel.
-`UiStateCollector` n'en a pas encore : il sert aux ViewModels publiant en
-`WhileSubscribed`, ce qu'aucun ne fait pour l'instant. Il est conservé — c'est
-une exception assumée à l'interdit « pas de code mort » (AGENTS.md §2), inscrite
-ici pour qu'elle soit visible plutôt que tacite.
+`UiStateCollector` a longtemps été la seule exception assumée à l'interdit « pas
+de code mort » (AGENTS.md §2) : il sert aux ViewModels publiant en
+`WhileSubscribed`, ce qu'aucun ne faisait alors. **L'exception est levée** — son
+`keepCollecting` est employé par `SettingsViewModelTest`, dont l'état resterait
+figé sur sa valeur initiale sans abonné.
+
+Le dépôt n'a donc plus de dérogation à cet interdit, et n'en rouvrira une qu'en
+l'inscrivant ici.

@@ -15,13 +15,12 @@ On fait défiler ; ce qui a été suffisamment vu devient lu.
 
 <p align="center"><em>Le flux Discover, alimenté par une instance FreshRSS réelle.</em></p>
 
-> **État : en cours de développement.** La connexion au serveur, la lecture
-> paginée du flux, le cache local et l'écran Discover fonctionnent. Le mélange
-> des sources, la détection de lecture, la file de marquages et l'écran de
-> réglages sont écrits et éprouvés, mais **pas encore tous branchés** —
-> [ARCHITECTURE.md §9.1](./ARCHITECTURE.md) distingue précisément ce qui est
-> assemblé de ce qui ne l'est pas, et [TASKS.md](./TASKS.md) donne l'avancement
-> tâche par tâche.
+> **État : en cours de développement.** La connexion au serveur, l'écran
+> Discover et sa pagination, le mélange des sources, le cache local et sa purge,
+> la détection de lecture et la file de marquages sont en place et éprouvés.
+> Le travail restant — finitions d'interface, réglages, cycle de vie — est
+> détaillé dans [TASKS.md](./TASKS.md), qui donne l'avancement tâche par tâche ;
+> [ARCHITECTURE.md §9](./ARCHITECTURE.md) décrit l'état réel du dépôt.
 
 ---
 
@@ -32,7 +31,8 @@ On fait défiler ; ce qui a été suffisamment vu devient lu.
 - défilement infini paginé ;
 - marquage automatique comme lu selon la visibilité réelle d'un article ;
 - synchronisation du statut lu avec le serveur, y compris après une coupure ;
-- tirer-pour-rafraîchir, sans perdre la position de lecture ;
+- tirer-pour-rafraîchir, qui recharge le flux et remonte en tête ;
+- reprise de la lecture à l'endroit quitté après fermeture de l'application ;
 - ouverture de l'article d'origine dans le navigateur ;
 - cache local consultable hors ligne ;
 - interface Material 3, thèmes clair et sombre.

@@ -23,16 +23,13 @@ Trois niveaux de résultat :
 ./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug
 ```
 
-`JAVA_HOME` et `ANDROID_HOME` viennent de `.claude/settings.local.json`. Ne
+C'est **la** commande d'AGENTS.md §5.2 : si elle change, elle change là-bas, et
+ce fichier la recopie. `JAVA_HOME` et `ANDROID_HOME` viennent de
+`.claude/settings.local.json`. Ne
 jamais bricoler le `PATH` (AGENTS.md §5).
 
 Reporter **la sortie réelle**. En cas d'échec, citer le message d'erreur, pas un
 résumé — et surtout ne jamais annoncer un succès non observé.
-
-Rappeler, tant que la dette `GOAL-001-T14` est ouverte :
-
-> ⚠️ `koverVerify` passe sans rien mesurer tant que `:domain` n'a pas de code
-> exécutable. Ce PASS ne vaut pas garantie de couverture.
 
 ## 2 — Rendu visuel
 
