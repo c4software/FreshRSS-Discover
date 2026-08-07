@@ -113,6 +113,7 @@ private fun SwipeRoute(modifier: Modifier = Modifier) {
                 articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
             }
         },
+        onRefresh = viewModel::refresh,
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,

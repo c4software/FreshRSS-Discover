@@ -682,6 +682,13 @@ suivant, comme les Stories d'un réseau social.
       (`swipeCardTransform`), parce qu'aucune capture ne montre le milieu d'un
       geste. Constaté sur appareil, capture à l'appui, à mi-parcours
 
+- [x] `GOAL-012-T10` **Bouton de rechargement**, demandé par l'auteur, partagé
+      par les deux modes : `RefreshButton`. Il est nécessaire en Balayage — il
+      n'y a pas de liste à tirer, et un tirage vertical entrerait en concurrence
+      avec le geste horizontal — et repris en Liste **en plus** du geste, qui
+      n'est pas praticable par tout le monde. Il se change en indicateur pendant
+      l'attente plutôt que de se griser ou de disparaître
+
 ### Question tranchée
 
 L'extrait était limité à 240 caractères en mode Liste (SPECS.md §8, question 7),

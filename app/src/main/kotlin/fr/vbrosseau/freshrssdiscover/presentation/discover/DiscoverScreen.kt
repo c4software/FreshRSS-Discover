@@ -53,6 +53,7 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
+import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -150,6 +151,18 @@ fun DiscoverScreen(
                 onVisibilityChanged = onVisibilityChanged,
             )
         }
+
+        /*
+         * Le même bouton qu'en mode Balayage, **en plus** du geste et non à sa
+         * place : un tirage n'est pas praticable par tout le monde
+         * (SPECS.md §7.1), et rien ne le remplaçait ici. Superposé plutôt
+         * qu'inséré dans la liste, où il défilerait hors de portée.
+         */
+        RefreshButton(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.align(Alignment.TopEnd),
+        )
 
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(

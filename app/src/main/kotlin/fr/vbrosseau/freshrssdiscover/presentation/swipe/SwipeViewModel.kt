@@ -14,6 +14,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -128,6 +129,32 @@ class SwipeViewModel @Inject constructor(
     }
 
     /**
+     * Recharge le flux depuis le début (SPECS.md §4.6).
+     *
+     * Même effet qu'en mode Liste, **et c'est délibéré** : la pile est
+     * remplacée, pas complétée, et le balayage revient à la première carte. Un
+     * rechargement qui ajouterait en tête sans y ramener serait invisible en
+     * plein écran — l'utilisateur resterait sur la carte qu'il regardait, sans
+     * rien voir se produire.
+     *
+     * Ce que l'écran regardait disparaît donc, comme au tirage : c'est le prix
+     * d'une action qui a un effet immédiat et lisible, assumé par la
+     * spécification.
+     */
+    fun refresh() {
+        if (_uiState.value.isRefreshing) return
+        _uiState.update { it.copy(isRefreshing = true) }
+
+        viewModelScope.launch {
+            when (val result = articleRepository.refresh()) {
+                is Outcome.Success -> onRefreshed(result.value)
+                is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
+            }
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    /**
      * Prend en compte une observation de la visibilité.
      *
      * Appelée périodiquement par l'écran, **y compris quand rien ne bouge** :
@@ -205,6 +232,30 @@ class SwipeViewModel @Inject constructor(
                 is Outcome.Success -> onPageLoaded(result.value)
                 is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
             }
+        }
+    }
+
+    /**
+     * Remplace la pile par la page qui vient d'arriver.
+     *
+     * Rien n'est remis à zéro, et il faut le dire parce que ce serait le
+     * réflexe : ni le détecteur de lecture, dont `onVisibilityChanged` écarte
+     * de lui-même les chronomètres des articles absents de l'observation
+     * suivante ; ni `alreadyReported`, qui retient ce qui est déjà parti au
+     * serveur — ce qu'un rechargement ne change pas.
+     */
+    private fun onRefreshed(page: ArticlePage) {
+        val now = clock.nowEpochMillis()
+
+        cursor = page.nextCursor
+        hasServerContent = true
+
+        _uiState.update { state ->
+            state.copy(
+                articles = page.articles.map { article -> article.toUiModel(now) },
+                phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
+                isOffline = false,
+            )
         }
     }
 

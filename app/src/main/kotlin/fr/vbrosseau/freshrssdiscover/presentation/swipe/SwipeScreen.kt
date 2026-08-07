@@ -29,7 +29,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -57,6 +59,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
+import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -140,10 +143,13 @@ fun SwipeScreen(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onRefresh: () -> Unit = {},
     onOfflineNoticeDismiss: () -> Unit = {},
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
+    ReturnToFirstCardAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Au-dessus du flux et non par-dessus : le bandeau informe, il ne
@@ -161,12 +167,45 @@ fun SwipeScreen(
             )
         }
 
+        /*
+         * Superposé, et en haut à droite : la carte occupe tout l'écran, il n'y
+         * a donc aucune place à côté d'elle. Ce coin est celui que l'illustration
+         * remplit, d'où un bouton à fond plein — un bouton d'icône ordinaire s'y
+         * perdrait sur une image claire.
+         */
+        RefreshButton(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.align(Alignment.TopEnd),
+        )
+
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+    }
+}
+
+/**
+ * Ramène le balayage à la première carte à la fin d'un rechargement.
+ *
+ * L'exact pendant de `ScrollToTopAfterRefresh` en mode Liste, et pour la même
+ * raison : SPECS.md §4.6 veut que le rechargement se **voie**. Rester sur la
+ * carte courante après avoir remplacé toute la pile donnerait un bouton dont
+ * rien n'atteste l'effet.
+ *
+ * Le retour a lieu au **passage** de `true` à `false`, pas pendant : y aller
+ * dès l'appui ferait défiler une pile que l'on s'apprête à jeter.
+ */
+@Composable
+private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
+    var wasRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (wasRefreshing && !isRefreshing) pagerState.scrollToPage(0)
+        wasRefreshing = isRefreshing
     }
 }
 

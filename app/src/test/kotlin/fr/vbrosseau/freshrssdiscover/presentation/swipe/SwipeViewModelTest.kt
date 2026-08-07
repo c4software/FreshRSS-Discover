@@ -1,6 +1,8 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
+import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
@@ -273,5 +275,70 @@ class SwipeViewModelTest {
     private companion object {
         /** Borne du mode Liste (`EXCERPT_MAX_LENGTH`), citée pour la comparaison. */
         const val EXCERPT_LENGTH_OF_A_CARD = 240
+    }
+    // ----- Rechargement (SPECS.md §4.6) ---------------------------------------
+
+    @Test
+    fun reloadingReplacesTheWholeStackRatherThanCompletingIt() {
+        // Même règle qu'en mode Liste : recharger vide, il ne complète pas.
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 5L), article(id = 6L)), nextCursor = PageCursor("c9"))
+
+        viewModel.refresh()
+
+        assertEquals(listOf(5L, 6L), state.articles.map { it.id })
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun reloadingRestartsThePaginationFromTheFreshPage() {
+        // L'ancien curseur désignerait un endroit qui n'est plus dans la pile.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
+        repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
+
+        viewModel.refresh()
+        viewModel.loadMore()
+
+        assertEquals(listOf(null, PageCursor("c9")), repository.requestedCursors)
+        assertEquals(listOf(2L, 3L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun theReloadIndicatorLastsExactlyAsLongAsTheRequest() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.pendingLoad = CompletableDeferred()
+
+        viewModel.refresh()
+        assertTrue(state.isRefreshing)
+
+        repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 5L)), null)))
+        assertFalse(state.isRefreshing)
+        assertEquals(listOf(5L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun asecondReloadIsIgnoredWhileOneIsAlreadyInFlight() {
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.pendingLoad = CompletableDeferred()
+
+        viewModel.refresh()
+        viewModel.refresh()
+
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun aFailedReloadKeepsTheStackAndSaysWhy() {
+        // Rien n'est jeté avant d'avoir quelque chose à mettre à la place :
+        // échouer en vidant l'écran serait perdre ce qui était lisible.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        viewModel.refresh()
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+        assertFalse(state.isRefreshing)
+        assertIs<DiscoverPhase.Failed>(state.phase)
     }
 }

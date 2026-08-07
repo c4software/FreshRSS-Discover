@@ -16,11 +16,14 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
  * machine à états ferait exister deux vérités sur « où en est le flux », qui
  * divergeraient au premier correctif appliqué d'un seul côté.
  *
- * Ce que cet état n'a **pas**, et pourquoi : ni `isRefreshing`, ni position de
- * défilement. Le tirer-pour-rafraîchir de SPECS.md §4.6 est un geste vertical
- * sur une liste ; en plein écran il n'y a pas de liste à tirer, et le
- * superposer au balayage horizontal donnerait deux gestes concurrents sur la
- * même surface.
+ * Le rechargement de SPECS.md §4.6 y figure, mais **pas son geste** : tirer est
+ * un mouvement vertical sur une liste, et en plein écran il n'y a pas de liste
+ * à tirer — le superposer au balayage horizontal donnerait deux gestes
+ * concurrents sur la même surface. C'est un bouton qui le déclenche ici, et
+ * l'état à porter est le même : [isRefreshing].
+ *
+ * Ce que cet état n'a toujours pas : de position de défilement. Le balayage la
+ * tient lui-même, dans son pagineur.
  */
 data class SwipeUiState(
     val articles: List<ArticleUiModel> = emptyList(),
@@ -29,6 +32,8 @@ data class SwipeUiState(
     val isOffline: Boolean = false,
     /** Une ouverture d'article a été refusée faute de réseau (SPECS.md §5.2). */
     val isOfflineOpenNoticeVisible: Boolean = false,
+    /** Un rechargement demandé par l'utilisateur est en cours (SPECS.md §4.6). */
+    val isRefreshing: Boolean = false,
 ) {
     /**
      * Nombre d'écrans que le balayage traverse : les articles, **plus un**.

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Description du bouton de rechargement, lue par les lecteurs d'écran.
+        L'infinitif plutôt qu'un nom : elle annonce ce que l'appui va faire.
+    -->
+    <string name="feed_refresh">Recharger le flux</string>
+</resources>

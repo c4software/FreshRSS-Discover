@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.discover
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -11,9 +12,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
+import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshTestTags
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -53,6 +56,40 @@ class DiscoverScreenTest {
                 onOfflineNoticeDismiss = onOfflineNoticeDismiss,
             )
         }
+    }
+
+    // ----- Rechargement (SPECS.md §4.6) ---------------------------------------
+
+    @Test
+    fun theReloadButtonDoesWhatThePullGestureDoes() {
+        // Ajouté **en plus** du geste, pas à sa place : un tirage n'est pas
+        // praticable par tout le monde (SPECS.md §7.1), et rien ne le
+        // remplaçait ici.
+        var reloaded = false
+        show(
+            DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.EndOfFeed),
+            onRefresh = { reloaded = true },
+        )
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).performClick()
+
+        assertTrue(reloaded)
+    }
+
+    @Test
+    fun theReloadButtonStaysReachableWhenTheListIsScrolled() {
+        // Superposé et non inséré dans la liste : posé en tête, il défilerait
+        // hors de portée dès le premier écran parcouru.
+        show(
+            DiscoverUiState(
+                articles = List(40) { uiArticle(id = it.toLong()) },
+                phase = DiscoverPhase.Idle,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.LIST).performTouchInput { swipeUp() }
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed()
     }
 
     // ----- Présentation d'un article ------------------------------------------

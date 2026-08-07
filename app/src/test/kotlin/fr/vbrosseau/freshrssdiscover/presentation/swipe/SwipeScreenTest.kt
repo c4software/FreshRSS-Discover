@@ -18,6 +18,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.UNREACHABLE_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.installFakeImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.discover.resetImageLoader
+import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshTestTags
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -50,6 +51,7 @@ class SwipeScreenTest {
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
         onArticleClick: (Long) -> Unit = {},
+        onRefresh: () -> Unit = {},
     ) {
         composeRule.setContent {
             SwipeScreen(
@@ -57,9 +59,45 @@ class SwipeScreenTest {
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onRefresh = onRefresh,
                 pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
             )
         }
+    }
+
+    // ----- Rechargement (SPECS.md §4.6) ---------------------------------------
+
+    @Test
+    fun theReloadButtonIsReachableWithoutAnyGesture() {
+        // C'est la seule commande de ce mode : en plein écran il n'y a pas de
+        // liste à tirer, et le tirage se superposerait au balayage.
+        var reloaded = false
+        show(feedOf(uiArticle(id = 1L)), onRefresh = { reloaded = true })
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).performClick()
+
+        assertTrue(reloaded)
+    }
+
+    @Test
+    fun theReloadButtonIsStillThereWhenThereIsNothingToRead() {
+        // Un flux vide est justement le moment où l'on veut recharger : cacher
+        // la commande là laisserait l'utilisateur sans recours.
+        show(SwipeUiState(phase = DiscoverPhase.EndOfFeed))
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed()
+    }
+
+    @Test
+    fun aSecondPressIsIgnoredWhileTheReloadIsRunning() {
+        // Le bouton reste visible pendant le rechargement — il montre l'attente
+        // au lieu de disparaître — mais il ne redéclenche rien.
+        var reloads = 0
+        show(feedOf(uiArticle(id = 1L)).copy(isRefreshing = true), onRefresh = { reloads++ })
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).performClick()
+
+        assertEquals(0, reloads)
     }
 
     // ----- Un article à la fois -----------------------------------------------
