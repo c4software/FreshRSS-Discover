@@ -142,8 +142,9 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [x] `GOAL-002-T05` `FreshRssApi` : sonde de reconnaissance, sonde de
       transmission de l'en-tête, `clientLogin()` — réponse en texte brut, paires
       `clé=valeur`
-- [ ] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
-      (`400/401/503`, corps en texte brut)
+- [x] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
+      (`400/401/404/503`, corps en texte brut, connectivité pour distinguer
+      « hors ligne » de « injoignable »)
 - [ ] `GOAL-002-T07` `AuthRepository` : interface dans `:domain`, implémentation
       dans `:app/data`
 - [ ] `GOAL-002-T08` Stockage chiffré du jeton et du mot de passe API
