@@ -306,9 +306,9 @@ class SettingsScreenTest {
 
     @Test
     fun theApplicationVersionAndLicenseAreDisplayed() {
-        show(SettingsUiState(account = account, appVersion = "0.1.0"))
+        show(SettingsUiState(account = account, appVersion = "1.0.0"))
 
-        composeRule.onNodeWithTag(SettingsTestTags.APP_VERSION).assertTextEquals("0.1.0")
+        composeRule.onNodeWithTag(SettingsTestTags.APP_VERSION).assertTextEquals("1.0.0")
         composeRule.onNodeWithTag(SettingsTestTags.LICENSE).assertExists()
     }
 

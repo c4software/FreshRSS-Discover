@@ -140,6 +140,6 @@ class SettingsScreenshotTest : ScreenshotTest() {
             visibleFraction = ReadingSettings.VisibleFractionRange.endInclusive,
             continuousVisibilityMillis = ReadingSettings.ContinuousVisibilityRange.last,
         )
-        const val APP_VERSION = "0.1.0"
+        const val APP_VERSION = "1.0.0"
     }
 }
