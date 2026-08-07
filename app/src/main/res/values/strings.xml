@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">FreshRSS Discover</string>
+
+    <!-- Navigation -->
+    <string name="destination_discover">Discover</string>
+    <string name="destination_settings">Paramètres</string>
+
+    <!--
+      Libellés courts de la barre de navigation : elle n'a de place que pour une
+      ligne. Le titre d'écran, lui, garde le libellé complet.
+    -->
+    <string name="destination_short_discover">Discover</string>
+    <string name="destination_short_settings">Paramètres</string>
+
+    <!--
+      Écran d'attente affiché tant qu'une destination n'a pas son écran réel.
+      Chaque libellé disparaîtra avec le Goal qui livre l'écran correspondant —
+      voir TASKS.md.
+    -->
+    <string name="placeholder_title">Écran à venir</string>
+    <string name="placeholder_body">Cette destination sera livrée par un prochain Goal. Voir TASKS.md.</string>
+</resources>

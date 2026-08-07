@@ -1,0 +1,21 @@
+*.iml
+.kotlin
+.gradle
+**/build/
+!src/**/build/
+local.properties
+.idea
+.DS_Store
+captures
+.externalNativeBuild
+.cxx
+
+# Réglages Claude Code personnels (chemins machine, JAVA_HOME)
+.claude/settings.local.json
+# Fichiers temporaires produits par l'écriture atomique de ces réglages
+.claude/settings.local.json.tmp.*
+
+# Signature Play Store — ne jamais versionner
+*.jks
+*.keystore
+keystore.properties

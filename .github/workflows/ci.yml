@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [never]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Aucune écriture : ce workflow vérifie, il ne publie rien.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Compilation, lint, tests, couverture
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer le JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configurer Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          # Le cache n'est écrit que depuis main : une branche de PR ne doit
+          # pas pouvoir empoisonner le cache partagé.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # Les étapes sont séparées pour que la première défaillance nomme
+      # elle-même ce qui a échoué, sans avoir à lire un journal de build.
+      - name: Formatage (ktlint)
+        run: ./gradlew ktlintCheck --no-configuration-cache
+
+      - name: Analyse statique (Detekt)
+        run: ./gradlew detekt --no-configuration-cache
+
+      - name: Lint Android
+        run: ./gradlew lint
+
+      - name: Tests unitaires
+        run: ./gradlew test
+
+      # La vérification du rendu visuel (Roborazzi) n'est volontairement pas
+      # exécutée ici : le rendu graphique natif de Robolectric prend plusieurs
+      # minutes de temps machine à chaque exécution, pour un coût qui ne se
+      # justifie pas sur chaque Pull Request.
+      #
+      # Conséquence assumée : une régression visuelle n'est pas rattrapée
+      # automatiquement. Elle l'est en local, par l'auteur d'un changement
+      # d'interface — voir AGENTS.md §4 et le gabarit de Pull Request.
+
+      - name: Couverture du domaine
+        run: ./gradlew :domain:koverVerify :domain:koverXmlReport
+
+      - name: Compilation
+        run: ./gradlew assembleDebug
+
+      - name: Résumé de couverture
+        if: always()
+        run: |
+          report=domain/build/reports/kover/report.xml
+          [ -f "$report" ] || exit 0
+          python3 - "$report" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+
+          root = ET.parse(sys.argv[1]).getroot()
+          print("## Couverture du domaine\n")
+          print("| Paquet | Instructions | Branches |")
+          print("|---|---:|---:|")
+
+          def ratio(node, kind):
+              counter = next(
+                  (c for c in node.findall("counter") if c.get("type") == kind), None
+              )
+              if counter is None:
+                  return "—"
+              missed, covered = int(counter.get("missed")), int(counter.get("covered"))
+              total = missed + covered
+              return f"{100 * covered / total:.1f} %" if total else "—"
+
+          for package in root.findall("package"):
+              name = package.get("name").split("/")[-1]
+              print(f"| `{name}` | {ratio(package, 'INSTRUCTION')} | {ratio(package, 'BRANCH')} |")
+
+          print(f"| **total** | **{ratio(root, 'INSTRUCTION')}** | **{ratio(root, 'BRANCH')}** |")
+          PY
+
+      - name: Publier les rapports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports
+          path: |
+            app/build/reports/
+            domain/build/reports/
+          retention-days: 7
