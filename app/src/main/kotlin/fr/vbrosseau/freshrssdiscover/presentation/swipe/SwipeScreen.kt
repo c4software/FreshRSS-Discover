@@ -59,7 +59,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
-import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -143,7 +142,6 @@ fun SwipeScreen(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    onRefresh: () -> Unit = {},
     onOfflineNoticeDismiss: () -> Unit = {},
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -166,18 +164,6 @@ fun SwipeScreen(
                 onVisibilityChanged = onVisibilityChanged,
             )
         }
-
-        /*
-         * Superposé, et en haut à droite : la carte occupe tout l'écran, il n'y
-         * a donc aucune place à côté d'elle. Ce coin est celui que l'illustration
-         * remplit, d'où un bouton à fond plein — un bouton d'icône ordinaire s'y
-         * perdrait sur une image claire.
-         */
-        RefreshButton(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = onRefresh,
-            modifier = Modifier.align(Alignment.TopEnd),
-        )
 
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(

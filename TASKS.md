@@ -687,7 +687,12 @@ suivant, comme les Stories d'un réseau social.
       n'y a pas de liste à tirer, et un tirage vertical entrerait en concurrence
       avec le geste horizontal — et repris en Liste **en plus** du geste, qui
       n'est pas praticable par tout le monde. Il se change en indicateur pendant
-      l'attente plutôt que de se griser ou de disparaître
+      l'attente plutôt que de se griser ou de disparaître.
+      **Posé sur la ligne du titre**, à la demande de l'auteur : superposé au
+      flux, il en recouvrait toujours une part — le coin de la première carte en
+      Liste, l'illustration en Balayage. La destination affichée le publie donc
+      à l'ossature (`FeedRefresh`), qui n'a aucune raison de connaître son
+      ViewModel
 
 ### Question tranchée
 

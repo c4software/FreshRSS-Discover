@@ -16,6 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,6 +30,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
+import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
 import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReadFlushOnBackgroundObserver
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginScreen
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
@@ -149,12 +154,27 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
     val currentRoute = backStackEntry?.destination?.route
     val currentDestination = AppDestination.forRoute(currentRoute)
 
+    /*
+     * Le rechargement est publié par la destination affichée, et non tenu ici :
+     * l'action appartient à son ViewModel, que cette ossature n'a aucune raison
+     * de connaître. `null` tant qu'aucune destination n'en offre — la barre
+     * reste alors nue, ce qui est le cas des réglages.
+     */
+    var feedRefresh by remember { mutableStateOf<FeedRefresh?>(null) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {
                     Text(stringResource(currentDestination?.labelRes ?: R.string.app_name))
+                },
+                // Sur la ligne du titre : c'est une commande de l'écran entier,
+                // et superposée au contenu elle en recouvrait toujours une part.
+                actions = {
+                    feedRefresh?.let { refresh ->
+                        RefreshButton(isRefreshing = refresh.isRefreshing, onRefresh = refresh.onRefresh)
+                    }
                 },
             )
         },
@@ -168,6 +188,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
         AppNavHost(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
+            onFeedRefreshChange = { feedRefresh = it },
         )
     }
 }

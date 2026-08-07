@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -14,6 +15,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
@@ -30,6 +32,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -46,8 +49,8 @@ fun AppNavHost(
             val presentation by presentationViewModel.presentation.collectAsStateWithLifecycle()
 
             when (presentation) {
-                FeedPresentation.List -> DiscoverRoute()
-                FeedPresentation.Swipe -> SwipeRoute()
+                FeedPresentation.List -> DiscoverRoute(onFeedRefreshChange = onFeedRefreshChange)
+                FeedPresentation.Swipe -> SwipeRoute(onFeedRefreshChange = onFeedRefreshChange)
             }
         }
 
@@ -58,7 +61,10 @@ fun AppNavHost(
 }
 
 @Composable
-private fun DiscoverRoute(modifier: Modifier = Modifier) {
+private fun DiscoverRoute(
+    modifier: Modifier = Modifier,
+    onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+) {
     val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -71,6 +77,12 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
     // survit aux rechargements et aux rafraîchissements du flux.
     val positionViewModel: ReadingPositionViewModel = hiltViewModel()
     val positionToRestore by positionViewModel.positionToRestore.collectAsStateWithLifecycle()
+
+    PublishFeedRefresh(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = viewModel::refresh,
+        onFeedRefreshChange = onFeedRefreshChange,
+    )
 
     DiscoverScreen(
         uiState = uiState,
@@ -96,10 +108,19 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SwipeRoute(modifier: Modifier = Modifier) {
+private fun SwipeRoute(
+    modifier: Modifier = Modifier,
+    onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+) {
     val viewModel: SwipeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articleOpener = rememberArticleOpener()
+
+    PublishFeedRefresh(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = viewModel::refresh,
+        onFeedRefreshChange = onFeedRefreshChange,
+    )
 
     // Pas de position de lecture ici : en plein écran, l'article visible est
     // celui qu'on vient de marquer lu, et le pagineur repartirait donc sur un
@@ -113,11 +134,30 @@ private fun SwipeRoute(modifier: Modifier = Modifier) {
                 articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
             }
         },
-        onRefresh = viewModel::refresh,
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
+}
+
+/**
+ * Publie le rechargement de la destination courante vers la barre de titre.
+ *
+ * `DisposableEffect` et non `LaunchedEffect` : ce qui compte autant que la
+ * publication, c'est le **retrait**. Sans `onDispose`, quitter le flux pour les
+ * réglages y laisserait un bouton branché sur un ViewModel qu'on ne regarde
+ * plus — et basculer de Liste à Balayage laisserait celui du mode précédent.
+ */
+@Composable
+private fun PublishFeedRefresh(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onFeedRefreshChange: (FeedRefresh?) -> Unit,
+) {
+    DisposableEffect(isRefreshing, onRefresh, onFeedRefreshChange) {
+        onFeedRefreshChange(FeedRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh))
+        onDispose { onFeedRefreshChange(null) }
+    }
 }
 
 @Composable
