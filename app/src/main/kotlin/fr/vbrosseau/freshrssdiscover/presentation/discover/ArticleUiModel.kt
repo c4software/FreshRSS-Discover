@@ -35,6 +35,15 @@ data class ArticleUiModel(
     /** Sans lui, le mélange des sources serait déroutant (SPECS.md §4.3). */
     val feedTitle: String,
     val publishedAt: RelativeTime,
+    /**
+     * Date brute, en secondes, **en plus** de sa forme relative.
+     *
+     * Sert à retrouver la position de lecture au plus proche quand l'article
+     * exact a disparu du flux (SPECS.md §5.3) — ce qui est le cas courant, non
+     * l'exception : l'article de tête est celui que le marquage vient de rendre
+     * lu. Elle n'est jamais affichée telle quelle.
+     */
+    val publishedAtEpochSeconds: Long = 0L,
     val excerpt: String,
     /**
      * Où aller chercher l'illustration, `null` quand l'article n'en annonce
@@ -93,6 +102,7 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     title = title,
     feedTitle = feed.title,
     publishedAt = relativeTimeSince(publishedAtEpochSeconds, nowEpochMillis),
+    publishedAtEpochSeconds = publishedAtEpochSeconds,
     excerpt = summary.toExcerpt(),
     imageUrl = imageUrl,
     url = url,

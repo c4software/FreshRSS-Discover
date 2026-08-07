@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
+import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPositionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,22 +28,22 @@ import javax.inject.Inject
 class ReadingPositionViewModel @Inject constructor(
     private val repository: ReadingPositionRepository,
 ) : ViewModel() {
-    private val _restoreToArticleId = MutableStateFlow<Long?>(null)
+    private val _positionToRestore = MutableStateFlow<ReadingPosition?>(null)
 
     /**
-     * Article sur lequel remettre la liste, une seule fois.
+     * Position à retrouver, une seule fois.
      *
      * Un état et non un événement : l'écran peut être recréé — rotation, retour
      * d'arrière-plan — avant d'avoir eu l'occasion de s'y rendre.
      */
-    val restoreToArticleId: StateFlow<Long?> = _restoreToArticleId.asStateFlow()
+    val positionToRestore: StateFlow<ReadingPosition?> = _positionToRestore.asStateFlow()
 
     /** Dernier article signalé en tête, pour n'écrire que sur changement. */
     private var lastRemembered: ArticleId? = null
 
     init {
         viewModelScope.launch {
-            _restoreToArticleId.value = repository.lastPosition()?.value
+            _positionToRestore.value = repository.lastPosition()
         }
     }
 
@@ -54,11 +55,13 @@ class ReadingPositionViewModel @Inject constructor(
      * ignoré — liste vide ou disposition pas encore mesurée — car l'écrire
      * effacerait une position parfaitement valable.
      */
-    fun onFirstVisibleArticleChanged(articleId: ArticleId?) {
+    fun onFirstVisibleArticleChanged(articleId: ArticleId?, publishedAtEpochSeconds: Long) {
         if (articleId == null || articleId == lastRemembered) return
 
         lastRemembered = articleId
-        viewModelScope.launch { repository.remember(articleId) }
+        viewModelScope.launch {
+            repository.remember(ReadingPosition(articleId, publishedAtEpochSeconds))
+        }
     }
 
     /**
@@ -68,6 +71,6 @@ class ReadingPositionViewModel @Inject constructor(
      * que l'utilisateur a déjà repris sa lecture.
      */
     fun onPositionRestored() {
-        _restoreToArticleId.value = null
+        _positionToRestore.value = null
     }
 }

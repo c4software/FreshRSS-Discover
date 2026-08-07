@@ -252,7 +252,7 @@ class AppGraphTest {
         try {
             assertEquals(SessionGate.Unknown, sessionGate.gate.value)
             assertFalse(login.uiState.value.isSubmitting)
-            assertNull(readingPosition.restoreToArticleId.value)
+            assertNull(readingPosition.positionToRestore.value)
             assertEquals(DiscoverPhase.InitialLoading, discover.uiState.value.phase)
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {

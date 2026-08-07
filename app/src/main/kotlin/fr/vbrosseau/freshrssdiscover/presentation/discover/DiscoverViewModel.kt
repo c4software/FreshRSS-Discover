@@ -164,10 +164,10 @@ class DiscoverViewModel @Inject constructor(
     /**
      * Tirer-pour-rafraîchir (SPECS.md §4.6).
      *
-     * Le dépôt rend la première page **telle qu'elle est aujourd'hui**, qui
-     * contient donc aussi des articles déjà affichés : seuls les inconnus
-     * s'insèrent, et en tête. Le curseur n'est pas touché — il désigne le bas
-     * de la liste, que le rafraîchissement ne concerne pas.
+     * Le geste **vide** l'affichage et repart du début : la liste est
+     * remplacée, pas complétée, et l'écran remonte en haut. Ce que
+     * l'utilisateur regardait disparaît — c'est le prix d'un geste qui a un
+     * effet immédiat et lisible, assumé dans la spécification.
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
@@ -318,15 +318,6 @@ class DiscoverViewModel @Inject constructor(
     }
 
     /**
-     * Un rafraîchissement ne touche ni au curseur ni à la fin de flux : ils
-     * décrivent le **bas** de la liste, que le geste ne concerne pas. Il lève en
-     * revanche l'échec précédent — le réseau vient de répondre.
-     *
-     * `Idle` seulement s'il reste une page à demander : y revenir avec un
-     * curseur nul ferait redemander le début du flux au premier défilement,
-     * alors qu'il est terminé.
-     */
-    /**
      * Remplace la liste par la page rendue, et repart du début.
      *
      * SPECS.md §4.6 : le tirage **vide** l'affichage plutôt que de le compléter.
@@ -343,6 +334,10 @@ class DiscoverViewModel @Inject constructor(
      * rien. Le détecteur, lui, est reconstruit — les articles réaffichés
      * repartent avec un chronomètre neuf, ce qui est correct puisqu'ils sont de
      * nouveau à l'écran.
+     *
+     * La phase suit la page rendue : `Idle` s'il reste un curseur, `EndOfFeed`
+     * sinon. Elle lève donc aussi l'échec précédent — le réseau vient de
+     * répondre — et rouvre un flux qui s'était terminé si le serveur a du neuf.
      */
     private fun onRefreshed(page: ArticlePage) {
         val now = clock.nowEpochMillis()

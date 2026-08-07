@@ -70,7 +70,7 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
     // ViewModel distinct : la position de lecture a son propre cycle, elle
     // survit aux rechargements et aux rafraîchissements du flux.
     val positionViewModel: ReadingPositionViewModel = hiltViewModel()
-    val restoreToArticleId by positionViewModel.restoreToArticleId.collectAsStateWithLifecycle()
+    val positionToRestore by positionViewModel.positionToRestore.collectAsStateWithLifecycle()
 
     DiscoverScreen(
         uiState = uiState,
@@ -87,7 +87,7 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onFirstVisibleArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
         onPositionRestored = positionViewModel::onPositionRestored,
-        restoreToArticleId = restoreToArticleId,
+        positionToRestore = positionToRestore,
         // Sans ce rappel, la mesure de visibilité ne s'arme pas : `null` signifie
         // « personne n'écoute », et le marquage automatique resterait inerte.
         onVisibilityChanged = viewModel::onVisibilityChanged,

@@ -8,18 +8,18 @@ package fr.vbrosseau.freshrssdiscover.domain.feed
  * observation (SPECS.md §5.3).
  */
 class FakeReadingPositionRepository(
-    var position: ArticleId? = null,
+    var position: ReadingPosition? = null,
 ) : ReadingPositionRepository {
-    val rememberedPositions: MutableList<ArticleId> = mutableListOf()
+    val rememberedPositions: MutableList<ReadingPosition> = mutableListOf()
 
     var forgetCallCount: Int = 0
         private set
 
-    override suspend fun lastPosition(): ArticleId? = position
+    override suspend fun lastPosition(): ReadingPosition? = position
 
-    override suspend fun remember(articleId: ArticleId) {
-        position = articleId
-        rememberedPositions += articleId
+    override suspend fun remember(position: ReadingPosition) {
+        this.position = position
+        rememberedPositions += position
     }
 
     override suspend fun forget() {
