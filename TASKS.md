@@ -103,9 +103,14 @@ fonctionnalité applicative.
       composants d'analyse Kotlin. À réactiver dès qu'une version corrige.
 - [ ] `GOAL-001-T18` **Robolectric simule l'API 35** alors que `targetSdk` vaut
       37 : aucune image n'existe pour 37. À relever dès que possible.
-- [x] `GOAL-001-T19` ~~CI désactivée sur `push`~~ **Levé** : le dépôt distant
-      existe (`c4software/FreshRSS-Discover`), la CI se déclenche sur `main` et
-      sur chaque Pull Request.
+- [!] `GOAL-001-T19` **CI volontairement neutralisée sur `push`**
+      (`branches: [never]`).
+      > Décision de l'auteur : chaque exécution consomme du crédit de build, et
+      > la vérification locale est exactement la même commande. Le déclencheur
+      > `pull_request` reste actif — il consomme lui aussi, et se neutralise de
+      > la même façon si besoin. Ce n'est pas une dette technique mais un
+      > arbitrage assumé : la garantie repose entièrement sur AGENTS.md §5, dont
+      > la sortie doit être **constatée** avant chaque commit.
 
 ---
 
