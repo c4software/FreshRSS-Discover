@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.roborazzi)
@@ -145,6 +146,15 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Client de l'API FreshRSS. Le moteur OkHttp plutôt que le moteur natif :
+    // reprises, pool de connexions et TLS y sont déjà résolus.
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.serialization.json)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -164,6 +174,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Décrit des réponses HTTP littérales, malformées comprises : c'est la
+    // seule façon d'éprouver la lecture d'une réponse réelle sans serveur.
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.hilt.testing)

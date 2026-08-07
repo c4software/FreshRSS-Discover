@@ -136,8 +136,9 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [x] `GOAL-002-T03` `ServerAddress` et `AuthSession` : normalisation de l'adresse
       saisie (schéma implicite, dérivation de `…/api/greader.php`, `http://` toléré
       et signalé) — pure, testée exhaustivement
-- [ ] `GOAL-002-T04` Câbler Ktor dans `app/build.gradle.kts` (moteur OkHttp,
-      `ContentNegotiation` restreint aux `2xx`, journalisation sans secrets)
+- [x] `GOAL-002-T04` Câbler Ktor dans `app/build.gradle.kts` (moteur OkHttp,
+      négociation de contenu limitée à `application/json`, journalisation sans
+      secrets) et fournir le client par Hilt
 - [ ] `GOAL-002-T05` `FreshRssApi.clientLogin()` — réponse en texte brut, paires
       `clé=valeur`
 - [ ] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
