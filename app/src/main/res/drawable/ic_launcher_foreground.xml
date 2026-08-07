@@ -1,12 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Icône provisoire, héritée du template dont ce dépôt reprend l'architecture.
-    Elle ne représente rien de ce projet et doit être remplacée — voir TASKS.md,
-    GOAL-001-T16.
+    « Le fil » — calque avant de l'icône adaptative.
 
-    Ce qu'il faudra conserver en la remplaçant : tout tient dans la zone sûre de
-    66 dp de l'icône adaptative, et le calque unique en blanc sert aussi de
-    couche monochrome (icônes thématiques, API 33+).
+    Le motif : un unique ruban qui descend en serpentant. Les ondes RSS ont été
+    écartées sciemment. Elles sont reconnaissables, mais elles disent « flux
+    RSS » — ce que disent aussi la plupart des autres lecteurs installés, et
+    l'icône ne se distinguerait plus que par sa couleur. Ce que cette
+    application donne à voir, c'est un fil continu que l'on parcourt du haut
+    vers le bas (SPECS.md §4) : d'où une descente, et non des ondes concentriques
+    qui, elles, partent d'un point.
+
+    Une seule forme, un seul trait, une seule couleur :
+    - à 48 dp au milieu d'un écran chargé, ce qui se reconnaît est une
+      silhouette, pas un détail ; un motif fin s'y réduirait à une tache ;
+    - le fichier sert tel quel de couche monochrome (icônes thématiques,
+      API 33+), que le système reteint d'une couleur unique : un motif jouant
+      sur plusieurs teintes ou plusieurs opacités s'y aplatirait et perdrait sa
+      lisibilité. Le blanc n'est là que pour le calque avant classique.
+
+    Deux motifs concurrents ont été dessinés, rendus et regardés avant d'en
+    rester au ruban :
+    - une pile de trois barres arrondies en perspective (« le flux de cartes »).
+      Rendue à 48 dp, elle est indiscernable d'un menu hamburger ou d'une icône
+      de liste : elle dit « réglages », pas « articles ».
+    - un ruban à trois virages, censé mieux dire « sans fin ». À 48 dp les
+      virages fusionnent en une tache et la forme se lit « 3 ». Deux virages est
+      le maximum qui survit à la réduction.
+
+    Le tracé retenu est le ruban à deux virages, mais élargi par rapport à sa
+    première version : le trait passe de 13 à 14 dp d'épaisseur et les
+    extrémités s'écartent davantage à l'horizontale. Deux raisons, l'une et
+    l'autre constatées sur les rendus :
+    - la première version n'occupait que 30,2 dp des 33 disponibles et laissait
+      deux quartiers du disque vides ; elle paraissait maigre à 48 dp ;
+    - avec des extrémités presque verticales, elle se lisait comme un « f »
+      italique — une lettre, pas un flux. Des extrémités plus couchées font lire
+      un ruban qui entre et sort du cadre, ce qui est bien l'intention.
+
+    Zone sûre — c'est un **disque** de 66 dp de diamètre centré, pas un carré :
+    le lanceur applique un masque quelconque dans les 72 dp centraux, et seul ce
+    disque est garanti visible sous tous. Le trait s'écarte au plus de 32,0 dp du
+    centre (54,54), demi-épaisseur comprise, contre 33 disponibles. Vérifié en
+    échantillonnant la courbe sur 400 points, non en lisant son rectangle
+    englobant : les coins de celui-ci (jusqu'à 34,8 dp du centre) sortiraient du
+    disque, mais la courbe n'y passe pas. Toute retouche du tracé doit être
+    revérifiée de la même façon — l'agrandissement homothétique évident
+    (facteur 1,09 sur l'ancien tracé) amenait la pointe à 32,94 dp, soit 0,06 dp
+    de marge, et se voyait à l'œil : la pointe frôlait le bord sous masque rond.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
   android:width="108dp"
@@ -14,26 +54,20 @@
   android:viewportWidth="108"
   android:viewportHeight="108">
 
-  <!-- Les quatre coins de la grille, en retrait. -->
-  <path
-    android:fillColor="#FFFFFFFF"
-    android:fillAlpha="0.4"
-    android:pathData="M 36,36 m -6.5,0 a 6.5,6.5 0 1,1 13,0 a 6.5,6.5 0 1,1 -13,0" />
-  <path
-    android:fillColor="#FFFFFFFF"
-    android:fillAlpha="0.4"
-    android:pathData="M 72,36 m -6.5,0 a 6.5,6.5 0 1,1 13,0 a 6.5,6.5 0 1,1 -13,0" />
-  <path
-    android:fillColor="#FFFFFFFF"
-    android:fillAlpha="0.4"
-    android:pathData="M 36,72 m -6.5,0 a 6.5,6.5 0 1,1 13,0 a 6.5,6.5 0 1,1 -13,0" />
-  <path
-    android:fillColor="#FFFFFFFF"
-    android:fillAlpha="0.4"
-    android:pathData="M 72,72 m -6.5,0 a 6.5,6.5 0 1,1 13,0 a 6.5,6.5 0 1,1 -13,0" />
+  <!--
+      Un trait et non une forme remplie : l'épaisseur reste constante d'un bout
+      à l'autre sans avoir à décrire un contour à la main, et les extrémités
+      arrondies évitent la coupure nette qui ferait lire un début et une fin là
+      où il y a un flux.
 
-  <!-- L'éclair, plein, au premier plan. -->
+      La courbe est symétrique par demi-tour autour du centre (54,54) : les
+      extrémités (69,34) et (39,74) s'échangent, les points de contrôle (38,44)
+      et (70,64) aussi. C'est ce qui la fait tenir droite quel que soit le
+      masque, cercle ou carré arrondi.
+  -->
   <path
-    android:fillColor="#FFFFFFFF"
-    android:pathData="M 59.1,28.5 L 43.8,55.7 H 52.3 L 47.2,79.5 L 65.9,50.6 H 56.6 Z" />
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="14"
+    android:strokeLineCap="round"
+    android:pathData="M69,34 C38,44 70,64 39,74" />
 </vector>

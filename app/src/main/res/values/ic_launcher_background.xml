@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Couleur de fond de l'icône adaptative, isolée ici plutôt qu'écrite dans le
+    vecteur : c'est la seule valeur de l'icône qu'on retouche, et le lanceur la
+    montre sur des fonds d'écran quelconques, donc à contraste maximal avec le
+    blanc du calque avant.
+
+    Bleu profond de la même famille que la couleur primaire du thème
+    (`Blue40`, #3A5BC7, presentation/theme/Color.kt), assombri : le blanc pur y
+    tient un rapport de contraste supérieur à 8:1, ce que le bleu primaire du
+    thème, plus clair, n'atteignait pas.
+-->
+<resources>
+  <color name="ic_launcher_background">#FF22317A</color>
+</resources>
