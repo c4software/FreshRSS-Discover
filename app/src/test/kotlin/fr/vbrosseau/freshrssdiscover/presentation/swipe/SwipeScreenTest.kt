@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
@@ -33,6 +34,9 @@ private const val LONG_FEED_SIZE = 10
 /** Rang à partir duquel une page de dix articles réclame la suivante. */
 private const val PREFETCH_TRIGGER_PAGE = 7
 
+/** Cadence des relevés de visibilité, reprise de `sampleVisibility`. */
+private const val SAMPLING_PERIOD_MILLIS = 200L
+
 @RunWith(RobolectricTestRunner::class)
 class SwipeScreenTest {
     @get:Rule
@@ -50,6 +54,7 @@ class SwipeScreenTest {
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
         onArticleClick: (Long) -> Unit = {},
+        onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     ) {
         composeRule.setContent {
             SwipeScreen(
@@ -58,8 +63,65 @@ class SwipeScreenTest {
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
                 pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
+                onVisibilityChanged = onVisibilityChanged,
             )
         }
+    }
+
+    // ----- Alimentation du marquage (GOAL-012-T01) ----------------------------
+
+    @Test
+    fun theArticleOnScreenIsReportedAsFullyVisible() {
+        // Le maillon que ni `SwipeViewModelTest` ni `SwipeVisibilityTest` ne
+        // voient : le premier suppose qu'on lui parle, le second calcule sans
+        // que personne l'appelle. Sans ce relevé, rien ne serait jamais marqué
+        // comme lu en mode Balayage — et tout le reste passerait au vert.
+        val reports = mutableListOf<Map<ArticleId, Float>>()
+        show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
+
+        assertEquals(mapOf(ArticleId(1L) to 1f), reports.lastOrNull())
+    }
+
+    @Test
+    fun theArticleIsStillReportedWhileNothingMoves() {
+        // C'est **le** piège de ce mode : un article plein écran immobile ne
+        // produit aucun événement, et la règle de SPECS.md §4.5 porte sur une
+        // durée — que le détecteur ne mesure que d'un relevé à l'autre. Un
+        // relevé unique à l'affichage ne marquerait donc jamais rien.
+        val reports = mutableListOf<Map<ArticleId, Float>>()
+        composeRule.mainClock.autoAdvance = false
+        show(feedOf(uiArticle(id = 1L)), onVisibilityChanged = reports::add)
+
+        composeRule.mainClock.advanceTimeBy(SAMPLING_PERIOD_MILLIS * 3)
+
+        assertTrue(reports.size >= 2, "relevés obtenus : ${reports.size}")
+        assertTrue(reports.all { it == mapOf(ArticleId(1L) to 1f) }, "relevés : $reports")
+    }
+
+    @Test
+    fun theSecondArticleIsReportedOnceTheSwipeIsDone() {
+        // Le relevé suit le balayage : sans cela, le premier article resterait
+        // le seul jamais signalé, et le flux ne se marquerait qu'une fois.
+        val reports = mutableListOf<Map<ArticleId, Float>>()
+        show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
+
+        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.waitUntil { reports.lastOrNull() == mapOf(ArticleId(2L) to 1f) }
+
+        assertEquals(mapOf(ArticleId(2L) to 1f), reports.lastOrNull())
+    }
+
+    @Test
+    fun nothingIsReportedWhenNoOneIsListening() {
+        // `null` signifie « personne n'écoute » : armer la boucle ferait tourner
+        // un minuteur pour jeter son résultat, et occuperait les
+        // prévisualisations en permanence.
+        composeRule.mainClock.autoAdvance = false
+        show(feedOf(uiArticle(id = 1L)), onVisibilityChanged = null)
+
+        composeRule.mainClock.advanceTimeBy(SAMPLING_PERIOD_MILLIS * 3)
+
+        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertExists()
     }
 
     // ----- Un article à la fois -----------------------------------------------

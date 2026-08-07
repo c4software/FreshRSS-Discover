@@ -641,7 +641,14 @@ suivant, comme les Stories d'un réseau social.
       plein écran est visible à 100 % : le seuil de surface est satisfait
       d'emblée, et la durée décide seule. `ReadDetector` s'applique tel quel,
       mais l'alimentation ne peut pas venir de `LazyListState` — il faut une
-      source d'observation propre à ce mode
+      source d'observation propre à ce mode.
+      **Le maillon est désormais éprouvé de bout en bout** : quatre tests
+      d'écran vérifient que le relevé part, qu'il se répète alors que rien ne
+      bouge, qu'il suit le balayage, et qu'il ne s'arme pas sans destinataire.
+      Ils ont été validés par mutation — couper l'observation en fait tomber
+      trois, la rétablir les repasse. Ni `SwipeViewModelTest` ni
+      `SwipeVisibilityTest` ne voyaient ce maillon : le premier suppose qu'on
+      lui parle, le second calcule sans que personne l'appelle
 - [x] `GOAL-012-T02` **Le chargement anticipé doit survivre au geste.** Demander
       la page suivante avant d'atteindre le dernier article chargé, sans que le
       balayage ne bute
