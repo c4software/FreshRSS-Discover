@@ -10,9 +10,9 @@ import javax.inject.Inject
  * Point d'entrée de l'application et racine du graphe d'injection.
  *
  * Elle ne porte aucune logique métier : tout ce qui décide vit dans `:domain`,
- * tout ce qui parle au réseau ou au disque vit dans `data`. Son seul travail
- * propre est d'installer la journalisation, et uniquement en construction de
- * débogage.
+ * tout ce qui parle au réseau ou au disque vit dans `data`. Elle se borne à
+ * deux gestes de démarrage — installer la journalisation en construction de
+ * débogage, et lancer la purge du cache.
  */
 @HiltAndroidApp
 class FreshRssDiscoverApplication : Application() {

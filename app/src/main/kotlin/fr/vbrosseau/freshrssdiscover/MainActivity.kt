@@ -27,6 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReadFlushOnBackgroundObserver
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginScreen
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppDestination
@@ -34,12 +35,24 @@ import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavHost
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavigationBar
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.navigateToTopLevel
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Enregistré ici et nulle part ailleurs : c'est le seul point du code qui
+     * possède un cycle de vie d'écran. Voir la classe pour le choix d'`ON_STOP`
+     * et pour ce que le cycle de vie d'une `Activity` coûte face à celui du
+     * processus.
+     */
+    @Inject
+    internal lateinit var readFlushOnBackground: ReadFlushOnBackgroundObserver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        lifecycle.addObserver(readFlushOnBackground)
         setContent {
             AppTheme {
                 /*
