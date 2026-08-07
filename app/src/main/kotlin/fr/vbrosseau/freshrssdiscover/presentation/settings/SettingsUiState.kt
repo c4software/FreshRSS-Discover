@@ -1,5 +1,8 @@
 package fr.vbrosseau.freshrssdiscover.presentation.settings
 
+import androidx.annotation.StringRes
+import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import kotlin.math.roundToInt
 
@@ -35,6 +38,15 @@ data class SettingsUiState(
      * ni identifiant à montrer, et la déconnexion n'a plus d'objet.
      */
     val account: SettingsAccount? = null,
+    /**
+     * Mode de parcours du flux (SPECS.md §4.8), tel qu'il est enregistré.
+     *
+     * Le type du domaine et non une copie côté interface : les deux modes sont
+     * une donnée persistée, pas une variante d'affichage, et redéclarer
+     * l'énumération ici obligerait à traduire dans les deux sens un choix qui
+     * n'a que deux valeurs.
+     */
+    val presentation: FeedPresentation = FeedPresentation.Default,
     /** Part de hauteur affichée exigée par SPECS.md §4.5, en pourcentage entier. */
     val visibleFraction: SettingsThreshold = visibleFractionThresholdOf(ReadingSettings.Default),
     /** Durée d'affichage continu exigée par SPECS.md §4.5, en secondes. */
@@ -100,6 +112,32 @@ data class SettingsAccount(
     val serverAddress: String,
     val username: String,
 )
+
+/**
+ * Le libellé court d'un mode, celui que porte le segment.
+ *
+ * Une fonction et non un `when` dans le Composable : associer une valeur du
+ * domaine à une ressource est une conversion, et AGENTS.md §2 la tient hors des
+ * fonctions de rendu. Elle se teste ici sans faire tourner Compose.
+ */
+@StringRes
+fun feedPresentationLabelOf(presentation: FeedPresentation): Int = when (presentation) {
+    FeedPresentation.List -> R.string.settings_presentation_list
+    FeedPresentation.Swipe -> R.string.settings_presentation_swipe
+}
+
+/**
+ * La phrase qui décrit le mode **sélectionné**.
+ *
+ * Deux mots ne disent pas ce qu'on gagne ou perd en changeant de mode : la
+ * description répond à la seule question que pose le contrôle — à quoi
+ * ressemblera le flux après l'avoir touché.
+ */
+@StringRes
+fun feedPresentationDescriptionOf(presentation: FeedPresentation): Int = when (presentation) {
+    FeedPresentation.List -> R.string.settings_presentation_list_description
+    FeedPresentation.Swipe -> R.string.settings_presentation_swipe_description
+}
 
 /** Convertit la fraction du domaine en pourcentage entier, bornes comprises. */
 fun visibleFractionThresholdOf(settings: ReadingSettings): SettingsThreshold {

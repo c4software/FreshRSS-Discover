@@ -2,12 +2,15 @@ package fr.vbrosseau.freshrssdiscover.presentation.settings
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import org.junit.Rule
 import org.junit.Test
@@ -55,6 +58,89 @@ class SettingsScreenTest {
                 onPurgeCache = onPurgeCache,
             )
         }
+    }
+
+    /**
+     * Un montage propre au mode de parcours plutôt qu'un huitième paramètre à
+     * [show] : la liste de rappels de l'écran a atteint le seuil que Detekt
+     * accepte, et l'allonger pour deux tests rendrait les six autres illisibles.
+     */
+    private fun showPresentation(
+        presentation: FeedPresentation = FeedPresentation.Default,
+        onPresentationChange: (FeedPresentation) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            SettingsScreen(
+                uiState = SettingsUiState(account = account, presentation = presentation),
+                onSignOutRequest = {},
+                onSignOutConfirm = {},
+                onSignOutDismiss = {},
+                onVisibleFractionChange = {},
+                onContinuousVisibilityChange = {},
+                onPresentationChange = onPresentationChange,
+            )
+        }
+    }
+
+    @Test
+    fun theListPresentationIsSelectedAndDescribedByDefault() {
+        showPresentation()
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).assertIsNotSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_DESCRIPTION)
+            .assertTextEquals("Plusieurs articles à l'écran, que vous faites défiler vers le bas.")
+    }
+
+    /**
+     * La description suit le mode sélectionné : c'est elle qui dit ce que le
+     * flux montrera, ce que deux mots de segment ne peuvent pas faire.
+     */
+    @Test
+    fun theSwipePresentationIsSelectedAndDescribedWhenItIsTheStoredOne() {
+        showPresentation(presentation = FeedPresentation.Swipe)
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsNotSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_DESCRIPTION)
+            .assertTextEquals(
+                "Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.",
+            )
+    }
+
+    @Test
+    fun choosingTheSwipePresentationReportsIt() {
+        var reported: FeedPresentation? = null
+        showPresentation(onPresentationChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().performClick()
+
+        assertEquals(FeedPresentation.Swipe, reported)
+    }
+
+    @Test
+    fun choosingTheListPresentationBackReportsIt() {
+        var reported: FeedPresentation? = null
+        showPresentation(presentation = FeedPresentation.Swipe, onPresentationChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).performScrollTo().performClick()
+
+        assertEquals(FeedPresentation.List, reported)
+    }
+
+    /**
+     * Le contrôle ne mémorise rien : il remonte le choix et attend que l'état
+     * revienne. Sans cela, l'écran montrerait un mode sélectionné que
+     * l'enregistrement n'aurait pas retenu.
+     */
+    @Test
+    fun theSegmentsShowTheStateRatherThanTheLastTap() {
+        showPresentation()
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).assertIsNotSelected()
     }
 
     @Test

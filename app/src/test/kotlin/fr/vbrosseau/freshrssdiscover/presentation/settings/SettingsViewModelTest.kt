@@ -7,6 +7,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeCacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.keepCollecting
@@ -239,5 +240,73 @@ class SettingsViewModelTest {
         assertEquals(0, repository.signOutCallCount)
         assertFalse(viewModel.uiState.value.isSignOutConfirmationVisible)
         assertEquals("alice", viewModel.uiState.value.account?.username)
+    }
+
+    @Test
+    fun theFeedIsPresentedAsAListUntilSomethingElseIsChosen() = runTest {
+        observe()
+
+        // SPECS.md §4.8 : Liste est le mode par défaut.
+        assertEquals(FeedPresentation.List, viewModel.uiState.value.presentation)
+    }
+
+    @Test
+    fun theDisplayedPresentationIsTheStoredOne() = runTest {
+        settings.setFeedPresentation(FeedPresentation.Swipe)
+        observe()
+
+        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+    }
+
+    /**
+     * Le changement traverse le dépôt et revient par l'état publié.
+     *
+     * C'est ce qui rend SPECS.md §4.8 tenable sans redémarrage : l'écran de
+     * flux observe la même source, et apprend donc le nouveau mode par le même
+     * chemin — sans que le ViewModel des réglages ait à le prévenir.
+     */
+    @Test
+    fun choosingTheSwipePresentationStoresItAndRepublishesIt() = runTest {
+        observe()
+
+        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+
+        assertEquals(FeedPresentation.Swipe, settings.currentPresentation)
+        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+    }
+
+    @Test
+    fun comingBackToTheListPresentationIsStoredToo() = runTest {
+        settings.setFeedPresentation(FeedPresentation.Swipe)
+        observe()
+
+        viewModel.setFeedPresentation(FeedPresentation.List)
+
+        assertEquals(FeedPresentation.List, settings.currentPresentation)
+        assertEquals(FeedPresentation.List, viewModel.uiState.value.presentation)
+    }
+
+    @Test
+    fun changingThePresentationLeavesTheReadingThresholdsAlone() = runTest {
+        observe()
+        viewModel.setVisibleFractionPercent(80)
+
+        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+
+        assertEquals(80, viewModel.uiState.value.visibleFraction.value)
+        assertEquals(0.8f, settings.current.visibleFraction)
+    }
+
+    @Test
+    fun theStoredPresentationSurvivesANewViewModel() = runTest {
+        observe()
+        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+
+        // SPECS.md §4.8 : « l'application rouvre dans le mode que l'utilisateur
+        // a quitté ».
+        val reopened = SettingsViewModel(repository, settings, cache)
+        keepCollecting(reopened.uiState)
+
+        assertEquals(FeedPresentation.Swipe, reopened.uiState.value.presentation)
     }
 }

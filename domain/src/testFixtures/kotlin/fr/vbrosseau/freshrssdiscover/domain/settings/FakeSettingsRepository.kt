@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class FakeSettingsRepository(
     initial: ReadingSettings = ReadingSettings.Default,
+    initialPresentation: FeedPresentation = FeedPresentation.Default,
 ) : SettingsRepository {
     private val settings = MutableStateFlow(initial)
+    private val presentation = MutableStateFlow(initialPresentation)
 
-    /** Nombre d'écritures reçues, tous seuils confondus. */
+    /** Nombre d'écritures reçues, tous réglages confondus. */
     var writeCount: Int = 0
         private set
 
@@ -23,7 +25,18 @@ class FakeSettingsRepository(
     val current: ReadingSettings
         get() = settings.value
 
+    /** Mode courant, même usage que [current]. */
+    val currentPresentation: FeedPresentation
+        get() = presentation.value
+
     override fun observeReadingSettings(): StateFlow<ReadingSettings> = settings
+
+    override fun observeFeedPresentation(): StateFlow<FeedPresentation> = presentation
+
+    override suspend fun setFeedPresentation(value: FeedPresentation) {
+        writeCount++
+        presentation.value = value
+    }
 
     override suspend fun setVisibleFraction(value: Float) {
         writeCount++

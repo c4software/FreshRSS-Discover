@@ -8,6 +8,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.presentation.UiStateSharing
@@ -57,19 +58,25 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         authRepository.observeSession(),
         settingsRepository.observeReadingSettings(),
-        signOutConfirmation,
+        settingsRepository.observeFeedPresentation(),
         cacheRepository.observeCacheStatus(),
-        lastPurgedCount,
-    ) { session, settings, confirming, cache, purged -> stateOf(session, settings, confirming, cache, purged) }
+        // Les deux états purement locaux sont réunis avant d'entrer dans le
+        // `combine` principal : `combine` ne se décline que jusqu'à cinq flux,
+        // et les regrouper ici dit du même coup lesquels ne viennent pas du
+        // disque.
+        combine(signOutConfirmation, lastPurgedCount, ::TransientState),
+    ) { session, settings, presentation, cache, transient ->
+        stateOf(session, settings, presentation, cache, transient)
+    }
         .stateIn(
             scope = viewModelScope,
             started = UiStateSharing,
             initialValue = stateOf(
                 session = null,
                 settings = ReadingSettings.Default,
-                confirming = false,
+                presentation = FeedPresentation.Default,
                 cache = CacheStatus.Empty,
-                purged = null,
+                transient = TransientState(confirming = false, purged = null),
             ),
         )
 
@@ -80,6 +87,19 @@ class SettingsViewModel @Inject constructor(
 
     fun setContinuousVisibilitySeconds(seconds: Int) {
         viewModelScope.launch { settingsRepository.setContinuousVisibilityMillis(seconds * MILLIS_PER_SECOND) }
+    }
+
+    /**
+     * Enregistre le mode de parcours, sans le recopier dans l'état d'interface.
+     *
+     * Le segment sélectionné vient du dépôt : si l'écriture échouait, l'écran
+     * continuerait de montrer le mode réellement appliqué plutôt qu'un choix
+     * qui n'a pas pris. C'est aussi ce qui permet à SPECS.md §4.8 d'être tenu —
+     * le changement s'applique **sans redémarrage**, parce que l'écran de flux
+     * observe la même source que celui-ci.
+     */
+    fun setFeedPresentation(presentation: FeedPresentation) {
+        viewModelScope.launch { settingsRepository.setFeedPresentation(presentation) }
     }
 
     /**
@@ -123,19 +143,32 @@ class SettingsViewModel @Inject constructor(
     private fun stateOf(
         session: AuthSession?,
         settings: ReadingSettings,
-        confirming: Boolean,
+        presentation: FeedPresentation,
         cache: CacheStatus,
-        purged: Int?,
+        transient: TransientState,
     ): SettingsUiState = SettingsUiState(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
+        presentation = presentation,
         visibleFraction = visibleFractionThresholdOf(settings),
         continuousVisibility = continuousVisibilityThresholdOf(settings),
         cache = SettingsCache(
             articleCount = cache.articleCount,
             purgeableCount = cache.purgeableCount,
-            lastPurgedCount = purged,
+            lastPurgedCount = transient.purged,
         ),
         appVersion = BuildConfig.VERSION_NAME,
-        isSignOutConfirmationVisible = confirming,
+        isSignOutConfirmationVisible = transient.confirming,
+    )
+
+    /**
+     * Ce que l'écran porte de lui-même : rien de tout cela n'est sur le disque.
+     *
+     * Les réunir n'est pas qu'une commodité pour tenir dans les cinq flux du
+     * `combine` : c'est la frontière entre ce qui survit à la fermeture de
+     * l'écran et ce qui disparaît avec lui.
+     */
+    private data class TransientState(
+        val confirming: Boolean,
+        val purged: Int?,
     )
 }

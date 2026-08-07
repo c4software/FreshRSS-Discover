@@ -9,12 +9,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
+import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
 
 /**
  * Graphe de navigation.
@@ -33,8 +36,19 @@ fun AppNavHost(
         startDestination = AppRoutes.DISCOVER,
         modifier = modifier,
     ) {
+        // Une seule destination pour les deux modes, et non deux routes : le
+        // flux est le même, seule sa présentation change (SPECS.md §4.8).
+        // Deux routes obligeraient à naviguer sur un changement de réglage,
+        // donc à décider ce que devient la pile de retour — pour un choix qui
+        // n'est pas un déplacement.
         composable(AppRoutes.DISCOVER) {
-            DiscoverRoute()
+            val presentationViewModel: FeedPresentationViewModel = hiltViewModel()
+            val presentation by presentationViewModel.presentation.collectAsStateWithLifecycle()
+
+            when (presentation) {
+                FeedPresentation.List -> DiscoverRoute()
+                FeedPresentation.Swipe -> SwipeRoute()
+            }
         }
 
         composable(AppRoutes.SETTINGS) {
@@ -82,6 +96,30 @@ private fun DiscoverRoute(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun SwipeRoute(modifier: Modifier = Modifier) {
+    val viewModel: SwipeViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val articleOpener = rememberArticleOpener()
+
+    // Pas de position de lecture ici : en plein écran, l'article visible est
+    // celui qu'on vient de marquer lu, et le pagineur repartirait donc sur un
+    // article absent. La reprise reste au mode Liste, où elle a un sens.
+    SwipeScreen(
+        uiState = uiState,
+        onLoadMore = viewModel::loadMore,
+        onRetry = viewModel::retry,
+        onArticleClick = { articleId ->
+            if (viewModel.onArticleOpened(articleId)) {
+                articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
+            }
+        },
+        onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
+        onVisibilityChanged = viewModel::onVisibilityChanged,
+        modifier = modifier,
+    )
+}
+
+@Composable
 private fun SettingsRoute(modifier: Modifier = Modifier) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +132,7 @@ private fun SettingsRoute(modifier: Modifier = Modifier) {
         onPurgeCache = viewModel::purgeCache,
         onVisibleFractionChange = viewModel::setVisibleFractionPercent,
         onContinuousVisibilityChange = viewModel::setContinuousVisibilitySeconds,
+        onPresentationChange = viewModel::setFeedPresentation,
         modifier = modifier,
     )
 }

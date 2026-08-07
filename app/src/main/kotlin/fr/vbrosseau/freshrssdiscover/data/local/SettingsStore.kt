@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -29,10 +31,16 @@ import javax.inject.Singleton
  * (AGENTS.md §2, ne pas anticiper). Le jour où un réglage viendra du serveur,
  * l'abstraction arrivera avec son deuxième cas d'usage.
  *
+ * Il conserve aussi le **mode de présentation du flux** (SPECS.md §4.8) : Liste
+ * ou Balayage. Même stockage, parce que c'est la même nature de donnée — une
+ * préférence que l'utilisateur choisit et que l'application doit retrouver au
+ * lancement suivant.
+ *
  * Il partage le `DataStore<Preferences>` de l'application avec [SessionStore] :
- * les clés sont préfixées `reading.`, et une déconnexion — qui n'efface que les
- * clés `session.` — laisse donc les réglages en place. C'est voulu : les seuils
- * de lecture sont une préférence d'usage, pas une donnée de compte.
+ * ses clés sont préfixées `reading.` et `display.`, et une déconnexion — qui
+ * n'efface que les clés `session.` — laisse donc les réglages en place. C'est
+ * voulu : les seuils de lecture et le mode de présentation sont des préférences
+ * d'usage, pas des données de compte.
  */
 @Singleton
 internal class SettingsStore @Inject constructor(
@@ -63,14 +71,45 @@ internal class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.ContinuousVisibilityMillis] = value }
     }
 
+    /**
+     * Le mode de présentation, relu à chaque changement du fichier.
+     *
+     * Même tolérance que les seuils, pour la même raison : un nom de mode
+     * inconnu — version antérieure, sauvegarde restaurée, fichier abîmé —
+     * retombe sur `Liste` plutôt que de faire échouer la lecture. Le détail est
+     * dans `FeedPresentation.fromStoredName`.
+     */
+    override fun observeFeedPresentation(): Flow<FeedPresentation> =
+        dataStore.data.map { FeedPresentation.fromStoredName(it[Keys.FeedPresentation]) }
+
+    override suspend fun setFeedPresentation(value: FeedPresentation) {
+        dataStore.edit { it[Keys.FeedPresentation] = value.storedName }
+    }
+
     private fun readSettings(preferences: Preferences): ReadingSettings = ReadingSettings.coerced(
         visibleFraction = preferences[Keys.VisibleFraction] ?: ReadingSettings.Default.visibleFraction,
         continuousVisibilityMillis = preferences[Keys.ContinuousVisibilityMillis]
             ?: ReadingSettings.Default.continuousVisibilityMillis,
     )
 
+    /**
+     * Les clés, préfixées par ce dont elles relèvent.
+     *
+     * Trois familles cohabitent dans le même fichier : `session.` (effacée à la
+     * déconnexion), `reading.` (les seuils du marquage) et `display.` (ce que
+     * l'utilisateur voit). Le mode de présentation n'est pas un `reading.` : il
+     * ne dit rien de ce qui rend un article lu, il dit comment le flux se
+     * parcourt. Les mélanger rendrait impossible d'effacer une famille sans
+     * emporter les autres.
+     */
     private object Keys {
         val VisibleFraction = floatPreferencesKey("reading.visible_fraction")
         val ContinuousVisibilityMillis = longPreferencesKey("reading.continuous_visibility_millis")
+
+        /**
+         * Une chaîne et non un entier : voir `FeedPresentation.storedName`, qui
+         * explique pourquoi l'`ordinal` serait piégeux.
+         */
+        val FeedPresentation = stringPreferencesKey("display.feed_presentation")
     }
 }

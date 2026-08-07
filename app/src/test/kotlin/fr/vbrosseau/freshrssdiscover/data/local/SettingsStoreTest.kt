@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -141,5 +143,63 @@ class SettingsStoreTest {
 
         val keys = dataStore.data.first().asMap().keys.map { it.name }
         assertEquals(listOf("reading.visible_fraction"), keys)
+    }
+
+    @Test
+    fun withoutAnythingStoredTheFeedIsPresentedAsAList() = runTest {
+        // SPECS.md §4.8 : Liste est le mode par défaut.
+        assertEquals(FeedPresentation.List, store().observeFeedPresentation().first())
+    }
+
+    @Test
+    fun aStoredFeedPresentationIsReadBack() = runTest {
+        val store = store()
+
+        store.setFeedPresentation(FeedPresentation.Swipe)
+
+        assertEquals(FeedPresentation.Swipe, store.observeFeedPresentation().first())
+    }
+
+    @Test
+    fun theFeedPresentationSurvivesAFreshStoreOnTheSameFile() = runTest {
+        // SPECS.md §4.8 : « l'application rouvre dans le mode que l'utilisateur
+        // a quitté ». Un second store sur le même fichier rejoue ce démarrage.
+        val store = store()
+        store.setFeedPresentation(FeedPresentation.Swipe)
+
+        assertEquals(FeedPresentation.Swipe, SettingsStore(dataStore).observeFeedPresentation().first())
+    }
+
+    @Test
+    fun aCorruptedFeedPresentationOnDiskFallsBackToTheList() = runTest {
+        // Un mode illisible ne doit pas empêcher le démarrage : le flux
+        // s'ouvre en Liste, et le prochain choix réécrira la valeur.
+        val store = store()
+        dataStore.edit { it[stringPreferencesKey("display.feed_presentation")] = "Carrousel" }
+
+        assertEquals(FeedPresentation.List, store.observeFeedPresentation().first())
+    }
+
+    @Test
+    fun changingTheFeedPresentationLeavesTheReadingThresholdsAlone() = runTest {
+        val store = store()
+        store.setVisibleFraction(0.8f)
+
+        store.setFeedPresentation(FeedPresentation.Swipe)
+
+        assertEquals(0.8f, store.observeReadingSettings().first().visibleFraction)
+        assertEquals(FeedPresentation.Swipe, store.observeFeedPresentation().first())
+    }
+
+    @Test
+    fun theFeedPresentationKeyDoesNotCollideWithTheOtherOnes() = runTest {
+        // Trois familles de clés partagent le fichier — `session.`, `reading.`
+        // et `display.` : une collision ferait disparaître l'une au premier
+        // changement d'une autre.
+        val store = store()
+        store.setFeedPresentation(FeedPresentation.Swipe)
+
+        val keys = dataStore.data.first().asMap().keys.map { it.name }
+        assertEquals(listOf("display.feed_presentation"), keys)
     }
 }

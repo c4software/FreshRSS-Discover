@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation
 
 import androidx.compose.runtime.Composable
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsAccount
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsCache
@@ -89,6 +90,30 @@ class SettingsScreenshotTest : ScreenshotTest() {
                     cache = CACHE,
                     appVersion = APP_VERSION,
                     isSignOutConfirmationVisible = true,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Le mode Balayage sélectionné.
+     *
+     * La capture par défaut ne montre que le premier segment actif : le second
+     * porte une **forme différente** (coin arrondi à droite) et, une fois
+     * sélectionné, un fond teinté que le thème sombre traite autrement. Un
+     * défaut de contraste entre le libellé et ce fond ne se verrait nulle part
+     * ailleurs (SPECS.md §7.1). La phrase de description change aussi, et c'est
+     * la plus longue des deux — donc la seule qui puisse passer à la ligne.
+     */
+    @Test
+    fun settingsScreenWithTheSwipePresentation() {
+        capture("reglages-balayage") {
+            settings(
+                SettingsUiState(
+                    account = ACCOUNT,
+                    presentation = FeedPresentation.Swipe,
+                    cache = CACHE,
+                    appVersion = APP_VERSION,
                 ),
             )
         }

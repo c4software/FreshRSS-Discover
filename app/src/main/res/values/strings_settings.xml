@@ -12,6 +12,24 @@
     <string name="settings_username_label">Identifiant</string>
     <string name="settings_no_session">Aucune session ouverte.</string>
 
+    <!--
+      Mode de présentation du flux (SPECS.md §4.8, §6).
+
+      Les libellés disent ce que le mode change pour le lecteur — combien
+      d'articles il voit et quel geste il fait — et jamais comment il est
+      construit : « Liste » et « Balayage » nomment deux façons de lire, pas
+      deux composants. La phrase sous le contrôle décrit le mode **choisi**,
+      parce que deux mots ne suffisent pas à faire deviner qu'un balayage
+      montre un article à la fois en plein écran.
+    -->
+    <string name="settings_section_presentation">Affichage du flux</string>
+    <string name="settings_presentation_help">Les deux modes montrent exactement les mêmes articles, dans le même ordre. Seule la façon de les parcourir change.</string>
+    <string name="settings_presentation_label">Façon de parcourir le flux</string>
+    <string name="settings_presentation_list">Liste</string>
+    <string name="settings_presentation_swipe">Balayage</string>
+    <string name="settings_presentation_list_description">Plusieurs articles à l\'écran, que vous faites défiler vers le bas.</string>
+    <string name="settings_presentation_swipe_description">Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.</string>
+
     <!-- Seuils du marquage automatique (SPECS.md §4.5). -->
     <string name="settings_section_reading">Marquage automatique</string>
     <string name="settings_reading_help">Un article devient lu lorsqu\'il est resté suffisamment visible à l\'écran. Les deux conditions doivent être réunies en même temps.</string>

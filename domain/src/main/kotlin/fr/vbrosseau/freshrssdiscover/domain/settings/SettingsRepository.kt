@@ -27,4 +27,28 @@ interface SettingsRepository {
 
     /** @throws IllegalArgumentException si [value] sort de [ReadingSettings.ContinuousVisibilityRange]. */
     suspend fun setContinuousVisibilityMillis(value: Long)
+
+    /**
+     * Le mode de présentation du flux (SPECS.md §4.8, §6).
+     *
+     * Un [Flow] distinct de [observeReadingSettings] : les deux réglages n'ont
+     * ni les mêmes lecteurs ni le même rythme. Les seuils n'intéressent que le
+     * détecteur de lecture ; le mode décide de l'écran affiché, et le fondre
+     * dans `ReadingSettings` ferait recomposer le flux entier au moindre
+     * déplacement d'un curseur de marquage.
+     *
+     * Comme pour les seuils, l'observation vaut mieux qu'une lecture ponctuelle :
+     * SPECS.md §4.8 veut que le mode s'applique **sans redémarrage**, ce qui
+     * suppose que l'écran de flux apprenne le changement de lui-même.
+     */
+    fun observeFeedPresentation(): Flow<FeedPresentation>
+
+    /**
+     * Enregistre le mode choisi.
+     *
+     * Sans bornes à vérifier, contrairement aux seuils : le type énuméré rend
+     * une valeur invalide impossible à construire. C'est précisément ce qu'on
+     * attend de lui.
+     */
+    suspend fun setFeedPresentation(value: FeedPresentation)
 }

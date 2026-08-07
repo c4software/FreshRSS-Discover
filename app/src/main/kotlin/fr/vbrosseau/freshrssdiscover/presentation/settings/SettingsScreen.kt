@@ -11,9 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlin.math.roundToInt
@@ -68,6 +73,15 @@ fun SettingsScreen(
      * compiler. **À câbler sur `viewModel::purgeCache`** — voir GOAL-011-T05.
      */
     onPurgeCache: () -> Unit = {},
+    /**
+     * Changement de mode de parcours du flux (SPECS.md §4.8).
+     *
+     * Avec une valeur par défaut, pour la même raison que [onPurgeCache] : la
+     * destination Réglages (`AppNavHost`) sort du périmètre de cette tâche, et
+     * un paramètre obligatoire l'empêcherait de compiler. **À câbler sur
+     * `viewModel::setFeedPresentation` par `AppNavHost`.
+     */
+    onPresentationChange: (FeedPresentation) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -84,6 +98,24 @@ fun SettingsScreen(
          * elles rendent l'écran seul, sans son ossature.
          */
         AccountSection(account = uiState.account)
+        HorizontalDivider()
+        /*
+         * Avant le marquage automatique, et juste après le compte : c'est le
+         * seul réglage qui change ce que l'utilisateur voit en ouvrant
+         * l'application, donc celui qu'il vient chercher. Le placer plus bas
+         * l'aurait mis derrière deux curseurs de réglage fin — et derrière la
+         * section « Cache local », qui parle de l'appareil et non de la lecture.
+         *
+         * L'ordre porte aussi une explication : les seuils de §4.5 se lisent
+         * différemment selon le mode — en Balayage, un article plein écran
+         * satisfait d'emblée le seuil de surface et seule la durée décide.
+         * Connaître son mode avant de régler ses seuils est donc le bon sens de
+         * lecture.
+         */
+        PresentationSection(
+            presentation = uiState.presentation,
+            onPresentationChange = onPresentationChange,
+        )
         HorizontalDivider()
         ReadingSection(
             uiState = uiState,
@@ -127,6 +159,75 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
             )
         }
     }
+}
+
+/**
+ * Le choix entre les deux façons de parcourir le flux (SPECS.md §4.8, §6).
+ *
+ * **Pourquoi des segments.** Le réglage a exactement deux valeurs, exclusives,
+ * également légitimes — aucune n'est « l'option activée » de l'autre. Une
+ * bascule aurait dû en nommer une seule (« Mode balayage »), laissant deviner
+ * que la position éteinte s'appelle « Liste » : l'utilisateur ne pourrait pas
+ * lire ce qu'il obtiendrait en la basculant. Un menu déroulant cacherait
+ * l'alternative derrière un appui, et une liste de boutons radio dirait la même
+ * chose en trois fois plus de hauteur, dans un écran déjà long. Les segments
+ * montrent les deux possibilités **et** celle qui est active d'un seul regard,
+ * et un unique appui suffit à changer.
+ *
+ * **Pourquoi une phrase dessous.** « Liste » et « Balayage » nomment le geste,
+ * pas ce qu'on y gagne. La description suit le segment sélectionné et dit ce
+ * que le flux montrera — plusieurs articles à faire défiler, ou un seul en
+ * plein écran. C'est ce que le contrôle seul ne peut pas dire.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PresentationSection(
+    presentation: FeedPresentation,
+    onPresentationChange: (FeedPresentation) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsSection(title = stringResource(R.string.settings_section_presentation), modifier = modifier) {
+        Text(
+            text = stringResource(R.string.settings_presentation_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val label = stringResource(R.string.settings_presentation_label)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = label },
+        ) {
+            FeedPresentation.entries.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = mode == presentation,
+                    onClick = { onPresentationChange(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = FeedPresentation.entries.size),
+                    label = { Text(stringResource(feedPresentationLabelOf(mode))) },
+                    modifier = Modifier
+                        .heightIn(min = MinTouchTarget)
+                        .testTag(presentationTestTagOf(mode)),
+                )
+            }
+        }
+        Text(
+            text = stringResource(feedPresentationDescriptionOf(presentation)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(SettingsTestTags.PRESENTATION_DESCRIPTION),
+        )
+    }
+}
+
+/** Un repère de test par mode : sans lui, les segments ne se distinguent que par leur texte. */
+private fun presentationTestTagOf(presentation: FeedPresentation): String = when (presentation) {
+    FeedPresentation.List -> SettingsTestTags.PRESENTATION_LIST
+    FeedPresentation.Swipe -> SettingsTestTags.PRESENTATION_SWIPE
 }
 
 /**
