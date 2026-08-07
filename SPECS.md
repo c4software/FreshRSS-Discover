@@ -168,6 +168,21 @@ Règles, par ordre de priorité :
 4. **Continuité entre les pages.** La règle 1 s'applique aussi à la jonction
    entre une page et la suivante.
 
+**Arbitrage entre les règles 1 et 2.** Elles sont structurellement
+incompatibles au-delà d'une certaine amplitude : répartir parfaitement les
+sources exigerait parfois de remonter un article ancien très haut. **La récence
+l'emporte.** Concrètement, un article n'est jamais présenté plus de sept
+positions avant son rang chronologique ; passé cette borne, la monotonie de
+source est acceptée plutôt que de mentir sur la fraîcheur.
+
+Cette borne est exprimée en **positions**, non en durée. Un seuil temporel se
+comporterait très différemment sur un flux qui publie trois articles par jour
+et sur un flux qui en publie trois cents — la borne en positions est la même
+partout, et c'est elle que l'utilisateur perçoit en faisant défiler.
+
+C'est le seul arbitrage de cette section visible par l'utilisateur : un mélange
+plus agressif se règle en desserrant cette borne.
+
 ### 4.3 Présentation d'un article
 
 Chaque article expose :
@@ -204,7 +219,22 @@ articles traversés par un défilement rapide ; la durée seule marquerait un
 article à peine effleuré en bord d'écran.
 
 Ces deux valeurs sont des **paramètres nommés**, pas des constantes dispersées :
-elles seront ajustées à l'usage.
+elles seront ajustées à l'usage. Les deux seuils sont **inclusifs** — « au
+moins » se lit littéralement. Ce n'est pas un détail : 0,6 n'est pas
+représentable exactement en binaire, et un seuil exclusif rendrait la règle
+dépendante de l'arrondi du calcul fait par l'interface.
+
+Deux précisions que l'implémentation a rendues nécessaires :
+
+- **« 60 % de sa hauteur » se mesure sur la part visible de l'écran, pas sur la
+  hauteur propre de l'article.** Pris au pied de la lettre, un article plus haut
+  que l'écran ne pourrait jamais atteindre 60 % de lui-même, et ne deviendrait
+  donc **jamais** lu. C'est l'appelant qui borne la fraction en conséquence.
+- **La visibilité doit être observée même quand rien ne bouge.** La règle porte
+  sur une durée, et la durée ne s'écoule pas toute seule : sans observation
+  périodique pendant que la liste est immobile, un article resté dix secondes à
+  l'écran ne serait jamais marqué lu. C'est le piège d'intégration le plus
+  probable de cette fonctionnalité.
 
 Comportement associé :
 
@@ -318,6 +348,7 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | # | Question | Réponse, et ce qui l'a décidée |
 |---|---|---|
 | 1 | Taille de page de l'API (`n`) | **40 articles.** Mesuré sur un flux réel : résumé médian de 1 324 caractères, 90ᵉ centile à 4 379. Une page de 40 pèse donc environ 55 ko, ce qui reste raisonnable sur réseau mobile tout en laissant assez d'avance pour que le défilement ne s'interrompe pas (§4.4). Le serveur accepte des valeurs bien supérieures — `n=100000` a renvoyé 4 645 articles sans broncher — mais tout demander d'un coup ne servirait qu'à retarder le premier affichage. |
+| 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
 
 ### Encore ouvertes
@@ -328,4 +359,3 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | 3 | Seuil d'ancienneté de purge du cache | Au Goal du cache |
 | 4 | Taille du lot de marquage et délai de regroupement | Au Goal de la synchronisation |
 | 5 | Comportement si un flux ne contient que des articles lus | Au Goal du flux |
-| 7 | Longueur de l'extrait affiché | Au Goal de la présentation. Le serveur ne tronque pas utilement : un résumé réel atteint 34 777 caractères. L'extrait doit donc être écourté côté application |

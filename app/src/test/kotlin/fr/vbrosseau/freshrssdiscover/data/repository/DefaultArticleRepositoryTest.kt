@@ -5,7 +5,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
 import fr.vbrosseau.freshrssdiscover.data.api.createFreshRssHttpClient
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
+import fr.vbrosseau.freshrssdiscover.data.local.room.AppDatabase
+import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
+import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.security.FakeSecretCipher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
@@ -33,6 +38,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
@@ -42,6 +49,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class DefaultArticleRepositoryTest {
     @get:Rule
     val folder = TemporaryFolder()
@@ -84,9 +92,19 @@ class DefaultArticleRepositoryTest {
         return DefaultArticleRepository(
             api = FreshRssApi(createFreshRssHttpClient(engine)),
             sessionStore = sessionStore,
+            cache = articleCache(),
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
+    }
+
+    /** Base en mémoire : le dépôt dépose chaque page au cache avant de la rendre. */
+    private fun articleCache(): ArticleCache {
+        val database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            AppDatabase::class.java,
+        ).allowMainThreadQueries().build()
+        return ArticleCache(database.articleDao(), Clock { 0L })
     }
 
     private sealed interface MockEngineResponse {

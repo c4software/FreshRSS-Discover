@@ -241,29 +241,29 @@ permet de le conserver. L'utilisateur dont le jeton est refusé n'a probablement
 qu'un mot de passe API à renouveler ; lui faire retaper l'adresse de son serveur
 serait gratuit (SPECS.md §3.4).
 
-### 5.4 Room n'est pas encore appliqué
+### 5.4 Room, et ce que le cache ne fait pas reculer
 
-Le plugin, ses dépendances et le bloc `room { schemaDirectory(…) }` ont été
-retirés d'`app/build.gradle.kts` pendant la Phase 0 : une base sans entité ne
-compile pas, et inventer une entité avant de connaître la forme d'un article
-serait anticiper (AGENTS.md §2).
+Room porte les collections, DataStore les scalaires. Les schémas sont
+versionnés dans `app/schemas/` : c'est ce qui permet à Room de vérifier
+automatiquement les migrations, et à une revue de constater une évolution de
+base dans le diff plutôt que de la déduire du code des entités.
 
-Le Goal du cache local les réapplique. Les dépendances restent déclarées dans le
-catalogue de versions. Quand elles reviendront, **les schémas seront versionnés**
-(`app/schemas/`) : c'est ce qui permet à Room de vérifier les migrations
-automatiquement, et à une revue de voir une évolution de base dans le diff.
+**L'état lu local ne recule jamais.** Un article enregistré comme lu le reste,
+même si le serveur le décrit encore comme non lu. Ce n'est pas une commodité :
+un marquage parti hors ligne n'est transmis qu'au retour du réseau (SPECS.md
+§5.2), et jusque-là le serveur ignore tout. Écraser l'état local par le sien
+ferait **réapparaître dans le flux ce que l'utilisateur vient de lire** — la
+régression la plus visible qu'un cache puisse produire. Dans l'autre sens, un
+article lu ailleurs arrive lu et le devient ici : « lu » se propage, « non lu »
+non.
 
-### 5.3 Secrets
+**La purge s'appuie sur l'ancienneté dans le cache**, jamais sur la date de
+publication. Purger sur la publication ferait disparaître dans la seconde un
+vieil article que l'utilisateur vient d'ouvrir, et qui est encore à l'écran.
 
-Le jeton `Auth` et le mot de passe API sont chiffrés au repos, adossés au
-*keystore* Android. Ils ne sont jamais journalisés, jamais inclus dans un
-rapport d'erreur, jamais placés dans une URL.
-
-Le jeton FreshRSS n'expire pas (voir docs/freshrss-api.md §2.1) : il est donc
-conservé entre deux lancements. En revanche il s'invalide sans préavis si
-l'utilisateur change son mot de passe API — un `401` sur une requête
-authentifiée ramène à l'écran de connexion, il ne s'affiche pas comme une erreur
-réseau.
+`ArticleCache` est la seule frontière entre le modèle de domaine et Room : les
+entités ne la franchissent pas, sinon une annotation de persistance finirait
+par contraindre la forme d'`Article`.
 
 ---
 
@@ -311,7 +311,33 @@ lecture n'est pas instantanée. Partir de « déconnecté » ferait apparaître
 l'écran de connexion un instant à chaque lancement, y compris pour un
 utilisateur déjà connecté.
 
-### 6.5 Le flux Discover *(à concevoir)*
+### 6.5 Deux décisions du domaine que l'interface se contente d'appliquer
+
+Le mélange et la détection de lecture sont des **fonctions pures de `:domain`**.
+Ce n'est pas une élégance : ce sont les deux endroits où une régression serait
+invisible à l'œil, et seuls des tests exhaustifs les tiennent.
+
+**`interleaveBySource`** répartit les sources sans mentir sur la fraîcheur. Les
+deux premières règles de SPECS.md §4.2 sont structurellement incompatibles au
+delà d'une certaine amplitude ; l'arbitrage retenu — la récence l'emporte, avec
+une borne de sept positions — est inscrit dans SPECS.md parce qu'il est visible
+par l'utilisateur. La borne est exprimée en **rangs et non en durée** : un seuil
+temporel se comporterait très différemment sur un flux qui publie trois articles
+par jour et sur un qui en publie trois cents.
+
+**`ReadDetector`** décide quand un article devient lu, à partir d'un double
+seuil de surface et de durée continue. Il ne mesure rien lui-même et ne possède
+aucune coroutine : il reçoit des observations et répond. Deux conséquences que
+l'appelant doit assumer, et que SPECS.md §4.5 consigne désormais :
+
+- la fraction est celle de la **part visible de l'écran**, pas de la hauteur
+  propre de l'article — sinon un article plus haut que l'écran ne pourrait
+  jamais être marqué lu ;
+- l'appelant doit **observer même quand rien ne bouge**. La règle porte sur une
+  durée, et la durée ne s'écoule pas toute seule : sans observation périodique,
+  un article immobile dix secondes ne serait jamais marqué lu.
+
+### 6.6 Le flux Discover
 
 Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
 
@@ -425,6 +451,8 @@ dépôt est une incohérence — voir AGENTS.md §8.
 │       │   ├── core/Outcome.kt  issue générique <valeur, erreur>
 │       │   ├── feed/            Article · ArticleId · FeedRef · PageCursor
 │       │   │                    ArticlePage · FeedError · ArticleRepository
+│       │   ├── read/            ReadDetector — double seuil surface + durée
+│       │   ├── shuffle/         interleaveBySource — répartition des sources
 │       │   └── time/Clock.kt
 │       ├── test/…/domain/auth/  couverture ~100 %
 │       └── testFixtures/…/domain/
@@ -441,6 +469,8 @@ dépôt est une incohérence — voir AGENTS.md §8.
         │   │   │                FreshRssHttpClient · AuthErrorMapping
         │   │   │                ArticleMapping
         │   │   ├── local/       SessionStore
+        │   │   │   └── room/    ArticleEntity · ArticleDao · AppDatabase
+        │   │   │                ArticleCache
         │   │   ├── network/     NetworkAvailability
         │   │   ├── repository/  DefaultAuthRepository · DefaultArticleRepository
         │   │   └── security/    SecretCipher · KeystoreSecretCipher
@@ -467,12 +497,26 @@ dépôt est une incohérence — voir AGENTS.md §8.
 
 ### 9.1 Ce qui n'existe pas encore
 
-Aucune ligne de code métier n'est écrite. Précisément, sont **absents** :
+Plusieurs pièces sont **écrites et éprouvées mais pas encore branchées**. La
+distinction compte : ce n'est pas du travail restant à concevoir, c'est de
+l'assemblage — et tant qu'il n'est pas fait, ce code est mort au sens
+d'AGENTS.md §2.
 
-- le cache local, et donc toute résilience hors ligne ;
-- l'algorithme de mélange ;
-- le flux Discover et l'écran de réglages — l'écran de connexion, lui, existe ;
-- Room (voir §5.4), déclaré mais non câblé.
+| Pièce | État | Ce qui manque |
+|---|---|---|
+| Cache local | écrit à chaque page, vidé à la déconnexion | l'**afficher** au lancement (SPECS.md §5.1) et s'y replier hors ligne (§5.2) |
+| `interleaveBySource` | 14 tests, 100 % | personne ne l'appelle |
+| `ReadDetector` | 18 tests, 100 % | personne ne mesure la visibilité pour l'alimenter |
+| `purgeReadOlderThan` | testée | jamais déclenchée, seuil non tranché |
+
+Sont **absents** au sens propre :
+
+- la file des marquages en attente, et donc la synchronisation du statut lu ;
+- le tirer-pour-rafraîchir ;
+- l'ouverture de l'article d'origine ;
+- l'écran de réglages — l'écran de connexion et le flux Discover, eux, existent ;
+- le chargement des illustrations : aucune bibliothèque d'images n'est au
+  projet, l'emplacement est réservé dans la carte d'article.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 

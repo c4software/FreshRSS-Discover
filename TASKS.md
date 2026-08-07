@@ -30,11 +30,14 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 
 **Phase 0 — Harness** ✅ terminée
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
-**Phase 2 — Flux Discover** — non commencée
+**Phase 2 — Flux Discover** — GOAL-004 à GOAL-007 en cours, menés en parallèle
 
-Prochaine action : `/goal Implémenter le cache local` (GOAL-004) ou
-`/goal Implémenter le mélange des sources` (GOAL-005). Aucun des deux n'est
-encore découpé en tâches.
+Quatre Goals sont conduits simultanément parce que leurs surfaces ne se
+recouvrent pas : le mélange et la détection de lecture sont des fonctions pures
+de `:domain`, le cache vit dans `data/local/room`, l'écran dans
+`presentation/discover`. Chacun est livrable et vérifiable seul ; l'assemblage
+— brancher le cache dans le dépôt, la détection de lecture dans l'écran — est
+une étape à part, volontairement séquentielle.
 
 ---
 
@@ -45,10 +48,10 @@ encore découpé en tâches.
 | GOAL-001 | Harness et initialisation | `[x]` |
 | GOAL-002 | Authentification FreshRSS | `[x]` |
 | GOAL-003 | Récupération paginée des articles | `[x]` |
-| GOAL-004 | Cache local et résilience réseau | `[ ]` |
-| GOAL-005 | Mélange des sources | `[ ]` |
-| GOAL-006 | Flux Discover — interface | `[ ]` |
-| GOAL-007 | Marquage automatique comme lu | `[ ]` |
+| GOAL-004 | Cache local et résilience réseau | `[-]` |
+| GOAL-005 | Mélange des sources | `[-]` |
+| GOAL-006 | Flux Discover — interface | `[-]` |
+| GOAL-007 | Marquage automatique comme lu | `[-]` |
 | GOAL-008 | Synchronisation du statut lu | `[ ]` |
 | GOAL-009 | Tirer-pour-rafraîchir | `[ ]` |
 | GOAL-010 | Ouverture de l'article d'origine | `[ ]` |
@@ -96,8 +99,8 @@ fonctionnalité applicative.
 - [x] `GOAL-001-T14` ~~Le garde-fou de couverture est vide.~~ **Levé par
       `GOAL-002-T02`** : `koverVerify` mesure désormais réellement, et a
       immédiatement échoué à 86,2 % sur les premiers modèles.
-- [ ] `GOAL-001-T15` **Retirer `PlaceholderScreen`** lorsque les deux
-      destinations auront leur écran réel (GOAL-006 et GOAL-011).
+- [ ] `GOAL-001-T15` **Retirer `PlaceholderScreen`** — il ne sert plus que la
+      destination Réglages depuis `GOAL-006-T04` ; il disparaîtra avec GOAL-011.
 - [ ] `GOAL-001-T16` **Icône de l'application** : celle du template est encore en
       place.
 - [ ] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
@@ -251,46 +254,129 @@ Tranche SPECS.md §8 question 1 (taille de page).
 
 ## GOAL-004 — Cache local et résilience réseau
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — la persistance est livrée, la lecture reste à câbler
 
-Couvre SPECS.md §5. Réapplique Room (ARCHITECTURE.md §5.2) : plugin,
-dépendances, `schemaDirectory`, schémas versionnés.
+Couvre SPECS.md §5.
 
-Tranche SPECS.md §8 question 3 (seuil de purge).
+- [x] `GOAL-004-T01` Réappliquer Room : plugin, dépendances, `schemaDirectory`,
+      schéma versionné `app/schemas/…/1.json`
+- [x] `GOAL-004-T02` `ArticleEntity`, `ArticleDao`, `AppDatabase`, `DatabaseModule`
+- [x] `GOAL-004-T03` `ArticleCache` : `save`, `observeArticles`, `clear`,
+      `purgeReadOlderThan` — 12 tests sur base en mémoire
+- [x] `GOAL-004-T04` Câbler l'écriture : chaque page récupérée est déposée au
+      cache, et la déconnexion le vide (SPECS.md §3.5)
+- [ ] `GOAL-004-T05` Câbler la **lecture** : afficher le cache immédiatement au
+      lancement, avant toute requête (SPECS.md §5.1). Demande d'étendre
+      l'interface `ArticleRepository`, ce qui n'était pas possible tant que
+      l'écran Discover était écrit en parallèle
+- [ ] `GOAL-004-T06` Repli sur le cache hors ligne (SPECS.md §5.2) : le flux
+      reste consultable, l'état est signalé sans être alarmant
+- [ ] `GOAL-004-T07` Déclencher la purge et trancher son seuil (SPECS.md §8
+      question 3) — `purgeReadOlderThan` n'est appelée nulle part
+- [ ] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
+      seconde entité et migration en version 2
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| L'état lu local ne recule jamais | Un marquage parti hors ligne n'est transmis qu'au retour du réseau ; jusque-là le serveur décrit l'article comme non lu. L'écraser ferait **réapparaître ce que l'utilisateur vient de lire** — la régression la plus visible qu'un cache puisse produire. « Lu » se propage, « non lu » non |
+| Purge sur l'ancienneté **dans le cache**, pas sur la date de publication | Sinon un vieil article qu'on vient d'ouvrir disparaîtrait dans la seconde, alors qu'il est encore à l'écran |
+| Titre du flux dupliqué par ligne, pas de table de flux | Un seul lecteur : l'abstraction arrive avec son deuxième usage (AGENTS.md §2) |
 
 ---
 
 ## GOAL-005 — Mélange des sources
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — la fonction est livrée, elle n'est appelée par personne
 
-Cœur de l'application (SPECS.md §4.2). Fonction **pure** dans `:domain`,
-éprouvée exhaustivement : pas de monotonie de source, récence respectée,
-déterminisme, continuité entre les pages.
+Cœur de l'application (SPECS.md §4.2). Tranche SPECS.md §8 question 2.
 
-Tranche SPECS.md §8 question 2.
+- [x] `GOAL-005-T01` `interleaveBySource(articles, previousTail)` — fonction pure,
+      14 tests, 100 % de couverture
+- [x] `GOAL-005-T02` Inscrire dans SPECS.md §4.2 l'arbitrage entre les règles 1
+      et 2, que la spécification ne tranchait pas
+- [ ] `GOAL-005-T03` **Appliquer le mélange au flux réel.** La fonction n'est
+      appelée nulle part : c'est du code mort tant que le dépôt ou le ViewModel
+      ne s'en sert pas (AGENTS.md §2)
+- [ ] `GOAL-005-T04` Cas du rafraîchissement (SPECS.md §4.6) : le mélange ne doit
+      porter que sur les **nouveaux** articles, l'ancienne tête servant de
+      `previousTail`. La signature actuelle ne couvre pas ce cas
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| La récence l'emporte sur la répartition des sources | Les deux règles sont structurellement incompatibles au-delà d'une certaine amplitude, et SPECS.md ne disait pas laquelle gagne |
+| Borne de sept positions, exprimée en **rangs** et non en durée | Un seuil temporel se comporterait très différemment sur un flux qui publie trois articles par jour et sur un qui en publie trois cents. La borne en rangs est la même partout, et c'est elle que l'utilisateur perçoit |
+| Fenêtre glissante plutôt que blocs fixes | Des blocs laisseraient la monotonie réapparaître à chaque jonction |
 
 ---
 
 ## GOAL-006 — Flux Discover — interface
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — l'écran est livré, les illustrations manquent
 
-Couvre SPECS.md §4.3 et §4.4. Liste paresseuse, clés stables, chargement
-anticipé, fin de flux explicite. Retire le `PlaceholderScreen` de la destination
-Discover (`GOAL-001-T15`).
+Couvre SPECS.md §4.3 et §4.4.
 
-Tranche SPECS.md §8 questions 5 et 6.
+- [x] `GOAL-006-T01` `DiscoverUiState`, `DiscoverPhase`, `DiscoverViewModel` :
+      chargement anticipé, accumulation des pages, `loadMore` idempotent
+- [x] `GOAL-006-T02` `DiscoverScreen` : liste paresseuse, clés stables,
+      carte d'article, fin de flux explicite, article sans lien non cliquable
+- [x] `GOAL-006-T03` Date relative et écourtement de l'extrait — fonctions pures
+      testées, le temps venant de `Clock`
+- [x] `GOAL-006-T04` Brancher l'écran sur la destination Discover
+- [x] `GOAL-006-T05` Tests d'écran et de ViewModel, plus dix captures Roborazzi
+      (flux, vide, chargement, erreur, fin) — **regardées** : aucun défaut visuel
+- [ ] `GOAL-006-T06` **Afficher les illustrations.** Un `TODO(GOAL-006)` subsiste
+      dans `DiscoverScreen` : aucune bibliothèque de chargement d'images n'est au
+      projet, l'emplacement est réservé mais reste gris. Demande une dépendance
+      (Coil), donc une modification des fichiers Gradle. À traiter en même temps :
+      transporter `imageUrl` jusqu'à `ArticleUiModel`, poser une
+      `contentDescription` — volontairement absente tant que rien n'est montré —
+      et **corriger le contraste du réservé en thème clair**, constaté sur
+      `discover-flux-clair.png` : `surfaceVariant` sur un conteneur de carte quasi
+      identique le rend presque invisible, alors qu'il se distingue nettement en
+      sombre.
+- [ ] `GOAL-006-T07` Appliquer `interleaveBySource` au flux affiché — lève
+      `GOAL-005-T03`
+- [ ] `GOAL-006-T08` Mesurer la visibilité et alimenter `ReadDetector` — lève
+      `GOAL-007-T03` et `GOAL-007-T04`
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Articles et phase de chargement **séparés** dans l'état | SPECS.md §4.4 exige qu'un échec de page suivante ne vide pas l'affichage, ce qui serait impossible si la liste ne vivait que dans le cas « chargé » d'un type scellé |
+| Cinq phases distinctes plutôt que des booléens croisés | Deux drapeaux indépendants autoriseraient l'état ambigu « ni en cours, ni fini, ni en erreur », c'est-à-dire exactement la liste qui cesse de s'allonger sans rien dire |
+| `SessionExpired` n'affiche **rien** mais arrête les demandes | L'écran va disparaître ; sans arrêt explicite, le défilement réclamerait une page à chaque image jusqu'à la bascule |
+| « Flux vide » distingué de « fin de flux » | « Vous avez tout lu » sous une liste vide n'explique rien |
 
 ---
 
 ## GOAL-007 — Marquage automatique comme lu
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — la décision est livrée, la mesure ne l'est pas
 
-Couvre SPECS.md §4.5. Point technique le plus délicat du projet : mesurer la
-proportion affichée **et** la durée continue de visibilité de chaque élément.
-Seuils nommés et injectés, `Clock` pour le temps.
+Couvre SPECS.md §4.5.
+
+- [x] `GOAL-007-T01` `ReadDetector` : double seuil surface + durée continue,
+      seuils injectés, `Clock` pour le temps — 18 tests, 100 % de couverture
+- [x] `GOAL-007-T02` Lever les deux ambiguïtés de SPECS.md §4.5 que
+      l'implémentation a révélées
+- [ ] `GOAL-007-T03` **Mesurer réellement la visibilité** dans la liste Discover
+      et alimenter le détecteur. C'est la moitié difficile de ce Goal
+- [ ] `GOAL-007-T04` **Émettre une observation périodique quand la liste est
+      immobile.** Sans cela, un article resté dix secondes à l'écran ne sera
+      jamais marqué lu : la durée ne s'écoule pas toute seule
+- [ ] `GOAL-007-T05` Relier le détecteur au marquage optimiste et au cache
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Les deux seuils sont **inclusifs** | SPECS.md dit « au moins » ; et 0,6 n'est pas représentable exactement en binaire — un seuil exclusif rendrait la règle dépendante de l'arrondi fait par l'interface |
+| Les articles déjà signalés sont retenus pour la vie du détecteur | C'est le prix de la garantie « jamais signalé deux fois ». Le coût est borné par ce que l'utilisateur a lu, pas par le nombre d'observations |
 
 ---
 
@@ -323,10 +409,17 @@ pas réordonner l'existant.
 
 ## GOAL-010 — Ouverture de l'article d'origine
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : TODO**
 
-Couvre SPECS.md §4.7. *Custom Tab*, marquage à l'ouverture, article sans lien
-non cliquable.
+Couvre SPECS.md §4.7.
+
+- [ ] `GOAL-010-T01` Ouvrir le lien dans un onglet personnalisé (*Custom Tab*) —
+      **un `TODO(GOAL-010)` existe déjà dans `AppNavHost.kt`** : l'écran expose
+      le geste et distingue les articles sans lien, il ne manque que l'ouverture
+- [ ] `GOAL-010-T02` Marquer l'article comme lu à l'ouverture, quelle que soit
+      sa visibilité passée
+- [ ] `GOAL-010-T03` Dépendance `androidx.browser` à ajouter au catalogue et à
+      câbler
 
 ---
 

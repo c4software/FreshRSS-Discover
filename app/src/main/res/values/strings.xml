@@ -61,4 +61,44 @@
     <string name="login_error_invalid_credentials">Identifiant ou mot de passe API refusé. Vérifiez bien qu\'il s\'agit du mot de passe API, et non de celui de connexion.</string>
     <string name="login_error_header_not_forwarded">Vos identifiants sont bons, mais le serveur web ne transmet pas l\'en-tête d\'autorisation à FreshRSS. Corrigez la configuration de votre reverse-proxy.</string>
     <string name="login_error_unexpected">La connexion a échoué pour une raison inattendue.</string>
+
+    <!-- Flux Discover -->
+
+    <!--
+      Source et ancienneté sur une même ligne : dans un flux mélangé, la source
+      est ce qui rend l'article intelligible (SPECS.md §4.3), et lui donner sa
+      propre ligne rognerait le titre sur chaque carte.
+    -->
+    <string name="discover_article_meta">%1$s · %2$s</string>
+
+    <!--
+      Unités abrégées : elles partagent leur ligne avec le nom du flux. Les
+      années gardent leur forme longue, « il y a 2 a » ne se lisant pas.
+    -->
+    <string name="discover_time_just_now">à l\'instant</string>
+    <string name="discover_time_minutes">il y a %1$d min</string>
+    <string name="discover_time_hours">il y a %1$d h</string>
+    <string name="discover_time_days">il y a %1$d j</string>
+    <string name="discover_time_months">il y a %1$d mois</string>
+    <plurals name="discover_time_years">
+        <item quantity="one">il y a %1$d an</item>
+        <item quantity="other">il y a %1$d ans</item>
+    </plurals>
+
+    <!-- SPECS.md §4.7 : un article sans lien n'est pas cliquable, et le donne à voir. -->
+    <string name="discover_article_no_link">Lien indisponible</string>
+
+    <!--
+      La fin du flux est dite explicitement : une liste qui cesse simplement de
+      s'allonger est indistinguable d'une panne (SPECS.md §4.4).
+    -->
+    <string name="discover_end_of_feed">Vous êtes à jour. Plus aucun article à lire.</string>
+
+    <string name="discover_empty_title">Rien à lire pour l\'instant</string>
+    <string name="discover_empty_body">Tous les articles de vos flux ont été lus. Revenez plus tard.</string>
+
+    <string name="discover_error_no_network">Aucune connexion réseau.</string>
+    <string name="discover_error_server_unreachable">Le serveur ne répond pas.</string>
+    <string name="discover_error_unexpected">Le chargement a échoué pour une raison inattendue.</string>
+    <string name="discover_retry">Réessayer</string>
 </resources>

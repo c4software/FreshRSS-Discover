@@ -4,6 +4,7 @@ import fr.vbrosseau.freshrssdiscover.data.api.ApiOutcome
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
 import fr.vbrosseau.freshrssdiscover.data.api.toAuthError
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
+import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
@@ -25,6 +26,7 @@ import kotlinx.coroutines.withContext
 internal class DefaultAuthRepository @Inject constructor(
     private val api: FreshRssApi,
     private val sessionStore: SessionStore,
+    private val articleCache: ArticleCache,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
@@ -85,8 +87,16 @@ internal class DefaultAuthRepository @Inject constructor(
         sessionStore.invalidateTokens()
     }
 
+    /**
+     * Efface la session **et le cache**.
+     *
+     * SPECS.md §3.5 : la déconnexion est destructrice et assumée comme telle.
+     * Laisser les articles derrière soi exposerait ce que l'utilisateur lisait
+     * au prochain compte connecté sur l'appareil.
+     */
     override suspend fun signOut() = withContext(ioDispatcher) {
         sessionStore.clear()
+        articleCache.clear()
     }
 
     /**

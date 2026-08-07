@@ -5,6 +5,7 @@ import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
 import fr.vbrosseau.freshrssdiscover.data.api.StreamContentsDto
 import fr.vbrosseau.freshrssdiscover.data.api.toArticlePage
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
+import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
@@ -35,6 +36,7 @@ private const val HTTP_UNAUTHORIZED = 401
 internal class DefaultArticleRepository @Inject constructor(
     private val api: FreshRssApi,
     private val sessionStore: SessionStore,
+    private val cache: ArticleCache,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ArticleRepository {
@@ -58,8 +60,20 @@ internal class DefaultArticleRepository @Inject constructor(
         }
     }
 
+    /**
+     * Chaque page obtenue est déposée au cache **avant** d'être rendue.
+     *
+     * C'est ce qui permettra au flux de s'afficher immédiatement au prochain
+     * lancement, sans attendre le réseau (SPECS.md §5.1). L'écriture est faite
+     * ici plutôt que par l'appelant : un appelant qui l'oublierait produirait un
+     * cache incomplet, et le défaut ne se verrait qu'au lancement suivant.
+     */
     private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(): FeedResult<ArticlePage> = when (this) {
-        is ApiOutcome.Success -> Outcome.Success(value.toArticlePage())
+        is ApiOutcome.Success -> {
+            val page = value.toArticlePage()
+            cache.save(page.articles)
+            Outcome.Success(page)
+        }
 
         is ApiOutcome.HttpError -> httpFailure(status)
 

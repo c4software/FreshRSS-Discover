@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.roborazzi)
+    alias(libs.plugins.room)
 }
 
 /**
@@ -115,15 +116,13 @@ kotlin {
     }
 }
 
-// Room n'est pas encore appliqué : une base sans entité ne compile pas, et
-// inventer une entité avant de connaître la forme d'un article reviendrait à
-// anticiper (AGENTS.md §2). Le Goal du cache local réapplique le plugin, ses
-// dépendances (déjà déclarées dans le catalogue) et le bloc :
-//
-//     room { schemaDirectory("$projectDir/schemas") }
-//
-// Les schémas sont versionnés : c'est ce qui permet à Room de vérifier les
-// migrations automatiquement, et à une revue de voir une évolution de base.
+room {
+    // Les schémas sont versionnés (app/schemas/) : c'est ce qui permet à Room
+    // de vérifier automatiquement les migrations d'une version à la suivante,
+    // et à une revue de constater une évolution de base dans le diff plutôt
+    // que de la déduire du code des entités.
+    schemaDirectory("$projectDir/schemas")
+}
 
 detekt {
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
@@ -145,6 +144,12 @@ dependencies {
     implementation(libs.timber)
 
     implementation(libs.androidx.datastore.preferences)
+
+    // Cache local des articles (ARCHITECTURE.md §5.1) : Room porte les
+    // collections, DataStore les scalaires.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Client de l'API FreshRSS. Le moteur OkHttp plutôt que le moteur natif :
     // reprises, pool de connexions et TLS y sont déjà résolus.

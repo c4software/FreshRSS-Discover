@@ -5,7 +5,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
 import fr.vbrosseau.freshrssdiscover.data.api.createFreshRssHttpClient
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
+import fr.vbrosseau.freshrssdiscover.data.local.room.AppDatabase
+import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
+import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.security.FakeSecretCipher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
@@ -38,9 +43,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.junit.rules.TemporaryFolder
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class DefaultAuthRepositoryTest {
     @get:Rule
     val folder = TemporaryFolder()
@@ -84,9 +92,15 @@ class DefaultAuthRepositoryTest {
             }
         }
 
+        val database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            AppDatabase::class.java,
+        ).allowMainThreadQueries().build()
+
         return DefaultAuthRepository(
             api = FreshRssApi(createFreshRssHttpClient(engine)),
             sessionStore = sessionStore,
+            articleCache = ArticleCache(database.articleDao(), Clock { 0L }),
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
