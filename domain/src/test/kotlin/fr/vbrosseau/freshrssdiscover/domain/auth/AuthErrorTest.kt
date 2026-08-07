@@ -23,6 +23,7 @@ class AuthErrorTest {
                 AuthError.NotAFreshRssServer,
                 AuthError.ApiDisabled,
                 AuthError.InvalidCredentials,
+                AuthError.AuthorizationHeaderNotForwarded,
                 AuthError.Unexpected("peu importe"),
             )
 
