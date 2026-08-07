@@ -209,9 +209,9 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
       > ce point d'entrée n'accepte que le **mot de passe API**, défini
       > séparément dans *Profil → Mot de passe API*, et absent de cette instance
       > publique. À reprendre sur une instance personnelle.
-- [ ] `GOAL-002-T20` **Aucun appel authentifié n'existe encore**, donc rien
-      n'appelle `invalidateSession()`. Le mécanisme est en place et testé ; son
-      déclencheur arrive avec GOAL-003.
+- [x] `GOAL-002-T20` ~~Aucun appel authentifié n'existe encore~~ **Levé par
+      `GOAL-003-T06`** : la lecture du flux est le premier appel authentifié, et
+      un `401` y efface bien les jetons tout en conservant le rappel de saisie.
 
 ---
 
@@ -237,7 +237,7 @@ Tranche SPECS.md §8 question 1 (taille de page).
       décimal, extraction de l'illustration, article sans lien exploitable
 - [x] `GOAL-003-T05` `FreshRssApi.streamContents()` — en-tête d'autorisation,
       `n`, `c`, `xt`, et l'absence de `continuation` comme seul signal de fin
-- [ ] `GOAL-003-T06` `ArticleRepository` : interface `:domain`, implémentation
+- [x] `GOAL-003-T06` `ArticleRepository` : interface `:domain`, implémentation
       `:app/data`, et `401` → `invalidateSession()` (lève `GOAL-002-T20`)
 - [x] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8 —
       **40**, et la question 6 (illustration) tranchée au passage. Une septième
