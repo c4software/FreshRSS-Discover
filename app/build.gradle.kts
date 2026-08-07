@@ -160,7 +160,11 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -182,6 +186,7 @@ dependencies {
     // Décrit des réponses HTTP littérales, malformées comprises : c'est la
     // seule façon d'éprouver la lecture d'une réponse réelle sans serveur.
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.coil.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.hilt.testing)

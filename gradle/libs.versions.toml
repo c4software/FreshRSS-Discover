@@ -4,6 +4,7 @@ android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "37"
 androidx-activity = "1.13.0"
+androidx-browser = "1.9.0"
 androidx-core = "1.19.0"
 androidx-datastore = "1.2.1"
 androidx-hilt = "1.4.0"
@@ -11,6 +12,7 @@ androidx-navigation = "2.9.8"
 androidx-lifecycle = "2.9.4"
 androidx-room = "2.8.4"
 androidx-test = "1.7.0"
+coil = "3.4.0"
 composeBom = "2025.09.00"
 detekt = "1.23.7"
 hilt = "2.60.1"
@@ -29,6 +31,9 @@ timber = "5.0.1"
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+# Onglet personnalisé pour ouvrir l'article d'origine (SPECS.md §4.7) : l'utilisateur
+# garde le contexte de l'application, sa session et ses réglages de navigateur.
+androidx-browser = { module = "androidx.browser:browser", version.ref = "androidx-browser" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidx-hilt" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
@@ -46,9 +51,7 @@ hilt-testing = { module = "com.google.dagger:hilt-android-testing", version.ref 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 
-# Client HTTP de l'API FreshRSS. Déclaré ici, mais pas encore branché dans
-# app/build.gradle.kts : une dépendance s'ajoute avec son premier usage
-# (AGENTS.md §2). GOAL-002 la câble. Voir ARCHITECTURE.md §4.
+# Client HTTP de l'API FreshRSS. Voir ARCHITECTURE.md §4.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
@@ -58,6 +61,12 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+
+# Chargement des illustrations d'articles. Moteur OkHttp, celui déjà employé par
+# Ktor : une seule pile réseau, un seul pool de connexions.
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+coil-test = { module = "io.coil-kt.coil3:coil-test", version.ref = "coil" }
 
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }

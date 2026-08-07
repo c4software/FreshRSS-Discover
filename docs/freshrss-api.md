@@ -66,6 +66,16 @@ Un hôte joignable qui n'est pas une instance FreshRSS répond ce qu'il veut —
 `404` sur `example.com`, constaté. Aucun code ne caractérise ce cas : seul le
 corps `OK` caractérise le cas favorable.
 
+> ⚠️ **Cette sonde ne dit rien de l'état de l'API.** Elle répond `OK` avec un
+> statut `200` **même lorsque l'accès par API est désactivé** sur le serveur —
+> constaté. Le court-circuit qui renvoie `OK` est placé avant la vérification
+> `api_enabled` dans le routeur, et n'en tient donc aucun compte.
+>
+> Conséquence directe sur l'ordre des appels : reconnaître l'instance ne suffit
+> pas, c'est `ClientLogin` qui révèle le `503`. Une implémentation qui
+> conclurait « serveur valide » après cette seule sonde afficherait ensuite un
+> diagnostic faux.
+
 ### 1.2 Vérifier la configuration du serveur web — *constaté*
 
 ```
@@ -147,7 +157,7 @@ condensat du mot de passe API). Conséquences pratiques :
 | Nom **bien formé** mais inconnu du serveur | `401` | `Unauthorized!` |
 | Mot de passe API incorrect | `401` | `Unauthorized!` |
 | Compte sans mot de passe API configuré | `401` | `Unauthorized!` |
-| API désactivée sur le serveur | `503` | `Service Unavailable!` *(non constaté)* |
+| API désactivée sur le serveur | `503` | `Service Unavailable!` |
 
 > ⚠️ **Correction d'une erreur de lecture.** La source appelle
 > `checkUsername()` avant tout, ce qui donnait à croire qu'un utilisateur
@@ -169,8 +179,20 @@ Les corps d'erreur sont en `text/plain; charset=UTF-8`, avec
 `X-Content-Type-Options: nosniff` — constaté.
 
 L'API doit être activée globalement dans FreshRSS (*Administration →
-Authentification → Autoriser l'accès par API*) ; sans cela **tous** les points
-d'entrée répondent `503`.
+Authentification → Autoriser l'accès par API*).
+
+**Ce que répond alors le serveur — constaté**, API réellement désactivée :
+
+| Chemin | Réponse |
+|---|---|
+| `/api/greader.php` (sonde de reconnaissance) | **`OK`, statut `200`** — inchangé |
+| `/accounts/ClientLogin` | `503`, `Service Unavailable!` |
+| `/check/compatibility` | `503`, `Service Unavailable!` |
+| `/reader/api/0/…` | `503`, `Service Unavailable!` |
+
+La première ligne est contre-intuitive et elle compte : la sonde de
+reconnaissance est aveugle à l'état de l'API. Dire « tous les points d'entrée
+répondent `503` » serait faux, et conduirait à une détection qui ne marche pas.
 
 ### 2.2 En-tête des requêtes authentifiées
 
@@ -647,7 +669,6 @@ mise à jour en conséquence.
 | 4 | Présence effective de `enclosure` selon les flux | Dépend des flux RSS sources, pas de FreshRSS. Constat partiel : **absente de tous les articles observés** (§3.4), ce qui suffit à décider de ne pas s'y fier |
 | 5 | Nombre d'`i` acceptés dans un `edit-tag` | Limité en pratique par la taille du corps POST et `max_input_vars` de PHP |
 | 6 | Forme exacte de `frss:priority` | Valeurs issues d'une énumération non lue |
-| 7 | **Réponse d'un serveur dont l'API est désactivée** | Le `503` est lu dans la source, jamais observé — aucun serveur de test ne l'expose |
 
 Chacun de ces points est porté par une tâche dans [TASKS.md](../TASKS.md). Aucun
 ne doit être « supposé » dans le code : si un Goal en a besoin, il commence par
@@ -662,7 +683,9 @@ le constater.
 - frontière `400` / `401` de `ClientLogin` : syntaxe contre existence (§2.1) ;
 - utilisateur inconnu et mot de passe faux sont **indistinguables** (§2.1) ;
 - chemin inconnu sous `/reader/api/0/` → `401`, jamais `404` (§5) ;
-- corps d'erreur en `text/plain; charset=UTF-8` (§5).
+- corps d'erreur en `text/plain; charset=UTF-8` (§5) ;
+- API désactivée : `503` partout **sauf** sur la sonde de reconnaissance, qui
+  continue de répondre `OK` (§1.1 et §2.1).
 
 Acquis depuis l'accès à une instance personnelle *(2026-08-07)* :
 

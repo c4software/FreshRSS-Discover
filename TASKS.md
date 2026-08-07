@@ -207,14 +207,16 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 - [ ] `GOAL-002-T18` **`KeystoreSecretCipher` n'est couvert par aucun test** —
       Robolectric ne simule pas `AndroidKeyStore`. À éprouver sur appareil, ou
       par un test instrumenté, avant toute publication.
-- [!] `GOAL-002-T19` **Deux points de l'API restent non constatés** : la réponse
-      de succès de `ClientLogin` et le `503` d'une API désactivée
-      (docs/freshrss-api.md §6, points 7 et 8).
-      > `demo/demodemo` sont les identifiants **web** de
-      > `https://demo.freshrss.org/`, et `ClientLogin` les refuse en `401` :
-      > ce point d'entrée n'accepte que le **mot de passe API**, défini
-      > séparément dans *Profil → Mot de passe API*, et absent de cette instance
-      > publique. À reprendre sur une instance personnelle.
+- [x] `GOAL-002-T19` ~~Deux points de l'API non constatés~~ **Levé.** La réponse
+      de succès de `ClientLogin` et le `503` d'une API désactivée ont été
+      observés sur une instance personnelle.
+      > Le second a **corrigé une erreur de documentation** : la sonde de
+      > reconnaissance répond `OK` et `200` **même API désactivée**, le
+      > court-circuit qui la sert étant placé avant la vérification
+      > `api_enabled`. Écrire « tous les points d'entrée répondent 503 » était
+      > faux. L'implémentation était déjà correcte — c'est `ClientLogin` qui
+      > révèle le `503` — mais pour une raison qui n'était pas écrite ; un test
+      > la verrouille désormais.
 - [x] `GOAL-002-T20` ~~Aucun appel authentifié n'existe encore~~ **Levé par
       `GOAL-003-T06`** : la lecture du flux est le premier appel authentifié, et
       un `401` y efface bien les jetons tout en conservant le rappel de saisie.

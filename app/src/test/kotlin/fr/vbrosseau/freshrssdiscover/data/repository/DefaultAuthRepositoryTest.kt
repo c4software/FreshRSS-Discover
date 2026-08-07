@@ -168,9 +168,26 @@ class DefaultAuthRepositoryTest {
     }
 
     @Test
-    fun aDisabledApiIsReportedBeforeAnythingElse() = runTest {
-        // L'API désactivée répond 503 sur *tous* les points d'entrée : la sonde
-        // le voit la première.
+    fun aDisabledApiIsDiagnosedEvenThoughTheProbeStillAnswersOk() = runTest {
+        // Constaté sur une instance réelle, API désactivée : la sonde de
+        // reconnaissance répond « OK » et 200, **inchangée**. Le court-circuit
+        // qui la sert est placé avant la vérification `api_enabled` dans le
+        // routeur de FreshRSS.
+        //
+        // Conclure « serveur valide » sur cette seule sonde afficherait donc un
+        // diagnostic faux : c'est ClientLogin qui révèle le 503.
+        val repository = repository(
+            "/greader.php" to ok("OK"),
+            "/accounts/ClientLogin" to error(HttpStatusCode.ServiceUnavailable, "Service Unavailable!"),
+        )
+
+        assertEquals(AuthError.ApiDisabled, repository.signIn(address, credentials).errorOrNull())
+    }
+
+    @Test
+    fun aDisabledApiIsAlsoDiagnosedWhenItAnswersOnTheProbeItself() = runTest {
+        // Cas d'un serveur configuré autrement, ou d'une version future : si le
+        // 503 remonte dès la sonde, le diagnostic doit rester le même.
         val repository = repository("/greader.php" to error(HttpStatusCode.ServiceUnavailable, "Service Unavailable!"))
 
         assertEquals(AuthError.ApiDisabled, repository.signIn(address, credentials).errorOrNull())
