@@ -90,9 +90,9 @@ fonctionnalité applicative.
 
 ### Dettes ouvertes par ce Goal
 
-- [ ] `GOAL-001-T14` **Le garde-fou de couverture est vide.** `:domain` n'a pas
-      de code exécutable : `koverVerify` passe sans rien mesurer. À reconstater
-      au premier vrai code de domaine (GOAL-002) — voir ARCHITECTURE.md §8.1.
+- [x] `GOAL-001-T14` ~~Le garde-fou de couverture est vide.~~ **Levé par
+      `GOAL-002-T02`** : `koverVerify` mesure désormais réellement, et a
+      immédiatement échoué à 86,2 % sur les premiers modèles.
 - [ ] `GOAL-001-T15` **Retirer `PlaceholderScreen`** lorsque les deux
       destinations auront leur écran réel (GOAL-006 et GOAL-011).
 - [ ] `GOAL-001-T16` **Icône de l'application** : celle du template est encore en
@@ -117,10 +117,20 @@ de conserver sa session. Couvre SPECS.md §3.
 Référence obligatoire : [docs/freshrss-api.md §2](./docs/freshrss-api.md).
 Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 
-- [ ] `GOAL-002-T01` Constater `ClientLogin` contre un serveur réel — forme
+- [!] `GOAL-002-T01` Constater `ClientLogin` contre un serveur réel — forme
       exacte de la réponse, codes d'erreur, comportement API désactivée — et
       mettre à jour `docs/freshrss-api.md`
-- [ ] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
+      > **Bloqué : aucun serveur FreshRSS accessible depuis l'environnement de
+      > développement.** Le contrat de `ClientLogin` a été établi par lecture de
+      > `p/api/greader.php` (docs/freshrss-api.md §2), ce qui est suffisant pour
+      > implémenter et tester au `MockEngine`. Ce qui reste non constaté :
+      > la réponse d'un serveur dont l'API est désactivée, et le comportement
+      > d'un reverse-proxy qui filtrerait l'en-tête `Authorization`.
+      > **Le Goal se poursuit** — bloquer ici ne livrerait rien, alors que la
+      > source fait foi sur la forme des requêtes et des réponses. La tâche est
+      > à reprendre dès qu'une instance est disponible ; `/check/compatibility`
+      > est le premier appel à passer.
+- [x] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
       `AuthToken`, type d'erreur scellé couvrant les cinq causes de SPECS.md §3.3
 - [ ] `GOAL-002-T03` Normalisation de l'adresse saisie (schéma implicite, dérivation
       de `…/api/greader.php`, `http://` toléré et signalé) — pur, testé exhaustivement
