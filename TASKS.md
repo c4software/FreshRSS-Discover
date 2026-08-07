@@ -117,19 +117,20 @@ de conserver sa session. Couvre SPECS.md §3.
 Référence obligatoire : [docs/freshrss-api.md §2](./docs/freshrss-api.md).
 Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 
-- [!] `GOAL-002-T01` Constater `ClientLogin` contre un serveur réel — forme
+- [x] `GOAL-002-T01` Constater `ClientLogin` contre un serveur réel — forme
       exacte de la réponse, codes d'erreur, comportement API désactivée — et
       mettre à jour `docs/freshrss-api.md`
-      > **Bloqué : aucun serveur FreshRSS accessible depuis l'environnement de
-      > développement.** Le contrat de `ClientLogin` a été établi par lecture de
-      > `p/api/greader.php` (docs/freshrss-api.md §2), ce qui est suffisant pour
-      > implémenter et tester au `MockEngine`. Ce qui reste non constaté :
-      > la réponse d'un serveur dont l'API est désactivée, et le comportement
-      > d'un reverse-proxy qui filtrerait l'en-tête `Authorization`.
-      > **Le Goal se poursuit** — bloquer ici ne livrerait rien, alors que la
-      > source fait foi sur la forme des requêtes et des réponses. La tâche est
-      > à reprendre dès qu'une instance est disponible ; `/check/compatibility`
-      > est le premier appel à passer.
+      > Constaté contre `https://demo.freshrss.org/` le 2026-08-07. A **corrigé
+      > une erreur de lecture de la source** : un utilisateur inconnu répond
+      > `401` et non `400`, donc « inconnu » et « mauvais mot de passe » sont
+      > indistinguables — ce qui est le comportement souhaitable. Autres
+      > constats : sonde de reconnaissance `GET` nu → `OK` (une chaîne de requête
+      > la casse), `check/compatibility` répond toujours `200` et exige un
+      > en-tête `Authorization` dans sa propre requête, un chemin inconnu répond
+      > `401` et non `404`.
+      > **Reste non constaté** — le serveur de démonstration n'a pas de mot de
+      > passe API exploitable : la réponse de succès de `ClientLogin` et le `503`
+      > d'une API désactivée. Suivis en `docs/freshrss-api.md` §6, points 7 et 8.
 - [x] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
       `AuthToken`, type d'erreur scellé couvrant les cinq causes de SPECS.md §3.3
 - [ ] `GOAL-002-T03` Normalisation de l'adresse saisie (schéma implicite, dérivation
