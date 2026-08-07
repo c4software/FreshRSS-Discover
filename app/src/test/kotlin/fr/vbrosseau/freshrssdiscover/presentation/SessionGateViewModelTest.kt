@@ -2,7 +2,6 @@ package fr.vbrosseau.freshrssdiscover.presentation
 
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
-import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
@@ -10,13 +9,13 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
-import kotlin.test.assertEquals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class SessionGateViewModelTest {
     @get:Rule

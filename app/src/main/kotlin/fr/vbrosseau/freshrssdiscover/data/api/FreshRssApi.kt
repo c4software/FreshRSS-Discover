@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.data.api
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
@@ -138,6 +139,70 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
+     * Récupère le jeton exigé par toute opération modifiante.
+     *
+     * La réponse est du **texte brut** — un condensat de 57 caractères complété
+     * par des `Z`, suivi d'un saut de ligne (docs/freshrss-api.md §2.3). Cette
+     * longueur est constatée, non contractuelle : la vérifier ici ferait
+     * échouer l'application sur un jeton parfaitement valide le jour où
+     * FreshRSS en changerait la forme. Un jeton refusé se signale par un `401`
+     * lors de son emploi, jamais par sa taille. Seul un corps **vide** est
+     * rejeté : il ne pourrait produire qu'un `edit-tag` silencieusement inutile.
+     *
+     * Le jeton est déterministe et réutilisable : l'appelant l'obtient une fois
+     * et le conserve, quitte à le redemander après un `401`.
+     */
+    suspend fun modificationToken(address: ServerAddress, token: AuthToken): ApiOutcome<ModificationToken> = call {
+        val response = httpClient.get(address.apiEndpoint + TOKEN_PATH) {
+            header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
+        }
+        val body = response.bodyAsText().trim()
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            body.isEmpty() -> ApiOutcome.MalformedResponse("le jeton de modification est vide")
+            else -> ApiOutcome.Success(ModificationToken(body))
+        }
+    }
+
+    /**
+     * Marque un **lot** d'articles comme lus.
+     *
+     * Le traitement par lot est ce qui rend la fonctionnalité tenable : un flux
+     * Discover marque des articles au fil du défilement, et une requête par
+     * article visible saturerait le réseau pour rien (SPECS.md §4.5).
+     *
+     * Le corps est un formulaire (docs/freshrss-api.md §4.1) : `T` porte le
+     * jeton de modification, `a` l'état à ajouter, et `i` est **répété** une
+     * fois par article.
+     *
+     * La réponse d'un succès est le texte `OK`, pas du JSON, et ne rend aucun
+     * compte par article — un identifiant inconnu du serveur n'y produit
+     * aucune erreur.
+     */
+    suspend fun markAsRead(
+        address: ServerAddress,
+        token: AuthToken,
+        modificationToken: ModificationToken,
+        articleIds: List<ArticleId>,
+    ): ApiOutcome<Unit> = call {
+        val response = httpClient.submitForm(
+            url = address.apiEndpoint + EDIT_TAG_PATH,
+            formParameters = parameters {
+                append(PARAM_MODIFICATION_TOKEN, modificationToken.value)
+                append(PARAM_ADD_STATE, READ_STATE)
+                articleIds.forEach { append(PARAM_ITEM, it.toUnsignedDecimal()) }
+            },
+        ) {
+            header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
+        }
+        when {
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
+            response.bodyAsText().trim() == EDIT_TAG_RESPONSE -> ApiOutcome.Success(Unit)
+            else -> ApiOutcome.MalformedResponse("edit-tag n'a pas répondu « $EDIT_TAG_RESPONSE »")
+        }
+    }
+
+    /**
      * Les corps d'erreur de FreshRSS sont en texte brut ; un `2xx` illisible
      * relève donc du corps malformé, pas du transport.
      */
@@ -179,6 +244,12 @@ internal class FreshRssApi @Inject constructor(
         const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
         const val COMPATIBILITY_PATH = "/check/compatibility"
         const val STREAM_CONTENTS_PATH = "/reader/api/0/stream/contents/reading-list"
+        const val TOKEN_PATH = "/reader/api/0/token"
+        const val EDIT_TAG_PATH = "/reader/api/0/edit-tag"
+        const val PARAM_MODIFICATION_TOKEN = "T"
+        const val PARAM_ADD_STATE = "a"
+        const val PARAM_ITEM = "i"
+        const val EDIT_TAG_RESPONSE = "OK"
         const val AUTH_PREFIX = "Auth="
         const val AUTHORIZATION_SCHEME = "GoogleLogin auth="
         const val PARAM_COUNT = "n"
@@ -197,3 +268,25 @@ internal class FreshRssApi @Inject constructor(
         const val COMPATIBILITY_PROBE_TOKEN = "x/y"
     }
 }
+
+/**
+ * Jeton de modification exigé par les écritures de l'API (`edit-tag`, …).
+ *
+ * Distinct du jeton de session ([AuthToken]) et purement propre au protocole :
+ * il n'a donc rien à faire dans le domaine, et s'arrête à la couche `data`
+ * (ARCHITECTURE.md §2.1, AGENTS.md §2).
+ */
+@JvmInline
+internal value class ModificationToken(val value: String)
+
+/**
+ * Rend l'identifiant tel que FreshRSS l'attend : en décimal **non signé**.
+ *
+ * Les identifiants d'articles sont des entiers 64 bits non signés, alors que
+ * `Long` est signé en Kotlin. Passé `Long.MAX_VALUE`, la valeur est conservée
+ * bit à bit mais se lit négative : `toString()` enverrait par exemple `-1` là
+ * où le serveur attend `18446744073709551615`. Le marquage porterait alors sur
+ * un article inexistant — et `edit-tag` répondrait `OK` sans rien faire
+ * (docs/freshrss-api.md §4.1), de sorte que la perte serait totalement muette.
+ */
+private fun ArticleId.toUnsignedDecimal(): String = java.lang.Long.toUnsignedString(value)

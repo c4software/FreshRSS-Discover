@@ -26,11 +26,6 @@ import org.junit.Test
 class ScreensScreenshotTest : ScreenshotTest() {
 
     @Test
-    fun placeholderScreen() {
-        capture("ecran-attente") { PlaceholderScreen() }
-    }
-
-    @Test
     fun navigationBar() {
         capture("barre-navigation") {
             AppNavigationBar(currentRoute = AppRoutes.DISCOVER, onSelect = {})

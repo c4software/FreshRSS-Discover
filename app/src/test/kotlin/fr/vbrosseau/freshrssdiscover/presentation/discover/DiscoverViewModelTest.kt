@@ -8,13 +8,13 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import org.junit.Rule
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlinx.coroutines.CompletableDeferred
-import org.junit.Rule
-import org.junit.Test
 
 private const val NOW_SECONDS = 1_700_000_000L
 

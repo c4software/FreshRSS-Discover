@@ -1,22 +1,37 @@
 package fr.vbrosseau.freshrssdiscover.presentation.discover
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.math.abs
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 class DiscoverScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Before
+    fun installImageLoader() = installFakeImageLoader()
+
+    @After
+    fun restoreImageLoader() = resetImageLoader()
 
     private fun show(
         uiState: DiscoverUiState,
@@ -52,7 +67,7 @@ class DiscoverScreenTest {
         // SPECS.md §4.3 : ni cadre vide, ni image de remplacement générique.
         show(
             DiscoverUiState(
-                articles = listOf(uiArticle(hasIllustration = false)),
+                articles = listOf(uiArticle(imageUrl = null)),
                 phase = DiscoverPhase.EndOfFeed,
             ),
         )
@@ -62,15 +77,82 @@ class DiscoverScreenTest {
     }
 
     @Test
-    fun anIllustratedArticleReservesItsPlace() {
+    fun anIllustratedArticleShowsItsImage() {
         show(
             DiscoverUiState(
-                articles = listOf(uiArticle(hasIllustration = true)),
+                articles = listOf(uiArticle(imageUrl = LOADABLE_IMAGE_URL)),
                 phase = DiscoverPhase.EndOfFeed,
             ),
         )
 
         composeRule.onNodeWithTag(DiscoverTestTags.ILLUSTRATION, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun anIllustrationThatFailsToLoadLeavesNoHole() {
+        // Une image qu'on ne peut pas obtenir ne se distingue en rien, pour le
+        // lecteur, d'un article qui n'en a pas : le créneau se referme
+        // (SPECS.md §4.3).
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle(imageUrl = UNREACHABLE_IMAGE_URL)),
+                phase = DiscoverPhase.EndOfFeed,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.ILLUSTRATION, useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Un titre").assertExists()
+    }
+
+    @Test
+    fun anArticleAnnouncingAnIllustrationWithoutUrlShowsNothing() {
+        // Cas dégradé : le flux annonce une image sans en donner l'adresse. Il
+        // n'y a rien à charger, donc rien à réserver.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle(imageUrl = null, hasIllustration = true)),
+                phase = DiscoverPhase.EndOfFeed,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.ILLUSTRATION, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun theIllustrationHeightComesFromTheCardWidthAndNotFromTheImage() {
+        // L'image factice est carrée : si la hauteur du créneau en dépendait,
+        // le rapport mesuré vaudrait 1. Le voir tenir à 16/9 prouve que la
+        // liste ne se décalera pas au moment où l'image arrive.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle(imageUrl = LOADABLE_IMAGE_URL)),
+                phase = DiscoverPhase.EndOfFeed,
+            ),
+        )
+
+        val bounds = composeRule
+            .onNodeWithTag(DiscoverTestTags.ILLUSTRATION, useUnmergedTree = true)
+            .getBoundsInRoot()
+        val ratio = bounds.width.value / bounds.height.value
+
+        assertTrue(abs(ratio - 16f / 9f) < RATIO_TOLERANCE, "rapport d'aspect mesuré : $ratio")
+    }
+
+    @Test
+    fun theIllustrationIsMarkedAsDecorative() {
+        // SPECS.md §7.1 laisse le choix entre une description et un marquage
+        // décoratif : c'est le second qui est retenu, et l'absence de
+        // description sémantique est ce qui le matérialise.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle(imageUrl = LOADABLE_IMAGE_URL)),
+                phase = DiscoverPhase.EndOfFeed,
+            ),
+        )
+
+        composeRule
+            .onNodeWithTag(DiscoverTestTags.ILLUSTRATION, useUnmergedTree = true)
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
     }
 
     @Test
@@ -219,9 +301,13 @@ class DiscoverScreenTest {
     }
 }
 
+/** Écart toléré sur un rapport d'aspect mesuré en dp arrondis au pixel. */
+private const val RATIO_TOLERANCE = 0.05f
+
 private fun uiArticle(
     id: Long = 1L,
-    hasIllustration: Boolean = false,
+    imageUrl: String? = null,
+    hasIllustration: Boolean = imageUrl != null,
     isOpenable: Boolean = true,
 ): ArticleUiModel = ArticleUiModel(
     id = id,
@@ -229,6 +315,7 @@ private fun uiArticle(
     feedTitle = "Le Monde",
     publishedAt = RelativeTime.Hours(2),
     excerpt = "Un extrait.",
+    imageUrl = imageUrl,
     hasIllustration = hasIllustration,
     isOpenable = isOpenable,
 )

@@ -2,10 +2,11 @@ package fr.vbrosseau.freshrssdiscover.presentation.discover
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.feed.feedRef
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import org.junit.Test
 
 private const val NOW_SECONDS = 1_700_000_000L
 private const val NOW_MILLIS = NOW_SECONDS * 1_000L
@@ -65,6 +66,16 @@ class ArticleUiModelTest {
     fun anArticleWithoutIllustrationSaysSo() {
         assertFalse(article(imageUrl = null).toUiModel(NOW_MILLIS).hasIllustration)
         assertTrue(article(imageUrl = "https://exemple.org/i.png").toUiModel(NOW_MILLIS).hasIllustration)
+    }
+
+    @Test
+    fun theIllustrationUrlTravelsToTheCard() {
+        // Sans l'URL, la carte ne pouvait que réserver la place : c'est elle
+        // qui rend l'affichage possible (SPECS.md §4.3).
+        val model = article(imageUrl = "https://exemple.org/i.png").toUiModel(NOW_MILLIS)
+
+        assertEquals("https://exemple.org/i.png", model.imageUrl)
+        assertNull(article(imageUrl = null).toUiModel(NOW_MILLIS).imageUrl)
     }
 
     @Test

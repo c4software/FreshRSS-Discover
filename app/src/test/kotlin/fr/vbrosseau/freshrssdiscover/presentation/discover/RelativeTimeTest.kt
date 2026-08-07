@@ -1,7 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.discover
 
-import kotlin.test.assertEquals
 import org.junit.Test
+import kotlin.test.assertEquals
 
 private const val NOW_SECONDS = 1_700_000_000L
 private const val NOW_MILLIS = NOW_SECONDS * 1_000L

@@ -7,9 +7,13 @@ unique, mélangé, sans fin apparente.
 Pas de liste de flux à parcourir, pas de compteur de non-lus à faire descendre.
 On fait défiler ; ce qui a été suffisamment vu devient lu.
 
-> **État : en cours d'initialisation.** Le dépôt contient sa documentation, son
-> ossature technique et son outillage de développement. **Aucune fonctionnalité
-> n'est encore implémentée** — voir [TASKS.md](./TASKS.md).
+> **État : en cours de développement.** La connexion au serveur, la lecture
+> paginée du flux, le cache local et l'écran Discover fonctionnent. Le mélange
+> des sources, la détection de lecture, la file de marquages et l'écran de
+> réglages sont écrits et éprouvés, mais **pas encore tous branchés** —
+> [ARCHITECTURE.md §9.1](./ARCHITECTURE.md) distingue précisément ce qui est
+> assemblé de ce qui ne l'est pas, et [TASKS.md](./TASKS.md) donne l'avancement
+> tâche par tâche.
 
 ---
 
@@ -125,6 +129,12 @@ L'application ne communique qu'avec **le serveur FreshRSS de l'utilisateur**.
 Aucune télémétrie, aucun service tiers, aucune publicité. Les seules autres
 connexions sortantes sont le chargement des images d'articles et l'ouverture
 d'un lien dans le navigateur, l'une et l'autre à l'initiative de l'utilisateur.
+
+---
+
+## Licence
+
+[MIT](./LICENSE) — © 2026 Valentin Brosseau.
 
 ---
 

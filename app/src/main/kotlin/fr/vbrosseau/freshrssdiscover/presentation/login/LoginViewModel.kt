@@ -4,18 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
-import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(

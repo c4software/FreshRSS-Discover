@@ -16,11 +16,11 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 internal class DefaultAuthRepository @Inject constructor(

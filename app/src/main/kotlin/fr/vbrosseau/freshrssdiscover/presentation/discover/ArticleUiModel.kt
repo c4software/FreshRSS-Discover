@@ -37,20 +37,41 @@ data class ArticleUiModel(
     val publishedAt: RelativeTime,
     val excerpt: String,
     /**
-     * Vraie lorsque l'article porte une illustration.
+     * Où aller chercher l'illustration, `null` quand l'article n'en annonce
+     * aucune.
      *
-     * L'URL n'est pas transportée : aucune bibliothèque de chargement d'images
-     * n'est encore au projet, et la carte se contente de réserver la place.
-     * Voir le TODO de `DiscoverScreen`.
+     * L'URL est transportée telle que le serveur l'a fournie : la valider ou la
+     * normaliser serait un calcul, et il n'appartient pas à l'affichage.
      */
-    val hasIllustration: Boolean,
+    val imageUrl: String? = null,
+    /**
+     * Vraie lorsque l'article annonce une illustration, donc que la carte lui
+     * réserve un créneau.
+     *
+     * Distincte de [imageUrl], qui dit seulement **où** la chercher : les deux
+     * ne se dissocient que dans les tests et les prévisualisations, où l'on veut
+     * la carte illustrée sans déclencher de requête. La projection ci-dessous
+     * les garde toujours d'accord.
+     */
+    val hasIllustration: Boolean = imageUrl != null,
+    /**
+     * Lien d'origine, `null` quand le flux n'en a fourni aucun d'exploitable.
+     *
+     * Transporté tel que le serveur l'a donné : c'est `ArticleOpener` qui décide
+     * ce qui est ouvrable, et il revalide de toute façon ce qu'on lui passe.
+     */
+    val url: String? = null,
     /**
      * Fausse lorsque l'article n'a pas de lien exploitable.
      *
      * SPECS.md §4.7 demande alors de le rendre non cliquable, et de le donner à
      * voir — ouvrir une page vide serait pire que ne rien proposer.
+     *
+     * Dérivée d'[url] par défaut, pour la même raison que [hasIllustration] :
+     * un test ou une prévisualisation veut parfois la carte cliquable sans
+     * fournir d'adresse.
      */
-    val isOpenable: Boolean,
+    val isOpenable: Boolean = url != null,
 )
 
 /**
@@ -64,8 +85,8 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     feedTitle = feed.title,
     publishedAt = relativeTimeSince(publishedAtEpochSeconds, nowEpochMillis),
     excerpt = summary.toExcerpt(),
-    hasIllustration = imageUrl != null,
-    isOpenable = url != null,
+    imageUrl = imageUrl,
+    url = url,
 )
 
 /**

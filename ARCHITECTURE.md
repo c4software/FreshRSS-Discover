@@ -392,6 +392,21 @@ Les doubles sont des **Fakes versionnés** (`domain/src/testFixtures/`), pas des
 mocks générés : un Fake se lit, se déboguer et documente le contrat mieux qu'une
 suite de `when(...).thenReturn(...)`.
 
+### 8.0 Un garde-fou qui était vide
+
+`ktlintCheck` ne vérifiait **aucune source Kotlin de `:app`** : le greffon
+ktlint-gradle ne découvre pas les jeux de sources Android d'AGP 9, et n'y
+enregistrait qu'une tâche sur les fichiers `.kts`. La commande de vérification
+d'AGENTS.md §5 était donc partiellement vide depuis l'origine du dépôt.
+
+Les règles de style passent désormais par **`detekt-formatting`**, qui les
+embarque dans Detekt — lequel, lui, voit bien le module. Le jour de sa mise en
+place, il a relevé 22 violations, dont quatre imports morts laissés par un
+refactor antérieur.
+
+La leçon vaut au-delà de ce cas : un outil de vérification qui ne signale jamais
+rien mérite qu'on vérifie **ce qu'il regarde**, pas seulement qu'il passe.
+
 ### 8.1 Couverture de `:domain`
 
 `koverVerify` impose 98 % sur `:domain`. Le seuil constate un acquis plutôt
@@ -469,16 +484,19 @@ dépôt est une incohérence — voir AGENTS.md §8.
         │   │   │                FreshRssHttpClient · AuthErrorMapping
         │   │   │                ArticleMapping
         │   │   ├── local/       SessionStore
-        │   │   │   └── room/    ArticleEntity · ArticleDao · AppDatabase
-        │   │   │                ArticleCache
+        │   │   │   └── room/    ArticleEntity · ArticleDao · AppDatabase (v2)
+        │   │   │                ArticleCache · PendingMark* · MIGRATION_1_2
         │   │   ├── network/     NetworkAvailability
         │   │   ├── repository/  DefaultAuthRepository · DefaultArticleRepository
         │   │   └── security/    SecretCipher · KeystoreSecretCipher
         │   ├── di/              Dispatchers · portées · DataStore · Clock
         │   │                    Network · Repository · Security
         │   └── presentation/
-        │       ├── LoadingIndicator.kt · UiStateSharing.kt
-        │       ├── PlaceholderScreen.kt · SessionGate.kt
+        │       ├── LoadingIndicator.kt · UiStateSharing.kt · SessionGate.kt
+        │       ├── browser/     ArticleOpener — onglet personnalisé
+        │       ├── discover/    DiscoverScreen · DiscoverViewModel
+        │       │                ArticleUiModel · RelativeTime
+        │       ├── settings/    SettingsScreen · SettingsViewModel
         │       ├── login/       LoginScreen · LoginViewModel · LoginUiState
         │       │                LoginFailureLabels
         │       ├── navigation/  AppDestination · AppNavHost · AppNavigationBar
@@ -513,10 +531,9 @@ Sont **absents** au sens propre :
 
 - la file des marquages en attente, et donc la synchronisation du statut lu ;
 - le tirer-pour-rafraîchir ;
-- l'ouverture de l'article d'origine ;
-- l'écran de réglages — l'écran de connexion et le flux Discover, eux, existent ;
-- le chargement des illustrations : aucune bibliothèque d'images n'est au
-  projet, l'emplacement est réservé dans la carte d'article.
+- le marquage d'un article à son ouverture (SPECS.md §4.7) ;
+- la persistance des réglages : l'écran affiche les seuils, il ne les enregistre
+  pas.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 

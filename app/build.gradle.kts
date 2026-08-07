@@ -138,6 +138,11 @@ roborazzi {
 dependencies {
     implementation(project(":domain"))
 
+    // Les règles de style ktlint, appliquées par Detekt. Le greffon
+    // ktlint-gradle ne voit pas les sources Kotlin d'un module Android sous
+    // AGP 9 : sans ceci, elles ne seraient vérifiées par personne.
+    detektPlugins(libs.detekt.formatting)
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.android)

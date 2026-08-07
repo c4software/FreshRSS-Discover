@@ -1,22 +1,21 @@
 package fr.vbrosseau.freshrssdiscover.presentation.login
 
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
-import fr.vbrosseau.freshrssdiscover.domain.auth.AuthResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
 
 class LoginViewModelTest {
     @get:Rule

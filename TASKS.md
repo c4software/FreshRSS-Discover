@@ -99,10 +99,36 @@ fonctionnalité applicative.
 - [x] `GOAL-001-T14` ~~Le garde-fou de couverture est vide.~~ **Levé par
       `GOAL-002-T02`** : `koverVerify` mesure désormais réellement, et a
       immédiatement échoué à 86,2 % sur les premiers modèles.
-- [ ] `GOAL-001-T15` **Retirer `PlaceholderScreen`** — il ne sert plus que la
-      destination Réglages depuis `GOAL-006-T04` ; il disparaîtra avec GOAL-011.
+- [x] `GOAL-001-T15` ~~Retirer `PlaceholderScreen`~~ **Levé** : les deux
+      destinations ont leur écran réel, l'écran d'attente et ses chaînes ont été
+      supprimés.
 - [ ] `GOAL-001-T16` **Icône de l'application** : celle du template est encore en
       place.
+- [x] `GOAL-001-T21` ~~ktlint ne vérifie aucune source Kotlin de `:app`~~
+      **Levé par `detekt-formatting`**, qui embarque les règles ktlint dans
+      Detekt. Le garde-fou n'était pas décoratif : il a immédiatement révélé
+      **22 violations**, dont quatre imports morts laissés par le refactor
+      `AuthResult` → `Outcome`. Le constat d'origine :
+      > Constaté : `./gradlew :app:tasks --all` ne montre que
+      > `ktlintKotlinScriptCheck` — les fichiers `.kts`. `:domain`, lui, a bien
+      > `ktlintMainSourceSetCheck`, `ktlintTestSourceSetCheck` et
+      > `ktlintTestFixturesSourceSetCheck`. Le greffon ktlint-gradle 12.1.1 ne
+      > découvre pas les jeux de sources Android d'AGP 9.
+      >
+      > **Conséquence : la commande de vérification d'AGENTS.md §5 est
+      > partiellement vide depuis l'origine**, exactement comme l'était le
+      > garde-fou de couverture en Phase 0. Preuve : dans `LoginScreen.kt`,
+      > `LinearProgressIndicator` est importé avant `Icon` — un ordre que ktlint
+      > refuse, et qui a survécu à toutes les vérifications.
+      >
+      > Detekt, lui, couvre bien `:app` : le formatage n'est donc pas totalement
+      > sans surveillance, mais les règles de style de ktlint n'y sont pas
+      > appliquées. Piste retenue : ajouter `detekt-formatting`, qui embarque les
+      > règles ktlint dans Detekt, plutôt que de tenter de faire découvrir les
+      > jeux de sources au greffon.
+      > La correction a été différée jusqu'à la fin des travaux parallèles :
+      > modifier les fichiers Gradle sous des agents en cours leur aurait fait
+      > voir des violations apparues en cours de route.
 - [ ] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
       (`ignoreTestSources = true`, hérité). AGP 9.3.1 plante sur ses propres
       composants d'analyse Kotlin. À réactiver dès qu'une version corrige.
@@ -330,7 +356,9 @@ Couvre SPECS.md §4.3 et §4.4.
 - [x] `GOAL-006-T04` Brancher l'écran sur la destination Discover
 - [x] `GOAL-006-T05` Tests d'écran et de ViewModel, plus dix captures Roborazzi
       (flux, vide, chargement, erreur, fin) — **regardées** : aucun défaut visuel
-- [ ] `GOAL-006-T06` **Afficher les illustrations.** Un `TODO(GOAL-006)` subsiste
+- [x] `GOAL-006-T06` **Illustrations affichées** (Coil), rapport d'aspect stable,
+      échec de chargement qui referme la carte, et contraste du réservé corrigé —
+      il était strictement invisible en thème clair (ratio 1,00). Énoncé initial : Un `TODO(GOAL-006)` subsiste
       dans `DiscoverScreen` : aucune bibliothèque de chargement d'images n'est au
       projet, l'emplacement est réservé mais reste gris. Demande une dépendance
       (Coil), donc une modification des fichiers Gradle. À traiter en même temps :
@@ -384,7 +412,33 @@ Couvre SPECS.md §4.5.
 
 ## GOAL-008 — Synchronisation du statut lu
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — le socle est livré, rien n'est orchestré
+
+- [x] `GOAL-008-T01` `FreshRssApi.modificationToken()` et `markAsRead()` —
+      12 tests, dont l'identifiant non signé
+- [x] `GOAL-008-T02` `PendingMarkEntity`, `PendingMarkDao`, `PendingMarkQueue`,
+      et migration réelle `AppDatabase` 1 → 2 — 11 tests, migration comprise
+- [x] `GOAL-008-T03` **`addMigrations(MIGRATION_1_2)` déclarée** dans
+      `DatabaseModule`, avec `providePendingMarkDao`. Sans elle, tout appareil
+      déjà en version 1 aurait planté au premier accès — invisible aux tests,
+      qui construisent la base en mémoire, donc toujours à la version courante
+- [ ] `GOAL-008-T04` Orchestrer : `enqueue` → jeton → `markAsRead` →
+      `acknowledge`, plus le rejeu au démarrage
+- [ ] `GOAL-008-T05` Sur `401` pendant `markAsRead`, redemander **une fois** le
+      jeton de modification avant de conclure à une perte de session
+- [ ] `GOAL-008-T06` Vider la file à la déconnexion, là où le cache l'est déjà
+- [ ] `GOAL-008-T07` Trancher la taille de lot et le délai de regroupement
+      (SPECS.md §8 question 4)
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| `OnConflictStrategy.IGNORE` plutôt que `REPLACE` | Le dédoublonnage préserve la date de mise en file d'origine. Avec `REPLACE`, un article fréquemment revu verrait son horodatage repoussé et **pourrait ne jamais atteindre la tête de file** |
+| Tri sur `(date, identifiant)` et non sur la seule date | Sans second critère, une transmission partielle pourrait retomber en boucle sur le même lot |
+| `acknowledge` distincte de `pending` | Retirer avant confirmation perdrait le marquage sur un échec réseau — précisément ce que la file existe pour empêcher |
+| Migration réelle, pas de `fallbackToDestructiveMigration` | Une migration destructive viderait le cache et **les marquages non transmis** de tout utilisateur existant |
+| La longueur du jeton n'est pas validée | Un jeton refusé se signale par un `401`, pas par sa taille |
 
 > ⚠️ **Piège identifié d'avance.** Un identifiant d'article dépassant
 > `Long.MAX_VALUE` est conservé sous forme de bits, donc **négatif** en Kotlin.
@@ -415,22 +469,57 @@ pas réordonner l'existant.
 
 Couvre SPECS.md §4.7.
 
-- [ ] `GOAL-010-T01` Ouvrir le lien dans un onglet personnalisé (*Custom Tab*) —
-      **un `TODO(GOAL-010)` existe déjà dans `AppNavHost.kt`** : l'écran expose
-      le geste et distingue les articles sans lien, il ne manque que l'ouverture
-- [ ] `GOAL-010-T02` Marquer l'article comme lu à l'ouverture, quelle que soit
-      sa visibilité passée
-- [ ] `GOAL-010-T03` Dépendance `androidx.browser` à ajouter au catalogue et à
-      câbler
+- [x] `GOAL-010-T01` `ArticleOpener` : onglet personnalisé, filtrage des schémas,
+      absence de navigateur traitée — 17 tests
+- [x] `GOAL-010-T02` Ouvreur branché : `ArticleUiModel` transporte désormais
+      `url`, et `isOpenable` en est dérivé par défaut
+- [ ] `GOAL-010-T03` Marquer l'article comme lu à l'ouverture, quelle que soit
+      sa visibilité passée (SPECS.md §4.7) — décision de ViewModel
+- [ ] `GOAL-010-T04` Message explicite si l'ouverture échoue hors ligne
+      (SPECS.md §5.2), et si aucun navigateur n'est installé — `ArticleOpener`
+      distingue déjà `Ignored` de `NoBrowser`, personne ne lit encore ce retour
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Seuls `http` et `https` sont ouverts | Le lien d'un flux RSS est du **contenu tiers non maîtrisé**. Laisser passer `intent:`, `javascript:` ou `file:` reviendrait à laisser un serveur distant décider de ce que fait le téléphone |
+| Aucune préconnexion, aucun `warmup`, aucune session liée | SPECS.md §7.4 : l'ouverture est une action **de l'utilisateur**. Un préchargement serait une requête sortante qu'il n'a pas demandée. Prix payé et assumé : ouverture un peu moins rapide |
+| L'ouvreur revalide l'URL que l'écran a déjà filtrée | Il ne fait pas confiance à son appelant : la garantie doit tenir même si un futur écran oublie le filtre |
+| Barre d'onglet en `surface`, pas `primary` | L'onglet prolonge l'écran qu'il recouvre |
 
 ---
 
 ## GOAL-011 — Écran de réglages
 
-**Statut : TODO** — à découper par `/goal`
+**Statut : IN PROGRESS** — l'écran existe, une seule action y est branchée
 
-Couvre SPECS.md §6. Retire le `PlaceholderScreen` de la destination Réglages
-(`GOAL-001-T15`).
+Couvre SPECS.md §6.
+
+- [x] `GOAL-011-T01` `SettingsUiState`, `SettingsViewModel`, `SettingsScreen`,
+      `SettingsTestTags` — 18 tests, 4 captures **regardées**
+- [x] `GOAL-011-T02` Déconnexion avec confirmation (SPECS.md §3.5) : les deux
+      issues sont testées, l'annulation n'appelle pas `signOut()`
+- [x] `GOAL-011-T03` Écran branché sur la destination Réglages, dernier
+      `PlaceholderScreen` retiré (lève `GOAL-001-T15`)
+- [ ] `GOAL-011-T04` **Persister les seuils de marquage.** Aucun stockage de
+      réglages n'existe : les valeurs affichées **recopient** les défauts privés
+      de `ReadDetector`, et rien n'empêche les deux déclarations de diverger
+- [ ] `GOAL-011-T05` Mesurer la taille du cache et brancher la purge manuelle —
+      le bouton est volontairement **désactivé plutôt qu'absent**, pour que la
+      fonctionnalité soit annoncée
+- [x] `GOAL-011-T06` **Licence choisie : MIT.** `LICENSE` ajouté à la racine,
+      l'écran de réglages affiche « Licence MIT ». L'agent avait refusé d'en
+      inventer une et affichait « Non encore déterminée » — c'était la bonne
+      conduite : la licence est une décision d'auteur, pas un détail à combler
+
+### Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Les seuils sont affichés mais non modifiables | Les rendre modifiables sans stockage donnerait un réglage qui ne survit pas à la fermeture — pire qu'un réglage absent |
+| Le bouton de purge est désactivé, pas caché | Annoncer la fonctionnalité vaut mieux que la faire découvrir plus tard ; la phrase au-dessus explique pourquoi il ne répond pas |
+| L'unité de conversion est faite dans le ViewModel | `0.6f → 60 %` et `1000 ms → 1 s` sont des calculs : AGENTS.md §9 les interdit dans un Composable |
 
 ---
 

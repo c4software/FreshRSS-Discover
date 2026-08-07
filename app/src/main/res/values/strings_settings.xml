@@ -1,0 +1,45 @@
+<resources>
+    <!--
+      Écran de réglages (SPECS.md §6). Fichier distinct de `strings.xml` :
+      Android fusionne les fichiers de ressources d'un même dossier, et garder
+      l'écran dans le sien évite de faire converger plusieurs travaux sur un
+      unique fichier.
+    -->
+    <string name="settings_title">Réglages</string>
+
+    <!-- Compte connecté, en lecture seule : il vient de la session observée. -->
+    <string name="settings_section_account">Compte</string>
+    <string name="settings_server_label">Adresse du serveur</string>
+    <string name="settings_username_label">Identifiant</string>
+    <string name="settings_no_session">Aucune session ouverte.</string>
+
+    <!-- Seuils du marquage automatique (SPECS.md §4.5). -->
+    <string name="settings_section_reading">Marquage automatique</string>
+    <string name="settings_reading_help">Un article devient lu lorsqu\'il est resté suffisamment visible à l\'écran.</string>
+    <string name="settings_visible_fraction_label">Proportion visible</string>
+    <string name="settings_visible_fraction_value">au moins %1$d %%</string>
+    <string name="settings_continuous_visibility_label">Durée continue</string>
+    <string name="settings_continuous_visibility_value">au moins %1$d s</string>
+    <string name="settings_reading_not_editable">Ces seuils ne sont pas encore modifiables : leur enregistrement reste à écrire.</string>
+
+    <!-- Cache local (SPECS.md §5.1 et §5.3). -->
+    <string name="settings_section_cache">Cache local</string>
+    <string name="settings_cache_size_label">Taille du cache</string>
+    <string name="settings_cache_size_unavailable">Non disponible</string>
+    <string name="settings_purge_cache">Purger le cache</string>
+    <string name="settings_cache_not_available">La mesure de la taille et la purge manuelle restent à écrire.</string>
+
+    <!-- Déconnexion (SPECS.md §3.5) : destructrice, donc confirmée. -->
+    <string name="settings_sign_out">Se déconnecter</string>
+    <string name="settings_sign_out_dialog_title">Se déconnecter ?</string>
+    <string name="settings_sign_out_dialog_message">Le jeton, l\'identifiant et le cache local seront effacés. Il faudra vous reconnecter pour retrouver votre flux.</string>
+    <string name="settings_sign_out_confirm">Se déconnecter</string>
+    <string name="settings_sign_out_cancel">Annuler</string>
+
+    <!-- À propos. -->
+    <string name="settings_section_about">À propos</string>
+    <string name="settings_version_label">Version</string>
+    <string name="settings_license_label">Licence</string>
+    <!-- Correspond au fichier LICENSE à la racine du dépôt. -->
+    <string name="settings_license_value">Licence MIT</string>
+</resources>
