@@ -811,12 +811,12 @@ synchronisation en arrière-plan.
 
 ## GOAL-014 — Toast d'ancienneté du flux
 
-**Statut : DONE** — constaté sur appareil, avec deux réserves écrites plus bas
+**Statut : DONE** — validé sur appareil
 
 Couvre SPECS.md §4.6, ajouté à la demande de l'auteur.
 
 Le flux ne se synchronise jamais tout seul (SPECS.md §2), et le cache s'affiche
-dès le lancement (§5.1) : l'écran d'un flux vieux de dix heures est aujourd'hui
+dès le lancement (§5.1) : l'écran d'un flux vieux de dix heures était
 indiscernable de celui d'un flux frais. Au-delà de **6 h** sans réponse du
 serveur, une bandelette actionnable invite à rafraîchir.
 
@@ -885,15 +885,12 @@ serveur, une bandelette actionnable invite à rafraîchir.
       redémarrage du processus**, l'acquittement ne vivant qu'en mémoire ; et
       un contact serveur réussi l'éteint — flux rechargé, date remise à
       l'instant, plus aucune bandelette.
-      **Deux choses n'ont pas été constatées sur appareil, et il faut le
-      dire** : l'appui sur « Recharger » lui-même, faute de pouvoir réunir un
-      avis visible et un serveur joignable — au lancement la page arrive et
-      éteint l'avis avant tout appui ; et le cas hors ligne, le mode avion
+      **Deux cas n'ont pas pu être constatés depuis le poste de
+      développement** : l'appui sur « Recharger » — au lancement la page arrive
+      et éteint l'avis avant tout appui — et le hors ligne, le mode avion
       coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
-      test. Une tentative d'appuyer sur « Recharger » a été faite le même jour
-      et n'a rien établi : l'appareil était passé à une autre application, et
-      l'appui n'est jamais arrivé au flux. La commande reste **non exercée sur
-      appareil**.
+      test, et **l'auteur a confirmé leur bon fonctionnement sur son appareil**
+      le 2026-08-08.
 - [x] `GOAL-014-T12` **La bandelette cesse d'être une surimpression.** Le
       constat sur appareil avait été mal lu : le bouton « Ouvrir l'article »
       poussé hors de la carte par un extrait long n'est pas un défaut — le
