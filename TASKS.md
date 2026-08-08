@@ -52,14 +52,18 @@ une étape à part, volontairement séquentielle.
 | GOAL-005 | Mélange des sources | `[-]` |
 | GOAL-006 | Flux Discover — interface | `[-]` |
 | GOAL-007 | Marquage automatique comme lu | `[-]` |
-| GOAL-008 | Synchronisation du statut lu | `[ ]` |
-| GOAL-009 | Tirer-pour-rafraîchir | `[ ]` |
+| GOAL-008 | Synchronisation du statut lu | `[-]` |
+| GOAL-009 | Tirer-pour-rafraîchir | `[x]` |
 | GOAL-010 | Ouverture de l'article d'origine | `[ ]` |
-| GOAL-011 | Écran de réglages | `[ ]` |
+| GOAL-011 | Écran de réglages | `[-]` |
+| GOAL-012 | Vue Balayage, article par article | `[-]` |
+| GOAL-013 | Rappel de lecture par notification locale | `[x]` |
+| GOAL-014 | Toast d'ancienneté du flux | `[ ]` |
 
-Seul **GOAL-002** est découpé en tâches ci-dessous. Les suivants le seront par
-`/goal` au moment de les entreprendre : les découper maintenant reviendrait à
-décider sans connaître l'état du code (AGENTS.md §2, « ne pas anticiper »).
+L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
+découpés en tâches par `/goal` au moment de les entreprendre : les découper
+d'avance reviendrait à décider sans connaître l'état du code (AGENTS.md §2,
+« ne pas anticiper »).
 
 ---
 
@@ -790,6 +794,57 @@ serait un trou, pas une commodité.
 Le rappel ne voit que le cache : un article publié depuis la dernière ouverture
 n'y est pas, et ne sera donc pas annoncé. C'est le prix assumé de l'absence de
 synchronisation en arrière-plan.
+
+---
+
+## GOAL-014 — Toast d'ancienneté du flux
+
+**Statut : TODO**
+
+Couvre SPECS.md §4.6, ajouté à la demande de l'auteur.
+
+Le flux ne se synchronise jamais tout seul (SPECS.md §2), et le cache s'affiche
+dès le lancement (§5.1) : l'écran d'un flux vieux de dix heures est aujourd'hui
+indiscernable de celui d'un flux frais. Au-delà de **6 h** sans réponse du
+serveur, une bandelette actionnable invite à rafraîchir.
+
+### Ce qui a été tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| Seuil d'ancienneté | **6 h** | Décision d'auteur. Inscrite dans SPECS.md §8 |
+| Qui décide | Une fonction pure de `:domain` | Comme `reminderPlanFor` (GOAL-013) : ni horloge, ni chaîne, ni Android dans la règle |
+| Qui horodate | Le **dépôt**, sur toute réponse serveur valide, `loadPage` comprise | Deux ViewModels appellent `refresh()` ; horodater côté présentation dupliquerait la règle et laisserait les deux modes diverger. La couche qui a parlé au serveur est la seule à savoir qu'il a répondu |
+| Support de stockage | DataStore, clé `feed.last_refresh_at` | Scalaire (ARCHITECTURE.md §5.1 : Room porte les collections, DataStore les scalaires) |
+| Hors ligne | **Aucune bandelette** | Le bandeau hors ligne dit déjà pourquoi le flux est ancien. Proposer « Rafraîchir » là où l'appel échouera à coup sûr est une fausse porte, et empilerait deux bandelettes au même endroit de l'écran |
+| Acquittement | **En mémoire**, partagé par les deux modes, repéré par l'horodatage acquitté | Local à un ViewModel, il ferait revenir la bandelette à chaque bascule Liste↔Balayage. Comparer les horodatages la fait revenir après un rafraîchissement réussi puis 6 h, sans horloge supplémentaire |
+| Effacement | **À la main**, jamais par minuteur | Le dépôt a déjà tranché ainsi pour l'avis d'ouverture hors ligne : « un message qui s'efface tout seul se rate » |
+| Commandes de la bandelette | « Rafraîchir » **et** une fermeture | Une seule action imposerait le message à qui n'est pas en état de rafraîchir |
+
+### Tâches
+
+- [ ] `GOAL-014-T01` **Le domaine décide de l'ancienneté** : `FeedFreshness`,
+      `STALE_FEED_THRESHOLD_MILLIS`, `FeedFreshnessRepository`. Jamais ancien
+      sans point de référence ; une horloge qui recule ne rend rien ancien
+- [ ] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
+      `DataStore`, acquittement en mémoire vive et partagé
+- [ ] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
+      compris une page valide mais vide — le serveur a répondu
+- [ ] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
+      et le réveil périodique sans lequel le seuil ne serait jamais franchi à
+      l'écran
+- [ ] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
+      compris — acquitter dans un mode fait taire l'autre
+- [ ] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle est
+      aujourd'hui écrite deux fois, à l'identique, dans les deux écrans
+- [ ] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Rafraîchir » y
+      emprunte exactement le rafraîchissement existant
+- [ ] `GOAL-014-T08` **L'avis s'affiche en mode Balayage**, sans masquer la
+      commande d'ouverture de l'article
+- [ ] `GOAL-014-T09` **Captures Roborazzi** : la bandelette sur une carte et sur
+      une illustration plein écran ne se jugent pas au même endroit
+- [ ] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8, ARCHITECTURE §5.1 et
+      §9, TASKS
 
 ---
 
