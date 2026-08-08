@@ -37,7 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : aucune n'est due.
+**Prochaine tâche** : `GOAL-017-T01`.
 
 ---
 
@@ -61,6 +61,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 | GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
 | GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
+| GOAL-017 | Un article déjà lu se voit | `[-]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1157,6 +1158,44 @@ réelle par-dessus.
       tout le reste.
       Trois passages d'ARCHITECTURE.md étaient devenus faux avec la suppression
       de la position de lecture, dont une section entière — voir `GOAL-016-T03`
+
+---
+
+## GOAL-017 — Un article déjà lu se voit
+
+**Statut : IN PROGRESS**
+
+Couvre SPECS.md §4.1 et §4.5. **Ce Goal répare une conséquence de
+`GOAL-015-T08`**, trouvée en analysant les dérives depuis la v1.2.0 à la
+demande de l'auteur.
+
+Les articles lus restent désormais affichés jusqu'au rechargement — c'est ce
+qui rend le flux stable au lancement. Mais rien ne les distingue : `isRead`
+existe dans le modèle d'affichage, le ViewModel le tient à jour, et **aucun
+écran ne le rend**. Tant que l'article disparaissait au lancement suivant, sa
+disparition était le signal ; il reste maintenant, indiscernable d'un article
+neuf, et l'on peut relire sans le savoir.
+
+### Ce qui a été tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| La marque | Un **fanion**, en haut de la carte, par-dessus l'illustration | Choix de l'auteur. Se repère en balayant l'écran, là où une coche dans la ligne de flux demande de lire |
+| Son emplacement | **Toujours le même** : en haut de la carte, que l'article ait une illustration ou non | C'est ce qui évite le second rendu, et le second jeu de captures, qu'un fanion posé dans le coin de l'image aurait imposés |
+| La collision de sens | **Assumée** : le signet dit d'ordinaire « favori » | Signalée à l'auteur, qui tranche. À rouvrir si les articles suivis de FreshRSS sont un jour ajoutés — les deux se disputeraient le symbole |
+| L'opacité de la carte | **Non retenue** | Elle atténuerait aussi le titre, et le contraste AA de SPECS.md §7.1 serait à remesurer sur chaque état |
+
+### Tâches
+
+- [ ] `GOAL-017-T01` **Le fanion**, composant partagé dans `presentation/feed` :
+      forme, contraste sur n'importe quelle image, description pour le lecteur
+      d'écran
+- [ ] `GOAL-017-T02` **Posé dans les deux modes**, en haut de la carte, avec ou
+      sans illustration
+- [ ] `GOAL-017-T03` **Captures Roborazzi** : lu et non lu, avec et sans
+      illustration, clair et sombre
+- [ ] `GOAL-017-T04` **Constaté sur appareil**
+- [ ] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9, TASKS
 
 ---
 
