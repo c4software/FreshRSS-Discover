@@ -1079,7 +1079,7 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
 
 ## GOAL-016 — Les petites illustrations cessent d'être étirées
 
-**Statut : TODO** — décisions à trancher avant d'écrire
+**Statut : IN PROGRESS**
 
 Couvre SPECS.md §4.3, ajouté à la demande de l'auteur. Une illustration plus
 petite que le créneau est aujourd'hui **agrandie** pour le remplir, et le
@@ -1098,16 +1098,32 @@ réelle par-dessus.
 | `Modifier.blur` exige **API 31** ; le projet descend à **26** | `android-minSdk = "26"` |
 | Le chargeur de test rend une image **carrée de 400 px**, franche : de quoi éprouver le cas sans réseau | `FakeIllustrations.kt` |
 
-### Ce qui reste à trancher, et qui n'est pas anodin
+### Ce qui a été tranché avant d'écrire
 
-| # | Question | Ce qui en dépend |
+| Point | Décision | Raison |
 |---|---|---|
-| 1 | À partir de quand une image est-elle « trop petite » ? | Un seuil trop bas floute des images correctes ; trop haut, il laisse passer le défaut |
-| 2 | Le fond flouté remplit-il tout le créneau, ou seulement les bandes laissées libres ? | La lisibilité de l'image nette, et la quantité de flou à l'écran |
-| 3 | Que faire sous API 31, où `Modifier.blur` ne fait rien ? | Un repli silencieux laisserait un fond net et dupliqué, pire que l'étirement |
-| 4 | La règle vaut-elle aussi en mode Balayage ? | Le défaut y est bien plus visible — l'image occupe la moitié de l'écran |
+| Quand une image est « trop petite » | **Quand il faudrait l'agrandir** : largeur source < largeur du créneau | C'est la définition exacte du défaut. Un seuil chiffré serait arbitraire et devrait être défendu ; celui-ci se mesure |
+| Le fond | La **même image**, rognée et floutée, sur **tout** le créneau ; l'image nette centrée par-dessus, à sa taille | Le créneau reste plein, sans bande vide ni cadre. C'est le procédé demandé par l'auteur, employé par plusieurs réseaux sociaux |
+| Sous API 31 | **Rien ne change** : l'étirement d'aujourd'hui | `Modifier.blur` n'y fait rien, et un fond net dupliqué serait pire que le défaut qu'on corrige. Un second mécanisme — teinte dominante — coûterait son écriture et ses tests pour une minorité d'appareils |
+| Portée | Les **deux** modes, après avoir réuni le composant | Il est écrit deux fois : corriger sans réunir, c'est corriger deux fois puis diverger une fois |
 
-### Tâches — à écrire une fois les questions tranchées
+### Tâches
+
+- [ ] `GOAL-016-T01` **L'illustration devient un seul composant**, dans
+      `presentation/feed` : elle est aujourd'hui écrite à l'identique dans les
+      deux écrans. Refactor pur — captures inchangées, tests d'écran inchangés
+- [ ] `GOAL-016-T02` **Le composant sait si l'image serait agrandie** : taille
+      source lue dans l'état de Coil, comparée à la largeur mesurée du créneau.
+      Décision pure, éprouvable sans rendu
+- [ ] `GOAL-016-T03` **Le fond flouté**, sous l'image à sa taille réelle, et
+      seulement quand l'agrandissement aurait lieu. Sous API 31, l'étirement
+      d'aujourd'hui, sans y toucher
+- [ ] `GOAL-016-T04` **Captures Roborazzi** : une petite image et une grande,
+      dans les deux modes, clair et sombre — le chargeur de test doit gagner
+      une illustration franchement petite
+- [ ] `GOAL-016-T05` **Constaté sur appareil**, sur un article réel à petite
+      illustration
+- [ ] `GOAL-016-T06` **Documentation** : SPECS §4.3, ARCHITECTURE §9, TASKS
 
 ---
 
