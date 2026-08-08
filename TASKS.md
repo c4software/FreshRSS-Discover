@@ -828,8 +828,9 @@ serveur, une bandelette actionnable invite à rafraîchir.
       sans point de référence ; une horloge qui recule ne rend rien ancien.
       15 tests, dont l'horodatage restauré depuis le futur et l'acquittement
       que le temps rouvre
-- [ ] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
-      `DataStore`, acquittement en mémoire vive et partagé
+- [x] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
+      `DataStore`, acquittement en mémoire vive et partagé. 7 tests sur un
+      DataStore réel, dont l'acquittement fait avant tout rafraîchissement
 - [ ] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
       compris une page valide mais vide — le serveur a répondu
 - [ ] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
