@@ -1249,10 +1249,19 @@ l'empreinte vérifiée à l'arrivée — va dans le bon sens pour un artefact si
 
 ### Tâches
 
-- [ ] `GOAL-018-T01` **Monter les six actions**, puis constater la CI verte sur
-      une pull request — c'est le seul déclencheur actif (`GOAL-001-T19`)
+- [x] `GOAL-018-T01` **Monter les six actions**, puis constater la CI verte sur
+      une pull request — c'est le seul déclencheur actif (`GOAL-001-T19`).
+      Constaté : run vert, et **plus aucun avertissement d'action dépréciée**
+      dans le journal. Ceux qui subsistent viennent de Gradle, pas de GitHub —
+      voir `GOAL-018-T03`
 - [ ] `GOAL-018-T02` **Constater la publication**, qui ne s'éprouve qu'au
       prochain tag : elle emploie deux actions que la CI ne traverse pas
+- [ ] `GOAL-018-T03` **Les avertissements Gradle restants.** « Deprecated Gradle
+      features were used in this build, making it incompatible with Gradle 10 »
+      apparaît à chaque tâche. Ils ne viennent pas des actions mais du build
+      lui-même — plugins ou scripts. `--warning-mode all` les nommera. Distinct
+      de `T01`, et de portée différente : celui-ci touche la construction, pas
+      la chaîne d'intégration
 
 ---
 
