@@ -14,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,19 @@ private const val FLAG_NOTCH_FRACTION = 0.28f
 
 /** Taille de la coche portée par le fanion. */
 private val FLAG_ICON_SIZE = 14.dp
+
+/**
+ * Opacité du fanion.
+ *
+ * Il marque un article **déjà lu** : il doit se trouver quand on le cherche, et
+ * s'oublier le reste du temps. À pleine opacité il attirait l'œil sur ce qu'il
+ * y a de moins intéressant dans le flux — constaté sur appareil.
+ *
+ * Appliquée à la surface entière, coche comprise : atténuer la seule couleur de
+ * fond aurait laissé la coche à pleine intensité, c'est-à-dire l'inverse du
+ * résultat cherché.
+ */
+private const val FLAG_ALPHA = 0.55f
 
 /**
  * La silhouette d'un signet : un rectangle dont le bas rentre en V.
@@ -77,6 +91,7 @@ fun ReadFlag(modifier: Modifier = Modifier) {
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         modifier = modifier
             .padding(end = Spacing.md)
+            .alpha(FLAG_ALPHA)
             .width(FLAG_WIDTH)
             .height(FLAG_HEIGHT)
             .testTag(FeedTestTags.READ_FLAG),

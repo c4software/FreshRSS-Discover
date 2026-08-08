@@ -1202,6 +1202,11 @@ neuf, et l'on peut relire sans le savoir.
       après un lancement à froid, les fanions y sont déjà. C'est ce constat qui
       a révélé le défaut de projection — l'auteur avait signalé « un petit délai
       avant l'affichage du fanion », et c'était en réalité un état faux
+- [x] `GOAL-017-T06` **Le fanion est atténué**, à la demande de l'auteur : à
+      pleine opacité il attirait l'œil sur ce qu'il y a de moins intéressant
+      dans le flux. L'opacité porte sur la surface entière, coche comprise —
+      n'atténuer que le fond aurait laissé la coche à pleine intensité, soit
+      l'inverse du résultat cherché
 - [x] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9.9 — qui
       retient la leçon des tests, non le seul correctif — README, TASKS
 
