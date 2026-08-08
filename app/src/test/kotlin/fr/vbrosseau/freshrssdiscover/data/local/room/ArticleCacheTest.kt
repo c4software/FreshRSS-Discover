@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.data.local.room
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.feed.feedRef
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
@@ -172,5 +173,56 @@ class ArticleCacheTest {
     @Test
     fun anEmptyCacheObservesAnEmptyList() = runTest {
         assertTrue(cache.observeArticles(LARGE_LIMIT).first().isEmpty())
+    }
+    // ----- Ce qu'il reste à lire (SPECS.md §4.9) ------------------------------
+
+    @Test
+    fun onlyUnreadArticlesAreOfferedToTheReminder() = runTest {
+        cache.save(
+            listOf(
+                article(id = 1L, title = "Lu", isRead = true),
+                article(id = 2L, title = "À lire"),
+            ),
+        )
+
+        assertEquals(listOf("À lire"), cache.unreadArticles(LARGE_LIMIT).map { it.title })
+    }
+
+    @Test
+    fun theReminderSeesTheMostRecentArticlesFirst() = runTest {
+        cache.save(
+            listOf(
+                article(id = 1L, title = "Ancien", publishedAtEpochSeconds = 1_000L),
+                article(id = 2L, title = "Récent", publishedAtEpochSeconds = 9_000L),
+            ),
+        )
+
+        assertEquals(listOf("Récent", "Ancien"), cache.unreadArticles(LARGE_LIMIT).map { it.title })
+    }
+
+    @Test
+    fun theLimitIsAppliedBySqliteAndNotAfterwards() = runTest {
+        cache.save(List(20) { article(id = it.toLong(), publishedAtEpochSeconds = it.toLong()) })
+
+        assertEquals(3, cache.unreadArticles(limit = 3).size)
+    }
+
+    @Test
+    fun aFullyReadCacheOffersNothingRatherThanEverything() = runTest {
+        // Le cas qui décide s'il y a une notification ou non : le filtre doit
+        // être dans la requête, sans quoi une pile entièrement lue rapporterait
+        // deux cents lignes pour n'en garder aucune.
+        cache.save(List(5) { article(id = it.toLong(), isRead = true) })
+
+        assertTrue(cache.unreadArticles(LARGE_LIMIT).isEmpty())
+    }
+
+    @Test
+    fun anArticleMarkedReadLeavesTheReminderImmediately() = runTest {
+        cache.save(listOf(article(id = 1L, title = "À lire"), article(id = 2L, title = "Aussi")))
+
+        cache.markAsRead(listOf(ArticleId(1L)))
+
+        assertEquals(listOf("Aussi"), cache.unreadArticles(LARGE_LIMIT).map { it.title })
     }
 }

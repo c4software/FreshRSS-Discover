@@ -29,6 +29,25 @@ internal interface ArticleDao {
     suspend fun readArticleIds(): List<Long>
 
     /**
+     * Les articles non lus du cache, du plus récent au plus ancien.
+     *
+     * Une **lecture ponctuelle** et non un `Flow` : l'appelant est le rappel de
+     * lecture (SPECS.md §4.9), qui s'exécute une fois hors de toute interface.
+     * Un flux l'obligerait à ouvrir puis refermer une souscription pour un seul
+     * relevé, et à maintenir un observateur de base dans un travailleur qui a
+     * vocation à se terminer.
+     *
+     * Le filtre est fait par SQLite plutôt qu'en Kotlin après coup : sans lui,
+     * une pile entièrement lue rapporterait deux cents lignes pour n'en garder
+     * aucune.
+     */
+    @Query(
+        "SELECT * FROM articles WHERE is_read = 0 " +
+            "ORDER BY published_at_epoch_seconds DESC, id DESC LIMIT :limit",
+    )
+    suspend fun unreadArticles(limit: Int): List<ArticleEntity>
+
+    /**
      * Enregistre une page en **conservant l'état lu déjà connu localement**.
      *
      * Un article lu sur l'appareil peut ne pas encore l'être côté serveur : le

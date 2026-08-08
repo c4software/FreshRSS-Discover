@@ -739,9 +739,11 @@ formulation d'un jour à l'autre.
       `ReminderTone`, `reminderPlanFor`. Aucune chaîne, aucune horloge, aucun
       fuseau lu — tout est transmis. 17 tests, dont le changement d'heure des
       deux sens et une horloge d'appareil antérieure à l'époque
-- [-] `GOAL-013-T02` **Le cache sait dire ce qu'il reste** : lecture des
-      articles non lus, sans réseau
-- [ ] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
+- [x] `GOAL-013-T02` **Le cache sait dire ce qu'il reste** : lecture des
+      articles non lus, sans réseau — filtre fait par SQLite, lecture ponctuelle
+      plutôt que `Flow`, mélange des sources appliqué comme au flux. 5 tests sur
+      base réelle
+- [-] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
       jour enregistré, `DataStore`
 - [ ] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
       unique, réarmement du lendemain par le travailleur lui-même — sans quoi

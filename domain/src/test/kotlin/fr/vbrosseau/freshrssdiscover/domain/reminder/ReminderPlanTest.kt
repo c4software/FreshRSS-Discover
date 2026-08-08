@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ReminderPlanTest {
-
     @Test
     fun anEmptyCacheProducesNoReminderAtAll() {
         // Un rappel annonçant qu'il n'y a rien à lire est une interruption sans
@@ -18,14 +17,16 @@ class ReminderPlanTest {
 
     @Test
     fun theReminderCitesTheFirstTitlesOfTheFeed() {
-        val plan = reminderPlanFor(
-            unread = listOf(
-                article(id = 1L, title = "Premier"),
-                article(id = 2L, title = "Deuxième"),
-                article(id = 3L, title = "Troisième"),
-            ),
-            dayIndex = 0,
-        )
+        val plan =
+            reminderPlanFor(
+                unread =
+                    listOf(
+                        article(id = 1L, title = "Premier"),
+                        article(id = 2L, title = "Deuxième"),
+                        article(id = 3L, title = "Troisième"),
+                    ),
+                dayIndex = 0,
+            )
 
         assertEquals(listOf("Premier", "Deuxième"), plan?.titles)
     }

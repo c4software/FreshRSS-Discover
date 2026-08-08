@@ -93,4 +93,18 @@ interface ArticleRepository {
      * donc exactement où il en était.
      */
     suspend fun refresh(): FeedResult<ArticlePage>
+
+    /**
+     * Ce qu'il reste à lire dans le **cache**, sans toucher au réseau.
+     *
+     * `FeedResult` serait de trop : il n'y a pas d'échec à rapporter, un cache
+     * vide se disant très bien par une liste vide. C'est la différence avec
+     * [loadPage], qui peut trouver le serveur injoignable.
+     *
+     * L'absence de réseau n'est pas une commodité mais le contrat : l'appelant
+     * est le rappel de lecture (SPECS.md §4.9), et SPECS.md §2 exclut toujours
+     * la synchronisation en arrière-plan. Une implémentation qui irait chercher
+     * une page ferait sortir une requête sans geste de l'utilisateur (§7.4).
+     */
+    suspend fun unreadFromCache(limit: Int): List<Article>
 }

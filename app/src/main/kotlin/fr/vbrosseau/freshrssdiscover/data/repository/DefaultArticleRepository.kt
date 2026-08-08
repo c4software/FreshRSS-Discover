@@ -88,6 +88,12 @@ internal class DefaultArticleRepository @Inject constructor(
      * filtrage : un cache chargé d'articles lus rend une liste plus courte que
      * demandée — sans conséquence, la première page réseau la complète aussitôt.
      */
+    override suspend fun unreadFromCache(limit: Int): List<Article> =
+        // Mélangés comme le flux (SPECS.md §4.2) : le rappel cite les premiers
+        // titres, et les prendre dans l'ordre brut de la base ferait toujours
+        // citer la source la plus bavarde.
+        interleaveBySource(cache.unreadArticles(limit))
+
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cache.observeArticles(limit).map { articles ->
             interleaveBySource(articles.filterNot(Article::isRead))

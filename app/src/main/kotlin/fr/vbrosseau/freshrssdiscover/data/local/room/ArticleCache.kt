@@ -60,6 +60,10 @@ internal class ArticleCache @Inject constructor(
      * DAO garde la règle du projet — les entités Room ne franchissent pas cette
      * frontière, et rien au-dessus n'a à connaître le nom d'une colonne.
      */
+    /** Ce qu'il reste à lire, pour le rappel quotidien (SPECS.md §4.9). */
+    suspend fun unreadArticles(limit: Int): List<Article> =
+        dao.unreadArticles(limit).map(ArticleEntity::toDomain)
+
     suspend fun markAsRead(ids: Collection<ArticleId>) {
         if (ids.isEmpty()) return
         dao.markAsRead(ids.map(ArticleId::value))

@@ -263,6 +263,13 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Le rappel de lecture (SPECS.md §4.9) doit survivre à la fermeture de
+    // l'application et au redémarrage de l'appareil : c'est exactement ce
+    // qu'une coroutine ne fait pas, et ce que WorkManager garantit.
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // Cache local des articles (ARCHITECTURE.md §5.4) : Room porte les
     // collections, DataStore les scalaires.
     implementation(libs.androidx.room.runtime)
@@ -308,6 +315,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.hilt.testing)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
     testImplementation(libs.roborazzi)

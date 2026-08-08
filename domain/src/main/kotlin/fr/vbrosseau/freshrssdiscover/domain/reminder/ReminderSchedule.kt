@@ -4,8 +4,11 @@ import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 
+/** Minutes dans une heure — nommée pour que la conversion se lise. */
+private const val MINUTES_PER_HOUR = 60
+
 /** Nombre de minutes dans une journée, borne exclusive d'un moment de la journée. */
-const val MINUTES_PER_DAY: Int = 24 * 60
+const val MINUTES_PER_DAY: Int = 24 * MINUTES_PER_HOUR
 
 /**
  * Le moment de la journée auquel le rappel part (SPECS.md §4.9).
@@ -27,9 +30,12 @@ value class DailyMinute(val value: Int) {
 
     companion object {
         /** Le moment de la journée que porte cet instant, dans [zone]. */
-        fun of(epochMillis: Long, zone: ZoneId): DailyMinute {
+        fun of(
+            epochMillis: Long,
+            zone: ZoneId,
+        ): DailyMinute {
             val time = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalTime()
-            return DailyMinute(time.hour * 60 + time.minute)
+            return DailyMinute(time.hour * MINUTES_PER_HOUR + time.minute)
         }
     }
 }
@@ -48,16 +54,21 @@ value class DailyMinute(val value: Int) {
  *   ne connaît ni horloge ni réglage système, et un test doit pouvoir se placer
  *   à Tokyo comme à Paris.
  */
-fun nextReminderAt(at: DailyMinute, nowEpochMillis: Long, zone: ZoneId): Long {
+fun nextReminderAt(
+    at: DailyMinute,
+    nowEpochMillis: Long,
+    zone: ZoneId,
+): Long {
     val now = Instant.ofEpochMilli(nowEpochMillis).atZone(zone)
-    val target = LocalTime.of(at.value / 60, at.value % 60)
+    val target = LocalTime.of(at.value / MINUTES_PER_HOUR, at.value % MINUTES_PER_HOUR)
 
     val today = now.toLocalDate().atTime(target).atZone(zone)
-    val chosen = if (today.toInstant().toEpochMilli() > nowEpochMillis) {
-        today
-    } else {
-        now.toLocalDate().plusDays(1).atTime(target).atZone(zone)
-    }
+    val chosen =
+        if (today.toInstant().toEpochMilli() > nowEpochMillis) {
+            today
+        } else {
+            now.toLocalDate().plusDays(1).atTime(target).atZone(zone)
+        }
 
     return chosen.toInstant().toEpochMilli()
 }

@@ -9,8 +9,14 @@ import kotlin.test.assertTrue
 
 private val PARIS: ZoneId = ZoneId.of("Europe/Paris")
 
-private fun at(zone: ZoneId, year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
-    ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone).toInstant().toEpochMilli()
+private fun at(
+    zone: ZoneId,
+    year: Int,
+    month: Int,
+    day: Int,
+    hour: Int,
+    minute: Int,
+): Long = ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone).toInstant().toEpochMilli()
 
 /**
  * L'heure du rappel, éprouvée là où elle peut mentir.
@@ -21,7 +27,6 @@ private fun at(zone: ZoneId, year: Int, month: Int, day: Int, hour: Int, minute:
  * horloge d'appareil manifestement fausse.
  */
 class ReminderScheduleTest {
-
     @Test
     fun aTimeStillToComeTodayIsKeptForToday() {
         val now = at(PARIS, 2026, 3, 10, 8, 0)

@@ -60,7 +60,10 @@ data class ReminderPlan(
  * @param dayIndex un numéro de jour strictement croissant, typiquement le
  *   nombre de jours depuis l'époque. Seul son reste importe.
  */
-fun reminderPlanFor(unread: List<Article>, dayIndex: Long): ReminderPlan? {
+fun reminderPlanFor(
+    unread: List<Article>,
+    dayIndex: Long,
+): ReminderPlan? {
     if (unread.isEmpty()) return null
 
     val tones = ReminderTone.entries

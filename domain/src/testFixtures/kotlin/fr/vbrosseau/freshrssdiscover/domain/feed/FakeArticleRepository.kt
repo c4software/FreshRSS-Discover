@@ -68,6 +68,11 @@ class FakeArticleRepository : ArticleRepository {
         return nextResult()
     }
 
+    /** Ce que le cache rendra au rappel de lecture (SPECS.md §4.9). */
+    var unreadInCache: List<Article> = emptyList()
+
+    override suspend fun unreadFromCache(limit: Int): List<Article> = unreadInCache.take(limit)
+
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cachedArticles.map { articles -> articles.take(limit) }
 
