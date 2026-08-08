@@ -32,7 +32,7 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-Treize Goals sur quatorze sont terminés. Ce qui reste tient en quatre points,
+Treize Goals sur quatorze sont terminés. Ce qui reste tient en trois points,
 constatés un par un le 2026-08-08 et inscrits chacun dans la section de son
 Goal — aucun n'appartient à un chantier commun :
 
@@ -40,7 +40,6 @@ Goal — aucun n'appartient à un chantier commun :
 |---|---|
 | `GOAL-012-T05` | Le mode Balayage n'enregistre aucune position : `ReadingPositionViewModel` n'est branché que dans `DiscoverRoute` |
 | `GOAL-012-T07` | Bloqué : le balayage horizontal n'est praticable ni au lecteur d'écran ni sans précision du poignet |
-| `GOAL-002-T18` | `KeystoreSecretCipher` n'a toujours aucun test propre — seul `AppGraphTest` le traverse |
 | `GOAL-001-T17` | Bloqué : AGP 9.3.1 plante toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08 |
 
 **Prochaine tâche** : `GOAL-012-T05` — position de lecture partagée entre les
@@ -303,15 +302,23 @@ Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
 | Sixième cause d'échec : en-tête `Authorization` non transmis | Sans elle, un reverse-proxy fautif ferait accuser les identifiants. **A modifié SPECS.md §3.3** |
 | Chiffrement AES/GCM écrit à la main | `androidx.security:security-crypto` est déprécié (AGENTS.md §2) |
 | `SecretCipher` abstrait | Robolectric ne simule pas `AndroidKeyStore` ; sans lui, persistance et effacement seraient inéprouvables |
+| `SecretKeySource` extrait (GOAL-002-T18) | Le chiffrement lui-même restait inéprouvable parce qu'il fabriquait sa clé. Le partage réduit l'angle mort à l'appel de plateforme |
 | Sonde de reconnaissance **avant** l'envoi des identifiants | Une faute de frappe enverrait sinon le mot de passe à un serveur tiers |
 | Sonde de transmission d'en-tête **après** l'obtention du jeton | Plus tôt : un aller-retour gaspillé par tentative. Plus tard : une session vouée à boucler sur des 401 |
 | `invalidateSession()` distinct de `signOut()` | Un jeton refusé conserve adresse et identifiant ; une déconnexion efface tout |
 
 ### Dettes ouvertes par ce Goal
 
-- [ ] `GOAL-002-T18` **`KeystoreSecretCipher` n'est couvert par aucun test** —
-      Robolectric ne simule pas `AndroidKeyStore`. À éprouver sur appareil, ou
-      par un test instrumenté, avant toute publication.
+- [x] `GOAL-002-T18` **Le chiffrement des secrets est éprouvé** — 9 tests, dont
+      l'aller-retour, le vecteur d'initialisation qui change à chaque
+      chiffrement, un octet altéré que GCM refuse, et le texte illisible traité
+      comme une session absente plutôt qu'en plantant.
+      Robolectric ne simule toujours pas `AndroidKeyStore` — réessayé, le
+      fournisseur lève `NoSuchAlgorithmException`. La classe restait donc
+      inéprouvable **pour la seule raison qu'elle fabriquait sa clé** : la
+      provenance de la clé est passée derrière `SecretKeySource`, et ce qui
+      reste non couvert tient en une vingtaine de lignes qui n'appellent que la
+      plateforme.
 - [x] `GOAL-002-T19` ~~Deux points de l'API non constatés~~ **Levé.** La réponse
       de succès de `ClientLogin` et le `503` d'une API désactivée ont été
       observés sur une instance personnelle.

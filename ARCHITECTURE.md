@@ -254,11 +254,18 @@ Le chiffrement passe par **AES/GCM sur `AndroidKeyStore`**, écrit à la main :
 `androidx.security:security-crypto` aurait fait le même travail, mais la
 bibliothèque est dépréciée et AGENTS.md §2 l'interdit.
 
-`SecretCipher` abstrait le chiffrement pour une raison précise : Robolectric ne
-simule pas `AndroidKeyStore`. Sans cette interface, ni la persistance ni
-l'effacement à la déconnexion ne seraient éprouvables — c'est-à-dire précisément
-la partie où les fautes se logent. Seule l'implémentation *keystore* reste non
-couverte, et le dit.
+**Deux partages, et ils ne servent pas la même chose.** `SecretCipher` permet
+d'éprouver ce qui entoure le chiffrement — persistance, effacement à la
+déconnexion — sans magasin de clés, que Robolectric ne simule pas.
+`SecretKeySource` permet d'éprouver le chiffrement **lui-même** : le format, le
+vecteur d'initialisation, l'authentification GCM, et la conduite devant un texte
+illisible. Sans ce second partage, tout `KeystoreSecretCipher` restait hors de
+portée pour la seule raison qu'il fabriquait sa clé.
+
+Ce qui demeure non couvert se réduit donc à `AndroidKeyStoreKeySource` — une
+vingtaine de lignes qui n'appellent que la plateforme. Réessayé le 2026-08-08 :
+le fournisseur `AndroidKeyStore` lève toujours `NoSuchAlgorithmException` sous
+Robolectric.
 
 ### 5.3 Jeton refusé et déconnexion sont deux choses différentes
 
