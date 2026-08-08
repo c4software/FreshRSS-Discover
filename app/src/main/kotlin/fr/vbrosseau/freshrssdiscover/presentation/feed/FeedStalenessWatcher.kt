@@ -41,7 +41,7 @@ private const val STALE_CHECK_PERIOD_MILLIS = 5L * 60L * 1_000L
  * chaque écran qui décide de la montrer, en y ajoutant ce que lui seul sait —
  * qu'il est hors ligne, qu'il rafraîchit déjà, qu'il n'a rien à afficher.
  */
-class FeedStalenessWatcher(
+internal class FeedStalenessWatcher(
     private val repository: FeedFreshnessRepository,
     private val clock: Clock,
     private val scope: CoroutineScope,

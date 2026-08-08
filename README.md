@@ -50,6 +50,8 @@ horizontal comme une carte d'une pile.
   proposer ;
 - **lancement calme** : le flux rouvre exactement tel qu'on l'a laissé, sans
   interroger le serveur — c'est le rechargement, demandé, qui le renouvelle ;
+- illustrations **jamais agrandies** : une vignette trop étroite s'affiche à sa
+  taille, sur un fond flouté tiré d'elle-même, plutôt qu'étirée et floue ;
 - ouverture de l'article d'origine dans le navigateur ;
 - cache local consultable hors ligne, avec purge automatique et manuelle ;
 - **rappel de lecture quotidien**, à l'heure d'ouverture de la veille, citant

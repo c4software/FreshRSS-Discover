@@ -24,5 +24,5 @@ package fr.vbrosseau.freshrssdiscover.presentation.feed
  *   une supposition.
  * @param slotWidthPx largeur mesurée du créneau, en pixels de l'écran.
  */
-fun needsUpscaling(sourceWidthPx: Int, slotWidthPx: Int): Boolean =
+internal fun needsUpscaling(sourceWidthPx: Int, slotWidthPx: Int): Boolean =
     sourceWidthPx > 0 && slotWidthPx > 0 && sourceWidthPx < slotWidthPx

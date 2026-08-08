@@ -37,7 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : `GOAL-016`, dès que ses quatre questions sont tranchées.
+**Prochaine tâche** : aucune n'est due.
 
 ---
 
@@ -60,7 +60,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 | GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
-| GOAL-016 | Les petites illustrations cessent d'être étirées | `[ ]` |
+| GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1079,7 +1079,7 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
 
 ## GOAL-016 — Les petites illustrations cessent d'être étirées
 
-**Statut : IN PROGRESS**
+**Statut : DONE** — validé sur appareil
 
 Couvre SPECS.md §4.3, ajouté à la demande de l'auteur. Une illustration plus
 petite que le créneau est aujourd'hui **agrandie** pour le remplir, et le
@@ -1140,9 +1140,23 @@ réelle par-dessus.
       > les captures du dépôt auraient illustré le cas particulier en croyant
       > montrer le cas général. Portée à 1 600 px, elle redevient le cas
       > ordinaire — et les références existantes sont **inchangées au pixel**
-- [ ] `GOAL-016-T05` **Constaté sur appareil**, sur un article réel à petite
-      illustration
-- [ ] `GOAL-016-T06` **Documentation** : SPECS §4.3, ARCHITECTURE §9, TASKS
+- [x] `GOAL-016-T05` **Constaté sur appareil**, sur un article réel à petite
+      illustration — validé par l'auteur. Le premier essai y a d'ailleurs révélé
+      le défaut de `Fit`, qu'aucune capture n'avait montré : l'image factice du
+      harnais est carrée, une vignette réelle ne l'est pas
+- [x] `GOAL-016-T06` **Documentation** : SPECS §4.3 et §8 question 12,
+      ARCHITECTURE §9.8, README, TASKS
+- [x] `GOAL-016-T07` **Audit du code du jour**, demandé par l'auteur. Aucune
+      infraction aux interdits d'AGENTS.md §2 — pas d'import Android dans
+      `:domain`, aucun `Dispatchers.` ni `System.currentTimeMillis()` hors de
+      leur module, aucune chaîne en dur dans un Composable, aucun `TODO`
+      orphelin, aucun code mort.
+      Deux écarts de **convention** corrigés : `needsUpscaling` et
+      `FeedStalenessWatcher` étaient publics alors que le dépôt réserve
+      `public` aux composables partagés et aux points d'entrée, et `internal` à
+      tout le reste.
+      Trois passages d'ARCHITECTURE.md étaient devenus faux avec la suppression
+      de la position de lecture, dont une section entière — voir `GOAL-016-T03`
 
 ---
 

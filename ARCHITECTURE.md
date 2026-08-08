@@ -641,6 +641,31 @@ produisait un.
 le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
 chaque construction.
 
+### 9.8 Une image n'est jamais agrandie
+
+Le créneau d'illustration est fixe (16/9) et l'image le remplit : c'est ce qui
+empêche la liste de sursauter à l'arrivée de chaque image, et c'est aussi ce qui
+étirait les vignettes trop étroites.
+
+`ArticleIllustration` compare donc la largeur **source**, que Coil rend dans son
+état de succès, à la largeur **mesurée** du créneau. La décision est une
+fonction pure — `needsUpscaling` — plutôt qu'une condition noyée dans un `Box` :
+elle s'éprouve sans rendu, là où une capture serait nécessaire pour vérifier
+l'autre.
+
+Deux choix d'échelle, et le second a coûté un essai sur appareil :
+
+- le fond emploie `Crop` sur une copie **débordant** légèrement du créneau —
+  `blur` estompe jusqu'aux bords, et sans ce débordement le cadre reparaîtrait
+  en périphérie ;
+- l'image de devant emploie `Inside`, et non `Fit`. `Fit` remplit la plus petite
+  dimension, donc agrandit encore : le premier essai livrait une image toujours
+  floue sur un fond correct. `Inside` ne grandit jamais au-delà de la taille
+  native — la seule échelle qui n'invente aucun pixel.
+
+`Modifier.blur` exige l'API 31 quand le projet descend à 26 : en dessous, rien
+ne change (SPECS.md §8, question 12).
+
 ### 9.7 Le lancement ne parle à personne, et son ordre ne dépend de rien
 
 Le flux du lancement doit rouvrir **à l'identique** (SPECS.md §5.1). Quatre

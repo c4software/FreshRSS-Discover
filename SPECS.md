@@ -218,6 +218,18 @@ Chaque article expose :
 Un article sans image reste lisible : l'absence d'illustration ne doit pas
 produire un espace vide, ni une image de remplacement générique.
 
+**Une illustration n'est jamais agrandie.** Beaucoup de flux publient des
+vignettes plus étroites que le créneau ; les étirer les rend floues, et une
+image floue dessert l'article qu'elle illustre. Elle s'affiche donc à sa taille,
+centrée sur une copie d'elle-même rognée et **floutée** qui remplit le reste du
+créneau. Le fond vient de l'image, donc s'accorde toujours à elle ; le créneau
+reste plein, sans bande vide ni cadre.
+
+Le procédé ne s'applique **que** dans ce cas : une image assez large est rognée
+comme avant, sans fond ni traitement. Et il exige Android 12, faute de quoi
+l'étirement demeure — une dégradation franche, préférée à un fond net et
+dupliqué qui serait pire que le défaut (§8, question 12).
+
 ### 4.4 Défilement infini
 
 Une nouvelle page est demandée **avant** que l'utilisateur n'atteigne le bas, de
@@ -579,6 +591,7 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
 | 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
+| 12 | Que faire d'une illustration plus petite que son créneau ? | **Elle n'est pas agrandie** : affichée à sa taille, sur un fond flouté tiré d'elle-même (§4.3). Le seuil n'est pas chiffré mais **mesuré** — on ne traite que ce qui devrait être agrandi, ce qui reste juste sur n'importe quelle densité d'écran. Sous Android 12, où le flou du système n'existe pas, l'étirement demeure : un second mécanisme aurait coûté son écriture et ses tests pour une minorité d'appareils, et un fond net et dupliqué aurait été pire que le défaut. |
 | 11 | L'ordre du flux vient-il du serveur ? | **Non : il est recalculé sur la date de publication.** Le serveur trie sa `reading-list` par date de **récupération** — constaté sur une instance réelle, un article publié deux jours plus tôt ouvrait la première page. Cet ordre-là diffère de celui du cache, trié par publication : l'écran du lancement dépendait alors de qui, du disque ou du réseau, répondait en premier. Chaque page est donc ramenée à l'ordre de publication avant le mélange, qui l'attend de toute façon (§4.2, règle 2). |
 | 10 | Le lancement recharge-t-il le flux ? | **Non.** Décision d'auteur (2026-08-08) : le lancement montre le cache, stable, et aucune requête ne part sans geste — hors cache vide, où il n'y a rien à montrer. La requête automatique du lancement créait une course entre le disque et le réseau, dont l'issue décidait de l'écran ; et un flux qui bouge à l'ouverture se lit comme un flux qui se mélange. Le rechargement est un geste (§4.6), rappelé par l'avis d'ancienneté au-delà de six heures. |
 | 9 | Seuil au-delà duquel le flux affiché est « ancien » (§4.6) | **6 heures.** Rien ne se synchronise en arrière-plan (§2), donc l'écran montre le cache jusqu'à ce que l'utilisateur demande autre chose : sans repère, un flux de la veille est indiscernable d'un flux frais. Un seuil court — une ou deux heures — transformerait l'invitation en réflexe quotidien, et une invitation qu'on apprend à ignorer ne dit plus rien. Six heures séparent nettement la session reprise dans l'heure, où le flux est encore celui qu'on a laissé, de la réouverture du lendemain matin. |
