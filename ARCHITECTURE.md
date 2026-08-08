@@ -222,13 +222,13 @@ Deux conséquences que le code doit refléter :
 | Support | Contenu |
 |---|---|
 | **Room** | Les collections : articles en cache, marquages en attente |
-| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, position de lecture, date du dernier contact serveur |
+| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, date du dernier contact serveur |
 
 La règle est stricte : une donnée vit dans l'un **ou** l'autre, jamais dans les
 deux. Un réglage dupliqué finit toujours par diverger.
 
-Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore`,
-`ReadingPositionStore` et `FeedFreshnessStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
+Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore` et
+`FeedFreshnessStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
 global : ce sont les **jetons** qui passent par `SecretCipher` (§5.2), pas
 l'adresse du serveur ni les seuils. Chiffrer ce qui n'est pas un secret coûterait
 le même prix sans rien protéger, et rendrait le stockage illisible au moment
@@ -391,19 +391,7 @@ l'appelant doit assumer, et que SPECS.md §4.5 consigne désormais :
   durée, et la durée ne s'écoule pas toute seule : sans observation périodique,
   un article immobile dix secondes ne serait jamais marqué lu.
 
-### 6.6 Deux ViewModels pour un seul écran
-
-Le flux Discover en emploie deux, et ce n'est pas un accident de découpage.
-
-`DiscoverViewModel` porte le flux : pagination, rafraîchissement, marquage,
-ouverture. `ReadingPositionViewModel` porte la seule position de lecture.
-
-Leurs cycles diffèrent — le flux est rechargé, rafraîchi, vidé, sans que la
-position cesse d'avoir un sens — et les réunir avait fait franchir à
-`DiscoverViewModel` le seuil de cohésion que Detekt surveille. Le signal était
-juste : il ne fallait pas relâcher la règle, mais séparer les préoccupations.
-
-### 6.7 Le flux Discover
+### 6.6 Le flux Discover
 
 Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
 
@@ -534,7 +522,7 @@ app/
 └── presentation/
     ├── browser/              ouverture de l'article d'origine
     ├── discover/             flux en liste
-    ├── feed/                 ce que les deux modes partagent (rechargement, bandelette, ancienneté)
+    ├── feed/                 ce que les deux modes partagent (rechargement, bandelette, ancienneté, illustration)
     ├── lifecycle/            ce qui réagit au passage en arrière-plan
     ├── login/                connexion
     ├── navigation/           destinations, graphe, mode de présentation
@@ -549,9 +537,14 @@ présentent les mêmes articles selon SPECS.md §4.8, mais rien de leur mise en
 page n'est commun : une liste paresseuse et un pagineur n'ont ni le même état,
 ni la même mesure de visibilité, ni les mêmes composants. Ce qu'ils partagent
 vraiment — le modèle d'article affiché, les phases du flux, le bouton de
-rechargement, la bandelette d'avis, la surveillance de l'ancienneté du flux —
-vit dans `discover/` pour les deux premiers, hérités, et dans `feed/` pour ce
-qui est né commun.
+rechargement, la bandelette d'avis, la surveillance de l'ancienneté du flux, le
+créneau d'illustration — vit dans `discover/` pour les deux premiers, hérités,
+et dans `feed/` pour ce qui est né commun.
+
+Ce dernier a d'ailleurs une histoire qui se répète : `FeedNotice` puis
+`ArticleIllustration` ont tous deux commencé écrits **deux fois**, à
+l'identique, avant qu'une correction ne doive être appliquée aux deux endroits.
+Ce qui touche les deux modes se réunit avant d'être corrigé, pas après.
 
 Les tests suivent la même structure, plus `startup/` pour ce qui n'appartient à
 aucune couche — construction du graphe, migration de base, démarrage.
@@ -578,8 +571,6 @@ régression détachait une décision du domaine de son appelant.
 | `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste ; `SwipeViewModel`, alimenté par `pagerVisibility` depuis le pagineur |
 | `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — regroupement des lots |
 | `ReadSyncRepository` | `DiscoverViewModel` et `SwipeViewModel` (marquage, rejeu au démarrage), `ReadFlushOnBackgroundObserver` (passage en arrière-plan) et `DefaultAuthRepository` (déconnexion) |
-| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3), partagé par les **deux** modes : la position appartient au flux, pas à la façon de le parcourir |
-| `ReadingPosition` | `DiscoverScreen` et `SwipeScreen`, pour reprendre au plus proche quand l'article mémorisé a disparu du flux — le cas ordinaire, l'article quitté étant celui que le marquage vient de rendre lu |
 | `FeedPresentation` | `FeedPresentationViewModel`, qui aiguille la destination Discover vers l'un des deux modes |
 | `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, que les deux ViewModels du flux construisent sur leur portée |
 | `FeedFreshnessRepository` | `DefaultArticleRepository` en **écriture** (chaque réponse serveur valide) et `FeedStalenessWatcher` en **lecture** |

@@ -1121,7 +1121,12 @@ réelle par-dessus.
       d'aujourd'hui, sans y toucher.
       La copie floutée déborde légèrement du créneau : `blur` estompe jusqu'aux
       bords, et sans ce débordement le cadre qu'on chasse reparaîtrait en
-      périphérie
+      périphérie.
+      **`Inside` et non `Fit`**, corrigé après un premier essai sur appareil :
+      `Fit` remplit la plus petite dimension du créneau, donc agrandit encore —
+      l'image de devant restait floue, exactement le défaut qu'on prétendait
+      corriger. `Inside` réduit ce qui déborde mais ne grandit jamais au-delà de
+      la taille native : c'est la seule échelle qui n'invente aucun pixel
 - [x] `GOAL-016-T04` **Captures Roborazzi** : une petite image et une grande,
       dans les deux modes, clair et sombre. Quatre références, **regardées**.
       > **Deux pièges du harnais, corrigés plutôt que contournés.** La première

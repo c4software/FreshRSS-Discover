@@ -137,10 +137,15 @@ fun ArticleIllustration(
             painter = painter,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            // `Fit` seulement quand un fond porte le reste du créneau : sans
-            // lui, l'image respecterait sa taille en laissant deux bandes
-            // vides, ce qui est le défaut inverse de celui qu'on corrige.
-            contentScale = if (blurred) ContentScale.Fit else ContentScale.Crop,
+            /*
+             * `Inside` et non `Fit` : `Fit` remplit la plus petite dimension du
+             * créneau, donc **agrandit encore** — l'image de devant restait
+             * floue, constaté sur appareil. `Inside` réduit ce qui déborde mais
+             * ne grandit jamais au-delà de la taille native : c'est la seule
+             * échelle qui garantit une image nette, puisque c'est la seule qui
+             * n'invente aucun pixel.
+             */
+            contentScale = if (blurred) ContentScale.Inside else ContentScale.Crop,
         )
     }
 }
