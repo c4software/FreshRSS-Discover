@@ -42,6 +42,7 @@ class DiscoverScreenTest {
         onArticleClick: (Long) -> Unit = {},
         onRefresh: () -> Unit = {},
         onOfflineNoticeDismiss: () -> Unit = {},
+        onStaleNoticeDismiss: () -> Unit = {},
     ) {
         composeRule.setContent {
             DiscoverScreen(
@@ -51,6 +52,7 @@ class DiscoverScreenTest {
                 onArticleClick = onArticleClick,
                 onRefresh = onRefresh,
                 onOfflineNoticeDismiss = onOfflineNoticeDismiss,
+                onStaleNoticeDismiss = onStaleNoticeDismiss,
             )
         }
     }
@@ -350,6 +352,70 @@ class DiscoverScreenTest {
 
         composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
     }
+
+    // ----- Flux ancien (SPECS.md §4.6) ----------------------------------------
+
+    @Test
+    fun anOldFeedInvitesToReloadIt() {
+        show(staleState())
+
+        composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE).assertExists()
+        composeRule.onNodeWithText("Ce flux date de plusieurs heures.").assertExists()
+    }
+
+    @Test
+    fun aFeedThatIsNotOldSaysNothing() {
+        show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE).assertDoesNotExist()
+    }
+
+    @Test
+    fun theInvitationBorrowsTheExistingReload() {
+        var refreshed = 0
+        show(staleState(), onRefresh = { refreshed++ })
+
+        composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE_REFRESH).performClick()
+
+        assertEquals(1, refreshed)
+    }
+
+    @Test
+    fun theInvitationCanBeSilencedWithoutReloading() {
+        var silenced = 0
+        var refreshed = 0
+        show(staleState(), onRefresh = { refreshed++ }, onStaleNoticeDismiss = { silenced++ })
+
+        composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE_DISMISS).performClick()
+
+        assertEquals(1, silenced)
+        assertEquals(0, refreshed)
+    }
+
+    @Test
+    fun offlineOnlyOneStripOccupiesTheBottomOfTheScreen() {
+        // Hors ligne, le bandeau explique déjà pourquoi le flux est ancien, et
+        // « Recharger » n'ouvrirait qu'une porte vide.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle()),
+                phase = DiscoverPhase.Idle,
+                isOffline = true,
+                isOfflineOpenNoticeVisible = true,
+                isStaleNoticeAvailable = true,
+            ),
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertExists()
+        composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE).assertDoesNotExist()
+    }
+
+    /** Un flux ancien, avec de quoi lire : l'invitation y est due. */
+    private fun staleState() = DiscoverUiState(
+        articles = listOf(uiArticle()),
+        phase = DiscoverPhase.Idle,
+        isStaleNoticeAvailable = true,
+    )
 
     // ----- Rafraîchissement (SPECS.md §4.6) -----------------------------------
 

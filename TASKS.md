@@ -846,8 +846,9 @@ serveur, une bandelette actionnable invite à rafraîchir.
       était écrite deux fois, à l'identique, dans les deux écrans. Refactor
       pur — les tests d'écran passent inchangés et `verifyRoborazziDebug` ne
       voit aucun pixel bouger. 5 tests propres au composant
-- [ ] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Rafraîchir » y
-      emprunte exactement le rafraîchissement existant
+- [x] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Recharger » y
+      emprunte exactement le rechargement existant. 5 tests d'écran, dont
+      celui qui constate qu'une seule bandelette occupe le bas de l'écran
 - [ ] `GOAL-014-T08` **L'avis s'affiche en mode Balayage**, sans masquer la
       commande d'ouverture de l'article
 - [ ] `GOAL-014-T09` **Captures Roborazzi** : la bandelette sur une carte et sur

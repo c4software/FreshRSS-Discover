@@ -5,4 +5,16 @@
         L'infinitif plutôt qu'un nom : elle annonce ce que l'appui va faire.
     -->
     <string name="feed_refresh">Recharger le flux</string>
+
+    <!--
+        Invitation à recharger un flux qui date (SPECS.md §4.6).
+
+        « Plusieurs heures » plutôt qu'une durée chiffrée : le seuil est une
+        décision d'implémentation, et l'annoncer inviterait à le compter.
+        Partagée par les deux modes de présentation, d'où sa place ici.
+    -->
+    <string name="feed_stale_notice">Ce flux date de plusieurs heures.</string>
+    <string name="feed_stale_refresh">Recharger</string>
+    <!-- Faire taire l'invitation sans recharger, pour qui ne le peut pas maintenant. -->
+    <string name="feed_stale_dismiss">Plus tard</string>
 </resources>

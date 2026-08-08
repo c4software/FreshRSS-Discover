@@ -112,6 +112,7 @@ fun DiscoverScreen(
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit = {},
     onOfflineNoticeDismiss: () -> Unit = {},
+    onStaleNoticeDismiss: () -> Unit = {},
     onFirstVisibleArticleChanged: (ArticleId?, Long) -> Unit = { _, _ -> },
     onPositionRestored: () -> Unit = {},
     positionToRestore: ReadingPosition? = null,
@@ -149,13 +150,52 @@ fun DiscoverScreen(
             )
         }
 
+        /*
+         * Un seul avis à la fois au bas de l'écran, et rien à arbitrer pour
+         * l'obtenir : l'ouverture refusée n'existe que hors ligne, où
+         * `showsStaleNotice` est justement faux (voir [DiscoverUiState]).
+         */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+
+        if (uiState.showsStaleNotice) {
+            StaleFeedNotice(
+                onRefresh = onRefresh,
+                onDismiss = onStaleNoticeDismiss,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
+}
+
+/**
+ * Le flux affiché date de plusieurs heures (SPECS.md §4.6).
+ *
+ * L'action **emprunte le rechargement existant** plutôt que d'en ouvrir un à
+ * elle : deux chemins vers le même geste divergeraient. La seconde commande
+ * existe pour qui ne veut pas recharger maintenant — sans elle, l'avis ne
+ * pourrait se taire qu'en obéissant.
+ */
+@Composable
+private fun StaleFeedNotice(
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FeedNotice(
+        message = stringResource(R.string.feed_stale_notice),
+        actionLabel = stringResource(R.string.feed_stale_refresh),
+        onAction = onRefresh,
+        modifier = modifier.testTag(DiscoverTestTags.STALE_NOTICE),
+        actionModifier = Modifier.testTag(DiscoverTestTags.STALE_NOTICE_REFRESH),
+        dismissLabel = stringResource(R.string.feed_stale_dismiss),
+        onDismiss = onDismiss,
+        dismissModifier = Modifier.testTag(DiscoverTestTags.STALE_NOTICE_DISMISS),
+    )
 }
 
 @Composable

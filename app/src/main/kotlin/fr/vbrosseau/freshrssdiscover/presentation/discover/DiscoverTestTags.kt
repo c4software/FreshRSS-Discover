@@ -12,6 +12,9 @@ object DiscoverTestTags {
     const val OFFLINE_BANNER = "discover:offline-banner"
     const val OFFLINE_NOTICE = "discover:offline-notice"
     const val OFFLINE_NOTICE_DISMISS = "discover:offline-notice-dismiss"
+    const val STALE_NOTICE = "discover:stale-notice"
+    const val STALE_NOTICE_REFRESH = "discover:stale-notice-refresh"
+    const val STALE_NOTICE_DISMISS = "discover:stale-notice-dismiss"
 
     fun card(id: Long) = "discover:card:$id"
 }

@@ -97,6 +97,7 @@ private fun DiscoverRoute(
         },
         onRefresh = viewModel::refresh,
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
+        onStaleNoticeDismiss = viewModel::dismissStaleNotice,
         onFirstVisibleArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
         onPositionRestored = positionViewModel::onPositionRestored,
         positionToRestore = positionToRestore,
