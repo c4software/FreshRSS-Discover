@@ -141,9 +141,16 @@ jobs:
           name: freshrss-discover-release
           path: artefacts
 
+      # Publiée directement lorsqu'une étiquette l'a déclenchée : poser une
+      # étiquette de version **est** la décision de publier, et laisser un
+      # brouillon derrière obligerait à la reprendre à la main — étape qu'on
+      # oublie, et qui laisse une version annoncée mais introuvable.
+      #
+      # Un déclenchement manuel reste un brouillon : il ne correspond à aucune
+      # étiquette, donc à aucune version, et n'a rien à annoncer.
       - name: Publier
         uses: softprops/action-gh-release@v2
         with:
           files: artefacts/**/*
           generate_release_notes: true
-          draft: true
+          draft: ${{ github.ref_type != 'tag' }}
