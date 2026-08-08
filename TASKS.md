@@ -37,7 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : `GOAL-015-T01`.
+**Prochaine tâche** : aucune n'est due.
 
 ---
 
@@ -59,7 +59,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-012 | Vue Balayage, article par article | `[x]` |
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
-| GOAL-015 | Lancement calme : cache seul, sans reprise | `[-]` |
+| GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -981,9 +981,9 @@ serveur, une bandelette actionnable invite à rafraîchir.
 
 ## GOAL-015 — Lancement calme : cache seul, sans reprise de position
 
-**Statut : IN PROGRESS**
+**Statut : DONE** — validé sur appareil
 
-Change SPECS.md §5.1 et §5.3, tranche §8 question 10. Décision d'auteur du
+Change SPECS.md §4.1, §5.1 et §5.3, tranche §8 questions 10 et 11. Décision d'auteur du
 2026-08-08, prise devant deux défauts constatés sur appareil le même jour : la
 tête du flux différait d'un lancement à l'autre (course entre le disque et le
 réseau, ordre serveur ≠ ordre de publication — corrigé par `GOAL-005-T05`), et
@@ -1024,7 +1024,10 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
       trois ouvertures consécutives, trois têtes différentes, constaté sur
       appareil. Le mélange s'applique désormais **avant** le filtrage : l'ordre
       des non-lus est un sous-ordre stable. 1 test
-- [ ] `GOAL-015-T04` **La purge peut encore redistribuer l'ordre.** Elle retire
+- [x] `GOAL-015-T04` ~~La purge peut encore redistribuer l'ordre~~ **Sans objet
+      depuis `T08`** : le mélange porte sur le cache entier, lus compris, et la
+      purge ne retire que des articles lus **et** synchronisés de plus d'une
+      semaine — qui ne sont plus dans la fenêtre affichée. Énoncé initial : Elle retire
       des articles de l'ensemble sur lequel le mélange se calcule, et elle
       tourne une fois par démarrage de processus, en **course** avec la première
       lecture du cache. Elle ne touche que des articles lus depuis plus d'une
@@ -1033,8 +1036,32 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
       Le test qui l'établissait a été **retiré plutôt que gardé faux** : il
       contredisait celui du marquage, et l'arbitrage entre les deux appartient à
       la spécification, pas au code
-- [ ] `GOAL-015-T03` **Documentation** : SPECS §5.1, §5.3, §4.6 et §8
-      question 10 ; ARCHITECTURE §5.1 et §9.1 ; README ; TASKS
+- [x] `GOAL-015-T03` **Documentation** : SPECS §4.1, §4.6, §5.1, §5.3 et §8
+      questions 10 et 11 ; ARCHITECTURE §9.7, qui réunit les quatre mécanismes
+      en un seul principe ; README ; TASKS
+- [x] `GOAL-015-T06` **Les pages du serveur sont ramenées à l'ordre de
+      publication.** Le serveur trie sa `reading-list` par date de
+      **récupération** : un article publié deux jours plus tôt ouvrait la
+      première page. Cet ordre différait de celui du cache, trié par
+      publication, et l'écran du lancement dépendait de qui répondait en
+      premier. Départage à date égale identique au tri SQL du cache. 2 tests,
+      écrits rouges. Tranché dans SPECS §8 question 11
+- [x] `GOAL-015-T07` **La borne du cache s'applique après le filtre, plus
+      avant.** Un cache dont les deux cents articles les plus récents avaient
+      été lus rendait une liste **vide** : l'écran le croyait vide et
+      déclenchait le chargement de secours à chaque ouverture — la requête que
+      `T02` venait de retirer. Constaté sur appareil : 283 articles en cache,
+      69 non lus, zéro affiché
+- [x] `GOAL-015-T08` **Les articles lus restent dans le flux jusqu'au
+      rechargement** (SPECS §4.1). C'est ce qui referme le sujet : le mélange
+      choisit chaque position en regardant ses voisins, donc tout ce qui entre
+      ou sort de l'ensemble redistribue le reste. Les articles lus en sortaient
+      à chaque session — le marquage en consomme — et le flux paraissait se
+      remélanger tout seul. 2 tests, dont celui de l'ordre inchangé après
+      marquage.
+      **Constaté sur appareil** : trois lancements à froid consécutifs, tête
+      identique, `feed.last_refresh_at` inchangé. `GOAL-015-T04` et `T05`
+      tombent avec — l'ordre ne dépend plus ni des lus ni de la purge
 
 ---
 

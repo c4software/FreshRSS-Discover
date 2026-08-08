@@ -24,7 +24,6 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.FakeFeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
-import fr.vbrosseau.freshrssdiscover.domain.feed.feedRef
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -390,42 +389,45 @@ class DefaultArticleRepositoryTest {
     }
 
     @Test
-    fun readArticlesAreNotShownFromTheCache() = runTest {
-        // Le cache garde les articles lus jusqu'à la purge (SPECS.md §5.4), le
-        // flux ne présente que des non-lus (§4.1).
+    fun readArticlesStayInTheFeedUntilTheNextReload() = runTest {
+        // C'est l'astuce qui rend le lancement stable : un article lu ne
+        // disparaît pas de l'écran à la prochaine ouverture. S'il partait,
+        // l'ensemble changerait d'une session à l'autre — le marquage en
+        // consomme à chaque lecture — et le mélange rendrait un ordre
+        // différent : le flux paraîtrait se remélanger tout seul. Seul un
+        // rechargement demandé (SPECS.md §4.6) renouvelle la liste.
         cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
         val repository = repository(MockEngineResponse.Body(onePage))
 
         val cached = repository.observeCachedArticles(CACHE_LIMIT).first()
 
-        assertEquals(listOf("Non lu"), cached.map { it.title })
+        assertEquals(setOf("Lu", "Non lu"), cached.map { it.title }.toSet())
     }
 
     @Test
-    fun markingAnArticleReadDoesNotReshuffleTheSurvivors() = runTest {
-        // Le mélange s'applique AVANT le filtrage des lus, et c'est le point :
-        // appliqué après, chaque article lu qui disparaissait rebrassait les
-        // positions de tous ses voisins — le flux se mélangeait à chaque
-        // lancement, au rythme du marquage automatique. Constaté sur appareil :
-        // trois lancements consécutifs, trois têtes différentes, les articles
-        // regardés six secondes disparaissant et le reste changeant d'ordre.
-        // L'ordre des non-lus doit être un sous-ordre stable : les lus
-        // s'effacent, les survivants ne bougent pas.
-        cache.save(
-            listOf(
-                article(id = 4L, publishedAtEpochSeconds = 100L, feed = feedRef("feed/1")),
-                article(id = 3L, publishedAtEpochSeconds = 99L, feed = feedRef("feed/1")),
-                article(id = 2L, publishedAtEpochSeconds = 98L, feed = feedRef("feed/2")),
-                article(id = 1L, publishedAtEpochSeconds = 97L, feed = feedRef("feed/1")),
-            ),
-        )
+    fun theOrderOfTheCachedFeedDoesNotChangeWhenAnArticleIsRead() = runTest {
+        // Le même invariant, vu de l'ordre : marquer un article lu ne doit
+        // déplacer personne. C'est le défaut constaté sur appareil — trois
+        // lancements consécutifs, trois têtes différentes, sans qu'aucune
+        // requête ne soit partie.
+        cache.save(List(6) { article(id = it + 1L, publishedAtEpochSeconds = 100L + it) })
         val repository = repository(MockEngineResponse.Body(onePage))
         val before = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
 
-        cache.markAsRead(listOf(ArticleId(before.first())))
-        val after = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        cache.markAsRead(listOf(ArticleId(before.first()), ArticleId(before[1])))
 
-        assertEquals(before.drop(1), after)
+        assertEquals(before, repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value })
+    }
+
+    @Test
+    fun theReminderStillOnlySeesUnreadArticles() = runTest {
+        // Le flux garde les lus ; le rappel de lecture, lui, n'a rien à dire
+        // sur ce qui est déjà lu (SPECS.md §4.9). Les deux lectures du cache ne
+        // répondent pas à la même question.
+        cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
+        val repository = repository(MockEngineResponse.Body(onePage))
+
+        assertEquals(listOf("Non lu"), repository.unreadFromCache(CACHE_LIMIT).map { it.title })
     }
 
     @Test

@@ -44,10 +44,12 @@ internal class ArticleCache @Inject constructor(
     }
 
     /**
-     * Les [limit] articles les plus récents du cache.
+     * Les [limit] articles les plus récents du cache, **lus compris**.
      *
-     * Sert l'affichage immédiat au lancement (SPECS.md §5.1) : le flux montre
-     * ce qu'il a déjà avant que la moindre requête réseau n'aboutisse.
+     * Sert l'affichage du lancement (SPECS.md §5.1) : le flux montre ce qu'il a
+     * déjà, et n'interroge le réseau que si cette liste est vide. Les articles
+     * lus y figurent pour que l'ensemble — donc l'ordre — ne change pas entre
+     * deux ouvertures ; voir `ArticleDao.observeArticles`.
      */
     fun observeArticles(limit: Int): Flow<List<Article>> =
         dao.observeArticles(limit).map { entities -> entities.map(ArticleEntity::toDomain) }

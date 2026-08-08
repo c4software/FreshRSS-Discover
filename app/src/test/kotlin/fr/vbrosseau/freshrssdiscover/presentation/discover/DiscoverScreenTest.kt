@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
@@ -351,6 +352,44 @@ class DiscoverScreenTest {
         show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
 
         composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
+    }
+
+    // ----- Le lancement ne demande rien (SPECS.md §5.1) -----------------------
+
+    @Test
+    fun aShortFeedDoesNotLoadMoreWithoutAScroll() {
+        // Le cache filtré de ses articles lus tient parfois entièrement à
+        // l'écran : le bas est alors atteint sans que personne n'ait bougé le
+        // doigt. Sans cette garde, la requête retirée du lancement revenait
+        // par le défilement infini — constaté sur appareil, la date du dernier
+        // contact serveur changeait encore à chaque ouverture.
+        var loads = 0
+        show(
+            DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle),
+            onLoadMore = { loads++ },
+        )
+
+        composeRule.waitForIdle()
+
+        assertEquals(0, loads)
+    }
+
+    @Test
+    fun scrollingAShortFeedDoesLoadMore() {
+        // Défiler est une action : la pagination reprend ses droits.
+        var loads = 0
+        show(
+            DiscoverUiState(
+                articles = List(12) { uiArticle(id = it.toLong()) },
+                phase = DiscoverPhase.Idle,
+            ),
+            onLoadMore = { loads++ },
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.LIST).performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+
+        assertTrue(loads > 0, "la pagination doit suivre le défilement")
     }
 
     // ----- Flux ancien (SPECS.md §4.6) ----------------------------------------

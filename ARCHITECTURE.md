@@ -650,6 +650,29 @@ produisait un.
 le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
 chaque construction.
 
+### 9.7 Le lancement ne parle à personne, et son ordre ne dépend de rien
+
+Le flux du lancement doit rouvrir **à l'identique** (SPECS.md §5.1). Quatre
+mécanismes le mettaient en défaut, chacun trouvé après le précédent, tous
+constatés sur appareil le 2026-08-08 — ils sont notés ici parce qu'ils forment
+un ensemble, et qu'un seul corrigé ne suffisait pas.
+
+| Mécanisme | Ce qu'il produisait |
+|---|---|
+| Requête automatique au lancement | Mettait le disque et le réseau en course ; l'issue décidait de l'écran |
+| Ordre du serveur ≠ ordre du cache | Le serveur trie par date de récupération, le cache par publication. Les pages sont désormais ramenées à l'ordre de publication (`DefaultArticleRepository.interleaved`) |
+| Borne du cache appliquée **avant** le filtre des lus | Un cache dont les 200 plus récents étaient lus rendait une liste vide : l'écran le croyait vide et lançait le chargement de secours. 283 articles, 69 non lus, zéro affiché |
+| Articles lus retirés du flux | L'ensemble à mélanger changeait à chaque session, donc l'ordre aussi |
+
+Le principe qui les réunit : **le mélange doit porter sur un ensemble qui ne
+bouge pas.** `interleaveBySource` choisit chaque position en regardant ses
+voisins ; tout ce qui entre ou sort de l'ensemble redistribue le reste. Le
+cache rend donc ses articles **lus compris**, et seul un rechargement demandé
+renouvelle la liste.
+
+Le rappel de lecture est la seule lecture du cache qui filtre encore les lus
+(`unreadFromCache`) : il ne répond pas à la même question.
+
 ### 9.6 L'ancienneté du flux se mesure là où le serveur répond
 
 La date qui sert à dire qu'un flux est ancien (SPECS.md §4.6) est écrite par

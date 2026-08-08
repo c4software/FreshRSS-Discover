@@ -361,6 +361,14 @@ private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifi
  * passage du seuil compte. Le nombre d'articles fait aussi partie de la clé —
  * une page plus courte que le seuil laisserait sinon la condition vraie sans
  * jamais rappeler le chargement, et le flux s'arrêterait sans le dire.
+ *
+ * **Rien ne part avant un vrai défilement**, et c'est la condition qui manquait.
+ * Le lancement n'interroge plus le réseau (SPECS.md §5.1), mais le cache filtré
+ * de ses articles lus tient parfois entièrement à l'écran : le bas était alors
+ * atteint sans que personne n'ait bougé le doigt, et le chargement partait
+ * quand même — la requête qu'on venait de retirer par la porte revenait par la
+ * fenêtre. Constaté sur appareil : la date du dernier contact serveur changeait
+ * encore à chaque ouverture.
  */
 @Composable
 private fun PrefetchNextPage(
@@ -368,6 +376,19 @@ private fun PrefetchNextPage(
     articleCount: Int,
     onLoadMore: () -> Unit,
 ) {
+    // Détecté sur la **position**, pas sur le geste : un défilement
+    // programmatique en est un aussi, et `isScrollInProgress` le manquerait.
+    // Mémorisé et non dérivé, car c'est un fait acquis — une fois l'utilisateur
+    // entré dans le flux, la pagination suit sans qu'il ait à relancer un geste
+    // à chaque page.
+    var hasScrolled by remember(listState) { mutableStateOf(false) }
+    if (listState.firstVisibleItemIndex > 0 ||
+        listState.firstVisibleItemScrollOffset > 0 ||
+        listState.isScrollInProgress
+    ) {
+        hasScrolled = true
+    }
+
     val shouldLoadMore by remember(listState, articleCount) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
@@ -375,8 +396,8 @@ private fun PrefetchNextPage(
         }
     }
 
-    LaunchedEffect(shouldLoadMore, articleCount) {
-        if (shouldLoadMore) onLoadMore()
+    LaunchedEffect(shouldLoadMore, articleCount, hasScrolled) {
+        if (shouldLoadMore && hasScrolled) onLoadMore()
     }
 }
 

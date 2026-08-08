@@ -52,7 +52,6 @@ class ArticleCacheTest {
             imageUrl = "https://exemple.org/42.png",
             author = "Alice",
             feed = feedRef(id = "feed/7", title = "Le flux"),
-            isRead = true,
         )
 
         cache.save(listOf(saved))
@@ -91,6 +90,9 @@ class ArticleCacheTest {
 
         cache.save(listOf(article(id = 1L, isRead = false)))
 
+        // Il reste affiché — le flux du lancement garde les lus (SPECS.md §5.1)
+        // — et il reste lu : c'est lui qui porte la mémoire du « déjà lu » tant
+        // que le serveur l'ignore.
         assertTrue(cache.observeArticles(LARGE_LIMIT).first().single().isRead)
     }
 
@@ -135,7 +137,7 @@ class ArticleCacheTest {
         clock.advanceBy(1.days.inWholeMilliseconds)
 
         assertEquals(0, cache.purgeReadOlderThan(7.days))
-        assertEquals(1, cache.observeArticles(LARGE_LIMIT).first().size)
+        assertEquals(listOf(1L), storedIds())
     }
 
     @Test
@@ -156,7 +158,7 @@ class ArticleCacheTest {
 
         assertEquals(1, cache.purgeReadOlderThan(7.days))
 
-        assertEquals(listOf(3L, 2L), cache.observeArticles(LARGE_LIMIT).first().map { it.id.value }.sortedDescending())
+        assertEquals(listOf(3L, 2L), storedIds().sortedDescending())
     }
 
     @Test
@@ -225,4 +227,20 @@ class ArticleCacheTest {
 
         assertEquals(listOf("Aussi"), cache.unreadArticles(LARGE_LIMIT).map { it.title })
     }
+
+    /**
+     * Les identifiants **stockés**, lus compris, lus en SQL brut.
+     *
+     * Le flux du cache ne rend que les non-lus — c'est ce que l'écran affiche —
+     * alors que la purge et la mémoire du « déjà lu » se jugent sur ce qui
+     * reste en base. La requête est faite ici plutôt qu'ajoutée au DAO : le
+     * code de production n'a pas à porter une méthode que seuls les tests
+     * appellent (AGENTS.md §2).
+     */
+    private fun storedIds(): List<Long> =
+        database.openHelper.readableDatabase
+            .query("SELECT id FROM articles ORDER BY published_at_epoch_seconds DESC, id DESC")
+            .use { cursor ->
+                buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+            }
 }

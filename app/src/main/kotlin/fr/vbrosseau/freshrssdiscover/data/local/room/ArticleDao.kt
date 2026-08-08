@@ -11,11 +11,26 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 internal interface ArticleDao {
     /**
-     * Les articles les plus récents, du plus récent au plus ancien.
+     * Les articles les plus récents, **lus compris**, du plus récent au plus
+     * ancien.
      *
      * Trié sur la date de publication et non sur l'ordre d'insertion : le
      * serveur peut renvoyer une page dans un ordre quelconque, et l'affichage
      * doit rester chronologique inverse (SPECS.md §4.2, règle 2).
+     *
+     * **Les lus ne sont pas écartés, et c'est le cœur de la stabilité du
+     * lancement** (SPECS.md §5.1). Les écarter faisait changer l'ensemble entre
+     * deux ouvertures — le marquage en consomme à chaque session — et le
+     * mélange, qui choisit chaque position en regardant ses voisins, rendait
+     * alors un ordre différent : le flux paraissait se remélanger tout seul.
+     * Les articles lus restent donc affichés jusqu'au prochain rechargement
+     * demandé, qui seul renouvelle la liste.
+     *
+     * Deux défauts sont morts avec ce choix. Le filtrage en Kotlin appliquait
+     * la borne aux articles toutes catégories : un cache dont les deux cents
+     * plus récents avaient été lus rendait une liste **vide** — l'écran le
+     * croyait vide et lançait le chargement de secours à chaque ouverture.
+     * Constaté sur appareil : 283 articles, 69 non lus, zéro affiché.
      */
     @Query(
         "SELECT * FROM articles ORDER BY published_at_epoch_seconds DESC, id DESC LIMIT :limit",

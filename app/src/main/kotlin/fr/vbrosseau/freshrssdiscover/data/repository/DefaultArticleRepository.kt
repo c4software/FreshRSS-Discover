@@ -97,37 +97,21 @@ internal class DefaultArticleRepository @Inject constructor(
         interleaveBySource(cache.unreadArticles(limit))
 
     /**
-     * Mélangé **avant** d'être filtré des lus, et l'ordre des deux opérations
-     * décide de la stabilité du flux au lancement.
+     * Le cache mélangé (SPECS.md §4.2), **articles lus compris**.
      *
-     * Le mélange choisit chaque position en regardant ses voisins. Filtrer
-     * d'abord fait donc dépendre l'ordre de **l'ensemble des non-lus** : chaque
-     * article marqué lu quitte cet ensemble, et tous ses voisins se
-     * redistribuent. Comme le marquage est automatique et continu (SPECS.md
-     * §4.5), le flux se réordonnait à chaque lancement — constaté sur appareil,
-     * trois ouvertures consécutives, trois têtes différentes.
+     * C'est ce qui rend le lancement stable : l'ensemble ne bouge pas entre
+     * deux ouvertures, donc le mélange rend le même ordre. Écarter les lus
+     * faisait changer cet ensemble à chaque session — le marquage en consomme —
+     * et le flux paraissait se remélanger tout seul, sans qu'aucune requête ne
+     * soit partie. Les lus restent affichés, grisés à leur place, jusqu'au
+     * prochain rechargement demandé (SPECS.md §4.6), qui seul renouvelle la
+     * liste.
      *
-     * Mélanger d'abord fait dépendre l'ordre des articles présents en base,
-     * lus compris : l'ordre des non-lus devient un **sous-ordre stable** — un
-     * article lu s'efface de sa place, les autres ne bougent pas (SPECS.md
-     * §4.2, règle 3).
-     *
-     * **Limite connue et assumée**, suivie en `GOAL-015-T04` : la purge
-     * (SPECS.md §5.4) retire des articles de cet ensemble et peut donc
-     * redistribuer l'ordre. Elle ne touche que des articles lus depuis plus
-     * d'une semaine et **déjà synchronisés** ; une fois le retard résorbé, elle
-     * ne trouve plus rien et l'ordre se fige. Le régime transitoire, lui, peut
-     * encore bouger.
-     *
-     * Prix payé sur la répartition : elle se calcule lus compris, donc deux
-     * voisins affichés peuvent partager une source quand leur séparateur a été
-     * lu. Un flux qui se réordonne sous les yeux est un défaut, un doublon de
-     * source une nuance.
+     * Le rappel de lecture, lui, ne veut que les non-lus : c'est
+     * [unreadFromCache], et son filtre est fait par SQLite.
      */
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
-        cache.observeArticles(limit).map { articles ->
-            interleaveBySource(articles).filterNot(Article::isRead)
-        }
+        cache.observeArticles(limit).map(::interleaveBySource)
 
     private suspend fun fetchPage(
         cursor: PageCursor?,

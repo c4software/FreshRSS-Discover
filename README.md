@@ -21,13 +21,16 @@ horizontal comme une carte d'une pile.
 
 > **État : utilisable, et éprouvé sur appareil.** Connexion au serveur, flux et
 > pagination, mélange des sources, cache local et purge, détection de lecture et
-> file de marquages, rechargement, reprise de la lecture, ouverture des articles,
+> file de marquages, rechargement, ouverture des articles,
 > écran de réglages et les deux modes de présentation sont en place.
 >
-> Ce qui reste ouvert est écrit comme tel : le mode Balayage n'a **pas encore
-> d'alternative à son geste** (`GOAL-012-T07`) et **ne mémorise pas la position
-> de lecture** (`GOAL-012-T05`). [TASKS.md](./TASKS.md) donne l'avancement tâche
-> par tâche, [ARCHITECTURE.md §9](./ARCHITECTURE.md) l'état réel du dépôt.
+> Ce qui reste ouvert est écrit comme tel : le mode Balayage n'a **pas
+> d'alternative à son geste**, arbitrage assumé et tranché dans
+> [SPECS.md §7.1](./SPECS.md) — le mode Liste, celui par défaut, donne accès au
+> même flux sans lui. **La position de lecture n'est pas conservée**, et c'est
+> voulu : le flux rouvre tel qu'on l'a laissé, il n'y a plus de place à
+> retrouver (§5.3). [TASKS.md](./TASKS.md) donne l'avancement tâche par tâche,
+> [ARCHITECTURE.md §9](./ARCHITECTURE.md) l'état réel du dépôt.
 
 ---
 
@@ -45,7 +48,8 @@ horizontal comme une carte d'une pile.
 - **invitation à recharger** quand le flux affiché date de plus de six heures,
   à faire taire d'un geste et absente hors ligne, où elle n'aurait rien à
   proposer ;
-- reprise de la lecture à l'endroit quitté après fermeture de l'application ;
+- **lancement calme** : le flux rouvre exactement tel qu'on l'a laissé, sans
+  interroger le serveur — c'est le rechargement, demandé, qui le renouvelle ;
 - ouverture de l'article d'origine dans le navigateur ;
 - cache local consultable hors ligne, avec purge automatique et manuelle ;
 - **rappel de lecture quotidien**, à l'heure d'ouverture de la veille, citant

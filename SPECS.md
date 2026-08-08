@@ -151,7 +151,20 @@ Elle est confirmée, car elle est destructrice.
 ### 4.1 Contenu
 
 Le flux présente les articles **non lus** de tous les abonnements, toutes
-catégories confondues.
+catégories confondues. C'est ce que le serveur rend à chaque rechargement.
+
+**Ce qui a été lu ne disparaît pas pour autant sous les yeux.** Un article
+marqué lu reste à sa place — pendant la session (§4.5), et aussi d'une
+ouverture à l'autre, puisque le lancement réaffiche le cache tel quel (§5.1).
+Il ne quitte la liste qu'au **rechargement demandé** (§4.6), qui la renouvelle.
+
+Ce n'est pas une tolérance mais la condition de la stabilité du flux. Le
+mélange (§4.2) choisit chaque position en regardant les voisins : retirer les
+articles lus entre deux lancements changerait l'ensemble à mélanger — le
+marquage en consomme à chaque lecture — et rendrait un ordre différent. Le flux
+paraissait alors se remélanger tout seul, sans qu'aucune requête ne soit
+partie. Constaté sur appareil le 2026-08-08, trois lancements consécutifs,
+trois têtes différentes.
 
 ### 4.2 Mélange des sources
 
@@ -423,7 +436,8 @@ est un défaut.
 ### 5.1 Cache local
 
 Les articles récupérés sont conservés localement. Au lancement, le flux affiche
-**immédiatement** le contenu du cache — et s'y arrête : **aucune requête ne part
+**immédiatement** le contenu du cache — articles lus compris (§4.1), donc
+exactement ce qui était à l'écran la fois précédente — et s'y arrête : **aucune requête ne part
 tant qu'il y a quelque chose à montrer** (§8, question 10). Le flux du lancement
 est celui qu'on a laissé, stable et identique d'une ouverture à l'autre ; sa
 mise à jour est un geste — le rechargement de §4.6, que l'avis d'ancienneté
@@ -565,6 +579,7 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
 | 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
+| 11 | L'ordre du flux vient-il du serveur ? | **Non : il est recalculé sur la date de publication.** Le serveur trie sa `reading-list` par date de **récupération** — constaté sur une instance réelle, un article publié deux jours plus tôt ouvrait la première page. Cet ordre-là diffère de celui du cache, trié par publication : l'écran du lancement dépendait alors de qui, du disque ou du réseau, répondait en premier. Chaque page est donc ramenée à l'ordre de publication avant le mélange, qui l'attend de toute façon (§4.2, règle 2). |
 | 10 | Le lancement recharge-t-il le flux ? | **Non.** Décision d'auteur (2026-08-08) : le lancement montre le cache, stable, et aucune requête ne part sans geste — hors cache vide, où il n'y a rien à montrer. La requête automatique du lancement créait une course entre le disque et le réseau, dont l'issue décidait de l'écran ; et un flux qui bouge à l'ouverture se lit comme un flux qui se mélange. Le rechargement est un geste (§4.6), rappelé par l'avis d'ancienneté au-delà de six heures. |
 | 9 | Seuil au-delà duquel le flux affiché est « ancien » (§4.6) | **6 heures.** Rien ne se synchronise en arrière-plan (§2), donc l'écran montre le cache jusqu'à ce que l'utilisateur demande autre chose : sans repère, un flux de la veille est indiscernable d'un flux frais. Un seuil court — une ou deux heures — transformerait l'invitation en réflexe quotidien, et une invitation qu'on apprend à ignorer ne dit plus rien. Six heures séparent nettement la session reprise dans l'heure, où le flux est encore celui qu'on a laissé, de la réouverture du lendemain matin. |
 

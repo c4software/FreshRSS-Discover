@@ -570,12 +570,20 @@ private fun PrefetchNextPage(
     articleCount: Int,
     onLoadMore: () -> Unit,
 ) {
+    // Rien ne part avant un vrai balayage, comme en mode Liste : le cache
+    // filtré de ses articles lus peut tenir en moins de pages que le seuil, et
+    // le chargement partirait alors sans qu'on ait bougé le doigt — la requête
+    // que SPECS.md §5.1 vient de retirer du lancement (voir `PrefetchNextPage`
+    // du mode Liste, qui porte le constat).
+    var hasSwiped by remember(pagerState) { mutableStateOf(false) }
+    if (pagerState.currentPage > 0 || pagerState.isScrollInProgress) hasSwiped = true
+
     val shouldLoadMore by remember(pagerState, articleCount) {
         derivedStateOf { pagerState.currentPage >= articleCount - PREFETCH_DISTANCE }
     }
 
-    LaunchedEffect(shouldLoadMore, articleCount) {
-        if (shouldLoadMore) onLoadMore()
+    LaunchedEffect(shouldLoadMore, articleCount, hasSwiped) {
+        if (shouldLoadMore && hasSwiped) onLoadMore()
     }
 }
 
