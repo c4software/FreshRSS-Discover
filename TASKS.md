@@ -834,9 +834,11 @@ serveur, une bandelette actionnable invite à rafraîchir.
 - [x] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
       compris une page valide mais vide — le serveur a répondu. 8 tests, dont
       les quatre échecs qui ne doivent rien noter
-- [ ] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
+- [x] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
       et le réveil périodique sans lequel le seuil ne serait jamais franchi à
-      l'écran
+      l'écran. La surveillance est écrite une fois, dans
+      `FeedStalenessWatcher`, pour que les deux modes ne divergent pas.
+      11 tests, dont le vieillissement sans aucun événement
 - [ ] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
       compris — acquitter dans un mode fait taire l'autre
 - [ ] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle est

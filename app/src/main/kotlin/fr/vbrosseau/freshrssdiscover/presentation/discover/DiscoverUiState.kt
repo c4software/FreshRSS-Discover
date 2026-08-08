@@ -39,6 +39,15 @@ data class DiscoverUiState(
      * (AGENTS.md §2).
      */
     val isOfflineOpenNoticeVisible: Boolean = false,
+    /**
+     * Le serveur n'a plus répondu depuis assez longtemps pour qu'on le dise
+     * (SPECS.md §4.6).
+     *
+     * Décidé par le domaine et non ici : ce champ ne fait que rapporter le
+     * verdict. Ce que l'écran y ajoute — être hors ligne, rafraîchir déjà,
+     * n'avoir rien à montrer — relève de [showsStaleNotice].
+     */
+    val isStaleNoticeAvailable: Boolean = false,
 ) {
     /**
      * Vrai quand le flux est arrivé au bout **sans avoir rien à montrer**.
@@ -58,6 +67,22 @@ data class DiscoverUiState(
      */
     val showsOfflineBanner: Boolean
         get() = isOffline && articles.isNotEmpty()
+
+    /**
+     * L'invitation à rafraîchir est-elle à l'écran ?
+     *
+     * Trois retenues, et chacune évite un message qui aurait tort :
+     *
+     * - **hors ligne**, le bandeau dit déjà pourquoi le flux est ancien, et
+     *   proposer « Rafraîchir » ouvrirait une porte qui ne mène nulle part.
+     *   C'est aussi ce qui garantit qu'une seule bandelette occupe le bas de
+     *   l'écran : l'avis d'ouverture refusée n'existe que hors ligne ;
+     * - **pendant un rafraîchissement**, la demande est déjà partie ;
+     * - **sans article**, il n'y a pas de flux ancien à l'écran, mais un écran
+     *   vide, qui a son propre message.
+     */
+    val showsStaleNotice: Boolean
+        get() = isStaleNoticeAvailable && !isOffline && !isRefreshing && articles.isNotEmpty()
 }
 
 /**

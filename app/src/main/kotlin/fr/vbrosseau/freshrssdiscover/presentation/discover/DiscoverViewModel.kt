@@ -10,11 +10,13 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.CACHED_FEED_LIMIT
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadDetector
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStalenessWatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,10 +31,20 @@ class DiscoverViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
     private val readSyncRepository: ReadSyncRepository,
     settingsRepository: SettingsRepository,
+    freshnessRepository: FeedFreshnessRepository,
     private val clock: Clock,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DiscoverUiState())
     val uiState: StateFlow<DiscoverUiState> = _uiState.asStateFlow()
+
+    /**
+     * Surveille l'ancienneté du flux (SPECS.md §4.6).
+     *
+     * Construit ici plutôt qu'injecté : il a besoin de [viewModelScope], donc
+     * de vivre exactement aussi longtemps que cet écran. Ce qu'il observe, en
+     * revanche, est partagé — d'où l'acquittement commun aux deux modes.
+     */
+    private val staleness = FeedStalenessWatcher(freshnessRepository, clock, viewModelScope)
 
     /**
      * Position atteinte dans le flux. `null` demande le début — et seulement
@@ -132,6 +144,10 @@ class DiscoverViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        staleness.isStale
+            .onEach { isStale -> _uiState.update { it.copy(isStaleNoticeAvailable = isStale) } }
+            .launchIn(viewModelScope)
+
         load()
     }
 
@@ -175,7 +191,12 @@ class DiscoverViewModel @Inject constructor(
 
         viewModelScope.launch {
             when (val result = articleRepository.refresh()) {
-                is Outcome.Success -> onRefreshed(result.value)
+                is Outcome.Success -> {
+                    cursor = result.value.nextCursor
+                    hasServerContent = true
+                    _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis()) }
+                }
+
                 is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
             }
             _uiState.update { it.copy(isRefreshing = false) }
@@ -229,6 +250,16 @@ class DiscoverViewModel @Inject constructor(
     /** Acquitte l'avis d'ouverture impossible : il a été lu, il disparaît. */
     fun dismissOfflineOpenNotice() {
         _uiState.update { it.copy(isOfflineOpenNoticeVisible = false) }
+    }
+
+    /**
+     * Fait taire l'invitation à rafraîchir, sans rafraîchir.
+     *
+     * L'acquittement va au dépôt partagé : il vaut aussi pour le mode Balayage,
+     * et il expirera de lui-même au prochain contact avec le serveur.
+     */
+    fun dismissStaleNotice() {
+        staleness.acknowledge()
     }
 
     /**
@@ -316,44 +347,32 @@ class DiscoverViewModel @Inject constructor(
          */
         if (_uiState.value.articles.size == shownBefore && page.hasMore) load()
     }
-
-    /**
-     * Remplace la liste par la page rendue, et repart du début.
-     *
-     * SPECS.md §4.6 : le tirage **vide** l'affichage plutôt que de le compléter.
-     * Insérer en tête préservait la lecture, mais laissait le flux s'allonger
-     * indéfiniment et rendait le geste presque invisible — on tirait, et rien
-     * ne semblait se passer.
-     *
-     * Le curseur de pagination est repris de cette page : la suite du flux se
-     * redéroule à partir d'elle, l'ancien curseur désignant un endroit qui n'est
-     * plus affiché.
-     *
-     * [alreadyReported] n'est **pas** vidé : ces articles ont bien été signalés
-     * au dépôt de synchronisation, et les resignaler ferait une requête pour
-     * rien. Le détecteur, lui, est reconstruit — les articles réaffichés
-     * repartent avec un chronomètre neuf, ce qui est correct puisqu'ils sont de
-     * nouveau à l'écran.
-     *
-     * La phase suit la page rendue : `Idle` s'il reste un curseur, `EndOfFeed`
-     * sinon. Elle lève donc aussi l'échec précédent — le réseau vient de
-     * répondre — et rouvre un flux qui s'était terminé si le serveur a du neuf.
-     */
-    private fun onRefreshed(page: ArticlePage) {
-        val now = clock.nowEpochMillis()
-
-        cursor = page.nextCursor
-        hasServerContent = true
-
-        _uiState.update { state ->
-            state.copy(
-                articles = page.articles.map { article -> article.toUiModel(now) },
-                phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
-                isOffline = false,
-            )
-        }
-    }
 }
+
+/**
+ * Remplace la liste par la page rendue, et repart du début.
+ *
+ * SPECS.md §4.6 : le tirage **vide** l'affichage plutôt que de le compléter.
+ * Insérer en tête préservait la lecture, mais laissait le flux s'allonger
+ * indéfiniment et rendait le geste presque invisible — on tirait, et rien ne
+ * semblait se passer.
+ *
+ * Les articles déjà signalés comme lus ne sont **pas** oubliés par l'appelant :
+ * ils ont bien été transmis au dépôt de synchronisation, et les resignaler
+ * ferait une requête pour rien.
+ *
+ * La phase suit la page rendue : `Idle` s'il reste un curseur, `EndOfFeed`
+ * sinon. Elle lève donc aussi l'échec précédent — le réseau vient de répondre —
+ * et rouvre un flux qui s'était terminé si le serveur a du neuf.
+ */
+private fun DiscoverUiState.refreshedWith(
+    page: ArticlePage,
+    nowEpochMillis: Long,
+): DiscoverUiState = copy(
+    articles = page.articles.map { article -> article.toUiModel(nowEpochMillis) },
+    phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
+    isOffline = false,
+)
 
 /**
  * Ajoute les articles absents de la liste, sans toucher à ceux qui y sont.

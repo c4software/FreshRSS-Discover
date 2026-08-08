@@ -4,7 +4,9 @@ import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
+import fr.vbrosseau.freshrssdiscover.domain.feed.FakeFeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshness
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
@@ -12,6 +14,8 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -24,9 +28,21 @@ private const val NOW_SECONDS = 1_700_000_000L
 /** Durée d'affichage continu exigée par SPECS.md §4.5, reprise ici pour la lisibilité des cas. */
 private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
 
+private const val ONE_HOUR_MILLIS = 60L * 60L * 1_000L
+private const val SIX_HOURS_MILLIS = 6L * ONE_HOUR_MILLIS
+private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
+private const val TWELVE_HOURS_MILLIS = 12L * ONE_HOUR_MILLIS
+
+@OptIn(ExperimentalCoroutinesApi::class)
 class DiscoverViewModelTest {
+    /**
+     * Gardé sous la main : les cas d'ancienneté font avancer son ordonnanceur
+     * virtuel, faute de quoi le réveil périodique attendrait réellement.
+     */
+    private val dispatcher = UnconfinedTestDispatcher()
+
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val mainDispatcherRule = MainDispatcherRule(dispatcher)
 
     private val repository = FakeArticleRepository()
     private val clock = FakeClock(NOW_SECONDS * 1_000L)
@@ -41,9 +57,12 @@ class DiscoverViewModelTest {
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
+            freshnessRepository = freshnessRepository,
             clock = clock,
         )
     }
+
+    private val freshnessRepository = FakeFeedFreshnessRepository()
 
     /** Reçoit les lots de marquage : c'est lui qui remplace l'ancien rappel. */
     private val readSyncRepository = FakeReadSyncRepository()
@@ -694,6 +713,144 @@ class DiscoverViewModelTest {
 
         assertFalse(state.isOfflineOpenNoticeVisible)
     }
+
+    // ----- Ancienneté du flux (SPECS.md §4.6) ---------------------------------
+
+    @Test
+    fun aFeedOlderThanSixHoursInvitesToRefresh() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertTrue(state.showsStaleNotice)
+    }
+
+    @Test
+    fun aRecentFeedInvitesToNothing() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun aFeedNeverRefreshedInvitesToNothing() {
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun offlineTheOfflineBannerSpeaksAloneAboutAnOldFeed() {
+        // Proposer « Rafraîchir » ouvrirait une porte qui ne mène nulle part,
+        // et empilerait une seconde bandelette sur celle de l'ouverture refusée.
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.cachedArticles.value = listOf(article(id = 1L))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        assertTrue(state.isStaleNoticeAvailable)
+        assertFalse(state.showsStaleNotice)
+        assertTrue(state.showsOfflineBanner)
+    }
+
+    @Test
+    fun anEmptyFeedInvitesToNothing() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(emptyList(), nextCursor = null)
+
+        assertTrue(state.isStaleNoticeAvailable)
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun nothingIsSaidWhileTheRefreshIsUnderWay() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        assertTrue(state.showsStaleNotice)
+        repository.pendingLoad = CompletableDeferred()
+
+        viewModel.refresh()
+
+        assertTrue(state.isRefreshing)
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun theInvitationIsSilencedByHand() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        viewModel.dismissStaleNotice()
+
+        assertFalse(state.showsStaleNotice)
+        assertEquals(1, freshnessRepository.acknowledgeCallCount)
+    }
+
+    @Test
+    fun aSilencedInvitationDoesNotComeBackOnItsOwn() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        viewModel.dismissStaleNotice()
+
+        dispatcher.scheduler.advanceTimeBy(TWELVE_HOURS_MILLIS)
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun aSilencedInvitationComesBackOnceTheNextRefreshHasGrownOld() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        viewModel.dismissStaleNotice()
+
+        // Le contact serveur est noté par le dépôt d'articles (GOAL-014-T03) ;
+        // ici on le pose directement, puis on laisse passer six heures.
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+        clock.advanceBy(SIX_HOURS_MILLIS)
+        dispatcher.scheduler.advanceTimeBy(SIX_HOURS_MILLIS)
+
+        assertTrue(state.showsStaleNotice)
+    }
+
+    @Test
+    fun theFeedGrowsOldWithoutAnyEventAtAll() {
+        // Le seuil se franchit application ouverte et écran éteint : sans
+        // réveil périodique, l'avis n'apparaîtrait qu'au prochain geste.
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        assertFalse(state.showsStaleNotice)
+
+        clock.advanceBy(SIX_HOURS_MILLIS)
+        dispatcher.scheduler.advanceTimeBy(SIX_HOURS_MILLIS)
+
+        assertTrue(state.showsStaleNotice)
+    }
+
+    @Test
+    fun theInvitationBorrowsTheExistingRefresh() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+
+        // L'action de la bandelette n'a pas de chemin à elle : c'est le
+        // rafraîchissement de SPECS.md §4.6, sans quoi les deux divergeraient.
+        viewModel.refresh()
+
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun aFreshServerContactClearsTheInvitation() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        assertTrue(state.showsStaleNotice)
+
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    /** Un horodatage de contact serveur assez vieux pour que l'avis soit dû. */
+    private fun staleSince(): Long = clock.nowEpochMillis() - SEVEN_HOURS_MILLIS
 
     /** Amène [id] au-delà des deux seuils, en deux observations séparées d'une seconde. */
     private fun markAsRead(id: ArticleId) {

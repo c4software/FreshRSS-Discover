@@ -12,6 +12,7 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
+import fr.vbrosseau.freshrssdiscover.data.local.FeedFreshnessStore
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
 import fr.vbrosseau.freshrssdiscover.data.local.SettingsStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.AppDatabase
@@ -29,6 +30,7 @@ import fr.vbrosseau.freshrssdiscover.data.security.KeystoreSecretCipher
 import fr.vbrosseau.freshrssdiscover.data.security.SecretCipher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPositionRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
@@ -100,6 +102,9 @@ class AppGraphTest {
 
     @Inject
     lateinit var readingPositionRepository: ReadingPositionRepository
+
+    @Inject
+    lateinit var freshnessRepository: FeedFreshnessRepository
 
     @Inject
     lateinit var readSyncRepository: ReadSyncRepository
@@ -196,6 +201,7 @@ class AppGraphTest {
     fun everyRepositoryResolvesToItsProductionImplementation() {
         assertIs<DefaultAuthRepository>(authRepository)
         assertIs<DefaultArticleRepository>(articleRepository)
+        assertIs<FeedFreshnessStore>(freshnessRepository)
         assertIs<DefaultReadSyncRepository>(readSyncRepository)
         assertIs<SettingsStore>(settingsRepository)
         assertIs<CacheMaintenance>(cacheRepository)
@@ -268,6 +274,7 @@ class AppGraphTest {
             articleRepository = articleRepository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
+            freshnessRepository = freshnessRepository,
             clock = clock,
         )
         val settings = SettingsViewModel(
