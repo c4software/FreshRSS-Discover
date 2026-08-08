@@ -641,6 +641,19 @@ produisait un.
 le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
 chaque construction.
 
+### 9.9 L'état lu doit traverser la projection
+
+`ReadFlag` marque les articles déjà lus (SPECS.md §4.5). Le piège n'est pas dans
+le rendu mais dans ce qui l'alimente : `Article.toUiModel` a d'abord omis de
+propager `isRead`, et le défaut s'est vu à l'écran — un article lu la veille
+arrivait du cache comme neuf, son fanion n'apparaissant qu'après une seconde de
+visibilité, le temps que le marquage de la session le rétablisse.
+
+Quatre tests d'écran couvraient pourtant le fanion. Aucun ne pouvait attraper
+cela : ils construisent l'état d'affichage à la main, `isRead` compris, sans
+jamais passer par la projection. **Tester l'écran ne teste pas ce qui
+l'alimente** — la règle vaut pour tout champ ajouté à `ArticleUiModel`.
+
 ### 9.8 Une image n'est jamais agrandie
 
 Le créneau d'illustration est fixe (16/9) et l'image le remplit : c'est ce qui

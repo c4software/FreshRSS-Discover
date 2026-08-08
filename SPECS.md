@@ -270,6 +270,12 @@ Deux précisions que l'implémentation a rendues nécessaires :
 
 Comportement associé :
 
+- Un article marqué lu **porte un fanion** en haut de sa carte, discret et
+  toujours au même endroit — avec ou sans illustration. Il est nécessaire depuis
+  que les articles lus restent au flux jusqu'au rechargement (§4.1) : leur
+  disparition disait autrefois qu'ils avaient été lus, plus rien ne le dit
+  aujourd'hui, et l'on relirait sans le savoir. La marque vaut pour les articles
+  lus dans **toutes** les sessions, pas seulement la session en cours.
 - Un article marqué lu **reste affiché** et à sa place. Le faire disparaître
   sous le doigt déplacerait le contenu en cours de lecture.
 - Le marquage est **envoyé au serveur par lots**, pas un appel par article : les

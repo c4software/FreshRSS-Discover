@@ -37,7 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : `GOAL-017-T01`.
+**Prochaine tâche** : aucune n'est due.
 
 ---
 
@@ -61,7 +61,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 | GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
 | GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
-| GOAL-017 | Un article déjà lu se voit | `[-]` |
+| GOAL-017 | Un article déjà lu se voit | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1163,7 +1163,7 @@ réelle par-dessus.
 
 ## GOAL-017 — Un article déjà lu se voit
 
-**Statut : IN PROGRESS**
+**Statut : DONE** — validé sur appareil
 
 Couvre SPECS.md §4.1 et §4.5. **Ce Goal répare une conséquence de
 `GOAL-015-T08`**, trouvée en analysant les dérives depuis la v1.2.0 à la
@@ -1198,8 +1198,12 @@ neuf, et l'on peut relire sans le savoir.
 - [x] `GOAL-017-T03` **Captures Roborazzi** : lu et non lu, avec et sans
       illustration, clair et sombre — deux références, **regardées**, et c'est
       la première qui a révélé le défaut d'alignement
-- [ ] `GOAL-017-T04` **Constaté sur appareil**
-- [ ] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9, TASKS
+- [x] `GOAL-017-T04` **Constaté sur appareil** : capture prise deux secondes
+      après un lancement à froid, les fanions y sont déjà. C'est ce constat qui
+      a révélé le défaut de projection — l'auteur avait signalé « un petit délai
+      avant l'affichage du fanion », et c'était en réalité un état faux
+- [x] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9.9 — qui
+      retient la leçon des tests, non le seul correctif — README, TASKS
 
 ---
 
