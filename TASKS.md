@@ -37,7 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : aucune n'est due.
+**Prochaine tâche** : `GOAL-016`, dès que ses quatre questions sont tranchées.
 
 ---
 
@@ -60,6 +60,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 | GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
+| GOAL-016 | Les petites illustrations cessent d'être étirées | `[ ]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1062,6 +1063,40 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
       **Constaté sur appareil** : trois lancements à froid consécutifs, tête
       identique, `feed.last_refresh_at` inchangé. `GOAL-015-T04` et `T05`
       tombent avec — l'ordre ne dépend plus ni des lus ni de la purge
+
+---
+
+## GOAL-016 — Les petites illustrations cessent d'être étirées
+
+**Statut : TODO** — décisions à trancher avant d'écrire
+
+Couvre SPECS.md §4.3, ajouté à la demande de l'auteur. Une illustration plus
+petite que le créneau est aujourd'hui **agrandie** pour le remplir, et le
+résultat est flou ou pixelisé. Le remède demandé est celui de certains réseaux
+sociaux : la même image en fond, floutée et rognée, et l'image à sa taille
+réelle par-dessus.
+
+### Ce que l'analyse établit
+
+| Constat | Où |
+|---|---|
+| Le créneau est fixé à **16/9**, jamais déduit de l'image — sans quoi la liste sursauterait à l'arrivée de chaque image | `ILLUSTRATION_ASPECT_RATIO`, les deux écrans |
+| `ContentScale.Crop` remplit toujours le créneau : une image de 200 px de large sur un écran de 1080 est **agrandie 5 fois** | `ArticleIllustration`, les deux écrans |
+| Le composant est **écrit deux fois**, à l'identique, comme l'était `FeedNotice` avant `GOAL-014-T06` | `DiscoverScreen`, `SwipeScreen` |
+| Coil 3.4.0 donne la taille source dans `AsyncImagePainter.State.Success` : le seuil est mesurable sans requête supplémentaire | — |
+| `Modifier.blur` exige **API 31** ; le projet descend à **26** | `android-minSdk = "26"` |
+| Le chargeur de test rend une image **carrée de 400 px**, franche : de quoi éprouver le cas sans réseau | `FakeIllustrations.kt` |
+
+### Ce qui reste à trancher, et qui n'est pas anodin
+
+| # | Question | Ce qui en dépend |
+|---|---|---|
+| 1 | À partir de quand une image est-elle « trop petite » ? | Un seuil trop bas floute des images correctes ; trop haut, il laisse passer le défaut |
+| 2 | Le fond flouté remplit-il tout le créneau, ou seulement les bandes laissées libres ? | La lisibilité de l'image nette, et la quantité de flou à l'écran |
+| 3 | Que faire sous API 31, où `Modifier.blur` ne fait rien ? | Un repli silencieux laisserait un fond net et dupliqué, pire que l'étirement |
+| 4 | La règle vaut-elle aussi en mode Balayage ? | Le défaut y est bien plus visible — l'image occupe la moitié de l'écran |
+
+### Tâches — à écrire une fois les questions tranchées
 
 ---
 
