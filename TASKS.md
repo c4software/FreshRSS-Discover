@@ -62,6 +62,7 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
 | GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
 | GOAL-017 | Un article déjà lu se voit | `[x]` |
+| GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1218,6 +1219,40 @@ neuf, et l'on peut relire sans le savoir.
       l'inverse du résultat cherché
 - [x] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9.9 — qui
       retient la leçon des tests, non le seul correctif — README, TASKS
+
+---
+
+## GOAL-018 — La CI cesse de tourner sur des actions dépréciées
+
+**Statut : IN PROGRESS**
+
+Chaque publication signalait deux avertissements : `setup-java v4 is
+deprecated`, et `Node.js 20 is deprecated` pour `download-artifact` et
+`action-gh-release`. Rien ne cassait, et c'est précisément ce qui rend la chose
+facile à laisser traîner — jusqu'au jour où GitHub retire le moteur Node 20 et
+où la publication s'arrête sans prévenir.
+
+### Ce que l'analyse établit
+
+| Action | Avant | Après | Ce que la majeure apporte |
+|---|---|---|---|
+| `actions/checkout` | v4 | v7 | Node 24 |
+| `actions/setup-java` | v4 | v5 | Node 24 ; c'est l'action explicitement dépréciée |
+| `actions/upload-artifact` | v4 | v7 | Node 24, module ESM |
+| `actions/download-artifact` | v4 | v8 | Node 24 ; l'empreinte du téléchargement devient **bloquante** au lieu d'un simple avertissement |
+| `gradle/actions/setup-gradle` | v4 | v6 | Node 24 |
+| `softprops/action-gh-release` | v2 | v3 | Node 24 |
+
+Aucune rupture ne touche cet usage : les notes de version ont été lues avant de
+changer les numéros. Le seul changement de comportement qui nous concerne —
+l'empreinte vérifiée à l'arrivée — va dans le bon sens pour un artefact signé.
+
+### Tâches
+
+- [ ] `GOAL-018-T01` **Monter les six actions**, puis constater la CI verte sur
+      une pull request — c'est le seul déclencheur actif (`GOAL-001-T19`)
+- [ ] `GOAL-018-T02` **Constater la publication**, qui ne s'éprouve qu'au
+      prochain tag : elle emploie deux actions que la CI ne traverse pas
 
 ---
 
