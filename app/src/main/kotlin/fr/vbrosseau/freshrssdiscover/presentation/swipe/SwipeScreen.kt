@@ -163,23 +163,29 @@ fun SwipeScreen(
                 pagerState = pagerState,
                 onVisibilityChanged = onVisibilityChanged,
             )
+
+            /*
+             * **Sous le flux et non par-dessus.** L'avis d'ancienneté dure
+             * jusqu'à ce qu'on l'acquitte ou qu'on recharge : posé en
+             * surimpression, il recouvrait la fin du contenu défilable de la
+             * carte, c'est-à-dire le bouton d'ouverture de l'article — la
+             * seule commande de ce mode (SPECS.md §4.7), et elle devenait
+             * inatteignable sur un article long. Un avis qui s'installe prend
+             * sa place dans la mise en page ; seul un avis fugace se superpose.
+             */
+            if (uiState.showsStaleNotice) {
+                StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
+            }
         }
 
         /*
-         * Un seul avis à la fois au bas de l'écran : l'ouverture refusée
-         * n'existe que hors ligne, où `showsStaleNotice` est justement faux.
+         * Celui-ci reste **en surimpression** : il est fugace, il répond à un
+         * geste qui vient d'échouer. Il ne rencontre jamais l'avis
+         * d'ancienneté, qui n'existe pas hors ligne.
          */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
-
-        if (uiState.showsStaleNotice) {
-            StaleFeedNotice(
-                onRefresh = onRefresh,
-                onDismiss = onStaleNoticeDismiss,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

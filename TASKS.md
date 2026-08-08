@@ -39,9 +39,8 @@ GOAL-012-T05 et T07 (position partagée, accessibilité du balayage). Aucune
 n'appartient à un chantier commun, et les traiter dans l'ordre d'un plan
 d'ensemble reviendrait à s'en inventer un.
 
-**Prochaine tâche** : `GOAL-012-T11` — le bouton « Ouvrir l'article » est
-tronqué en mode Balayage quand l'extrait est long, constaté sur appareil le
-2026-08-08. Puis `GOAL-012-T05`.
+**Prochaine tâche** : `GOAL-012-T05` — position de lecture partagée entre les
+deux modes.
 
 ---
 
@@ -708,16 +707,15 @@ suivant, comme les Stories d'un réseau social.
       Liste, l'illustration en Balayage. La destination affichée le publie donc
       à l'ossature (`FeedRefresh`), qui n'a aucune raison de connaître son
       ViewModel
-- [ ] `GOAL-012-T11` **Le bouton « Ouvrir l'article » est tronqué quand
-      l'extrait est long.** Vu sur appareil le 2026-08-08 en constatant
-      GOAL-014 : sur un article dont l'extrait approche les 1 400 caractères
-      (question tranchée ci-dessous), le texte pousse le bouton hors de la
-      carte, et il n'en reste qu'un arc coupé par le bas.
-      **Le défaut ne vient pas de la bandelette d'ancienneté** — il est là
-      aussi quand elle est absente — mais elle l'aggrave en recouvrant ce qui
-      dépassait encore. C'est la **seule** commande d'ouverture de ce mode
-      (SPECS.md §4.7), et aucune capture ne l'avait montré : elles emploient
-      toutes des extraits courts.
+- [x] `GOAL-012-T11` ~~Le bouton « Ouvrir l'article » est tronqué quand
+      l'extrait est long~~ **Mal attribué, et repris en `GOAL-014-T12`.**
+      Énoncé initial : sur un article dont l'extrait approche les 1 400
+      caractères, le bouton est poussé hors de la carte, vu sur appareil le
+      2026-08-08. C'est exact **au repos**, mais le contenu de la carte défile
+      (SPECS.md §7.1) : sans bandelette, le bouton revient entièrement à
+      l'écran. Il n'y avait donc pas de défaut ici. Ce qui en faisait un, c'est
+      la bandelette d'ancienneté posée par-dessus, qui recouvrait la fin du
+      contenu défilable — un défaut de GOAL-014, corrigé là-bas.
 
 ### Question tranchée
 
@@ -893,6 +891,21 @@ serveur, une bandelette actionnable invite à rafraîchir.
       éteint l'avis avant tout appui ; et le cas hors ligne, le mode avion
       coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
       test.
+- [x] `GOAL-014-T12` **La bandelette cesse d'être une surimpression.** Le
+      constat sur appareil avait été mal lu : le bouton « Ouvrir l'article »
+      poussé hors de la carte par un extrait long n'est pas un défaut — le
+      contenu défile. Le défaut, c'est que la bandelette **recouvrait la fin de
+      ce défilement**, donc le bouton là où il s'arrête : la seule commande
+      d'ouverture de ce mode (SPECS.md §4.7) devenait inatteignable.
+      Reproduit d'abord par un test — extrait long, `performScrollTo` sur le
+      bouton, mesure du chevauchement — puis corrigé : l'avis prend sa place
+      dans la mise en page, sous le flux, dans les deux modes. Un avis qui
+      dure jusqu'à ce qu'on l'acquitte n'est pas fugace ; seul l'avis
+      d'ouverture refusée reste posé par-dessus, et il ne rencontre jamais
+      l'autre. Captures Balayage réenregistrées et **regardées**.
+      **Pas reconstaté sur appareil** : le débogage sans fil du Pixel a changé
+      de port entre-temps et la connexion n'a pas pu être reprise. Le défaut
+      est tenu par un test qui échouait avant la correction et passe après.
 
 ---
 

@@ -148,24 +148,29 @@ fun DiscoverScreen(
                 listState = listState,
                 onVisibilityChanged = onVisibilityChanged,
             )
+
+            /*
+             * **Sous le flux et non par-dessus**, comme en mode Balayage : cet
+             * avis dure jusqu'à ce qu'on l'acquitte ou qu'on recharge, et un
+             * avis qui s'installe prend sa place dans la mise en page. Posé en
+             * surimpression, il recouvrait la fin de ce qui est défilable.
+             */
+            if (uiState.showsStaleNotice) {
+                StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
+            }
         }
 
         /*
-         * Un seul avis à la fois au bas de l'écran, et rien à arbitrer pour
-         * l'obtenir : l'ouverture refusée n'existe que hors ligne, où
-         * `showsStaleNotice` est justement faux (voir [DiscoverUiState]).
+         * Celui-ci reste **en surimpression**, et c'est la différence : il est
+         * fugace — il répond à un geste qui vient d'échouer, et disparaît dès
+         * qu'on l'acquitte. Décaler le flux pour l'afficher ferait bouger la
+         * lecture à chaque ouverture refusée. Il ne rencontre jamais l'avis
+         * d'ancienneté : il n'existe que hors ligne, où `showsStaleNotice` est
+         * justement faux.
          */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
-
-        if (uiState.showsStaleNotice) {
-            StaleFeedNotice(
-                onRefresh = onRefresh,
-                onDismiss = onStaleNoticeDismiss,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

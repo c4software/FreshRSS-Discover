@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -356,6 +357,25 @@ class SwipeScreenTest {
         )
     }
 
+    @Test
+    fun theInvitationLeavesTheOpenActionReachableOnALongArticle() {
+        // Le contenu de la carte défile : sur un extrait long, le bouton
+        // d'ouverture n'est pas à l'écran au repos, mais il doit pouvoir y
+        // venir entièrement. Une bandelette posée par-dessus la carte le
+        // recouvrirait là où le défilement s'arrête — et c'est la seule
+        // commande d'ouverture de ce mode (SPECS.md §4.7).
+        showStale(excerpt = "Un paragraphe interminable. ".repeat(60))
+
+        composeRule.onNodeWithTag(SwipeTestTags.OPEN).performScrollTo()
+
+        val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
+        val open = composeRule.onNodeWithTag(SwipeTestTags.OPEN).getBoundsInRoot()
+        assertTrue(
+            open.bottom <= notice.top,
+            "la commande d\'ouverture reste sous la bandelette même défilée à fond",
+        )
+    }
+
     /**
      * Un flux ancien, avec de quoi lire : l'invitation y est due.
      *
@@ -365,11 +385,12 @@ class SwipeScreenTest {
     private fun showStale(
         onRefresh: () -> Unit = {},
         onStaleNoticeDismiss: () -> Unit = {},
+        excerpt: String = "Un extrait.",
     ) {
         composeRule.setContent {
             SwipeScreen(
                 uiState = SwipeUiState(
-                    articles = listOf(uiArticle()),
+                    articles = listOf(uiArticle(excerpt = excerpt)),
                     phase = DiscoverPhase.Idle,
                     isStaleNoticeAvailable = true,
                 ),
@@ -387,12 +408,13 @@ class SwipeScreenTest {
         title: String = "Un titre",
         imageUrl: String? = null,
         isOpenable: Boolean = true,
+        excerpt: String = "Un extrait.",
     ): ArticleUiModel = ArticleUiModel(
         id = id,
         title = title,
         feedTitle = "Le Monde",
         publishedAt = RelativeTime.Hours(2),
-        excerpt = "Un extrait.",
+        excerpt = excerpt,
         imageUrl = imageUrl,
         isOpenable = isOpenable,
     )
