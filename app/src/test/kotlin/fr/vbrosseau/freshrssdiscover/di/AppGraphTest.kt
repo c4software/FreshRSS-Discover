@@ -31,7 +31,6 @@ import fr.vbrosseau.freshrssdiscover.data.security.SecretCipher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
-import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPositionRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
@@ -40,7 +39,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
@@ -99,9 +97,6 @@ class AppGraphTest {
 
     @Inject
     lateinit var articleRepository: ArticleRepository
-
-    @Inject
-    lateinit var readingPositionRepository: ReadingPositionRepository
 
     @Inject
     lateinit var freshnessRepository: FeedFreshnessRepository
@@ -269,7 +264,6 @@ class AppGraphTest {
         // les construire — un `init` qui lèverait apparaîtrait ici.
         val sessionGate = SessionGateViewModel(authRepository)
         val login = LoginViewModel(authRepository)
-        val readingPosition = ReadingPositionViewModel(readingPositionRepository)
         val discover = DiscoverViewModel(
             articleRepository = articleRepository,
             readSyncRepository = readSyncRepository,
@@ -286,7 +280,6 @@ class AppGraphTest {
         try {
             assertEquals(SessionGate.Unknown, sessionGate.gate.value)
             assertFalse(login.uiState.value.isSubmitting)
-            assertNull(readingPosition.positionToRestore.value)
             assertEquals(DiscoverPhase.InitialLoading, discover.uiState.value.phase)
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {

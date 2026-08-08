@@ -48,7 +48,6 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
@@ -113,23 +112,9 @@ fun DiscoverScreen(
     onRefresh: () -> Unit = {},
     onOfflineNoticeDismiss: () -> Unit = {},
     onStaleNoticeDismiss: () -> Unit = {},
-    onFirstVisibleArticleChanged: (ArticleId?, Long) -> Unit = { _, _ -> },
-    onPositionRestored: () -> Unit = {},
-    positionToRestore: ReadingPosition? = null,
     listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
-    RestoreReadingPosition(
-        listState = listState,
-        articles = uiState.articles,
-        positionToRestore = positionToRestore,
-        onPositionRestored = onPositionRestored,
-    )
-    RememberReadingPosition(
-        listState = listState,
-        articles = uiState.articles,
-        onFirstVisibleArticleChanged = onFirstVisibleArticleChanged,
-    )
     ScrollToTopAfterRefresh(listState = listState, isRefreshing = uiState.isRefreshing)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -771,60 +756,5 @@ private fun ScrollToTopAfterRefresh(listState: LazyListState, isRefreshing: Bool
     LaunchedEffect(isRefreshing) {
         if (wasRefreshing && !isRefreshing) listState.scrollToItem(0)
         wasRefreshing = isRefreshing
-    }
-}
-
-/**
- * Ramène la liste à l'article où la lecture s'était arrêtée (SPECS.md §5.3).
- *
- * `scrollToItem` et non `animateScrollToItem` : il s'agit de restituer un état,
- * pas de montrer un mouvement que l'utilisateur n'a pas demandé.
- *
- * Si l'article n'est plus là — purgé, ou devenu lu et sorti du flux — rien ne se
- * produit et la liste reste en haut. La position est acquittée dans tous les
- * cas : la garder en attente ferait sauter la liste au prochain chargement.
- */
-@Composable
-private fun RestoreReadingPosition(
-    listState: LazyListState,
-    articles: List<ArticleUiModel>,
-    positionToRestore: ReadingPosition?,
-    onPositionRestored: () -> Unit,
-) {
-    LaunchedEffect(positionToRestore, articles) {
-        if (positionToRestore == null || articles.isEmpty()) return@LaunchedEffect
-
-        val index = positionToRestore.indexIn(
-            articles.map { ReadingPosition.Candidate(it.id, it.publishedAtEpochSeconds) },
-        )
-        if (index != null) {
-            listState.scrollToItem(index)
-            onPositionRestored()
-        }
-    }
-}
-
-/**
- * Signale l'article en tête d'écran, pour que la lecture puisse reprendre là.
- *
- * Sa **date** part avec lui : l'article exact aura presque toujours disparu du
- * flux à la réouverture — c'est celui que le marquage vient de rendre lu — et
- * seule la date permet alors la reprise au plus proche (SPECS.md §5.3).
- */
-@Composable
-private fun RememberReadingPosition(
-    listState: LazyListState,
-    articles: List<ArticleUiModel>,
-    onFirstVisibleArticleChanged: (ArticleId?, Long) -> Unit,
-) {
-    val firstVisible by remember(listState, articles) {
-        derivedStateOf {
-            val key = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key as? Long
-            articles.firstOrNull { it.id == key }
-        }
-    }
-
-    LaunchedEffect(firstVisible) {
-        firstVisible?.let { onFirstVisibleArticleChanged(ArticleId(it.id), it.publishedAtEpochSeconds) }
     }
 }

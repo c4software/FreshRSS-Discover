@@ -14,7 +14,6 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
@@ -73,11 +72,6 @@ private fun DiscoverRoute(
     // dans la pile de l'application — sinon le retour ne ramènerait pas au flux.
     val articleOpener = rememberArticleOpener()
 
-    // ViewModel distinct : la position de lecture a son propre cycle, elle
-    // survit aux rechargements et aux rafraîchissements du flux.
-    val positionViewModel: ReadingPositionViewModel = hiltViewModel()
-    val positionToRestore by positionViewModel.positionToRestore.collectAsStateWithLifecycle()
-
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
@@ -98,9 +92,6 @@ private fun DiscoverRoute(
         onRefresh = viewModel::refresh,
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
-        onFirstVisibleArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
-        onPositionRestored = positionViewModel::onPositionRestored,
-        positionToRestore = positionToRestore,
         // Sans ce rappel, la mesure de visibilité ne s'arme pas : `null` signifie
         // « personne n'écoute », et le marquage automatique resterait inerte.
         onVisibilityChanged = viewModel::onVisibilityChanged,
@@ -116,12 +107,6 @@ private fun SwipeRoute(
     val viewModel: SwipeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articleOpener = rememberArticleOpener()
-
-    // Le même ViewModel qu'en mode Liste, et c'est tout l'objet de
-    // `GOAL-012-T05` : la position appartient au flux, pas à la façon de le
-    // parcourir. Deux mémoires séparées se contrediraient à chaque bascule.
-    val positionViewModel: ReadingPositionViewModel = hiltViewModel()
-    val positionToRestore by positionViewModel.positionToRestore.collectAsStateWithLifecycle()
 
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
@@ -141,9 +126,6 @@ private fun SwipeRoute(
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onRefresh = viewModel::refresh,
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
-        onCurrentArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
-        onPositionRestored = positionViewModel::onPositionRestored,
-        positionToRestore = positionToRestore,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )

@@ -16,7 +16,6 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
-import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPositionRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -30,7 +29,6 @@ internal class DefaultAuthRepository @Inject constructor(
     private val sessionStore: SessionStore,
     private val articleCache: ArticleCache,
     private val readSyncRepository: ReadSyncRepository,
-    private val readingPositionRepository: ReadingPositionRepository,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
@@ -108,7 +106,6 @@ internal class DefaultAuthRepository @Inject constructor(
         sessionStore.clear()
         articleCache.clear()
         readSyncRepository.clearPending()
-        readingPositionRepository.forget()
     }
 
     /**

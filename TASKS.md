@@ -1004,9 +1004,12 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
 
 ### Tâches
 
-- [ ] `GOAL-015-T01` **La reprise de position disparaît**, du domaine à l'écran :
+- [x] `GOAL-015-T01` **La reprise de position disparaît**, du domaine à l'écran :
       `ReadingPosition`, dépôt, store, ViewModel, effets des deux écrans,
-      liaisons Hilt, et chaque test qui les éprouvait
+      liaisons Hilt, `forget()` de la déconnexion, et chaque test qui les
+      éprouvait — sept fichiers supprimés, aucun code mort laissé. Les clés
+      `reading.*` des appareils existants deviennent orphelines dans le
+      DataStore : inoffensives, plus jamais lues
 - [ ] `GOAL-015-T02` **Le lancement n'interroge plus le réseau** : les deux
       ViewModels affichent le cache et s'y tiennent ; un cache vide déclenche
       seul le premier chargement ; le défilement pagine comme avant
