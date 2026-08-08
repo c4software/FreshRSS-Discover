@@ -81,6 +81,27 @@ class DiscoverFeedScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /**
+     * L'invitation à recharger un flux ancien (SPECS.md §4.6).
+     *
+     * Capturée parce qu'elle porte **deux** commandes là où l'avis hors ligne
+     * n'en portait qu'une : ce qu'on regarde ici, c'est qu'elles tiennent côte
+     * à côte sans que le message se replie sur trois lignes, et que la seconde
+     * se distingue de la première sans passer pour un ornement.
+     */
+    @Test
+    fun anOldFeedInvitingToReload() {
+        capture("discover-flux-ancien") {
+            discover(
+                DiscoverUiState(
+                    articles = sampleArticles(),
+                    phase = DiscoverPhase.Idle,
+                    isStaleNoticeAvailable = true,
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun discover(uiState: DiscoverUiState) {
         DiscoverScreen(

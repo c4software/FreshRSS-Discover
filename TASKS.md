@@ -852,8 +852,11 @@ serveur, une bandelette actionnable invite à rafraîchir.
 - [x] `GOAL-014-T08` **L'avis s'affiche en mode Balayage**, sans masquer la
       commande d'ouverture de l'article — mesuré, et pas seulement supposé.
       5 tests d'écran, mêmes chaînes qu'en mode Liste
-- [ ] `GOAL-014-T09` **Captures Roborazzi** : la bandelette sur une carte et sur
-      une illustration plein écran ne se jugent pas au même endroit
+- [x] `GOAL-014-T09` **Captures Roborazzi** : la bandelette sur une carte et sur
+      une illustration plein écran ne se jugent pas au même endroit. Quatre
+      références, **regardées** : les deux commandes tiennent côte à côte sans
+      replier le message, le contraste passe dans les deux thèmes, et « Ouvrir
+      l'article » n'est pas recouvert
 - [ ] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8, ARCHITECTURE §5.1 et
       §9, TASKS
 

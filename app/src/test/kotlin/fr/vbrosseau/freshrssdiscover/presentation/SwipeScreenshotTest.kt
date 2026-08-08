@@ -104,6 +104,34 @@ class SwipeScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /**
+     * L'invitation à recharger un flux ancien, posée sur une carte plein écran.
+     *
+     * Deux situations et pas une : en mode Liste la bandelette repose sur un
+     * fond de liste, ici sur une **illustration**. Le contraste ne se juge donc
+     * pas au même endroit, et ce dépôt a déjà livré un indicateur invisible sur
+     * un fond mal choisi. On y regarde aussi qu'elle ne recouvre pas la
+     * commande d'ouverture de l'article.
+     */
+    @Test
+    fun anOldFeedInvitingToReload() {
+        capture("balayage-flux-ancien") {
+            swipe(
+                SwipeUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Le télescope spatial livre ses premières images de la nébuleuse",
+                            imageUrl = LOADABLE_IMAGE_URL,
+                        ),
+                    ),
+                    phase = DiscoverPhase.Idle,
+                    isStaleNoticeAvailable = true,
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun swipe(uiState: SwipeUiState, initialPage: Int = 0) {
         SwipeScreen(
