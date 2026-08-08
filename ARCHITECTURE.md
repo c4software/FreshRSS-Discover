@@ -578,8 +578,8 @@ régression détachait une décision du domaine de son appelant.
 | `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste ; `SwipeViewModel`, alimenté par `pagerVisibility` depuis le pagineur |
 | `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — regroupement des lots |
 | `ReadSyncRepository` | `DiscoverViewModel` et `SwipeViewModel` (marquage, rejeu au démarrage), `ReadFlushOnBackgroundObserver` (passage en arrière-plan) et `DefaultAuthRepository` (déconnexion) |
-| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3), **mode Liste seulement** — voir `GOAL-012-T05` |
-| `ReadingPosition` | `DiscoverScreen`, pour reprendre au plus proche quand l'article mémorisé a disparu du flux |
+| `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3), partagé par les **deux** modes : la position appartient au flux, pas à la façon de le parcourir |
+| `ReadingPosition` | `DiscoverScreen` et `SwipeScreen`, pour reprendre au plus proche quand l'article mémorisé a disparu du flux — le cas ordinaire, l'article quitté étant celui que le marquage vient de rendre lu |
 | `FeedPresentation` | `FeedPresentationViewModel`, qui aiguille la destination Discover vers l'un des deux modes |
 | `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, que les deux ViewModels du flux construisent sur leur portée |
 | `FeedFreshnessRepository` | `DefaultArticleRepository` en **écriture** (chaque réponse serveur valide) et `FeedStalenessWatcher` en **lecture** |

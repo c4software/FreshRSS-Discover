@@ -48,6 +48,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
+import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
@@ -143,9 +144,23 @@ fun SwipeScreen(
     onOfflineNoticeDismiss: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onStaleNoticeDismiss: () -> Unit = {},
+    onCurrentArticleChanged: (ArticleId?, Long) -> Unit = { _, _ -> },
+    onPositionRestored: () -> Unit = {},
+    positionToRestore: ReadingPosition? = null,
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
+    RestoreReadingPosition(
+        pagerState = pagerState,
+        articles = uiState.articles,
+        positionToRestore = positionToRestore,
+        onPositionRestored = onPositionRestored,
+    )
+    RememberReadingPosition(
+        pagerState = pagerState,
+        articles = uiState.articles,
+        onCurrentArticleChanged = onCurrentArticleChanged,
+    )
     ReturnToFirstCardAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -227,6 +242,63 @@ private fun StaleFeedNotice(
  * Le retour a lieu au **passage** de `true` à `false`, pas pendant : y aller
  * dès l'appui ferait défiler une pile que l'on s'apprête à jeter.
  */
+/**
+ * Reprend la lecture là où elle s'était arrêtée (SPECS.md §5.3).
+ *
+ * **Au plus proche, et c'est ce qui rend la reprise possible ici.** En plein
+ * écran, l'article quitté est presque toujours celui que le marquage vient de
+ * rendre lu : le flux des non-lus ne le contient plus au lancement suivant.
+ * Chercher son identifiant exact échouerait donc à tous les coups, et le
+ * balayage repartirait invariablement du premier article. `indexIn` retient à
+ * la place le premier article qui n'est pas **plus récent** — celui qui suivait
+ * immédiatement.
+ *
+ * C'est la même règle qu'en mode Liste, et volontairement le même code de
+ * domaine : deux reprises calculées séparément finiraient par ne plus désigner
+ * le même article, et basculer de mode déplacerait la lecture.
+ */
+@Composable
+private fun RestoreReadingPosition(
+    pagerState: PagerState,
+    articles: List<ArticleUiModel>,
+    positionToRestore: ReadingPosition?,
+    onPositionRestored: () -> Unit,
+) {
+    LaunchedEffect(positionToRestore, articles) {
+        if (positionToRestore == null || articles.isEmpty()) return@LaunchedEffect
+
+        val index = positionToRestore.indexIn(
+            articles.map { ReadingPosition.Candidate(it.id, it.publishedAtEpochSeconds) },
+        )
+        if (index != null) {
+            pagerState.scrollToPage(index)
+            onPositionRestored()
+        }
+    }
+}
+
+/**
+ * Retient l'article sous les yeux.
+ *
+ * `settledPage` et non `currentPage` : le second bascule dès que le geste
+ * dépasse la moitié de l'écran, y compris quand le doigt revient en arrière. On
+ * enregistrerait alors une position que l'utilisateur n'a jamais atteinte.
+ */
+@Composable
+private fun RememberReadingPosition(
+    pagerState: PagerState,
+    articles: List<ArticleUiModel>,
+    onCurrentArticleChanged: (ArticleId?, Long) -> Unit,
+) {
+    val current by remember(pagerState, articles) {
+        derivedStateOf { articles.getOrNull(pagerState.settledPage) }
+    }
+
+    LaunchedEffect(current) {
+        current?.let { onCurrentArticleChanged(ArticleId(it.id), it.publishedAtEpochSeconds) }
+    }
+}
+
 @Composable
 private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
     var wasRefreshing by remember { mutableStateOf(false) }

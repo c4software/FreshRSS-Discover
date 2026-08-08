@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
+import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
@@ -376,6 +378,92 @@ class SwipeScreenTest {
         )
     }
 
+    // ----- Position de lecture (SPECS.md §5.3, GOAL-012-T05) ------------------
+
+    @Test
+    fun theCardOnScreenIsRemembered() {
+        var remembered: Pair<Long?, Long>? = null
+        showWithPosition(
+            onCurrentArticleChanged = { id, date -> remembered = id?.value to date },
+        )
+
+        assertEquals(1L to 1_700_000_000L, remembered)
+    }
+
+    @Test
+    fun theReadingResumesOnTheArticleThatWasLeft() {
+        var restored = 0
+        showWithPosition(
+            positionToRestore = ReadingPosition(ArticleId(3L), publishedAtEpochSeconds = 1_699_999_998L),
+            onPositionRestored = { restored++ },
+        )
+
+        composeRule.onNodeWithTag(SwipeTestTags.page(3L)).assertIsDisplayed()
+        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertIsNotDisplayed()
+        assertEquals(1, restored)
+    }
+
+    @Test
+    fun aVanishedArticleResumesOnTheNextOne() {
+        // Le cas ordinaire en plein écran : l'article quitté est celui que le
+        // marquage vient de rendre lu, et le flux des non-lus ne le contient
+        // plus. La reprise se fait sur le premier qui n'est pas plus récent.
+        showWithPosition(
+            positionToRestore = ReadingPosition(ArticleId(2L), publishedAtEpochSeconds = 1_699_999_999L),
+        )
+
+        composeRule.onNodeWithTag(SwipeTestTags.page(3L)).assertIsDisplayed()
+    }
+
+    @Test
+    fun aFeedEntirelyNewerResumesAtTheTop() {
+        showWithPosition(
+            positionToRestore = ReadingPosition(ArticleId(9L), publishedAtEpochSeconds = 1L),
+        )
+
+        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutAnyRememberedPositionNothingMoves() {
+        var restored = 0
+        showWithPosition(onPositionRestored = { restored++ })
+
+        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertIsDisplayed()
+        composeRule.onNodeWithTag(SwipeTestTags.page(3L)).assertIsNotDisplayed()
+        assertEquals(0, restored)
+    }
+
+    /**
+     * Trois articles aux dates décroissantes, comme le flux les présente.
+     *
+     * Les identifiants suivent les dates : une reprise « au plus proche » se
+     * lit alors directement dans l'assertion.
+     */
+    private fun showWithPosition(
+        positionToRestore: ReadingPosition? = null,
+        onCurrentArticleChanged: (ArticleId?, Long) -> Unit = { _, _ -> },
+        onPositionRestored: () -> Unit = {},
+    ) {
+        composeRule.setContent {
+            SwipeScreen(
+                uiState = SwipeUiState(
+                    articles = listOf(
+                        uiArticle(id = 1L, publishedAtEpochSeconds = 1_700_000_000L),
+                        uiArticle(id = 3L, publishedAtEpochSeconds = 1_699_999_998L),
+                    ),
+                    phase = DiscoverPhase.Idle,
+                ),
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = {},
+                onCurrentArticleChanged = onCurrentArticleChanged,
+                onPositionRestored = onPositionRestored,
+                positionToRestore = positionToRestore,
+            )
+        }
+    }
+
     /**
      * Un flux ancien, avec de quoi lire : l'invitation y est due.
      *
@@ -409,12 +497,14 @@ class SwipeScreenTest {
         imageUrl: String? = null,
         isOpenable: Boolean = true,
         excerpt: String = "Un extrait.",
+        publishedAtEpochSeconds: Long = 1_700_000_000L,
     ): ArticleUiModel = ArticleUiModel(
         id = id,
         title = title,
         feedTitle = "Le Monde",
         publishedAt = RelativeTime.Hours(2),
         excerpt = excerpt,
+        publishedAtEpochSeconds = publishedAtEpochSeconds,
         imageUrl = imageUrl,
         isOpenable = isOpenable,
     )

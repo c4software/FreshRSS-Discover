@@ -32,18 +32,16 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-Treize Goals sur quatorze sont terminés. Ce qui reste tient en trois points,
-constatés un par un le 2026-08-08 et inscrits chacun dans la section de son
-Goal — aucun n'appartient à un chantier commun :
+**Les quatorze Goals sont terminés.** Ne restent que deux points bloqués, l'un
+et l'autre hors de notre main :
 
 | Point | Ce qui manque, constaté |
 |---|---|
-| `GOAL-012-T05` | Le mode Balayage n'enregistre aucune position : `ReadingPositionViewModel` n'est branché que dans `DiscoverRoute` |
 | `GOAL-012-T07` | Bloqué : le balayage horizontal n'est praticable ni au lecteur d'écran ni sans précision du poignet |
 | `GOAL-001-T17` | Bloqué : AGP 9.3.1 plante toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08 |
 
-**Prochaine tâche** : `GOAL-012-T05` — position de lecture partagée entre les
-deux modes.
+**Prochaine tâche** : aucune n'est due. La suite dépend de ce que l'auteur
+décidera d'ajouter à SPECS.md.
 
 ---
 
@@ -62,7 +60,7 @@ deux modes.
 | GOAL-009 | Tirer-pour-rafraîchir | `[x]` |
 | GOAL-010 | Ouverture de l'article d'origine | `[x]` |
 | GOAL-011 | Écran de réglages | `[x]` |
-| GOAL-012 | Vue Balayage, article par article | `[-]` |
+| GOAL-012 | Vue Balayage, article par article | `[x]` |
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 
@@ -665,8 +663,8 @@ Couvre SPECS.md §6.
 
 ## GOAL-012 — Vue Balayage, article par article
 
-**Statut : IN PROGRESS** — le mode existe, se choisit et a été essayé sur
-appareil ; `T05` reste ouvert
+**Statut : DONE** — validé sur appareil, position de lecture comprise. Reste
+l'accessibilité du geste (`T07`), bloquée hors de notre main.
 
 Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
 alternatif : un article en plein écran, balayage horizontal pour passer au
@@ -702,14 +700,20 @@ suivant, comme les Stories d'un réseau social.
 - [x] `GOAL-012-T04` **Le retour en arrière ne délit pas.** Revenir sur un
       article lu ne le remet pas en non-lu — le marquage n'est pas réversible
       par un geste de navigation
-- [ ] `GOAL-012-T05` **Position partagée entre les deux modes.** Basculer de
-      l'un à l'autre doit retrouver le flux au même endroit.
-      **Volontairement laissé ouvert, et non oublié.** Le mode Balayage
-      n'enregistre aujourd'hui aucune position : en plein écran, l'article
-      courant est celui que le marquage vient de rendre lu, et le pagineur
-      repartirait donc sur un article absent du flux suivant. La reprise au plus
-      proche introduite par `GOAL-009-T05` lève cet obstacle — c'est elle qu'il
-      faut désormais brancher ici, plutôt qu'un second mécanisme
+- [x] `GOAL-012-T05` **Position partagée entre les deux modes.** Le mode
+      Balayage retient la carte sous les yeux et reprend là où la lecture s'est
+      arrêtée, par le **même** `ReadingPositionViewModel` que le mode Liste — la
+      position appartient au flux, pas à la façon de le parcourir, et deux
+      mémoires séparées se contrediraient à chaque bascule.
+      L'obstacle qui l'avait fait différer est levé par la reprise « au plus
+      proche » de `GOAL-009-T05`, et non contourné : en plein écran l'article
+      quitté est presque toujours celui que le marquage vient de rendre lu, donc
+      absent du flux suivant. `indexIn` retient le premier article qui n'est pas
+      plus récent.
+      `settledPage` et non `currentPage` : le second bascule dès que le geste
+      dépasse la moitié de l'écran, y compris quand le doigt revient — on
+      enregistrerait une position jamais atteinte. 5 tests d'écran, dont
+      l'article disparu et le flux entièrement plus récent
 - [x] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
 - [!] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
       par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que

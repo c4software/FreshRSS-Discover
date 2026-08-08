@@ -117,15 +117,18 @@ private fun SwipeRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articleOpener = rememberArticleOpener()
 
+    // Le même ViewModel qu'en mode Liste, et c'est tout l'objet de
+    // `GOAL-012-T05` : la position appartient au flux, pas à la façon de le
+    // parcourir. Deux mémoires séparées se contrediraient à chaque bascule.
+    val positionViewModel: ReadingPositionViewModel = hiltViewModel()
+    val positionToRestore by positionViewModel.positionToRestore.collectAsStateWithLifecycle()
+
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
         onFeedRefreshChange = onFeedRefreshChange,
     )
 
-    // Pas de position de lecture ici : en plein écran, l'article visible est
-    // celui qu'on vient de marquer lu, et le pagineur repartirait donc sur un
-    // article absent. La reprise reste au mode Liste, où elle a un sens.
     SwipeScreen(
         uiState = uiState,
         onLoadMore = viewModel::loadMore,
@@ -138,6 +141,9 @@ private fun SwipeRoute(
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onRefresh = viewModel::refresh,
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
+        onCurrentArticleChanged = positionViewModel::onFirstVisibleArticleChanged,
+        onPositionRestored = positionViewModel::onPositionRestored,
+        positionToRestore = positionToRestore,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
