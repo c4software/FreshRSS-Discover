@@ -713,6 +713,57 @@ entrerait en conflit avec le geste horizontal.
 
 ---
 
+## GOAL-013 — Rappel de lecture par notification locale
+
+**Statut : IN PROGRESS**
+
+Couvre SPECS.md §4.9, ajouté à la demande de l'auteur.
+
+Une notification quotidienne rappelle qu'il reste des articles à lire. Elle part
+à **l'heure d'ouverture de la veille**, cite des titres réels, et varie sa
+formulation d'un jour à l'autre.
+
+### Ce qui a été tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| SPECS.md §2 excluait les notifications | **La spécification change** | C'est une décision d'auteur, pas un contournement. L'exclusion est levée explicitement plutôt que enfreinte en silence (AGENTS.md §1.2) |
+| Source des articles cités | Le **cache local**, jamais le réseau | SPECS.md §2 exclut toujours la synchronisation en arrière-plan, et §7.4 veut qu'aucune connexion ne parte sans geste de l'utilisateur. Un rappel qui interrogerait le serveur serait précisément la synchronisation de fond écartée |
+| Rien à lire | **Aucune notification** | Un rappel annonçant qu'il n'y a rien à lire est une interruption sans contrepartie, et c'est ce qui fait couper les notifications d'une application |
+| Heure retenue quand l'application est ouverte plusieurs fois | La **première** ouverture du jour | C'est le moment où l'utilisateur tend la main vers l'application ; la dernière ouverture retiendrait un passage distrait |
+| Choix de la formulation | **Déterministe** sur le numéro du jour | Une reprise après échec rejoue le même jour ; un tirage au hasard donnerait deux messages pour un seul rappel |
+
+### Tâches
+
+- [x] `GOAL-013-T01` **Le domaine décide** : `DailyMinute`, `nextReminderAt`,
+      `ReminderTone`, `reminderPlanFor`. Aucune chaîne, aucune horloge, aucun
+      fuseau lu — tout est transmis. 17 tests, dont le changement d'heure des
+      deux sens et une horloge d'appareil antérieure à l'époque
+- [-] `GOAL-013-T02` **Le cache sait dire ce qu'il reste** : lecture des
+      articles non lus, sans réseau
+- [ ] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
+      jour enregistré, `DataStore`
+- [ ] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
+      unique, réarmement du lendemain par le travailleur lui-même — sans quoi
+      la chaîne s'arrête dès que l'application n'est pas ouverte
+- [ ] `GOAL-013-T05` **La notification est construite** : canal, formulations en
+      ressources, ouverture de l'application au toucher
+- [ ] `GOAL-013-T06` **La permission est demandée** (`POST_NOTIFICATIONS`,
+      API 33+), et son refus n'empêche rien d'autre de fonctionner
+- [ ] `GOAL-013-T07` **Le rappel se désactive** depuis les réglages (§6) : sous
+      API 33 il n'y a aucune permission à retirer, et un rappel qu'on ne peut
+      pas éteindre est un défaut
+- [ ] `GOAL-013-T08` **Valider sur appareil** : notification réellement reçue à
+      l'heure attendue, avec des titres réels
+
+### Dette ouverte
+
+Le rappel ne voit que le cache : un article publié depuis la dernière ouverture
+n'y est pas, et ne sera donc pas annoncé. C'est le prix assumé de l'absence de
+synchronisation en arrière-plan.
+
+---
+
 ## Points bloqués
 
 Aucun.

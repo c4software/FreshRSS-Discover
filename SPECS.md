@@ -49,13 +49,20 @@ Explicitement exclus, afin qu'aucun Goal ne les introduise par glissement :
   FreshRSS ;
 - lecture hors ligne du contenu intégral des articles ;
 - comptes multiples ;
-- widgets, tuiles rapides, notifications ;
+- widgets, tuiles rapides ;
 - partage social, commentaires, annotations ;
-- synchronisation en arrière-plan périodique — l'application ne travaille que
-  lorsqu'elle est ouverte.
+- **synchronisation en arrière-plan** — l'application ne va chercher des
+  articles que lorsqu'elle est ouverte, et aucune connexion ne part sans geste
+  de l'utilisateur (§7.4).
 
 Ces points ne sont pas refusés pour toujours ; ils ne font pas partie de la
 première version, et les introduire demanderait de mettre à jour ce document.
+
+> **Les notifications ont quitté cette liste**, à la demande de l'auteur : voir
+> §4.9. Elles n'entament pas l'exclusion voisine — le rappel lit le **cache
+> local** et ne se connecte à rien. C'est ce qui distingue une notification
+> locale d'une synchronisation de fond, et ce qui fait qu'une seule des deux est
+> ici.
 
 ---
 
@@ -346,6 +353,38 @@ Le choix du mode ne modifie **jamais** l'ordre des articles : un utilisateur qui
 bascule de l'un à l'autre retrouve le flux au même endroit, dans le même ordre
 (règle de déterminisme de §4.2).
 
+### 4.9 Rappel de lecture
+
+Une notification quotidienne rappelle qu'il reste des articles à lire.
+
+**Elle part à l'heure d'ouverture de la veille.** Pas à une heure choisie par le
+développeur : une notification à 9 h chez quelqu'un qui lit le soir est une
+interruption, pas un rappel. L'application retient le moment de sa **première**
+ouverture du jour — celui où l'utilisateur tend la main vers elle — et c'est à
+ce moment-là que le rappel tombe le lendemain.
+
+**Elle ne part pas s'il n'y a rien à lire.** Un rappel annonçant que la pile est
+vide est une interruption sans contrepartie, et c'est ce qui fait couper les
+notifications d'une application.
+
+**Elle cite des titres réels**, pris dans le flux, et annonce le nombre
+d'articles restants. Un rappel qui ne dit pas ce qui attend ne se distingue pas
+d'une publicité pour l'application elle-même.
+
+**Sa formulation change d'un jour à l'autre.** Un message quotidien identique
+cesse d'être lu au bout de trois jours : l'œil en apprend la forme et le balaie
+sans le voir. La variation est **déterministe** — deux exécutions du même jour,
+après un échec ou un redémarrage, donnent le même message.
+
+**Ce qu'elle ne fait pas :** aucune requête réseau. Elle lit le cache local
+(§5.4), et rien d'autre. Un article publié depuis la dernière ouverture n'y est
+donc pas et ne sera pas annoncé ; c'est le prix assumé de §2, qui exclut
+toujours la synchronisation en arrière-plan.
+
+**Elle se désactive** depuis les réglages (§6). Sous Android 13, il n'y a aucune
+permission de notification à retirer, et un rappel qu'on ne peut pas éteindre
+est un défaut.
+
 ---
 
 ## 5. Comportement réseau
@@ -413,6 +452,7 @@ L'écran de réglages reste minimal :
 
 - adresse du serveur et identifiant connectés (en lecture seule) ;
 - **mode de présentation du flux** : Liste ou Balayage (§4.8) ;
+- **rappel de lecture** : activé ou non (§4.9) ;
 - seuils du marquage automatique (§4.5) ;
 - taille du cache et action de purge manuelle ;
 - déconnexion ;
