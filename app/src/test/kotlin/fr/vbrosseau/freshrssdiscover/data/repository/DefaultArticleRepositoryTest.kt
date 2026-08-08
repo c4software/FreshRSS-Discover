@@ -546,6 +546,65 @@ class DefaultArticleRepositoryTest {
     }
 
     @Test
+    fun aPageServedInCrawlOrderIsShownInPublicationOrder() = runTest {
+        // Constaté sur une instance réelle : le serveur trie sa reading-list par
+        // date de récupération, et un article publié deux jours plus tôt peut
+        // ouvrir la première page. Deux conséquences si on l'affiche tel quel :
+        // l'ordre à l'écran dépend de qui, du disque ou du réseau, répond en
+        // premier au lancement — le cache, lui, trie par publication — et la
+        // reprise de lecture (SPECS.md §5.3), qui cherche « le premier article
+        // pas plus récent », tombe n'importe où dans une liste non
+        // chronologique. La page est donc ramenée à l'ordre de publication ici,
+        // avant le mélange, qui l'attend déjà (règle 2 de SPECS.md §4.2).
+        val repository = repository(
+            MockEngineResponse.Body(
+                pageWithDates(
+                    Triple(1L, "feed/1", 100L),
+                    Triple(2L, "feed/1", 300L),
+                    Triple(3L, "feed/1", 200L),
+                ),
+            ),
+        )
+        signedIn()
+
+        val page = assertNotNull(repository.loadPage().valueOrNull())
+
+        assertEquals(listOf(2L, 3L, 1L), page.articles.map { it.id.value })
+    }
+
+    @Test
+    fun articlesPublishedAtTheSameSecondFollowTheCacheTieBreak() = runTest {
+        // À date égale, id décroissant — le même départage que le tri SQL du
+        // cache. Deux départages différents referaient dépendre l'ordre affiché
+        // de la source qui a répondu en premier.
+        val repository = repository(
+            MockEngineResponse.Body(
+                pageWithDates(
+                    Triple(1L, "feed/1", 100L),
+                    Triple(2L, "feed/1", 100L),
+                ),
+            ),
+        )
+        signedIn()
+
+        val page = assertNotNull(repository.loadPage().valueOrNull())
+
+        assertEquals(listOf(2L, 1L), page.articles.map { it.id.value })
+    }
+
+    /** Une page dont la date de publication est **explicite**, découplée de l'id. */
+    private fun pageWithDates(vararg items: Triple<Long, String, Long>): String {
+        val entries = items.joinToString(",") { (id, feedId, published) ->
+            """
+            {"id":"tag:google.com,2005:reader/item/${"%016x".format(id)}","title":"Article $id",
+             "published":$published,
+             "origin":{"streamId":"$feedId","title":"Flux $feedId"}}
+            """.trimIndent()
+        }
+        return """{"items":[$entries]}"""
+    }
+
+    @Test
     fun aPageObtainedFromTheServerRecordsTheContact() = runTest {
         // SPECS.md §4.6 : c'est cette date qui dira si le flux affiché est
         // ancien. Une page ordinaire compte autant qu'un rafraîchissement.

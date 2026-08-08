@@ -85,4 +85,43 @@ class ReadingPositionViewModelTest {
 
     private fun position(id: Long, publishedAt: Long = 0L) =
         ReadingPosition(ArticleId(id), publishedAtEpochSeconds = publishedAt)
+
+    // ----- La mémoire ne dérive pas au lancement ------------------------------
+
+    @Test
+    fun nothingIsRememberedBeforeTheRestorationIsDone() {
+        // Constaté sur appareil : un lancement sans aucune interaction
+        // réécrivait la position. L'écran signale l'article en tête dès le
+        // premier affichage — le plus récent — et cette valeur transitoire
+        // écrasait la vraie place de lecture. Chaque relance restaurait alors
+        // ce que le hasard du lancement précédent avait laissé en tête, et le
+        // flux paraissait s'ouvrir n'importe où.
+        repository.position = position(42L)
+        assertEquals(position(42L), viewModel.positionToRestore.value)
+
+        viewModel.onFirstVisibleArticleChanged(ArticleId(1L), 999L)
+
+        assertTrue(repository.rememberedPositions.isEmpty())
+        assertEquals(position(42L), repository.position)
+    }
+
+    @Test
+    fun rememberingResumesOnceTheRestorationIsDone() {
+        repository.position = position(42L)
+        viewModel.onFirstVisibleArticleChanged(ArticleId(1L), 999L)
+
+        viewModel.onPositionRestored()
+        viewModel.onFirstVisibleArticleChanged(ArticleId(7L), 700L)
+
+        assertEquals(listOf(position(7L, 700L)), repository.rememberedPositions)
+    }
+
+    @Test
+    fun withoutAnythingToRestoreRememberingWorksFromTheStart() {
+        // `null` au réveil signifie « rien à reprendre », pas « attends » : la
+        // toute première session doit mémoriser dès le premier article.
+        viewModel.onFirstVisibleArticleChanged(ArticleId(7L), 700L)
+
+        assertEquals(listOf(position(7L, 700L)), repository.rememberedPositions)
+    }
 }

@@ -121,7 +121,24 @@ internal class DefaultArticleRepository @Inject constructor(
     }
 
     /**
-     * Applique le mélange (SPECS.md §4.2) à la page rendue.
+     * Ramène la page à l'ordre de publication, puis applique le mélange
+     * (SPECS.md §4.2).
+     *
+     * **Le tri n'est pas une précaution, c'est le correctif d'un défaut vu à
+     * l'écran.** Le serveur trie sa liste par date de récupération, pas de
+     * publication : constaté sur une instance réelle, un article publié deux
+     * jours plus tôt ouvrait la première page. Affichée telle quelle, cette
+     * page installait un ordre différent de celui du cache — trié par
+     * publication — et l'écran du lancement dépendait alors de qui, du disque
+     * ou du réseau, répondait en premier : chaque démarrage tirait son ordre
+     * au sort. La reprise de lecture (SPECS.md §5.3), qui cherche « le premier
+     * article pas plus récent », tombait de surcroît n'importe où dans une
+     * liste non chronologique.
+     *
+     * Le départage à date égale est celui du tri SQL du cache — id décroissant —
+     * pour que les deux sources produisent exactement le même ordre. Le mélange
+     * attend d'ailleurs du chronologique inverse : c'est son contrat, que
+     * l'ordre de récupération violait.
      *
      * Le cache, lui, reçoit l'ordre du serveur : il est relu trié par date, et
      * le mélange y est réappliqué à la lecture. Persister un ordre déjà mélangé
@@ -129,7 +146,11 @@ internal class DefaultArticleRepository @Inject constructor(
      * pouvoir s'y insérer.
      */
     private fun ArticlePage.interleaved(continuesPagination: Boolean): ArticlePage {
-        val ordered = interleaveBySource(articles, if (continuesPagination) paginationTail else emptyList())
+        val chronological = articles.sortedWith(
+            compareByDescending<Article> { it.publishedAtEpochSeconds }
+                .thenByDescending { it.id.value },
+        )
+        val ordered = interleaveBySource(chronological, if (continuesPagination) paginationTail else emptyList())
         if (continuesPagination) paginationTail = listOfNotNull(ordered.lastOrNull())
         return copy(articles = ordered)
     }
