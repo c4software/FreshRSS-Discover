@@ -1,5 +1,8 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -82,14 +85,40 @@ private val BookmarkShape = GenericShape { size, _ ->
  *
  * La description est portée par le fanion lui-même et non par la carte : un
  * lecteur d'écran annonce ainsi l'état sans que le titre ait à le répéter.
+ *
+ * **Il ne participe pas à la mise en page** : l'appelant le pose en
+ * surimpression du haut de carte. Placé dans le flux, il décalait le contenu
+ * des articles sans illustration — constaté sur appareil.
  */
 @Composable
-fun ReadFlag(modifier: Modifier = Modifier) {
+fun ReadFlag(visible: Boolean, modifier: Modifier = Modifier) {
+    /*
+     * En fondu, jamais d'un coup. L'état lu s'établit en cours de lecture
+     * (SPECS.md §4.5) : un fanion qui surgit sur la carte qu'on est en train de
+     * lire attire l'œil sur lui, alors qu'il n'a rien à annoncer — il constate.
+     * Le fondu le fait exister sans interrompre.
+     *
+     * `AnimatedVisibility` plutôt qu'un simple `if` : sans lui, l'apparition est
+     * instantanée et la disparition aussi. Ici seule l'apparition survient en
+     * pratique, l'état lu ne revenant jamais en arrière.
+     */
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier,
+    ) {
+        ReadFlagShape()
+    }
+}
+
+@Composable
+private fun ReadFlagShape() {
     Surface(
         shape = BookmarkShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = modifier
+        modifier = Modifier
             .padding(end = Spacing.md)
             .alpha(FLAG_ALPHA)
             .width(FLAG_WIDTH)

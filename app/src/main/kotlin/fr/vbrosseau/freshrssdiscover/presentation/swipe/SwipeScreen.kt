@@ -371,48 +371,54 @@ private fun ArticlePage(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .testTag(SwipeTestTags.page(article.id)),
-    ) {
-        // Même règle qu'en mode Liste : par-dessus le haut de la carte, donc à
-        // la même place qu'il y ait une illustration ou non.
-        Box(modifier = Modifier.fillMaxWidth()) {
+    /*
+     * Le fanion **survole** la carte, hors du flux vertical et hors du
+     * défilement : posé dedans, il décalait le contenu des articles sans
+     * illustration, et il aurait défilé avec le texte — alors qu'il qualifie
+     * l'article entier, pas son sommet.
+     */
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .testTag(SwipeTestTags.page(article.id)),
+        ) {
             if (article.hasIllustration) {
                 ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
             }
 
-            if (article.isRead) {
-                ReadFlag(modifier = Modifier.align(Alignment.TopEnd))
-            }
-        }
-
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = stringResource(R.string.swipe_article_meta, article.feedTitle, article.publishedAt.label()),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
-
-            if (article.excerpt.isNotBlank()) {
+            Column(
+                modifier = Modifier.padding(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Text(
-                    text = article.excerpt,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = stringResource(
+                        R.string.swipe_article_meta,
+                        article.feedTitle,
+                        article.publishedAt.label(),
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
 
-            OpenAction(article = article, onOpen = onOpen)
+                Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
+
+                if (article.excerpt.isNotBlank()) {
+                    Text(
+                        text = article.excerpt,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                OpenAction(article = article, onOpen = onOpen)
+            }
         }
+
+        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 

@@ -1202,6 +1202,15 @@ neuf, et l'on peut relire sans le savoir.
       après un lancement à froid, les fanions y sont déjà. C'est ce constat qui
       a révélé le défaut de projection — l'auteur avait signalé « un petit délai
       avant l'affichage du fanion », et c'était en réalité un état faux
+- [x] `GOAL-017-T07` **Le fanion cesse de décaler la carte, et paraît en
+      fondu.** Signalé par l'auteur : sur un article **sans** illustration, le
+      fanion occupait une hauteur dans le flux vertical et poussait le contenu
+      vers le bas. Il survole désormais toute la carte, hors du flux — et hors
+      du défilement en mode Balayage, où il aurait sinon glissé avec le texte
+      alors qu'il qualifie l'article entier.
+      L'apparition se fait en fondu : l'état lu s'établit en cours de lecture,
+      et un fanion qui surgit sur la carte qu'on lit attire l'œil sur lui alors
+      qu'il ne fait que constater
 - [x] `GOAL-017-T06` **Le fanion est atténué**, à la demande de l'auteur : à
       pleine opacité il attirait l'œil sur ce qu'il y a de moins intéressant
       dans le flux. L'opacité porte sur la surface entière, coche comprise —

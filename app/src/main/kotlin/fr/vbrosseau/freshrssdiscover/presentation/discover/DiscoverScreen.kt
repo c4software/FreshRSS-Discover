@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.discover
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -440,66 +441,68 @@ private fun ArticleCard(
 @Composable
 private fun ArticleCardContent(article: ArticleUiModel) {
     /*
-     * Le fanion se pose **par-dessus** le haut de la carte, illustration
-     * comprise, et non dans le flux vertical : sa place ne dépend donc pas de
-     * la présence d'une image (SPECS.md §4.5). Un `Box` autour du seul haut de
-     * carte suffit — l'englober en entier ferait porter au fanion la hauteur
-     * du texte.
+     * Le fanion **survole** la carte et n'entre pas dans son flux vertical
+     * (SPECS.md §4.5). Posé dans le flux, il occupait une hauteur : les
+     * articles sans illustration voyaient leur contenu décalé vers le bas,
+     * constaté sur appareil. Le `Box` englobe donc toute la carte, et le
+     * fanion s'aligne sur son coin haut.
      */
-    // `fillMaxWidth` : sans illustration, le `Box` se dimensionnerait au fanion
-    // seul et l'alignement à droite n'aurait rien sur quoi s'appuyer — il est
-    // apparu collé au bord gauche, constaté sur capture.
-    Box(modifier = Modifier.fillMaxWidth()) {
-        if (article.hasIllustration) {
-            ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
+    Box {
+        Column {
+            if (article.hasIllustration) {
+                ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
+            }
+
+            Column(
+                modifier = Modifier.padding(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                ArticleCardTexts(article)
+            }
         }
 
-        if (article.isRead) {
-            ReadFlag(modifier = Modifier.align(Alignment.TopEnd))
-        }
+        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
     }
+}
 
-    Column(
-        modifier = Modifier.padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
+@Composable
+private fun ColumnScope.ArticleCardTexts(article: ArticleUiModel) {
+    Text(
+        text = stringResource(
+            R.string.discover_article_meta,
+            article.feedTitle,
+            article.publishedAt.label(),
+        ),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+
+    Text(
+        text = article.title,
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis,
+    )
+
+    if (article.excerpt.isNotBlank()) {
         Text(
-            text = stringResource(
-                R.string.discover_article_meta,
-                article.feedTitle,
-                article.publishedAt.label(),
-            ),
-            style = MaterialTheme.typography.labelMedium,
+            text = article.excerpt,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        Text(
-            text = article.title,
-            style = MaterialTheme.typography.titleMedium,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
+    }
 
-        if (article.excerpt.isNotBlank()) {
-            Text(
-                text = article.excerpt,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        if (!article.isOpenable) {
-            Text(
-                text = stringResource(R.string.discover_article_no_link),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag(DiscoverTestTags.NO_LINK),
-            )
-        }
+    if (!article.isOpenable) {
+        Text(
+            text = stringResource(R.string.discover_article_no_link),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(DiscoverTestTags.NO_LINK),
+        )
     }
 }
 
