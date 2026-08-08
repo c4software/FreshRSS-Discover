@@ -268,6 +268,7 @@ class SwipeViewModelTest {
     fun openingIsRefusedAndExplainedWhileOffline() {
         repository.enqueueFailure(FeedError.NoNetwork)
         repository.cachedArticles.value = listOf(article(id = 1L))
+        viewModel.loadMore()
 
         assertFalse(viewModel.onArticleOpened(1L))
 
@@ -379,6 +380,7 @@ class SwipeViewModelTest {
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
         repository.cachedArticles.value = listOf(article(id = 1L))
         repository.enqueueFailure(FeedError.NoNetwork)
+        viewModel.loadMore()
 
         assertTrue(state.isStaleNoticeAvailable)
         assertFalse(state.showsStaleNotice)
@@ -424,4 +426,23 @@ class SwipeViewModelTest {
 
     /** Un horodatage de contact serveur assez vieux pour que l'avis soit dû. */
     private fun staleSince(): Long = clock.nowEpochMillis() - SEVEN_HOURS_MILLIS
+
+    // ----- Lancement calme (SPECS.md §5.1, GOAL-015) --------------------------
+
+    @Test
+    fun aGarnishedCacheLaunchesWithoutAnyNetworkRequest() {
+        repository.cachedArticles.value = listOf(article(id = 1L))
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        assertEquals(0, repository.loadCallCount)
+    }
+
+    @Test
+    fun anEmptyCacheTriggersTheOnlyAutomaticLoad() {
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+        assertEquals(1, repository.loadCallCount)
+    }
 }

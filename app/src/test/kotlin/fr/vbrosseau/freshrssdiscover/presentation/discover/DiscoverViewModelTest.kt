@@ -418,14 +418,39 @@ class DiscoverViewModelTest {
     // ----- Cache local (SPECS.md §5.1) ----------------------------------------
 
     @Test
-    fun theCachedArticlesAreShownBeforeAnyNetworkResponse() {
-        // Un écran vide pendant une requête donnerait l'impression d'une
-        // application sans contenu, alors qu'elle en a.
-        repository.pendingLoad = CompletableDeferred()
+    fun theCachedArticlesAreShownWithoutAnyNetworkRequest() {
+        // SPECS.md §5.1 : le lancement montre le cache et s'y arrête. La
+        // requête automatique créait une course entre le disque et le réseau,
+        // dont l'issue décidait de l'écran.
         repository.cachedArticles.value = listOf(article(id = 1L, title = "Du cache"))
 
         assertEquals(listOf("Du cache"), state.articles.map { it.title })
-        assertEquals(DiscoverPhase.InitialLoading, state.phase)
+        assertEquals(DiscoverPhase.Idle, state.phase)
+        assertEquals(0, repository.loadCallCount)
+    }
+
+    @Test
+    fun anEmptyCacheTriggersTheOnlyAutomaticLoad() {
+        // L'unique exception : rien à montrer — première ouverture, retour
+        // après déconnexion. Une application sans requête ni contenu serait
+        // morte.
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertEquals(listOf(1L), state.articles.map { it.id })
+        assertEquals(1, repository.loadCallCount)
+    }
+
+    @Test
+    fun aCacheEmptiedLaterDoesNotTriggerAnyRequest() {
+        // La décision d'amorçage se prend une fois, sur la première émission :
+        // une purge qui viderait le cache ensuite ne doit pas lancer de
+        // requête dans le dos de l'utilisateur.
+        repository.cachedArticles.value = listOf(article(id = 1L))
+        assertEquals(DiscoverPhase.Idle, state.phase)
+
+        repository.cachedArticles.value = emptyList()
+
+        assertEquals(0, repository.loadCallCount)
     }
 
     @Test
@@ -443,10 +468,13 @@ class DiscoverViewModelTest {
 
     @Test
     fun theFirstPageDoesNotDuplicateWhatTheCacheHasAlreadyShown() {
-        // La page réseau contient les mêmes articles que le cache : seuls les
+        // La page réseau — demandée par le défilement, plus jamais toute
+        // seule — contient les mêmes articles que le cache : seuls les
         // inconnus s'ajoutent, et en tête — ce sont les plus récents.
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
         repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)), nextCursor = null)
+
+        viewModel.loadMore()
 
         assertEquals(listOf(3L, 1L, 2L), state.articles.map { it.id })
     }
@@ -458,6 +486,8 @@ class DiscoverViewModelTest {
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
+
+        viewModel.loadMore()
 
         assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
         assertEquals(listOf(null, PageCursor("c1")), repository.requestedCursors)
@@ -481,6 +511,8 @@ class DiscoverViewModelTest {
     fun beingOfflineWithCachedArticlesKeepsThemAndRaisesTheBanner() {
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
         repository.enqueueFailure(FeedError.NoNetwork)
+
+        viewModel.loadMore()
 
         assertEquals(listOf(1L, 2L), state.articles.map { it.id })
         assertTrue(state.isOffline)
@@ -695,6 +727,7 @@ class DiscoverViewModelTest {
         // l'article passerait pour lu sans avoir pu l'être (SPECS.md §5.2).
         repository.cachedArticles.value = listOf(article(id = 1L))
         repository.enqueueFailure(FeedError.NoNetwork)
+        viewModel.loadMore()
 
         val opened = viewModel.onArticleOpened(1L)
 
@@ -725,6 +758,8 @@ class DiscoverViewModelTest {
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)))
 
+        viewModel.loadMore()
+
         assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
     }
 
@@ -736,6 +771,8 @@ class DiscoverViewModelTest {
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L), article(id = 3L)))
 
+        viewModel.loadMore()
+
         assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
     }
 
@@ -745,6 +782,8 @@ class DiscoverViewModelTest {
         // disparaître retirerait sous les yeux ce qu'on était en train de lire.
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L)))
+
+        viewModel.loadMore()
 
         assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
     }
@@ -756,6 +795,7 @@ class DiscoverViewModelTest {
         // que le serveur n'a pas dicté, au milieu d'une lecture.
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L)))
+        viewModel.loadMore()
         val shownAfterFirstPage = state.articles.map { it.id }
 
         repository.cachedArticles.value = listOf(article(id = 3L), article(id = 2L), article(id = 9L))
@@ -817,6 +857,7 @@ class DiscoverViewModelTest {
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
         repository.cachedArticles.value = listOf(article(id = 1L))
         repository.enqueueFailure(FeedError.NoNetwork)
+        viewModel.loadMore()
 
         assertTrue(state.isStaleNoticeAvailable)
         assertFalse(state.showsStaleNotice)

@@ -19,10 +19,12 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
 import fr.vbrosseau.freshrssdiscover.domain.core.valueOrNull
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeFeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
+import fr.vbrosseau.freshrssdiscover.domain.feed.feedRef
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -397,6 +399,33 @@ class DefaultArticleRepositoryTest {
         val cached = repository.observeCachedArticles(CACHE_LIMIT).first()
 
         assertEquals(listOf("Non lu"), cached.map { it.title })
+    }
+
+    @Test
+    fun markingAnArticleReadDoesNotReshuffleTheSurvivors() = runTest {
+        // Le mélange s'applique AVANT le filtrage des lus, et c'est le point :
+        // appliqué après, chaque article lu qui disparaissait rebrassait les
+        // positions de tous ses voisins — le flux se mélangeait à chaque
+        // lancement, au rythme du marquage automatique. Constaté sur appareil :
+        // trois lancements consécutifs, trois têtes différentes, les articles
+        // regardés six secondes disparaissant et le reste changeant d'ordre.
+        // L'ordre des non-lus doit être un sous-ordre stable : les lus
+        // s'effacent, les survivants ne bougent pas.
+        cache.save(
+            listOf(
+                article(id = 4L, publishedAtEpochSeconds = 100L, feed = feedRef("feed/1")),
+                article(id = 3L, publishedAtEpochSeconds = 99L, feed = feedRef("feed/1")),
+                article(id = 2L, publishedAtEpochSeconds = 98L, feed = feedRef("feed/2")),
+                article(id = 1L, publishedAtEpochSeconds = 97L, feed = feedRef("feed/1")),
+            ),
+        )
+        val repository = repository(MockEngineResponse.Body(onePage))
+        val before = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+
+        cache.markAsRead(listOf(ArticleId(before.first())))
+        val after = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+
+        assertEquals(before.drop(1), after)
     }
 
     @Test

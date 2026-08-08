@@ -133,3 +133,10 @@ internal fun SwipeUiState.failedWith(error: FeedError): SwipeUiState = copy(
     },
     isOffline = error == FeedError.NoNetwork,
 )
+
+/**
+ * Cache garni au lancement : rien à demander, le flux est celui qu'on a laissé
+ * (SPECS.md §5.1). Même transition qu'en mode Liste, pour la même raison.
+ */
+internal fun SwipeUiState.settledFromCache(): SwipeUiState =
+    if (phase == DiscoverPhase.InitialLoading) copy(phase = DiscoverPhase.Idle) else this

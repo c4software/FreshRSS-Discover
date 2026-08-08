@@ -1010,9 +1010,29 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
       éprouvait — sept fichiers supprimés, aucun code mort laissé. Les clés
       `reading.*` des appareils existants deviennent orphelines dans le
       DataStore : inoffensives, plus jamais lues
-- [ ] `GOAL-015-T02` **Le lancement n'interroge plus le réseau** : les deux
+- [x] `GOAL-015-T02` **Le lancement n'interroge plus le réseau** : les deux
       ViewModels affichent le cache et s'y tiennent ; un cache vide déclenche
-      seul le premier chargement ; le défilement pagine comme avant
+      seul le premier chargement ; le défilement pagine comme avant.
+      **Constaté sur appareil** : `feed.last_refresh_at` est rigoureusement
+      inchangé après un lancement à froid — plus aucune requête ne part sans
+      geste
+- [x] `GOAL-015-T05` **Le mélange du cache cesse de dépendre des articles lus.**
+      Le mélange choisit chaque position en regardant ses voisins : appliqué
+      **après** le filtrage des lus, chaque article marqué lu quittait
+      l'ensemble et redistribuait tous ses voisins. Le marquage étant automatique
+      et continu (SPECS.md §4.5), le flux se réordonnait à chaque lancement —
+      trois ouvertures consécutives, trois têtes différentes, constaté sur
+      appareil. Le mélange s'applique désormais **avant** le filtrage : l'ordre
+      des non-lus est un sous-ordre stable. 1 test
+- [ ] `GOAL-015-T04` **La purge peut encore redistribuer l'ordre.** Elle retire
+      des articles de l'ensemble sur lequel le mélange se calcule, et elle
+      tourne une fois par démarrage de processus, en **course** avec la première
+      lecture du cache. Elle ne touche que des articles lus depuis plus d'une
+      semaine et déjà synchronisés : une fois le retard résorbé elle ne trouve
+      plus rien, et l'ordre se fige. Le régime transitoire, lui, bouge encore.
+      Le test qui l'établissait a été **retiré plutôt que gardé faux** : il
+      contredisait celui du marquage, et l'arbitrage entre les deux appartient à
+      la spécification, pas au code
 - [ ] `GOAL-015-T03` **Documentation** : SPECS §5.1, §5.3, §4.6 et §8
       question 10 ; ARCHITECTURE §5.1 et §9.1 ; README ; TASKS
 

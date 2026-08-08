@@ -141,15 +141,29 @@ class DiscoverViewModel @Inject constructor(
                  */
                 val now = clock.nowEpochMillis()
                 if (!hasServerContent) _uiState.update { it.merging(cached, now, atHead = false) }
+                if (!hasDecidedBootstrap) {
+                    hasDecidedBootstrap = true
+                    if (cached.isEmpty()) load() else _uiState.update { it.settledFromCache() }
+                }
             }
             .launchIn(viewModelScope)
 
         staleness.isStale
             .onEach { isStale -> _uiState.update { it.copy(isStaleNoticeAvailable = isStale) } }
             .launchIn(viewModelScope)
-
-        load()
     }
+
+    /**
+     * Vrai une fois la décision d'amorçage prise : elle ne se prend qu'une fois.
+     *
+     * SPECS.md §5.1 : le lancement montre le cache et **s'y arrête**. La seule
+     * exception est un cache vide — première ouverture, retour après
+     * déconnexion — où ne rien demander laisserait une application morte. La
+     * décision se prend sur la **première** émission du cache, jamais après :
+     * une écriture ultérieure qui viderait la liste ne doit pas déclencher de
+     * requête dans le dos de l'utilisateur.
+     */
+    private var hasDecidedBootstrap = false
 
     /**
      * Demande la page suivante.
@@ -419,3 +433,12 @@ private fun DiscoverUiState.failedWith(error: FeedError): DiscoverUiState = copy
     },
     isOffline = error == FeedError.NoNetwork,
 )
+
+/**
+ * Cache garni au lancement : rien à demander, le flux est celui qu'on a laissé
+ * (SPECS.md §5.1). La phase passe au repos — sans elle, le pied de liste
+ * annoncerait un chargement qui n'existe pas, et le défilement (SPECS.md §4.4)
+ * resterait verrouillé.
+ */
+private fun DiscoverUiState.settledFromCache(): DiscoverUiState =
+    if (phase == DiscoverPhase.InitialLoading) copy(phase = DiscoverPhase.Idle) else this
