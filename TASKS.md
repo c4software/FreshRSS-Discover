@@ -32,7 +32,7 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-Treize Goals sur quatorze sont terminés. Ce qui reste tient en cinq points,
+Treize Goals sur quatorze sont terminés. Ce qui reste tient en quatre points,
 constatés un par un le 2026-08-08 et inscrits chacun dans la section de son
 Goal — aucun n'appartient à un chantier commun :
 
@@ -41,9 +41,7 @@ Goal — aucun n'appartient à un chantier commun :
 | `GOAL-012-T05` | Le mode Balayage n'enregistre aucune position : `ReadingPositionViewModel` n'est branché que dans `DiscoverRoute` |
 | `GOAL-012-T07` | Bloqué : le balayage horizontal n'est praticable ni au lecteur d'écran ni sans précision du poignet |
 | `GOAL-002-T18` | `KeystoreSecretCipher` n'a toujours aucun test propre — seul `AppGraphTest` le traverse |
-| `GOAL-001-T17` | `ignoreTestSources = true` toujours en place, AGP plantant sur ses propres composants |
-| `GOAL-001-T18` | Robolectric simule l'API 35, `targetSdk` vaut 37 |
-| `GOAL-001-T19` | Bloqué par décision d'auteur : CI neutralisée sur `push` |
+| `GOAL-001-T17` | Bloqué : AGP 9.3.1 plante toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08 |
 
 **Prochaine tâche** : `GOAL-012-T05` — position de lecture partagée entre les
 deux modes.
@@ -189,9 +187,22 @@ fonctionnalité applicative.
       > La correction a été différée jusqu'à la fin des travaux parallèles :
       > modifier les fichiers Gradle sous des agents en cours leur aurait fait
       > voir des violations apparues en cours de route.
-- [ ] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
-      (`ignoreTestSources = true`, hérité). AGP 9.3.1 plante sur ses propres
-      composants d'analyse Kotlin. À réactiver dès qu'une version corrige.
+- [!] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
+      (`ignoreTestSources = true`). AGP 9.3.1 plante sur ses propres composants
+      d'analyse Kotlin.
+      > **Réessayé le 2026-08-08, le plantage subsiste.** Passer à `false` fait
+      > échouer `:app:lintAnalyzeDebugUnitTest` sur
+      > `SymbolLightClassForClassOrObject.getSuperTypes`, exactement la trace
+      > d'origine. À noter pour la prochaine tentative : `:app:lintDebug` seul
+      > **passe** — c'est la variante de test unitaire qui plante, et s'arrêter
+      > à `lintDebug` ferait croire le problème résolu.
+      >
+      > Ce que l'essai a tout de même appris : hors ce plantage, les sources de
+      > test ne portent que cinq avertissements, tous de nommage
+      > (`ComposableNaming` sur des aides de capture). Rien de structurel
+      > n'attend derrière ce garde-fou.
+      >
+      > Reste bloquée jusqu'à une version d'AGP qui corrige.
 - [x] `GOAL-001-T18` **Robolectric relevé de l'API 35 à 36**, le dernier niveau
       qu'il sait instancier — 37 lève `UnknownSdk`, essayé avant de trancher.
       Un écart d'un niveau subsiste avec `targetSdk`, et il ne se refermera
@@ -200,14 +211,15 @@ fonctionnalité applicative.
       réenregistrées et **regardées** en comparaison. Seul l'anticrénelage des
       arrondis diffère — curseurs, interrupteur, coins de carte — la mise en
       page, les textes et les couleurs sont inchangés.
-- [!] `GOAL-001-T19` **CI volontairement neutralisée sur `push`**
-      (`branches: [never]`).
-      > Décision de l'auteur : chaque exécution consomme du crédit de build, et
-      > la vérification locale est exactement la même commande. Le déclencheur
-      > `pull_request` reste actif — il consomme lui aussi, et se neutralise de
-      > la même façon si besoin. Ce n'est pas une dette technique mais un
-      > arbitrage assumé : la garantie repose entièrement sur AGENTS.md §5, dont
-      > la sortie doit être **constatée** avant chaque commit.
+- [x] `GOAL-001-T19` **CI neutralisée sur `push` — décision close, pas une
+      dette** (`branches: [never]`). Confirmée par l'auteur le 2026-08-08 :
+      elle figurait encore parmi les points bloqués, ce qui laissait croire à un
+      obstacle en attente de levée. Il n'y en a pas.
+      > Chaque exécution consomme du crédit de build, et la vérification locale
+      > est exactement la même commande. Le déclencheur `pull_request` reste
+      > actif — il consomme lui aussi, et se neutralise de la même façon si
+      > besoin. La garantie repose donc entièrement sur AGENTS.md §5, dont la
+      > sortie doit être **constatée** avant chaque commit.
 
 ---
 
@@ -934,7 +946,14 @@ serveur, une bandelette actionnable invite à rafraîchir.
 
 ## Points bloqués
 
-Aucun.
+Deux, tous deux hors de notre main :
+
+- `GOAL-001-T17` — le lint Android ne peut pas analyser les sources de test :
+  AGP 9.3.1 plante sur ses propres composants. Réessayé le 2026-08-08, la trace
+  est inchangée. Se lèvera avec une version d'AGP, pas avec du code d'ici.
+- `GOAL-012-T07` — l'accessibilité du balayage horizontal. La parade est en
+  place (deux boutons de 48 dp, barre toujours présente), mais le geste
+  lui-même reste impraticable au lecteur d'écran, qui se le réserve.
 
 ---
 
