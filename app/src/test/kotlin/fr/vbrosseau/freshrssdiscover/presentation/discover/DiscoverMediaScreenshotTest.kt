@@ -85,6 +85,40 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
             )
         }
     }
+
+    /**
+     * Une illustration **plus petite que le créneau**, à côté d'une grande.
+     *
+     * C'est la comparaison qui juge le procédé (SPECS.md §4.3) : la petite doit
+     * apparaître à sa taille, centrée sur un fond flouté tiré d'elle-même,
+     * plutôt qu'étirée et pixelisée. La grande, elle, ne doit **pas** avoir
+     * changé — c'est ce qui établit que le fond ne s'applique qu'au cas visé.
+     */
+    @Test
+    fun aTinyIllustrationSitsOnItsOwnBlurredBackdrop() {
+        capture("discover-illustration-minuscule") {
+            DiscoverScreen(
+                uiState = DiscoverUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Une illustration plus petite que le créneau",
+                            imageUrl = TINY_IMAGE_URL,
+                        ),
+                        sampleArticle(
+                            id = 2L,
+                            title = "Une illustration assez grande, inchangée",
+                            imageUrl = LOADABLE_IMAGE_URL,
+                        ),
+                    ),
+                    phase = DiscoverPhase.EndOfFeed,
+                ),
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = {},
+            )
+        }
+    }
 }
 
 private fun sampleArticle(

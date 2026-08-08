@@ -6,6 +6,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.LOADABLE_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
+import fr.vbrosseau.freshrssdiscover.presentation.discover.TINY_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.installFakeImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.discover.resetImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
@@ -127,6 +128,28 @@ class SwipeScreenshotTest : ScreenshotTest() {
                     ),
                     phase = DiscoverPhase.Idle,
                     isStaleNoticeAvailable = true,
+                ),
+            )
+        }
+    }
+
+    /**
+     * La même comparaison en plein écran, où le défaut crève les yeux : le
+     * créneau y occupe la moitié de la hauteur (SPECS.md §4.3).
+     */
+    @Test
+    fun aTinyIllustrationFullScreenSitsOnItsBackdrop() {
+        capture("balayage-illustration-minuscule") {
+            swipe(
+                SwipeUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Une illustration plus petite que le créneau",
+                            imageUrl = TINY_IMAGE_URL,
+                        ),
+                    ),
+                    phase = DiscoverPhase.Idle,
                 ),
             )
         }

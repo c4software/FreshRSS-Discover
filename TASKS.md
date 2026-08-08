@@ -1109,18 +1109,32 @@ réelle par-dessus.
 
 ### Tâches
 
-- [ ] `GOAL-016-T01` **L'illustration devient un seul composant**, dans
+- [x] `GOAL-016-T01` **L'illustration devient un seul composant**, dans
       `presentation/feed` : elle est aujourd'hui écrite à l'identique dans les
       deux écrans. Refactor pur — captures inchangées, tests d'écran inchangés
-- [ ] `GOAL-016-T02` **Le composant sait si l'image serait agrandie** : taille
+- [x] `GOAL-016-T02` **Le composant sait si l'image serait agrandie** : taille
       source lue dans l'état de Coil, comparée à la largeur mesurée du créneau.
-      Décision pure, éprouvable sans rendu
-- [ ] `GOAL-016-T03` **Le fond flouté**, sous l'image à sa taille réelle, et
+      Décision pure, éprouvable sans rendu — 6 tests, dont les trois cas où l'on
+      ne doit rien faire
+- [x] `GOAL-016-T03` **Le fond flouté**, sous l'image à sa taille réelle, et
       seulement quand l'agrandissement aurait lieu. Sous API 31, l'étirement
-      d'aujourd'hui, sans y toucher
-- [ ] `GOAL-016-T04` **Captures Roborazzi** : une petite image et une grande,
-      dans les deux modes, clair et sombre — le chargeur de test doit gagner
-      une illustration franchement petite
+      d'aujourd'hui, sans y toucher.
+      La copie floutée déborde légèrement du créneau : `blur` estompe jusqu'aux
+      bords, et sans ce débordement le cadre qu'on chasse reparaîtrait en
+      périphérie
+- [x] `GOAL-016-T04` **Captures Roborazzi** : une petite image et une grande,
+      dans les deux modes, clair et sombre. Quatre références, **regardées**.
+      > **Deux pièges du harnais, corrigés plutôt que contournés.** La première
+      > capture employait un aplat uni : flouté ou net, rogné ou ajusté, il rend
+      > exactement les mêmes pixels — elle aurait validé n'importe quoi.
+      > L'illustration minuscule est donc devenue **bicolore**, un disque clair
+      > sur fond sombre, où le sujet net, le fond estompé et le créneau plein se
+      > distinguent.
+      > L'image factice « ordinaire » mesurait par ailleurs 400 px : elle passait
+      > elle aussi sous la largeur d'un créneau, donc sous le fond flouté. Toutes
+      > les captures du dépôt auraient illustré le cas particulier en croyant
+      > montrer le cas général. Portée à 1 600 px, elle redevient le cas
+      > ordinaire — et les références existantes sont **inchangées au pixel**
 - [ ] `GOAL-016-T05` **Constaté sur appareil**, sur un article réel à petite
       illustration
 - [ ] `GOAL-016-T06` **Documentation** : SPECS §4.3, ARCHITECTURE §9, TASKS

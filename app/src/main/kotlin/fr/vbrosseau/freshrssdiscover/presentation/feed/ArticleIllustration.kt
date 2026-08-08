@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,9 +11,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 
@@ -35,6 +43,25 @@ private const val ILLUSTRATION_ASPECT_RATIO = 16f / 9f
  * a déjà été livré ainsi dans ce dépôt.
  */
 private const val ILLUSTRATION_PLACEHOLDER_ALPHA = 0.12f
+
+/**
+ * Rayon du flou du fond.
+ *
+ * Assez large pour que le sujet n'y soit plus lisible — un fond où l'on
+ * distingue encore la scène entre en concurrence avec l'image nette posée
+ * dessus — et pas au point d'aplatir la teinte, qui est justement ce qui relie
+ * le fond à l'image.
+ */
+private val BLUR_RADIUS = 24.dp
+
+/**
+ * Débordement de la copie floutée, au-delà du créneau.
+ *
+ * `blur` estompe jusqu'aux bords : sans ce léger agrandissement, le fond
+ * laisserait voir la teinte du créneau sur son pourtour, et le cadre qu'on
+ * cherche à supprimer reparaîtrait en périphérie.
+ */
+private const val BLUR_OVERSCAN = 1.1f
 
 /**
  * L'illustration d'un article, partagée par les deux modes (SPECS.md §4.3).
@@ -66,6 +93,10 @@ fun ArticleIllustration(
 
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
+    var slotWidthPx by remember { mutableIntStateOf(0) }
+    val sourceWidthPx = (state as? AsyncImagePainter.State.Success)?.result?.image?.width ?: 0
+    val blurred = supportsBlur && needsUpscaling(sourceWidthPx = sourceWidthPx, slotWidthPx = slotWidthPx)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -74,13 +105,53 @@ fun ArticleIllustration(
             // a rien à montrer : elle dit que la place est réservée, sans
             // prétendre être une illustration.
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = ILLUSTRATION_PLACEHOLDER_ALPHA))
+            .onSizeChanged { slotWidthPx = it.width }
             .testTag(testTag),
     ) {
+        if (blurred) {
+            /*
+             * La **même** image, rognée pour remplir et floutée : le créneau
+             * reste plein, sans bande vide ni cadre, et le fond s'accorde
+             * toujours au sujet puisqu'il en vient. C'est l'astuce employée par
+             * plusieurs réseaux sociaux, et elle est ici préférable à une
+             * couleur dominante — qui demanderait de lire les pixels, donc un
+             * calcul par image.
+             *
+             * Le flou porte sur une copie **agrandie** au-delà du créneau
+             * (`scale`) : sans cela, les bords du flou laisseraient voir le
+             * fond à travers l'estompage de `blur`, et le cadre reparaîtrait
+             * par où on l'a chassé.
+             */
+            Image(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(BLUR_OVERSCAN)
+                    .blur(BLUR_RADIUS),
+                contentScale = ContentScale.Crop,
+            )
+        }
+
         Image(
             painter = painter,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
+            // `Fit` seulement quand un fond porte le reste du créneau : sans
+            // lui, l'image respecterait sa taille en laissant deux bandes
+            // vides, ce qui est le défaut inverse de celui qu'on corrige.
+            contentScale = if (blurred) ContentScale.Fit else ContentScale.Crop,
         )
     }
 }
+
+/**
+ * `Modifier.blur` n'a d'effet qu'à partir d'Android 12 (API 31) ; le projet
+ * descend à 26.
+ *
+ * En dessous, **rien ne change** : l'image reste étirée comme aujourd'hui.
+ * C'est une dégradation franche, préférée à un second mécanisme — le fond
+ * serait sinon net et dupliqué, c'est-à-dire pire que le défaut corrigé.
+ */
+private val supportsBlur: Boolean
+    get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
