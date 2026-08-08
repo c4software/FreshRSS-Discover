@@ -935,6 +935,23 @@ serveur, une bandelette actionnable invite à rafraîchir.
       coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
       test, et **l'auteur a confirmé leur bon fonctionnement sur son appareil**
       le 2026-08-08.
+- [x] `GOAL-014-T13` **Régression corrigée : les réglages réémettaient à chaque
+      page.** Trouvée le 2026-08-08 en cherchant pourquoi le flux paraissait se
+      comporter autrement depuis la mise à jour.
+      `GOAL-014-T03` fait écrire la date du contact serveur à **chaque page
+      reçue**, dans le DataStore partagé. Or DataStore émet à chaque écriture du
+      **fichier**, pas de la clé, et `observeReadingSettings` ne filtrait pas :
+      les deux ViewModels du flux reconstruisaient donc leur `ReadDetector` à
+      chaque page, remettant à zéro les chronomètres de visibilité en cours —
+      un article regardé pendant un chargement n'était plus marqué lu
+      (SPECS.md §4.5). Au lancement, où plusieurs pages s'enchaînent, l'effet
+      se répétait.
+      `distinctUntilChanged` sur tous les flux dérivés du DataStore, réglages et
+      session. 3 tests, dont un qui échoue si on le retire — vérifié.
+      Ce que la régression **ne fait pas**, contrairement à ce qu'on pouvait
+      craindre : elle ne recrée pas l'écran et ne déclenche aucune requête. Les
+      flux qui pilotent la navigation et l'aiguillage de session sont des
+      `StateFlow`, qui ne réémettent pas une valeur égale.
 - [x] `GOAL-014-T12` **La bandelette cesse d'être une surimpression.** Le
       constat sur appareil avait été mal lu : le bouton « Ouvrir l'article »
       poussé hors de la carte par un extrait long n'est pas un défaut — le

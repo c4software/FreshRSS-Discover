@@ -14,6 +14,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -201,5 +203,49 @@ class SettingsStoreTest {
 
         val keys = dataStore.data.first().asMap().keys.map { it.name }
         assertEquals(listOf("display.feed_presentation"), keys)
+    }
+
+    @Test
+    fun writingAnUnrelatedPreferenceDoesNotReEmitTheSettings() = runTest {
+        // DataStore émet à chaque écriture du **fichier**, pas de la clé. Sans
+        // `distinctUntilChanged`, la date du dernier contact serveur — écrite à
+        // chaque page reçue — ferait réémettre ces réglages inchangés, et les
+        // ViewModels du flux reconstruiraient leur détecteur de lecture, donc
+        // remettraient à zéro les chronomètres de visibilité en cours
+        // (SPECS.md §4.5) au milieu d'une lecture.
+        val store = store()
+        val seen = mutableListOf<ReadingSettings>()
+        val job = scope.launch { store.observeReadingSettings().toList(seen) }
+
+        dataStore.edit { it[longPreferencesKey("feed.last_refresh_at")] = 1L }
+        dataStore.edit { it[longPreferencesKey("feed.last_refresh_at")] = 2L }
+        job.cancel()
+
+        assertEquals(1, seen.size)
+    }
+
+    @Test
+    fun aRealSettingChangeStillComesThrough() = runTest {
+        val store = store()
+        val seen = mutableListOf<ReadingSettings>()
+        val job = scope.launch { store.observeReadingSettings().toList(seen) }
+
+        store.setVisibleFraction(0.8f)
+        job.cancel()
+
+        assertEquals(2, seen.size)
+        assertEquals(0.8f, seen.last().visibleFraction)
+    }
+
+    @Test
+    fun anUnrelatedWriteDoesNotReEmitThePresentationMode() = runTest {
+        val store = store()
+        val seen = mutableListOf<FeedPresentation>()
+        val job = scope.launch { store.observeFeedPresentation().toList(seen) }
+
+        dataStore.edit { it[longPreferencesKey("feed.last_refresh_at")] = 1L }
+        job.cancel()
+
+        assertEquals(1, seen.size)
     }
 }

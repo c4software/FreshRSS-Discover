@@ -12,6 +12,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.auth.SignInHint
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,7 +43,7 @@ internal class SessionStore @Inject constructor(
      * de vue de l'application, il n'y a alors pas de session : c'est la seule
      * conduite qui ramène l'utilisateur à un écran utile.
      */
-    fun observeSession(): Flow<AuthSession?> = dataStore.data.map(::readSession)
+    fun observeSession(): Flow<AuthSession?> = dataStore.data.map(::readSession).distinctUntilChanged()
 
     suspend fun save(session: AuthSession) {
         dataStore.edit { preferences ->
@@ -64,7 +65,7 @@ internal class SessionStore @Inject constructor(
      * Aucun secret n'y figure : c'est ce qui permet de les conserver après un
      * jeton refusé, là où les jetons sont effacés.
      */
-    fun observeLastSignInHint(): Flow<SignInHint?> = dataStore.data.map(::readHint)
+    fun observeLastSignInHint(): Flow<SignInHint?> = dataStore.data.map(::readHint).distinctUntilChanged()
 
     /** Efface les jetons, conserve le rappel de saisie. */
     suspend fun invalidateTokens() {

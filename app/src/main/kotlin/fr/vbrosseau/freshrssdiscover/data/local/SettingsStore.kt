@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,6 +49,14 @@ internal class SettingsStore @Inject constructor(
     private val dataStore: DataStore<Preferences>,
 ) : SettingsRepository {
     /**
+     * **`distinctUntilChanged` n'est pas une optimisation ici.** DataStore émet
+     * à chaque écriture du **fichier**, pas de la clé : toucher à n'importe
+     * quelle préférence — la date du dernier contact serveur, par exemple, qui
+     * s'écrit à chaque page reçue — réémettrait ces réglages inchangés. Les
+     * ViewModels du flux reconstruisent leur détecteur de lecture sur chaque
+     * émission, et remettraient donc à zéro les chronomètres de visibilité en
+     * cours (SPECS.md §4.5) au beau milieu d'une lecture.
+     *
      * Une valeur illisible ou aberrante est **ramenée dans les bornes** plutôt
      * que de faire échouer la lecture.
      *
@@ -56,7 +65,8 @@ internal class SettingsStore @Inject constructor(
      * empêcherait l'application de démarrer pour un réglage secondaire ; la
      * valeur corrigée sera réécrite au prochain geste de l'utilisateur.
      */
-    override fun observeReadingSettings(): Flow<ReadingSettings> = dataStore.data.map(::readSettings)
+    override fun observeReadingSettings(): Flow<ReadingSettings> =
+        dataStore.data.map(::readSettings).distinctUntilChanged()
 
     override suspend fun setVisibleFraction(value: Float) {
         require(value in ReadingSettings.VisibleFractionRange) {
@@ -82,6 +92,7 @@ internal class SettingsStore @Inject constructor(
      */
     override fun observeFeedPresentation(): Flow<FeedPresentation> =
         dataStore.data.map { FeedPresentation.fromStoredName(it[Keys.FeedPresentation]) }
+            .distinctUntilChanged()
 
     override suspend fun setFeedPresentation(value: FeedPresentation) {
         dataStore.edit { it[Keys.FeedPresentation] = value.storedName }
@@ -93,7 +104,7 @@ internal class SettingsStore @Inject constructor(
      * accordé la permission, c'est-à-dire à dire oui deux fois.
      */
     override fun observeReminderEnabled(): Flow<Boolean> =
-        dataStore.data.map { it[Keys.ReminderEnabled] ?: true }
+        dataStore.data.map { it[Keys.ReminderEnabled] ?: true }.distinctUntilChanged()
 
     override suspend fun setReminderEnabled(value: Boolean) {
         dataStore.edit { it[Keys.ReminderEnabled] = value }
