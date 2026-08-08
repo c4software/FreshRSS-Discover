@@ -890,7 +890,10 @@ serveur, une bandelette actionnable invite à rafraîchir.
       avis visible et un serveur joignable — au lancement la page arrive et
       éteint l'avis avant tout appui ; et le cas hors ligne, le mode avion
       coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
-      test.
+      test. Une tentative d'appuyer sur « Recharger » a été faite le même jour
+      et n'a rien établi : l'appareil était passé à une autre application, et
+      l'appui n'est jamais arrivé au flux. La commande reste **non exercée sur
+      appareil**.
 - [x] `GOAL-014-T12` **La bandelette cesse d'être une surimpression.** Le
       constat sur appareil avait été mal lu : le bouton « Ouvrir l'article »
       poussé hors de la carte par un extrait long n'est pas un défaut — le
@@ -903,9 +906,11 @@ serveur, une bandelette actionnable invite à rafraîchir.
       dure jusqu'à ce qu'on l'acquitte n'est pas fugace ; seul l'avis
       d'ouverture refusée reste posé par-dessus, et il ne rencontre jamais
       l'autre. Captures Balayage réenregistrées et **regardées**.
-      **Pas reconstaté sur appareil** : le débogage sans fil du Pixel a changé
-      de port entre-temps et la connexion n'a pas pu être reprise. Le défaut
-      est tenu par un test qui échouait avant la correction et passe après.
+      **Reconstaté sur appareil** (Pixel 10 Pro, 2026-08-08) : sur un article
+      d'un millier de caractères, la carte s'arrête au-dessus de la bandelette,
+      et le bouton « Ouvrir l'article » revient **entièrement** à l'écran une
+      fois le contenu défilé. Le défaut est en outre tenu par un test qui
+      échouait avant la correction et passe après.
 
 ---
 
