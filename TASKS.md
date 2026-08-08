@@ -842,8 +842,10 @@ serveur, une bandelette actionnable invite à rafraîchir.
 - [x] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
       compris — acquitter dans un mode fait taire l'autre. 6 tests, dont
       celui-là précisément
-- [ ] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle est
-      aujourd'hui écrite deux fois, à l'identique, dans les deux écrans
+- [x] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle
+      était écrite deux fois, à l'identique, dans les deux écrans. Refactor
+      pur — les tests d'écran passent inchangés et `verifyRoborazziDebug` ne
+      voit aucun pixel bouger. 5 tests propres au composant
 - [ ] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Rafraîchir » y
       emprunte exactement le rafraîchissement existant
 - [ ] `GOAL-014-T08` **L'avis s'affiche en mode Balayage**, sans masquer la

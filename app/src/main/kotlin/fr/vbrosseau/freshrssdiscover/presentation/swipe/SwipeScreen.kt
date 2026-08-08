@@ -17,10 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +56,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -597,33 +595,16 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * L'ouverture refusée faute de réseau (SPECS.md §5.2).
- *
- * La couleur de l'action vient de `SnackbarDefaults` : un `TextButton`
- * ordinaire peindrait son libellé en `primary`, couleur pensée pour la surface
- * du fond et non pour celle, inversée, de la bandelette.
- */
+/** L'ouverture refusée faute de réseau (SPECS.md §5.2). */
 @Composable
 private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    Snackbar(
-        modifier = modifier
-            .padding(Spacing.md)
-            .testTag(SwipeTestTags.OFFLINE_NOTICE),
-        action = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionContentColor),
-                modifier = Modifier
-                    .heightIn(min = MinTouchTarget)
-                    .testTag(SwipeTestTags.OFFLINE_NOTICE_DISMISS),
-            ) {
-                Text(stringResource(R.string.swipe_offline_notice_dismiss))
-            }
-        },
-    ) {
-        Text(stringResource(R.string.swipe_offline_open_blocked))
-    }
+    FeedNotice(
+        message = stringResource(R.string.swipe_offline_open_blocked),
+        actionLabel = stringResource(R.string.swipe_offline_notice_dismiss),
+        onAction = onDismiss,
+        modifier = modifier.testTag(SwipeTestTags.OFFLINE_NOTICE),
+        actionModifier = Modifier.testTag(SwipeTestTags.OFFLINE_NOTICE_DISMISS),
+    )
 }
 
 @Composable

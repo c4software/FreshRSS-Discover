@@ -15,12 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +50,7 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ReadingPosition
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -312,35 +310,18 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
 /**
  * L'ouverture refusée faute de réseau (SPECS.md §5.2).
  *
- * Une bandelette posée sur le flux, qui ne l'interrompt pas : le geste a
- * échoué, la lecture continue. Elle est **acquittée à la main** plutôt que
- * retirée par un minuteur — un message qui s'efface tout seul se rate, et
- * celui-ci explique pourquoi rien ne s'est passé.
- *
- * La couleur de l'action vient de `SnackbarDefaults` : un `TextButton` ordinaire
- * peindrait son libellé en `primary`, couleur pensée pour la surface du fond et
- * non pour celle, inversée, de la bandelette.
+ * Le geste a échoué, la lecture continue : la bandelette explique pourquoi rien
+ * ne s'est passé, et attend qu'on l'acquitte.
  */
 @Composable
 private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    Snackbar(
-        modifier = modifier
-            .padding(Spacing.md)
-            .testTag(DiscoverTestTags.OFFLINE_NOTICE),
-        action = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionContentColor),
-                modifier = Modifier
-                    .heightIn(min = MinTouchTarget)
-                    .testTag(DiscoverTestTags.OFFLINE_NOTICE_DISMISS),
-            ) {
-                Text(stringResource(R.string.discover_offline_notice_dismiss))
-            }
-        },
-    ) {
-        Text(stringResource(R.string.discover_offline_open_blocked))
-    }
+    FeedNotice(
+        message = stringResource(R.string.discover_offline_open_blocked),
+        actionLabel = stringResource(R.string.discover_offline_notice_dismiss),
+        onAction = onDismiss,
+        modifier = modifier.testTag(DiscoverTestTags.OFFLINE_NOTICE),
+        actionModifier = Modifier.testTag(DiscoverTestTags.OFFLINE_NOTICE_DISMISS),
+    )
 }
 
 /**
