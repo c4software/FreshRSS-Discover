@@ -12,6 +12,8 @@ object SettingsTestTags {
     const val VISIBLE_FRACTION_SLIDER = "settings:visible-fraction-slider"
     const val CONTINUOUS_VISIBILITY = "settings:continuous-visibility"
     const val CONTINUOUS_VISIBILITY_SLIDER = "settings:continuous-visibility-slider"
+    const val REMINDER = "settings:reminder"
+    const val REMINDER_HELP = "settings:reminder-help"
     const val CACHE_SIZE = "settings:cache-size"
     const val CACHE_PURGEABLE = "settings:cache-purgeable"
     const val PURGE_CACHE = "settings:purge-cache"

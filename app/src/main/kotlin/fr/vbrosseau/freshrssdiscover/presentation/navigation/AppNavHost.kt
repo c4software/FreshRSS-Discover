@@ -174,6 +174,7 @@ private fun SettingsRoute(modifier: Modifier = Modifier) {
         onVisibleFractionChange = viewModel::setVisibleFractionPercent,
         onContinuousVisibilityChange = viewModel::setContinuousVisibilitySeconds,
         onPresentationChange = viewModel::setFeedPresentation,
+        onReminderEnabledChange = viewModel::setReminderEnabled,
         modifier = modifier,
     )
 }

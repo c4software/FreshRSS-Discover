@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Appels à l'API FreshRSS. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,6 +11,13 @@
       (SPECS.md §7).
     -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      Rappel de lecture (SPECS.md §4.9). Demandée à l'exécution depuis Android 13
+      ; en dessous, elle est accordée à l'installation et le réglage de §6 est
+      alors le seul moyen d'éteindre le rappel.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".FreshRssDiscoverApplication"
@@ -29,6 +37,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          WorkManager reçoit sa configuration de l'application (Hilt lui fournit
+          sa fabrique de travailleurs), et non de son initialiseur automatique.
+          Laisser les deux ferait échouer le démarrage : le premier à s'exécuter
+          gagne, et le travailleur injecté ne serait pas construit.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

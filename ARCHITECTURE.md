@@ -500,6 +500,7 @@ domain/                       Kotlin/JVM pur — décide, ne connaît ni HTTP ni
 ├── core/                     Outcome<valeur, erreur>
 ├── feed/                     article, page, curseur, contrats de dépôt
 ├── read/                     détection de lecture, file de marquages, ordonnancement
+├── reminder/                 heure et contenu du rappel de lecture
 ├── settings/                 réglages de lecture, cache
 ├── shuffle/                  répartition des sources
 └── time/                     Clock
@@ -512,6 +513,7 @@ app/
 │   ├── repository/           implémentations des contrats du domaine
 │   └── security/             chiffrement des secrets au repos
 ├── di/                       un module Hilt par famille de dépendances
+├── reminder/                 rappel de lecture : contrats, travailleur, notification
 └── presentation/
     ├── browser/              ouverture de l'article d'origine
     ├── discover/             flux en liste
@@ -590,7 +592,28 @@ Le travail restant n'est plus de l'assemblage à rattraper : il est décrit tâc
 par tâche dans [TASKS.md](./TASKS.md), qui est le seul document à jour sur ce
 point.
 
-### 9.4 La version ne se saisit pas
+### 9.4 Le rappel de lecture ne franchit pas la couche réseau
+
+Le rappel quotidien (SPECS.md §4.9) lit `ArticleRepository.unreadFromCache`, et
+ce contrat porte l'interdiction dans sa signature même : il ne rend pas de
+`FeedResult`, parce qu'il n'a aucun échec réseau à rapporter.
+
+Ce n'est pas une commodité mais la ligne qui sépare une **notification locale**
+d'une **synchronisation en arrière-plan** — SPECS.md §2 accueille la première et
+exclut toujours la seconde, et §7.4 veut qu'aucune connexion ne parte sans geste
+de l'utilisateur. Une implémentation qui irait chercher une page « pour avoir
+des titres plus frais » ferait basculer l'application d'un côté à l'autre de
+cette ligne sans que rien ne le signale.
+
+La conséquence est assumée et visible : un article publié depuis la dernière
+ouverture n'est pas dans le cache, et ne sera donc pas annoncé.
+
+Trois refus précèdent toute notification, et leur **ordre** compte : pas de
+session — l'utilisateur n'est plus connecté, il n'y a rien à rappeler ; réglage
+éteint ; puis cache vide. Les deux premiers n'arment pas le rappel du lendemain,
+le troisième si — demain il y aura peut-être quelque chose à lire.
+
+### 9.5 La version ne se saisit pas
 
 `versionName` et `versionCode` sont dérivés de la même étiquette Git, dans
 `app/build.gradle.kts`. Deux sources de vérité pour une même version sont une

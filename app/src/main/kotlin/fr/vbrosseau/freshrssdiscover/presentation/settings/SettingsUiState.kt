@@ -51,6 +51,16 @@ data class SettingsUiState(
     val visibleFraction: SettingsThreshold = visibleFractionThresholdOf(ReadingSettings.Default),
     /** Durée d'affichage continu exigée par SPECS.md §4.5, en secondes. */
     val continuousVisibility: SettingsThreshold = continuousVisibilityThresholdOf(ReadingSettings.Default),
+    /**
+     * Le rappel de lecture quotidien est-il souhaité (SPECS.md §4.9, §6) ?
+     *
+     * Un booléen et non l'état de la permission système : sous Android 13 il
+     * n'existe aucune permission de notification à retirer, et un rappel qu'on
+     * ne pourrait pas éteindre serait un défaut. La valeur par défaut suit
+     * celle du dépôt — **activé** — pour que l'écran ne montre pas brièvement un
+     * interrupteur éteint pendant la première lecture du disque.
+     */
+    val isReminderEnabled: Boolean = true,
     /** Contenu du cache local et suite de la dernière purge (SPECS.md §5.4, §6). */
     val cache: SettingsCache = SettingsCache(),
     /** Nom de version de l'application, tel que produit par la compilation. */

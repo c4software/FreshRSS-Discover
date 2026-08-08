@@ -381,6 +381,13 @@ après un échec ou un redémarrage, donnent le même message.
 donc pas et ne sera pas annoncé ; c'est le prix assumé de §2, qui exclut
 toujours la synchronisation en arrière-plan.
 
+**Il n'y en a jamais deux.** Un nouveau rappel **remplace** le précédent au lieu
+de s'empiler à côté : une pile de rappels quotidiens ne dit rien de plus qu'un
+seul, et se balaie d'un geste sans être lue.
+
+**Ouvrir l'application l'efface.** Le rappel a rempli son office au moment où
+l'utilisateur arrive ; le laisser dans le volet en ferait un reliquat.
+
 **Elle se désactive** depuis les réglages (§6). Sous Android 13, il n'y a aucune
 permission de notification à retirer, et un rappel qu'on ne peut pas éteindre
 est un défaut.

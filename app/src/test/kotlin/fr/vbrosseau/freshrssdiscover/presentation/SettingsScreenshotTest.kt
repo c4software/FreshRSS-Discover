@@ -119,6 +119,28 @@ class SettingsScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /**
+     * Le rappel de lecture éteint.
+     *
+     * La capture par défaut ne montre que la bascule allumée, qui porte la
+     * couleur primaire. Éteinte, elle repose sur une piste et une poignée
+     * atténuées, dont le contraste dépend de couleurs que le thème sombre
+     * traite autrement (SPECS.md §7.1).
+     */
+    @Test
+    fun settingsScreenWithTheReminderTurnedOff() {
+        capture("reglages-rappel-eteint") {
+            settings(
+                SettingsUiState(
+                    account = ACCOUNT,
+                    isReminderEnabled = false,
+                    cache = CACHE,
+                    appVersion = APP_VERSION,
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun settings(uiState: SettingsUiState) {
         SettingsScreen(

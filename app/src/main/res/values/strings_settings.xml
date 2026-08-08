@@ -39,6 +39,20 @@
     <string name="settings_continuous_visibility_value">au moins %1$d s</string>
 
     <!--
+      Rappel de lecture (SPECS.md §4.9, §6).
+
+      La phrase dit **quand** le rappel part, et c'est le seul point que
+      l'interrupteur ne peut pas montrer : une heure que l'application déduit de
+      l'usage passerait sinon pour arbitraire, et un rappel dont on ne sait pas
+      quand il tombe se coupe. Elle dit aussi ce qui n'arrivera pas — rien à
+      lire, rien à annoncer — parce que c'est ce qui distingue ce rappel d'une
+      relance publicitaire.
+    -->
+    <string name="settings_section_reminder">Rappel de lecture</string>
+    <string name="settings_reminder_help">Une notification quotidienne rappelle ce qu\'il reste à lire, en citant quelques titres. Elle part à l\'heure à laquelle vous avez ouvert l\'application la veille, et rien n\'est envoyé s\'il ne reste rien à lire.</string>
+    <string name="settings_reminder_label">Notification quotidienne</string>
+
+    <!--
       Cache local (SPECS.md §5.1 et §5.3). La taille est un nombre d'articles et
       non un poids en octets : SQLite ne rend pas ses pages au système après une
       suppression, donc des mégaoctets resteraient identiques après une purge.

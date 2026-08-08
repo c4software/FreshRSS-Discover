@@ -12,6 +12,7 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.presentation.UiStateSharing
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -27,6 +28,14 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val settingsRepository: SettingsRepository,
     private val cacheRepository: CacheRepository,
+    /**
+     * Le réglage ne se contente pas d'être enregistré : il programme ou annule.
+     *
+     * Sans cette dépendance, éteindre le rappel laisserait le travail du
+     * lendemain en attente — et il partirait quand même. Un réglage qui n'agit
+     * sur rien est un défaut, pas une préférence.
+     */
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
     /**
      * Séparée de la session : la confirmation est un état d'interface, la
@@ -58,15 +67,22 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         authRepository.observeSession(),
         settingsRepository.observeReadingSettings(),
-        settingsRepository.observeFeedPresentation(),
+        // Réunis parce que `combine` ne se décline que jusqu'à cinq flux, et
+        // qu'ils ont le même statut : deux préférences booléennes ou presque,
+        // lues sur le disque, sans lien l'une avec l'autre.
+        combine(
+            settingsRepository.observeFeedPresentation(),
+            settingsRepository.observeReminderEnabled(),
+            ::StoredPreferences,
+        ),
         cacheRepository.observeCacheStatus(),
         // Les deux états purement locaux sont réunis avant d'entrer dans le
         // `combine` principal : `combine` ne se décline que jusqu'à cinq flux,
         // et les regrouper ici dit du même coup lesquels ne viennent pas du
         // disque.
         combine(signOutConfirmation, lastPurgedCount, ::TransientState),
-    ) { session, settings, presentation, cache, transient ->
-        stateOf(session, settings, presentation, cache, transient)
+    ) { session, settings, preferences, cache, transient ->
+        stateOf(session, settings, preferences, cache, transient)
     }
         .stateIn(
             scope = viewModelScope,
@@ -74,7 +90,13 @@ class SettingsViewModel @Inject constructor(
             initialValue = stateOf(
                 session = null,
                 settings = ReadingSettings.Default,
-                presentation = FeedPresentation.Default,
+                preferences = StoredPreferences(
+                    presentation = FeedPresentation.Default,
+                    // Le rappel est actif par défaut dans le dépôt : afficher
+                    // « éteint » le temps de la première lecture ferait
+                    // clignoter l'interrupteur à chaque ouverture de l'écran.
+                    reminderEnabled = true,
+                ),
                 cache = CacheStatus.Empty,
                 transient = TransientState(confirming = false, purged = null),
             ),
@@ -100,6 +122,25 @@ class SettingsViewModel @Inject constructor(
      */
     fun setFeedPresentation(presentation: FeedPresentation) {
         viewModelScope.launch { settingsRepository.setFeedPresentation(presentation) }
+    }
+
+    /**
+     * Enregistre le choix, **puis** programme ou annule le rappel.
+     *
+     * Les deux dans cet ordre et dans la même coroutine : le dépôt fait foi sur
+     * ce que l'utilisateur veut, le planificateur ne fait qu'en tirer les
+     * conséquences. Programmer d'abord laisserait, si l'écriture échouait, un
+     * rappel armé qu'aucun réglage ne dit vouloir.
+     *
+     * L'état affiché, lui, n'est pas touché ici : il vient du dépôt, comme le
+     * mode de présentation. Un interrupteur qui basculerait de lui-même
+     * montrerait un choix que l'enregistrement n'a peut-être pas retenu.
+     */
+    fun setReminderEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setReminderEnabled(enabled)
+            if (enabled) reminderScheduler.scheduleNext() else reminderScheduler.cancel()
+        }
     }
 
     /**
@@ -143,12 +184,13 @@ class SettingsViewModel @Inject constructor(
     private fun stateOf(
         session: AuthSession?,
         settings: ReadingSettings,
-        presentation: FeedPresentation,
+        preferences: StoredPreferences,
         cache: CacheStatus,
         transient: TransientState,
     ): SettingsUiState = SettingsUiState(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
-        presentation = presentation,
+        presentation = preferences.presentation,
+        isReminderEnabled = preferences.reminderEnabled,
         visibleFraction = visibleFractionThresholdOf(settings),
         continuousVisibility = continuousVisibilityThresholdOf(settings),
         cache = SettingsCache(
@@ -170,5 +212,17 @@ class SettingsViewModel @Inject constructor(
     private data class TransientState(
         val confirming: Boolean,
         val purged: Int?,
+    )
+
+    /**
+     * Les préférences persistées qui ne sont pas des seuils.
+     *
+     * Un regroupement de commodité, et il l'assume : `combine` s'arrête à cinq
+     * flux. Les deux réglages n'ont rien à voir l'un avec l'autre, ce qui est
+     * précisément pourquoi ils restent deux champs et non un type du domaine.
+     */
+    private data class StoredPreferences(
+        val presentation: FeedPresentation,
+        val reminderEnabled: Boolean,
     )
 }

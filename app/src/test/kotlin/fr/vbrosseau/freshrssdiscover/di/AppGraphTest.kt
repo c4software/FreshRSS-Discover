@@ -4,6 +4,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.test.core.app.ApplicationProvider
+import androidx.work.Configuration
+import androidx.work.testing.SynchronousExecutor
+import androidx.work.testing.WorkManagerTestInitHelper
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
@@ -37,6 +41,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ReadingPositionViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -151,11 +156,28 @@ class AppGraphTest {
     lateinit var clock: Clock
 
     @Inject
+    lateinit var reminderScheduler: ReminderScheduler
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
+    /**
+     * `WorkManager` est initialisé **avant** l'injection, et pas seulement pour
+     * faire passer ce test.
+     *
+     * Le graphe fournit le `WorkManager` de l'application, qui n'existe pas
+     * sous `HiltTestApplication` : sans cette amorce, l'injection échoue avant
+     * même qu'un ViewModel soit construit, et le planificateur réel doit être
+     * remplacé par un double. Or ce test n'a de valeur que si **tout** vient du
+     * graphe réel — un double y est un trou, pas une commodité.
+     */
     @Before
     fun injectDependencies() {
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            ApplicationProvider.getApplicationContext(),
+            Configuration.Builder().setExecutor(SynchronousExecutor()).build(),
+        )
         hiltRule.inject()
     }
 
@@ -248,7 +270,12 @@ class AppGraphTest {
             settingsRepository = settingsRepository,
             clock = clock,
         )
-        val settings = SettingsViewModel(authRepository, settingsRepository, cacheRepository)
+        val settings = SettingsViewModel(
+            authRepository,
+            settingsRepository,
+            cacheRepository,
+            reminderScheduler,
+        )
         try {
             assertEquals(SessionGate.Unknown, sessionGate.gate.value)
             assertFalse(login.uiState.value.isSubmitting)

@@ -2,11 +2,13 @@ package fr.vbrosseau.freshrssdiscover.presentation.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -19,13 +21,16 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,6 +87,14 @@ fun SettingsScreen(
      * `viewModel::setFeedPresentation` par `AppNavHost`.
      */
     onPresentationChange: (FeedPresentation) -> Unit = {},
+    /**
+     * Activation du rappel de lecture (SPECS.md §4.9, §6).
+     *
+     * Avec une valeur par défaut, pour la même raison que [onPurgeCache] : la
+     * destination Réglages (`AppNavHost`) sort du périmètre de cette tâche.
+     * **À câbler sur `viewModel::setReminderEnabled` par `AppNavHost`.**
+     */
+    onReminderEnabledChange: (Boolean) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -121,6 +134,17 @@ fun SettingsScreen(
             uiState = uiState,
             onVisibleFractionChange = onVisibleFractionChange,
             onContinuousVisibilityChange = onContinuousVisibilityChange,
+        )
+        HorizontalDivider()
+        /*
+         * Après le marquage automatique et avant le cache : les trois sections
+         * précédentes parlent de ce qui se passe pendant la lecture, celles qui
+         * suivent de l'appareil et du compte. Le rappel appartient à la
+         * première famille — il dit quand l'application redemande à être lue.
+         */
+        ReminderSection(
+            isEnabled = uiState.isReminderEnabled,
+            onEnabledChange = onReminderEnabledChange,
         )
         HorizontalDivider()
         CacheSection(cache = uiState.cache, onPurge = onPurgeCache)
@@ -316,6 +340,51 @@ private fun ThresholdSlider(
                 .heightIn(min = MinTouchTarget)
                 .semantics { contentDescription = label }
                 .testTag(sliderTestTag),
+        )
+    }
+}
+
+/**
+ * Le rappel de lecture quotidien, qu'on peut éteindre (SPECS.md §4.9, §6).
+ *
+ * **Pourquoi une bascule, là où le mode de présentation a des segments.** Ce
+ * réglage n'a pas deux valeurs également légitimes : il y a un rappel, ou il
+ * n'y en a pas. La position éteinte se nomme d'elle-même, ce qui était
+ * précisément ce qui manquait à « Mode balayage ».
+ *
+ * **La rangée entière est touchable**, et pas seulement l'interrupteur. Un
+ * `Switch` de Material 3 mesure 52 × 32 dp : viser sa piste demande une
+ * précision que SPECS.md §7.1 refuse d'exiger. La rangée porte donc le
+ * `toggleable`, le libellé y répond au même titre que la bascule, et le lecteur
+ * d'écran n'annonce qu'un seul élément au lieu de deux.
+ */
+@Composable
+private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    SettingsSection(title = stringResource(R.string.settings_section_reminder), modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
+                .toggleable(value = isEnabled, role = Role.Switch, onValueChange = onEnabledChange)
+                .testTag(SettingsTestTags.REMINDER),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_reminder_label),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            // `null` : la rangée porte déjà l'action, et un second gestionnaire
+            // ferait de la bascule un élément distinct pour le lecteur d'écran.
+            Switch(checked = isEnabled, onCheckedChange = null)
+        }
+        Text(
+            text = stringResource(R.string.settings_reminder_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(SettingsTestTags.REMINDER_HELP),
         )
     }
 }

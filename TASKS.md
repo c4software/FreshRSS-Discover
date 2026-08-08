@@ -715,7 +715,7 @@ entrerait en conflit avec le geste horizontal.
 
 ## GOAL-013 — Rappel de lecture par notification locale
 
-**Statut : IN PROGRESS**
+**Statut : IN PROGRESS** — reste la validation sur appareil
 
 Couvre SPECS.md §4.9, ajouté à la demande de l'auteur.
 
@@ -745,18 +745,34 @@ formulation d'un jour à l'autre.
       base réelle
 - [-] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
       jour enregistré, `DataStore`
-- [ ] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
+- [x] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
       unique, réarmement du lendemain par le travailleur lui-même — sans quoi
       la chaîne s'arrête dès que l'application n'est pas ouverte
-- [ ] `GOAL-013-T05` **La notification est construite** : canal, formulations en
+- [x] `GOAL-013-T05` **La notification est construite** : canal, formulations en
       ressources, ouverture de l'application au toucher
-- [ ] `GOAL-013-T06` **La permission est demandée** (`POST_NOTIFICATIONS`,
+- [x] `GOAL-013-T06` **La permission est demandée** (`POST_NOTIFICATIONS`,
       API 33+), et son refus n'empêche rien d'autre de fonctionner
-- [ ] `GOAL-013-T07` **Le rappel se désactive** depuis les réglages (§6) : sous
+- [x] `GOAL-013-T07` **Le rappel se désactive** depuis les réglages (§6) : sous
       API 33 il n'y a aucune permission à retirer, et un rappel qu'on ne peut
       pas éteindre est un défaut
-- [ ] `GOAL-013-T08` **Valider sur appareil** : notification réellement reçue à
-      l'heure attendue, avec des titres réels
+- [x] `GOAL-013-T08` **Un seul rappel à la fois, effacé à l'ouverture** : même
+      identifiant de notification d'un jour à l'autre — un nouveau rappel
+      remplace le précédent au lieu de s'empiler — et retrait au retour dans
+      l'application
+- [x] `GOAL-013-T09` **Documentation** : SPECS §2 et §4.9, ARCHITECTURE §9 et
+      la carte des paquets, README (la fonctionnalité et le fait qu'elle
+      n'appelle rien), TASKS
+- [ ] `GOAL-013-T10` **Valider sur appareil** : notification réellement reçue à
+      l'heure attendue, avec des titres réels, effacée à l'ouverture, et jamais
+      en double
+
+### Ce qui a été corrigé en intégrant
+
+`AppGraphTest` avait dû remplacer le planificateur réel par un double, faute de
+`WorkManager` initialisé sous `HiltTestApplication`. Le trou est refermé :
+`WorkManagerTestInitHelper` amorce le gestionnaire avant l'injection, et
+**toutes** les dépendances de ce test reviennent du graphe réel — un double y
+serait un trou, pas une commodité.
 
 ### Dette ouverte
 

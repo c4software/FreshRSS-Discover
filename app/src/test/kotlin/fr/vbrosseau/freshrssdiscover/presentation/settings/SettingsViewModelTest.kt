@@ -30,6 +30,7 @@ class SettingsViewModelTest {
     private val repository = FakeAuthRepository(sessions)
     private val settings = FakeSettingsRepository()
     private val cache = FakeCacheRepository(CacheStatus(articleCount = 12, purgeableCount = 5))
+    private val scheduler = FakeReminderScheduler()
 
     /**
      * Construit **paresseusement**, et c'est nécessaire : `stateIn` lance sa
@@ -38,7 +39,7 @@ class SettingsViewModelTest {
      * l'ait substitué — la coroutine partirait alors sur le vrai dispatcher
      * principal, absent hors Android.
      */
-    private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository, settings, cache) }
+    private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository, settings, cache, scheduler) }
 
     private fun address(raw: String): ServerAddress =
         assertIs<ServerAddressResult.Valid>(ServerAddress.parse(raw)).address
@@ -141,7 +142,7 @@ class SettingsViewModelTest {
 
         // Le même dépôt, un autre ViewModel : c'est ce que fait une réouverture
         // de l'écran, et le réglage doit y survivre.
-        val reopened = SettingsViewModel(repository, settings, cache)
+        val reopened = SettingsViewModel(repository, settings, cache, scheduler)
         keepCollecting(reopened.uiState)
 
         assertEquals(80, reopened.uiState.value.visibleFraction.value)
@@ -297,6 +298,104 @@ class SettingsViewModelTest {
         assertEquals(0.8f, settings.current.visibleFraction)
     }
 
+    /** SPECS.md §4.9 : qui a accordé la permission a déjà dit oui une fois. */
+    @Test
+    fun theReadingReminderIsOnUntilItIsTurnedOff() = runTest {
+        observe()
+
+        assertTrue(viewModel.uiState.value.isReminderEnabled)
+    }
+
+    @Test
+    fun theDisplayedReminderStateIsTheStoredOne() = runTest {
+        settings.setReminderEnabled(false)
+        observe()
+
+        assertFalse(viewModel.uiState.value.isReminderEnabled)
+    }
+
+    /**
+     * Le choix traverse le dépôt et revient par l'état publié : l'interrupteur
+     * ne montre jamais autre chose que ce qui est enregistré.
+     */
+    @Test
+    fun turningTheReminderOffStoresItAndRepublishesIt() = runTest {
+        observe()
+
+        viewModel.setReminderEnabled(false)
+
+        assertFalse(settings.reminderEnabled.value)
+        assertFalse(viewModel.uiState.value.isReminderEnabled)
+    }
+
+    @Test
+    fun turningTheReminderBackOnIsStoredToo() = runTest {
+        settings.setReminderEnabled(false)
+        observe()
+
+        viewModel.setReminderEnabled(true)
+
+        assertTrue(settings.reminderEnabled.value)
+        assertTrue(viewModel.uiState.value.isReminderEnabled)
+    }
+
+    /**
+     * Un réglage qui n'agirait sur rien serait un défaut : le travail du
+     * lendemain resterait armé et le rappel partirait quand même.
+     */
+    @Test
+    fun turningTheReminderOffCancelsThePendingOne() = runTest {
+        observe()
+
+        viewModel.setReminderEnabled(false)
+
+        assertEquals(1, scheduler.cancelCount)
+        assertEquals(0, scheduler.scheduleCount)
+    }
+
+    @Test
+    fun turningTheReminderOnSchedulesTheNextOne() = runTest {
+        settings.setReminderEnabled(false)
+        observe()
+
+        viewModel.setReminderEnabled(true)
+
+        assertEquals(1, scheduler.scheduleCount)
+        assertEquals(0, scheduler.cancelCount)
+    }
+
+    /** Ouvrir l'écran ne programme ni n'annule : seul le geste décide. */
+    @Test
+    fun merelyDisplayingTheSettingsTouchesNoPendingReminder() = runTest {
+        observe()
+
+        assertEquals(0, scheduler.scheduleCount)
+        assertEquals(0, scheduler.cancelCount)
+    }
+
+    @Test
+    fun changingTheReminderLeavesTheOtherSettingsAlone() = runTest {
+        observe()
+        viewModel.setVisibleFractionPercent(80)
+        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+
+        viewModel.setReminderEnabled(false)
+
+        assertEquals(80, viewModel.uiState.value.visibleFraction.value)
+        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+    }
+
+    @Test
+    fun theStoredReminderChoiceSurvivesANewViewModel() = runTest {
+        observe()
+        viewModel.setReminderEnabled(false)
+
+        val reopened = SettingsViewModel(repository, settings, cache, scheduler)
+        keepCollecting(reopened.uiState)
+
+        assertFalse(reopened.uiState.value.isReminderEnabled)
+    }
+
     @Test
     fun theStoredPresentationSurvivesANewViewModel() = runTest {
         observe()
@@ -304,7 +403,7 @@ class SettingsViewModelTest {
 
         // SPECS.md §4.8 : « l'application rouvre dans le mode que l'utilisateur
         // a quitté ».
-        val reopened = SettingsViewModel(repository, settings, cache)
+        val reopened = SettingsViewModel(repository, settings, cache, scheduler)
         keepCollecting(reopened.uiState)
 
         assertEquals(FeedPresentation.Swipe, reopened.uiState.value.presentation)

@@ -3,13 +3,19 @@ package fr.vbrosseau.freshrssdiscover.presentation.settings
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import org.junit.Rule
@@ -141,6 +147,107 @@ class SettingsScreenTest {
 
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsSelected()
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).assertIsNotSelected()
+    }
+
+    /**
+     * Montage propre au rappel, pour la raison qui a déjà valu le sien au mode
+     * de parcours : la liste de rappels de [show] est au seuil que Detekt
+     * accepte.
+     */
+    private fun showReminder(
+        isReminderEnabled: Boolean = true,
+        onReminderEnabledChange: (Boolean) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            SettingsScreen(
+                uiState = SettingsUiState(account = account, isReminderEnabled = isReminderEnabled),
+                onSignOutRequest = {},
+                onSignOutConfirm = {},
+                onSignOutDismiss = {},
+                onVisibleFractionChange = {},
+                onContinuousVisibilityChange = {},
+                onReminderEnabledChange = onReminderEnabledChange,
+            )
+        }
+    }
+
+    /** SPECS.md §4.9 : le rappel est actif tant qu'on ne l'éteint pas. */
+    @Test
+    fun theReminderSwitchFollowsTheState() {
+        showReminder(isReminderEnabled = true)
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).performScrollTo().assertIsOn()
+    }
+
+    @Test
+    fun theReminderSwitchIsOffWhenTheStoredChoiceIsOff() {
+        showReminder(isReminderEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).performScrollTo().assertIsOff()
+    }
+
+    @Test
+    fun turningTheReminderOffReportsIt() {
+        var reported: Boolean? = null
+        showReminder(isReminderEnabled = true, onReminderEnabledChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).performScrollTo().performClick()
+
+        assertEquals(false, reported)
+    }
+
+    @Test
+    fun turningTheReminderBackOnReportsIt() {
+        var reported: Boolean? = null
+        showReminder(isReminderEnabled = false, onReminderEnabledChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).performScrollTo().performClick()
+
+        assertEquals(true, reported)
+    }
+
+    /**
+     * L'interrupteur n'a pas de mémoire propre : il remonte le geste et attend
+     * que l'état revienne, comme les segments du mode de parcours.
+     */
+    @Test
+    fun theReminderSwitchShowsTheStateRatherThanTheLastTap() {
+        showReminder(isReminderEnabled = true)
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER).assertIsOn()
+    }
+
+    /**
+     * SPECS.md §7.1 : la cible fait au moins 48 dp. Un `Switch` de Material 3
+     * n'en mesure que 32 de haut — c'est la rangée entière qui porte l'action.
+     */
+    @Test
+    fun theReminderSwitchIsBigEnoughToBeTapped() {
+        showReminder()
+
+        val bounds = composeRule.onNodeWithTag(SettingsTestTags.REMINDER)
+            .performScrollTo()
+            .getUnclippedBoundsInRoot()
+        assertTrue(bounds.height >= 48.dp, "hauteur de la cible : ${bounds.height}")
+        assertTrue(bounds.width >= 48.dp, "largeur de la cible : ${bounds.width}")
+    }
+
+    /**
+     * L'heure du rappel est déduite de l'usage : ne pas la dire ferait passer
+     * une notification du soir pour un caprice de l'application.
+     */
+    @Test
+    fun theReminderExplainsWhenItGoesOff() {
+        showReminder()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HELP)
+            .assertTextEquals(
+                "Une notification quotidienne rappelle ce qu'il reste à lire, en citant quelques titres. " +
+                    "Elle part à l'heure à laquelle vous avez ouvert l'application la veille, " +
+                    "et rien n'est envoyé s'il ne reste rien à lire.",
+            )
     }
 
     @Test

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    « Le fil », réduit à la taille d'une icône de notification.
+
+    Même motif que le calque avant de l'icône de lanceur (ic_launcher_foreground) :
+    un ruban à deux virages qui descend. C'est ce que l'utilisateur reconnaîtra
+    dans la barre d'état, et une deuxième forme n'y serait qu'une seconde
+    identité pour la même application.
+
+    Monochrome, et ce n'est pas un choix esthétique : depuis Android 5, le
+    système **masque** la petite icône — il n'en garde que la silhouette et la
+    reteint. Une icône colorée n'y devient pas une icône colorée plus petite,
+    elle devient un carré blanc plein. Seul l'alpha est donc porteur
+    d'information ici : le blanc n'est là que pour les aperçus.
+
+    Ce n'est pas une simple homothétie du calque de lanceur, pour deux raisons :
+    - la zone sûre du lanceur est un disque de 66 dp sur 108, imposé par le
+      masque que le lanceur applique. Une icône de notification n'est pas
+      masquée : elle peut occuper ses 24 dp à 2 dp près. Le motif est donc
+      agrandi de 32/54ᵉˢ à 10/12ᵉˢ du rayon disponible ;
+    - l'épaisseur du trait suit le même agrandissement (14 dp sur 108 devient
+      4,4 dp sur 24, soit 18 % de la largeur, contre 13 % au lanceur). À la
+      taille réelle d'une barre d'état — quelques millimètres — un trait à
+      proportion de lanceur se réduit à un cheveu et le ruban se lit comme une
+      tache. L'épaisseur est ce qui survit à la réduction, pas le détail.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+
+  <!--
+      Tracé du lanceur ramené au centre (12,12) par le facteur 0,3125 : les
+      extrémités et les points de contrôle s'échangent toujours par demi-tour
+      autour du centre, ce qui fait tenir la forme droite quelle que soit
+      l'orientation du volet.
+
+      Extrémités arrondies, comme au lanceur : une coupure nette ferait lire un
+      début et une fin là où il y a un flux.
+  -->
+  <path
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="4.4"
+    android:strokeLineCap="round"
+    android:pathData="M16.69,5.75 C7,8.88 17,15.13 7.31,18.25" />
+</vector>

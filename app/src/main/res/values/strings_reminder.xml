@@ -1,0 +1,59 @@
+<resources>
+    <!--
+      Rappel de lecture (SPECS.md §4.9). Fichier distinct de `strings.xml` :
+      Android fusionne les ressources d'un même dossier, et garder ce lot dans
+      le sien évite de faire converger plusieurs travaux sur un unique fichier.
+    -->
+
+    <!--
+      Le canal est visible dans les réglages Android, à côté de ceux des autres
+      applications : son nom doit s'y suffire sans le contexte de l'application.
+      La description dit quand le rappel tombe et à quelle condition, parce que
+      c'est ce qu'on cherche à savoir au moment où l'on est venu pour l'éteindre.
+    -->
+    <string name="reminder_channel_name">Rappel de lecture</string>
+    <string name="reminder_channel_description">Une notification par jour, à l\'heure où vous ouvrez habituellement l\'application, lorsqu\'il reste des articles à lire.</string>
+
+    <!--
+      Un titre par formulation (ReminderTone). Les quatre ne sont pas quatre
+      variantes d'une même phrase : une constatation, une question, une annonce,
+      une adresse directe. C'est le point de la fonctionnalité — un message
+      quotidien identique cesse d'être lu au bout de trois jours, l'œil en
+      apprenant la forme avant le sens. Quatre formes différentes ne se laissent
+      pas apprendre aussi vite.
+
+      Aucun ne contient de nombre ni de titre d'article : ils tiennent sur la
+      seule ligne que le volet montre lorsque la notification est repliée.
+    -->
+    <string name="reminder_title_waiting">Des articles vous attendent</string>
+    <string name="reminder_title_invitation">Un moment pour lire ?</string>
+    <string name="reminder_title_fresh">Voici ce qui est arrivé depuis hier</string>
+    <string name="reminder_title_pile">Votre pile n\'attend que vous</string>
+
+    <!--
+      Les titres cités sont du contenu : ils viennent des articles, ne se
+      traduisent pas, et ne sont pas retouchés. Les guillemets français et leurs
+      espaces insécables les détachent du reste du corps — sans quoi un titre
+      s'achevant sur des points de suspension se confondrait avec le compte qui
+      le suit.
+
+      Une ressource par nombre de titres plutôt qu'une jointure faite en
+      Kotlin : « et » n'est pas un séparateur mais une conjonction, et rien ne
+      garantit qu'une autre langue la place au même endroit.
+    -->
+    <string name="reminder_titles_one">« %1$s »</string>
+    <string name="reminder_titles_two">« %1$s » et « %2$s »</string>
+
+    <!-- Le nombre restant (SPECS.md §4.9) : deux titres seuls ne disent pas s'il en reste dix. -->
+    <plurals name="reminder_remaining">
+        <item quantity="one">%1$d article non lu</item>
+        <item quantity="other">%1$d articles non lus</item>
+    </plurals>
+
+    <!--
+      Le corps assemblé. Le saut de ligne est ici, dans la ressource, et non
+      dans le code : c'est une décision de mise en forme du texte, qu'une autre
+      langue pourrait vouloir prendre autrement.
+    -->
+    <string name="reminder_body">%1$s\n%2$s</string>
+</resources>

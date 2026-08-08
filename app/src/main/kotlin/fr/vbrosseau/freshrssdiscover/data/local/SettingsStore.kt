@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.data.local
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -86,6 +87,18 @@ internal class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.FeedPresentation] = value.storedName }
     }
 
+    /**
+     * Le rappel est actif tant que l'utilisateur n'a rien dit : l'absence de
+     * clé vaut `true`. Le contraire obligerait à aller l'allumer après avoir
+     * accordé la permission, c'est-à-dire à dire oui deux fois.
+     */
+    override fun observeReminderEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[Keys.ReminderEnabled] ?: true }
+
+    override suspend fun setReminderEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.ReminderEnabled] = value }
+    }
+
     private fun readSettings(preferences: Preferences): ReadingSettings = ReadingSettings.coerced(
         visibleFraction = preferences[Keys.VisibleFraction] ?: ReadingSettings.Default.visibleFraction,
         continuousVisibilityMillis = preferences[Keys.ContinuousVisibilityMillis]
@@ -111,5 +124,11 @@ internal class SettingsStore @Inject constructor(
          * explique pourquoi l'`ordinal` serait piégeux.
          */
         val FeedPresentation = stringPreferencesKey("display.feed_presentation")
+
+        /**
+         * Ni `reading.` ni `display.` : le rappel ne dit rien de ce qui rend un
+         * article lu, et il agit précisément quand rien n'est affiché.
+         */
+        val ReminderEnabled = booleanPreferencesKey("reminder.enabled")
     }
 }

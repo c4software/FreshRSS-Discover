@@ -45,14 +45,21 @@ horizontal comme une carte d'une pile.
 - reprise de la lecture à l'endroit quitté après fermeture de l'application ;
 - ouverture de l'article d'origine dans le navigateur ;
 - cache local consultable hors ligne, avec purge automatique et manuelle ;
+- **rappel de lecture quotidien**, à l'heure d'ouverture de la veille, citant
+  des titres réels — et qui **n'appelle rien** : il lit le cache, jamais le
+  serveur ;
 - interface Material 3, thèmes clair et sombre.
 
 La spécification complète est dans [SPECS.md](./SPECS.md).
 
 ## Ce qu'elle ne fera pas
 
-Gestion des abonnements, comptes multiples, widgets, notifications, partage
-social, synchronisation en arrière-plan. Voir [SPECS.md §2](./SPECS.md).
+Gestion des abonnements, comptes multiples, widgets, partage social,
+**synchronisation en arrière-plan**. Voir [SPECS.md §2](./SPECS.md).
+
+Le rappel de lecture est une notification **locale** : il n'ouvre aucune
+connexion, et c'est ce qui le distingue de la synchronisation de fond, toujours
+exclue.
 
 ---
 

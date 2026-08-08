@@ -33,12 +33,14 @@ import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
 import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReadFlushOnBackgroundObserver
+import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReminderOnForegroundObserver
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginScreen
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppDestination
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavHost
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavigationBar
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.navigateToTopLevel
+import fr.vbrosseau.freshrssdiscover.presentation.permission.NotificationPermissionRequest
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import javax.inject.Inject
 
@@ -54,10 +56,29 @@ class MainActivity : ComponentActivity() {
     @Inject
     internal lateinit var readFlushOnBackground: ReadFlushOnBackgroundObserver
 
+    /**
+     * Le pendant du précédent, à l'arrivée : il retire le rappel affiché,
+     * retient l'heure d'ouverture et programme celui du lendemain
+     * (SPECS.md §4.9). Voir la classe pour le choix d'`ON_START`.
+     */
+    @Inject
+    internal lateinit var reminderOnForeground: ReminderOnForegroundObserver
+
+    /**
+     * Construit dès l'activité, et non dans `onCreate` : l'enregistrement du
+     * contrat de résultat doit précéder l'état démarré.
+     */
+    private val notificationPermission = NotificationPermissionRequest(this)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(readFlushOnBackground)
+        lifecycle.addObserver(reminderOnForeground)
+        // Ni attendue ni bloquante : l'interface se monte juste après, quelle
+        // que soit la réponse. Voir `shouldAskForNotificationPermission` pour ce
+        // que `savedInstanceState` décide ici.
+        notificationPermission.askIfNeeded(isFirstCreation = savedInstanceState == null)
         setContent {
             AppTheme {
                 /*

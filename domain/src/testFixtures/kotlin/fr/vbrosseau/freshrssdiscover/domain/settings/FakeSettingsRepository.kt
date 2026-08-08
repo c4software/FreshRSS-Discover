@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.settings
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -32,6 +33,15 @@ class FakeSettingsRepository(
     override fun observeReadingSettings(): StateFlow<ReadingSettings> = settings
 
     override fun observeFeedPresentation(): StateFlow<FeedPresentation> = presentation
+
+    /** Le rappel de lecture (SPECS.md §4.9), actif par défaut comme en production. */
+    val reminderEnabled = MutableStateFlow(true)
+
+    override fun observeReminderEnabled(): Flow<Boolean> = reminderEnabled
+
+    override suspend fun setReminderEnabled(value: Boolean) {
+        reminderEnabled.value = value
+    }
 
     override suspend fun setFeedPresentation(value: FeedPresentation) {
         writeCount++

@@ -51,4 +51,21 @@ interface SettingsRepository {
      * attend de lui.
      */
     suspend fun setFeedPresentation(value: FeedPresentation)
+
+    /**
+     * Le rappel de lecture quotidien est-il souhaité (SPECS.md §4.9, §6) ?
+     *
+     * Un réglage propre et non une déduction de la permission système : sous
+     * Android 13 il n'existe aucune permission de notification à retirer, et un
+     * rappel qu'on ne pourrait pas éteindre serait un défaut. Au-dessus, les
+     * deux coexistent — la permission dit ce que le système autorise, ce
+     * réglage ce que l'utilisateur veut.
+     *
+     * **Activé par défaut** : l'utilisateur qui a accordé la permission a déjà
+     * dit oui une fois, et lui demander une seconde fois dans les réglages
+     * ferait passer la fonctionnalité pour inopérante.
+     */
+    fun observeReminderEnabled(): Flow<Boolean>
+
+    suspend fun setReminderEnabled(value: Boolean)
 }

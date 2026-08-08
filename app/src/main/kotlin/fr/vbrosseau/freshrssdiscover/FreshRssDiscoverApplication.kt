@@ -1,6 +1,8 @@
 package fr.vbrosseau.freshrssdiscover
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import fr.vbrosseau.freshrssdiscover.data.local.room.CacheMaintenance
 import timber.log.Timber
@@ -15,10 +17,27 @@ import javax.inject.Inject
  * débogage, et lancer la purge du cache.
  */
 @HiltAndroidApp
-class FreshRssDiscoverApplication : Application() {
+class FreshRssDiscoverApplication : Application(), Configuration.Provider {
 
     @Inject
     internal lateinit var cacheMaintenance: CacheMaintenance
+
+    @Inject
+    internal lateinit var workerFactory: HiltWorkerFactory
+
+    /**
+     * WorkManager est configuré ici plutôt que par son initialiseur
+     * automatique, retiré du manifeste.
+     *
+     * C'est la seule façon de lui donner la fabrique de Hilt, sans laquelle un
+     * travailleur à dépendances injectées ne peut pas être construit — l'échec
+     * survient alors à l'exécution du rappel, plusieurs heures après le
+     * démarrage, et se lit comme un rappel qui ne part jamais.
+     */
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
