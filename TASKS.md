@@ -32,13 +32,10 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-**Les quatorze Goals sont terminés.** Ne restent que deux points bloqués, l'un
-et l'autre hors de notre main :
-
-| Point | Ce qui manque, constaté |
-|---|---|
-| `GOAL-012-T07` | Bloqué : le balayage horizontal n'est praticable ni au lecteur d'écran ni sans précision du poignet |
-| `GOAL-001-T17` | Bloqué : AGP 9.3.1 plante toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08 |
+**Les quatorze Goals sont terminés.** Ne reste qu'un point bloqué, hors de notre
+main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
+`lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
+version d'AGP, pas avec du code d'ici.
 
 **Prochaine tâche** : aucune n'est due. La suite dépend de ce que l'auteur
 décidera d'ajouter à SPECS.md.
@@ -663,8 +660,7 @@ Couvre SPECS.md §6.
 
 ## GOAL-012 — Vue Balayage, article par article
 
-**Statut : DONE** — validé sur appareil, position de lecture comprise. Reste
-l'accessibilité du geste (`T07`), bloquée hors de notre main.
+**Statut : DONE** — validé sur appareil, position de lecture comprise.
 
 Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
 alternatif : un article en plein écran, balayage horizontal pour passer au
@@ -715,16 +711,20 @@ suivant, comme les Stories d'un réseau social.
       enregistrerait une position jamais atteinte. 5 tests d'écran, dont
       l'article disparu et le flux entièrement plus récent
 - [x] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
-- [!] `GOAL-012-T07` Accessibilité : un balayage horizontal n'est pas praticable
-      par tout le monde. Prévoir une alternative — SPECS.md §7.1 exige que
-      l'application reste utilisable, et un geste unique ne le garantit pas.
-      **Rouvert.** Les deux boutons « Précédent » / « Suivant » qui répondaient
-      à cette tâche ont été retirés à la demande de l'auteur, qui les juge
-      superflus une fois l'animation en place. Le balayage horizontal est donc
-      redevenu le seul moyen d'avancer — or c'est précisément le geste qu'un
-      lecteur d'écran se réserve pour sa propre exploration. Une alternative
-      reste à trouver qui n'encombre pas l'écran : action d'accessibilité
-      personnalisée, ou appui sur les bords
+- [x] `GOAL-012-T07` **Accessibilité du geste de balayage — tranché, et non
+      laissé en suspens.** Décision de l'auteur le 2026-08-08 : la règle de
+      SPECS.md §7.1 porte sur l'**application**, pas sur chacun de ses modes.
+      Le mode Liste — celui par défaut — donne accès au même flux, dans le même
+      ordre, entièrement au défilement vertical et aux cibles ordinaires ; le
+      Balayage est une préférence, jamais un passage obligé, et le réglage qui
+      en sort s'atteint sans le geste en cause.
+      L'historique de la tâche vaut d'être gardé : deux boutons « Précédent » /
+      « Suivant » y avaient répondu, puis ont été retirés — ils encombraient
+      l'écran d'un mode dont l'intérêt est de n'avoir aucune commande. Rouvrir
+      la tâche à ce moment-là était juste ; la laisser ouverte indéfiniment
+      faisait passer un arbitrage pour une dette.
+      Conséquence assumée, inscrite dans SPECS.md §7.1 : qui emploie un lecteur
+      d'écran et se retrouve en Balayage doit passer par les réglages
 - [x] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
       **et regardées** : six images enregistrées. Puis **exécution réelle sur
       appareil** (Pixel 10 Pro, Android 17), qui est ce qui compte : le mode
@@ -957,14 +957,14 @@ serveur, une bandelette actionnable invite à rafraîchir.
 
 ## Points bloqués
 
-Deux, tous deux hors de notre main :
+Un seul, hors de notre main :
 
 - `GOAL-001-T17` — le lint Android ne peut pas analyser les sources de test :
   AGP 9.3.1 plante sur ses propres composants. Réessayé le 2026-08-08, la trace
   est inchangée. Se lèvera avec une version d'AGP, pas avec du code d'ici.
-- `GOAL-012-T07` — l'accessibilité du balayage horizontal. La parade est en
-  place (deux boutons de 48 dp, barre toujours présente), mais le geste
-  lui-même reste impraticable au lecteur d'écran, qui se le réserve.
+
+`GOAL-012-T07` en est sorti le 2026-08-08 : ce n'était pas un blocage mais un
+arbitrage, tranché et inscrit dans SPECS.md §7.1.
 
 ---
 

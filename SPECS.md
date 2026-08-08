@@ -502,8 +502,17 @@ L'écran de réglages reste minimal :
 - **Aucune fonction ne dépend d'un seul geste.** Un lecteur d'écran se réserve
   le balayage horizontal pour sa propre exploration, et tout le monde n'a pas la
   précision ou la mobilité qu'un tirage demande. Le rechargement satisfait cette
-  règle depuis §4.6 ; **avancer d'un article en mode Balayage ne la satisfait
-  pas encore** — écart connu, suivi en `GOAL-012-T07`.
+  règle depuis §4.6.
+- **La règle porte sur l'application, pas sur chacun de ses modes.** Avancer
+  d'un article en mode Balayage demande un geste horizontal, et rien ne le
+  remplace : les deux boutons qui l'avaient fait un temps encombraient l'écran
+  pour un mode dont l'intérêt est justement de n'en avoir aucun. Ce n'est pas un
+  écart, parce que le mode **Liste** — celui par défaut (§4.8) — donne accès au
+  même flux, dans le même ordre, entièrement au défilement vertical et aux
+  cibles ordinaires. Choisir le Balayage est une préférence, jamais un passage
+  obligé, et le réglage qui en sort est lui-même atteignable sans ce geste.
+  Conséquence assumée : qui emploie un lecteur d'écran et se retrouve en mode
+  Balayage doit passer par les réglages pour revenir à la Liste.
 
 ### 7.2 Interface
 
