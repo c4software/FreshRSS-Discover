@@ -20,6 +20,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
+/** Plus large que ce que les tests écrivent : la borne n'est jamais ce qu'ils éprouvent. */
+private const val LARGE_LIMIT = 100
+
 /** Un peu au-delà du seuil de sept jours (SPECS.md §8, question 3). */
 private val BEYOND_MAX_AGE = 8.days
 
@@ -62,12 +65,8 @@ class CacheMaintenanceTest {
      * alors qu'une purge se juge sur ce qui reste réellement stocké. D'où la
      * lecture directe du DAO ici, seul endroit du dépôt qui en a besoin.
      */
-    private fun cachedIds(): List<Long> =
-        database.openHelper.readableDatabase
-            .query("SELECT id FROM articles ORDER BY published_at_epoch_seconds DESC, id DESC")
-            .use { cursor ->
-                buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
-            }
+    private suspend fun cachedIds(): List<Long> =
+        cache.observeArticles(LARGE_LIMIT).first().map { it.id.value }
 
     @Test
     fun theStartupPurgeRemovesReadArticlesPastTheThreshold() = runTest {

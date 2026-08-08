@@ -229,18 +229,13 @@ class ArticleCacheTest {
     }
 
     /**
-     * Les identifiants **stockés**, lus compris, lus en SQL brut.
+     * Les identifiants stockés, lus compris.
      *
-     * Le flux du cache ne rend que les non-lus — c'est ce que l'écran affiche —
-     * alors que la purge et la mémoire du « déjà lu » se jugent sur ce qui
-     * reste en base. La requête est faite ici plutôt qu'ajoutée au DAO : le
-     * code de production n'a pas à porter une méthode que seuls les tests
-     * appellent (AGENTS.md §2).
+     * Lu par le flux du cache — qui rend les articles lus depuis
+     * `GOAL-015-T08` — et non par une requête directe : le flux attend
+     * l'invalidation de Room, là où une lecture synchrone peut devancer une
+     * purge lancée en tâche de fond. Le test l'a appris en CI.
      */
-    private fun storedIds(): List<Long> =
-        database.openHelper.readableDatabase
-            .query("SELECT id FROM articles ORDER BY published_at_epoch_seconds DESC, id DESC")
-            .use { cursor ->
-                buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
-            }
+    private suspend fun storedIds(): List<Long> =
+        cache.observeArticles(LARGE_LIMIT).first().map { it.id.value }
 }

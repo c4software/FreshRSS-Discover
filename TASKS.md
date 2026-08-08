@@ -1063,6 +1063,17 @@ rouvre à l'identique n'a plus besoin qu'on lui garde une place.
       **Constaté sur appareil** : trois lancements à froid consécutifs, tête
       identique, `feed.last_refresh_at` inchangé. `GOAL-015-T04` et `T05`
       tombent avec — l'ordre ne dépend plus ni des lus ni de la purge
+- [x] `GOAL-015-T09` **Test instable réparé, découvert par la CI.** La
+      publication de `v1.4.0` a échoué sur
+      `theStartupPurgeRemovesReadArticlesPastTheThreshold` — vert en local,
+      rouge sur le runner. Cause : en adaptant les tests à `T07`, une lecture
+      **suspendue** par le flux Room avait été remplacée par une requête SQL
+      synchrone, qui peut devancer une purge lancée en tâche de fond. Le flux,
+      lui, attend l'invalidation de Room.
+      Le contournement n'avait d'ailleurs plus lieu d'être : depuis `T08` le
+      flux du cache rend les articles lus. Les trois tests concernés y
+      reviennent, et le code de production perd la requête que seuls les tests
+      appelaient. Rejoué trois fois de suite depuis zéro
 
 ---
 
