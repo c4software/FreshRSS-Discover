@@ -531,6 +531,7 @@ app/
     ├── lifecycle/            ce qui réagit au passage en arrière-plan
     ├── login/                connexion
     ├── navigation/           destinations, graphe, mode de présentation
+    ├── permission/           la permission de notifier, demandée au bon moment
     ├── settings/             réglages
     ├── swipe/                flux en pile de cartes, un article par écran
     └── theme/                couleurs, espacements

@@ -32,12 +32,18 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-Ce qui reste ouvert n'est plus une phase mais une **liste de dettes**, chacune
-inscrite dans la section de son Goal : GOAL-004-T08 (file des marquages),
-GOAL-008-T09 (transmission forcée), GOAL-010 (ouverture de l'article),
-GOAL-012-T05 et T07 (position partagée, accessibilité du balayage). Aucune
-n'appartient à un chantier commun, et les traiter dans l'ordre d'un plan
-d'ensemble reviendrait à s'en inventer un.
+Treize Goals sur quatorze sont terminés. Ce qui reste tient en cinq points,
+constatés un par un le 2026-08-08 et inscrits chacun dans la section de son
+Goal — aucun n'appartient à un chantier commun :
+
+| Point | Ce qui manque, constaté |
+|---|---|
+| `GOAL-012-T05` | Le mode Balayage n'enregistre aucune position : `ReadingPositionViewModel` n'est branché que dans `DiscoverRoute` |
+| `GOAL-012-T07` | Bloqué : le balayage horizontal n'est praticable ni au lecteur d'écran ni sans précision du poignet |
+| `GOAL-002-T18` | `KeystoreSecretCipher` n'a toujours aucun test propre — seul `AppGraphTest` le traverse |
+| `GOAL-001-T17` | `ignoreTestSources = true` toujours en place, AGP plantant sur ses propres composants |
+| `GOAL-001-T18` | Robolectric simule l'API 35, `targetSdk` vaut 37 |
+| `GOAL-001-T19` | Bloqué par décision d'auteur : CI neutralisée sur `push` |
 
 **Prochaine tâche** : `GOAL-012-T05` — position de lecture partagée entre les
 deux modes.
@@ -51,14 +57,14 @@ deux modes.
 | GOAL-001 | Harness et initialisation | `[x]` |
 | GOAL-002 | Authentification FreshRSS | `[x]` |
 | GOAL-003 | Récupération paginée des articles | `[x]` |
-| GOAL-004 | Cache local et résilience réseau | `[-]` |
-| GOAL-005 | Mélange des sources | `[-]` |
-| GOAL-006 | Flux Discover — interface | `[-]` |
-| GOAL-007 | Marquage automatique comme lu | `[-]` |
-| GOAL-008 | Synchronisation du statut lu | `[-]` |
+| GOAL-004 | Cache local et résilience réseau | `[x]` |
+| GOAL-005 | Mélange des sources | `[x]` |
+| GOAL-006 | Flux Discover — interface | `[x]` |
+| GOAL-007 | Marquage automatique comme lu | `[x]` |
+| GOAL-008 | Synchronisation du statut lu | `[x]` |
 | GOAL-009 | Tirer-pour-rafraîchir | `[x]` |
-| GOAL-010 | Ouverture de l'article d'origine | `[ ]` |
-| GOAL-011 | Écran de réglages | `[-]` |
+| GOAL-010 | Ouverture de l'article d'origine | `[x]` |
+| GOAL-011 | Écran de réglages | `[x]` |
 | GOAL-012 | Vue Balayage, article par article | `[-]` |
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
@@ -154,8 +160,10 @@ fonctionnalité applicative.
       > `./gradlew :app:installDebug` puis
       > `adb shell am start -n fr.vbrosseau.freshrssdiscover/.MainActivity`,
       > avec une instance FreshRSS réelle.
-- [ ] `GOAL-001-T16` **Icône de l'application** : celle du template est encore en
-      place.
+- [x] `GOAL-001-T16` **Icône de l'application** : « le fil », icône adaptative
+      dessinée pour l'application — un ruban qui descend en serpentant, plutôt
+      que les ondes RSS que porte déjà tout autre lecteur. Fond, calque avant et
+      monochrome. Celle du template n'est plus en place.
 - [x] `GOAL-001-T21` ~~ktlint ne vérifie aucune source Kotlin de `:app`~~
       **Levé par `detekt-formatting`**, qui embarque les règles ktlint dans
       Detekt. Le garde-fou n'était pas décoratif : il a immédiatement révélé
@@ -335,7 +343,7 @@ Tranche SPECS.md §8 question 1 (taille de page).
 
 ## GOAL-004 — Cache local et résilience réseau
 
-**Statut : IN PROGRESS** — la persistance est livrée, la lecture reste à câbler
+**Statut : DONE** — cache lu au lancement et hors ligne, purge et file livrées
 
 Couvre SPECS.md §5.
 
@@ -361,8 +369,10 @@ Couvre SPECS.md §5.
       > plus rien ne le contredisait, et il **réapparaissait dans le flux**.
       > Corrigé par une exclusion explicite des marquages en attente, et
       > SPECS.md §5.3 dit désormais littéralement pourquoi.
-- [ ] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
-      seconde entité et migration en version 2
+- [x] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
+      `PendingMarkEntity`, `PendingMarkDao` et `PendingMarkQueue`, base en
+      version 2 avec ses deux schémas versionnés (`app/schemas/1.json` et
+      `2.json`). Couverte par `PendingMarkQueueTest`
 
 ### Décisions prises
 
@@ -376,7 +386,7 @@ Couvre SPECS.md §5.
 
 ## GOAL-005 — Mélange des sources
 
-**Statut : IN PROGRESS** — la fonction est livrée, elle n'est appelée par personne
+**Statut : DONE** — `interleaveBySource` ordonne les pages du serveur et du cache
 
 Cœur de l'application (SPECS.md §4.2). Tranche SPECS.md §8 question 2.
 
@@ -402,7 +412,7 @@ Cœur de l'application (SPECS.md §4.2). Tranche SPECS.md §8 question 2.
 
 ## GOAL-006 — Flux Discover — interface
 
-**Statut : IN PROGRESS** — l'écran est livré, les illustrations manquent
+**Statut : DONE** — écran, illustrations et états de chargement livrés
 
 Couvre SPECS.md §4.3 et §4.4.
 
@@ -443,7 +453,7 @@ Couvre SPECS.md §4.3 et §4.4.
 
 ## GOAL-007 — Marquage automatique comme lu
 
-**Statut : IN PROGRESS** — la décision est livrée, la mesure ne l'est pas
+**Statut : DONE** — la mesure de visibilité alimente le détecteur dans les deux modes
 
 Couvre SPECS.md §4.5.
 
@@ -482,7 +492,7 @@ Couvre SPECS.md §4.5.
 
 ## GOAL-008 — Synchronisation du statut lu
 
-**Statut : IN PROGRESS** — le socle est livré, rien n'est orchestré
+**Statut : DONE** — lots, file d'attente, rejeu au démarrage et transmission forcée
 
 - [x] `GOAL-008-T01` `FreshRssApi.modificationToken()` et `markAsRead()` —
       12 tests, dont l'identifiant non signé
@@ -503,8 +513,11 @@ Couvre SPECS.md §4.5.
       écriture dans son périmètre ; il l'a signalé plutôt que de le taire
 - [x] `GOAL-008-T07` Taille de lot **100**, fenêtre de regroupement **5 s à
       échéance fixe** (SPECS.md §8, question 4) — 17 tests
-- [ ] `GOAL-008-T09` Forcer la transmission au passage en arrière-plan
-      (`ON_STOP`) : `flush()` existe déjà, il n'y a qu'à le brancher
+- [x] `GOAL-008-T09` Forcer la transmission au passage en arrière-plan :
+      `ReadFlushOnBackgroundObserver` appelle `flush()` sur `ON_STOP` — et non
+      `ON_PAUSE`, qui se déclenche dès qu'une autre fenêtre passe devant. Sur la
+      portée de l'application, pour que la transmission survive à la destruction
+      de l'écran. Couvert par `ReadFlushOnBackgroundObserverTest`
 
 ### Décisions prises
 
@@ -567,7 +580,7 @@ Couvre SPECS.md §4.6.
 
 ## GOAL-010 — Ouverture de l'article d'origine
 
-**Statut : TODO**
+**Statut : DONE**
 
 Couvre SPECS.md §4.7.
 
@@ -593,7 +606,7 @@ Couvre SPECS.md §4.7.
 
 ## GOAL-011 — Écran de réglages
 
-**Statut : IN PROGRESS** — l'écran existe, une seule action y est branchée
+**Statut : DONE** — déconnexion, purge, seuils de lecture, mode d'affichage et rappel
 
 Couvre SPECS.md §6.
 
@@ -759,8 +772,10 @@ formulation d'un jour à l'autre.
       articles non lus, sans réseau — filtre fait par SQLite, lecture ponctuelle
       plutôt que `Flow`, mélange des sources appliqué comme au flux. 5 tests sur
       base réelle
-- [-] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
-      jour enregistré, `DataStore`
+- [x] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
+      jour enregistré, `DataStore` (`ReminderTimeStore`, 8 tests dont deux
+      fuseaux et le changement de jour). C'est cette heure que le rappel validé
+      sur appareil a réellement employée
 - [x] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
       unique, réarmement du lendemain par le travailleur lui-même — sans quoi
       la chaîne s'arrête dès que l'application n'est pas ouverte
