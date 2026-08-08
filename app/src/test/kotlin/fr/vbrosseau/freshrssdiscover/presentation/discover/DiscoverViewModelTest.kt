@@ -714,6 +714,77 @@ class DiscoverViewModelTest {
         assertFalse(state.isOfflineOpenNoticeVisible)
     }
 
+    // ----- Le flux ne se mélange pas au lancement (SPECS.md §4.2, règle 3) ----
+
+    @Test
+    fun theFirstServerPageDoesNotReorderWhatTheCacheShowed() {
+        // La règle 3 de SPECS.md §4.2 : un même ensemble d'articles se présente
+        // toujours dans le même ordre. Le cache affiche d'abord (§5.1), et la
+        // page réseau qui suit porte les **mêmes** articles dans l'ordre du
+        // serveur — les réappliquer ferait sauter la lecture sous le doigt.
+        repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L), article(id = 3L))
+        repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)))
+
+        assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun theFirstServerPageAddsWhatIsNewWithoutMovingTheRest() {
+        // Les inconnus vont en tête — ils sont plus récents, et les poser en bas
+        // les montrerait très loin de leur date. Mais ce qui était déjà affiché
+        // garde son ordre, à sa place relative.
+        repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
+        repository.enqueuePage(listOf(article(id = 1L), article(id = 2L), article(id = 3L)))
+
+        assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun theFirstServerPageRemovesNothingThatWasShown() {
+        // Un article du cache absent de la page réseau reste affiché : le faire
+        // disparaître retirerait sous les yeux ce qu'on était en train de lire.
+        repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertEquals(listOf(1L, 2L, 3L), state.articles.map { it.id })
+    }
+
+    @Test
+    fun aSecondCacheEmissionDoesNotShuffleTheFeedEither() {
+        // Le flux du cache réémet à chaque écriture, donc après chaque page
+        // reçue. Le consommer à nouveau replacerait des articles dans un ordre
+        // que le serveur n'a pas dicté, au milieu d'une lecture.
+        repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        val shownAfterFirstPage = state.articles.map { it.id }
+
+        repository.cachedArticles.value = listOf(article(id = 3L), article(id = 2L), article(id = 9L))
+
+        assertEquals(shownAfterFirstPage, state.articles.map { it.id })
+    }
+
+    @Test
+    fun aLoadedPageDoesNotResetTheReadingTimers() {
+        // Le comportement que la régression de GOAL-014-T13 cassait en
+        // production : un article regardé pendant un chargement doit rester
+        // marqué lu, sans quoi le serveur le renvoie à l'ouverture suivante et
+        // le flux paraît changer tout seul.
+        //
+        // ⚠️ Ce test ne **reproduit** pas la régression : le dépôt de réglages
+        // factice est un `StateFlow`, qui ne réémet jamais une valeur égale.
+        // C'est `SettingsStoreTest` qui tient la cause — il échoue si l'on
+        // retire `distinctUntilChanged`, vérifié. Celui-ci garde l'effet.
+        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
+        viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
+        clock.advanceBy(VISIBILITY_THRESHOLD_MILLIS)
+
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.loadMore()
+        viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
+
+        assertEquals(setOf(ArticleId(1L)), readArticles)
+    }
+
     // ----- Ancienneté du flux (SPECS.md §4.6) ---------------------------------
 
     @Test

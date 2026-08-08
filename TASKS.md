@@ -947,7 +947,14 @@ serveur, une bandelette actionnable invite à rafraîchir.
       (SPECS.md §4.5). Au lancement, où plusieurs pages s'enchaînent, l'effet
       se répétait.
       `distinctUntilChanged` sur tous les flux dérivés du DataStore, réglages et
-      session. 3 tests, dont un qui échoue si on le retire — vérifié.
+      session. 3 tests dans `SettingsStoreTest`, dont un qui échoue si on retire
+      le filtre — vérifié dans les deux sens.
+      **La règle est en outre verrouillée là où elle se voit** (5 tests de
+      `DiscoverViewModelTest`), à la demande de l'auteur : la première page du
+      serveur ne réordonne pas ce que le cache affichait, n'en retire rien, et
+      une réémission du cache ne remélange pas le flux. Un flux qui se mélange
+      au lancement est un défaut, jamais un effet de bord acceptable
+      (SPECS.md §4.2, règle 3).
       Ce que la régression **ne fait pas**, contrairement à ce qu'on pouvait
       craindre : elle ne recrée pas l'écran et ne déclenche aucune requête. Les
       flux qui pilotent la navigation et l'aiguillage de session sont des
