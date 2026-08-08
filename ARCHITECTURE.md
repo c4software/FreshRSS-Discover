@@ -222,17 +222,27 @@ Deux conséquences que le code doit refléter :
 | Support | Contenu |
 |---|---|
 | **Room** | Les collections : articles en cache, marquages en attente |
-| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, position de lecture |
+| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, position de lecture, date du dernier contact serveur |
 
 La règle est stricte : une donnée vit dans l'un **ou** l'autre, jamais dans les
 deux. Un réglage dupliqué finit toujours par diverger.
 
-Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore` et
-`ReadingPositionStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
+Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore`,
+`ReadingPositionStore` et `FeedFreshnessStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
 global : ce sont les **jetons** qui passent par `SecretCipher` (§5.2), pas
 l'adresse du serveur ni les seuils. Chiffrer ce qui n'est pas un secret coûterait
 le même prix sans rien protéger, et rendrait le stockage illisible au moment
 précis où le lire aide à diagnostiquer.
+
+Une exception assumée, et elle est dans `FeedFreshnessStore` : la **date** du
+dernier contact serveur est persistée, mais l'**acquittement** de l'avis
+d'ancienneté (SPECS.md §4.6) ne l'est pas — il vit dans un flux en mémoire.
+Le persister ajouterait une clé pour une situation qui ne se présente pas : à la
+réouverture, ou bien une requête aboutit et la date se remet à jour, ou bien
+elle échoue et c'est le bandeau hors ligne qui parle. C'est aussi ce qui oblige
+ce store à être `@Singleton` — l'acquittement doit survivre à la bascule entre
+les deux modes de présentation, qui détruit un ViewModel et en construit un
+autre.
 
 ### 5.2 Le mot de passe API n'est jamais enregistré
 
@@ -517,7 +527,7 @@ app/
 └── presentation/
     ├── browser/              ouverture de l'article d'origine
     ├── discover/             flux en liste
-    ├── feed/                 ce que les deux modes partagent (rechargement)
+    ├── feed/                 ce que les deux modes partagent (rechargement, bandelette, ancienneté)
     ├── lifecycle/            ce qui réagit au passage en arrière-plan
     ├── login/                connexion
     ├── navigation/           destinations, graphe, mode de présentation
@@ -531,8 +541,9 @@ présentent les mêmes articles selon SPECS.md §4.8, mais rien de leur mise en
 page n'est commun : une liste paresseuse et un pagineur n'ont ni le même état,
 ni la même mesure de visibilité, ni les mêmes composants. Ce qu'ils partagent
 vraiment — le modèle d'article affiché, les phases du flux, le bouton de
-rechargement — vit dans `discover/` pour les deux premiers, hérités, et dans
-`feed/` pour ce qui est né commun.
+rechargement, la bandelette d'avis, la surveillance de l'ancienneté du flux —
+vit dans `discover/` pour les deux premiers, hérités, et dans `feed/` pour ce
+qui est né commun.
 
 Les tests suivent la même structure, plus `startup/` pour ce qui n'appartient à
 aucune couche — construction du graphe, migration de base, démarrage.
@@ -562,6 +573,8 @@ régression détachait une décision du domaine de son appelant.
 | `ReadingPositionRepository` | `ReadingPositionViewModel` (SPECS.md §5.3), **mode Liste seulement** — voir `GOAL-012-T05` |
 | `ReadingPosition` | `DiscoverScreen`, pour reprendre au plus proche quand l'article mémorisé a disparu du flux |
 | `FeedPresentation` | `FeedPresentationViewModel`, qui aiguille la destination Discover vers l'un des deux modes |
+| `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, que les deux ViewModels du flux construisent sur leur portée |
+| `FeedFreshnessRepository` | `DefaultArticleRepository` en **écriture** (chaque réponse serveur valide) et `FeedStalenessWatcher` en **lecture** |
 | `CacheRepository` | `SettingsViewModel` — état du cache et purge manuelle |
 | `SettingsRepository` | `SettingsViewModel`, les deux ViewModels du flux pour les seuils, et `FeedPresentationViewModel` pour le mode de présentation |
 
@@ -628,6 +641,24 @@ produisait un.
 `providers.exec` plutôt qu'un appel direct à `ProcessBuilder` : le dépôt utilise
 le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
 chaque construction.
+
+### 9.6 L'ancienneté du flux se mesure là où le serveur répond
+
+La date qui sert à dire qu'un flux est ancien (SPECS.md §4.6) est écrite par
+`DefaultArticleRepository`, dans sa branche de succès, à côté de l'écriture du
+cache — et non par les ViewModels qui demandent les pages.
+
+Deux raisons, et la seconde décide. La couche qui a parlé au serveur est la
+seule à **savoir** qu'il a répondu : un `loadPage` réussi compte autant qu'un
+rechargement explicite, et une page valide mais vide compte aussi. Surtout,
+deux ViewModels demandent des pages : la règle écrite chez eux vivrait deux
+fois, et les deux modes de présentation divergeraient au premier correctif
+appliqué d'un seul côté.
+
+Symétriquement, la **décision** — six heures, borne incluse, une horloge qui
+recule ne rend rien ancien — est une fonction pure de `:domain`, à qui l'instant
+courant est transmis. Ce qui reste à la présentation est ce qu'elle seule sait :
+qu'elle est hors ligne, qu'elle rafraîchit déjà, qu'elle n'a rien à montrer.
 
 ### 9.2 Ce qui est hérité du template, délibérément
 

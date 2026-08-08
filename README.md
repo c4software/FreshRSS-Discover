@@ -42,6 +42,9 @@ horizontal comme une carte d'une pile.
 - synchronisation du statut lu avec le serveur, y compris après une coupure, et
   transmission forcée au passage en arrière-plan ;
 - rechargement du flux : tirer en mode Liste, bouton dans les deux modes ;
+- **invitation à recharger** quand le flux affiché date de plus de six heures,
+  à faire taire d'un geste et absente hors ligne, où elle n'aurait rien à
+  proposer ;
 - reprise de la lecture à l'endroit quitté après fermeture de l'application ;
 - ouverture de l'article d'origine dans le navigateur ;
 - cache local consultable hors ligne, avec purge automatique et manuelle ;

@@ -30,14 +30,17 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 
 **Phase 0 — Harness** ✅ terminée
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
-**Phase 2 — Flux Discover** — GOAL-004 à GOAL-007 en cours, menés en parallèle
+**Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-Quatre Goals sont conduits simultanément parce que leurs surfaces ne se
-recouvrent pas : le mélange et la détection de lecture sont des fonctions pures
-de `:domain`, le cache vit dans `data/local/room`, l'écran dans
-`presentation/discover`. Chacun est livrable et vérifiable seul ; l'assemblage
-— brancher le cache dans le dépôt, la détection de lecture dans l'écran — est
-une étape à part, volontairement séquentielle.
+Ce qui reste ouvert n'est plus une phase mais une **liste de dettes**, chacune
+inscrite dans la section de son Goal : GOAL-004-T08 (file des marquages),
+GOAL-008-T09 (transmission forcée), GOAL-010 (ouverture de l'article),
+GOAL-012-T05 et T07 (position partagée, accessibilité du balayage). Aucune
+n'appartient à un chantier commun, et les traiter dans l'ordre d'un plan
+d'ensemble reviendrait à s'en inventer un.
+
+**Prochaine tâche** : constater GOAL-014 sur appareil, puis reprendre
+GOAL-012-T05.
 
 ---
 
@@ -58,7 +61,7 @@ une étape à part, volontairement séquentielle.
 | GOAL-011 | Écran de réglages | `[-]` |
 | GOAL-012 | Vue Balayage, article par article | `[-]` |
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
-| GOAL-014 | Toast d'ancienneté du flux | `[ ]` |
+| GOAL-014 | Toast d'ancienneté du flux | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -799,7 +802,7 @@ synchronisation en arrière-plan.
 
 ## GOAL-014 — Toast d'ancienneté du flux
 
-**Statut : TODO**
+**Statut : DONE** — reste à constater sur appareil
 
 Couvre SPECS.md §4.6, ajouté à la demande de l'auteur.
 
@@ -857,8 +860,8 @@ serveur, une bandelette actionnable invite à rafraîchir.
       références, **regardées** : les deux commandes tiennent côte à côte sans
       replier le message, le contraste passe dans les deux thèmes, et « Ouvrir
       l'article » n'est pas recouvert
-- [ ] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8, ARCHITECTURE §5.1 et
-      §9, TASKS
+- [x] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8 question 9,
+      ARCHITECTURE §5.1 et §9.6, README, TASKS
 
 ---
 

@@ -296,6 +296,30 @@ tirage franc, jamais par un simple défilement vers le haut.
 **Cela ne vaut que pour un rechargement demandé.** Voir §5.3 : la position de
 lecture, elle, survit à la fermeture de l'application.
 
+#### Quand le flux affiché date
+
+Rien ne se synchronise en arrière-plan (§2) et le cache s'affiche dès le
+lancement (§5.1) : l'écran d'un flux vieux de dix heures serait, sans cela,
+indiscernable de celui d'un flux frais.
+
+Au-delà de **six heures** sans réponse du serveur (§8, question 9), une
+bandelette le dit et propose de recharger. Elle porte deux commandes —
+**recharger**, qui n'est rien d'autre que le rechargement décrit ci-dessus, et
+**plus tard**, pour qui n'est pas en état de le faire maintenant.
+
+- Elle s'efface **à la main**, jamais par minuteur : un message qui s'efface
+  tout seul se rate, et celui-ci explique quelque chose qu'on n'a pas vu venir.
+- Elle paraît dans les **deux modes** (§4.8), et l'y faire taire vaut pour les
+  deux : c'est le même flux.
+- Elle **ne paraît pas hors ligne** : le bandeau de §5.2 dit déjà pourquoi le
+  flux est ancien, et proposer de recharger ouvrirait une porte qui ne mène
+  nulle part.
+- Elle ne paraît pas non plus pendant un rechargement, ni sur un écran sans
+  article — il n'y a alors pas de flux ancien, mais un écran vide, qui a son
+  propre message.
+- **L'avoir fait taire ne vaut que pour l'état du moment.** Un rechargement
+  réussi, puis six heures de plus, et l'invitation revient.
+
 ### 4.7 Ouverture d'un article
 
 Toucher un article ouvre le **lien d'origine** dans le navigateur, via un onglet
@@ -516,6 +540,7 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
 | 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
+| 9 | Seuil au-delà duquel le flux affiché est « ancien » (§4.6) | **6 heures.** Rien ne se synchronise en arrière-plan (§2), donc l'écran montre le cache jusqu'à ce que l'utilisateur demande autre chose : sans repère, un flux de la veille est indiscernable d'un flux frais. Un seuil court — une ou deux heures — transformerait l'invitation en réflexe quotidien, et une invitation qu'on apprend à ignorer ne dit plus rien. Six heures séparent nettement la session reprise dans l'heure, où le flux est encore celui qu'on a laissé, de la réouverture du lendemain matin. |
 
 ### Encore ouvertes
 
