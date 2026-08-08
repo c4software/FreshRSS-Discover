@@ -2,10 +2,12 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
 
 /**
  * Ce que la vue Balayage affiche (SPECS.md §4.8).
@@ -34,6 +36,8 @@ data class SwipeUiState(
     val isOfflineOpenNoticeVisible: Boolean = false,
     /** Un rechargement demandé par l'utilisateur est en cours (SPECS.md §4.6). */
     val isRefreshing: Boolean = false,
+    /** Le serveur n'a plus répondu depuis assez longtemps pour qu'on le dise (SPECS.md §4.6). */
+    val isStaleNoticeAvailable: Boolean = false,
 ) {
     /**
      * Nombre d'écrans que le balayage traverse : les articles, **plus un**.
@@ -53,7 +57,35 @@ data class SwipeUiState(
      * l'explique.
      */
     val showsOfflineBanner: Boolean get() = isOffline && articles.isNotEmpty()
+
+    /**
+     * L'invitation à rafraîchir est-elle à l'écran ?
+     *
+     * Mêmes retenues qu'en mode Liste, et pour les mêmes raisons : hors ligne
+     * le bandeau parle déjà et « Rafraîchir » n'ouvrirait qu'une porte vide,
+     * pendant un rechargement la demande est déjà partie, et sans article il
+     * n'y a pas de flux ancien mais un écran vide.
+     */
+    val showsStaleNotice: Boolean
+        get() = isStaleNoticeAvailable && !isOffline && !isRefreshing && articles.isNotEmpty()
 }
+
+/**
+ * Remplace la pile par la page qui vient d'arriver (SPECS.md §4.6).
+ *
+ * Rien n'est remis à zéro côté ViewModel, et il faut le dire parce que ce serait
+ * le réflexe : ni le détecteur de lecture, dont `onVisibilityChanged` écarte de
+ * lui-même les chronomètres des articles absents de l'observation suivante ; ni
+ * les articles déjà signalés au serveur — ce qu'un rechargement ne change pas.
+ */
+internal fun SwipeUiState.refreshedWith(
+    page: ArticlePage,
+    nowEpochMillis: Long,
+): SwipeUiState = copy(
+    articles = page.articles.map { article -> article.toUiModel(nowEpochMillis) },
+    phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
+    isOffline = false,
+)
 
 /**
  * Ajoute les articles absents, sans toucher à ceux qui sont déjà là.

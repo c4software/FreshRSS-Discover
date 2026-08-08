@@ -4,7 +4,9 @@ import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
+import fr.vbrosseau.freshrssdiscover.domain.feed.FakeFeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshness
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
@@ -14,6 +16,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -29,13 +33,22 @@ private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
 /** Un article plein écran est intégralement visible : c'est tout le propos de SPECS.md §4.8. */
 private const val FULL_SCREEN = 1f
 
+private const val ONE_HOUR_MILLIS = 60L * 60L * 1_000L
+private const val SIX_HOURS_MILLIS = 6L * ONE_HOUR_MILLIS
+private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
+
+@OptIn(ExperimentalCoroutinesApi::class)
 class SwipeViewModelTest {
+    /** Gardé sous la main : les cas d'ancienneté avancent son ordonnanceur virtuel. */
+    private val dispatcher = UnconfinedTestDispatcher()
+
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val mainDispatcherRule = MainDispatcherRule(dispatcher)
 
     private val repository = FakeArticleRepository()
     private val readSyncRepository = FakeReadSyncRepository()
     private val settingsRepository = FakeSettingsRepository()
+    private val freshnessRepository = FakeFeedFreshnessRepository()
     private val clock = FakeClock(NOW_SECONDS * 1_000L)
 
     /**
@@ -48,6 +61,7 @@ class SwipeViewModelTest {
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
+            freshnessRepository = freshnessRepository,
             clock = clock,
         )
     }
@@ -341,4 +355,73 @@ class SwipeViewModelTest {
         assertFalse(state.isRefreshing)
         assertIs<DiscoverPhase.Failed>(state.phase)
     }
+
+    // ----- Ancienneté du flux (SPECS.md §4.6) ---------------------------------
+
+    @Test
+    fun aFeedOlderThanSixHoursInvitesToRefresh() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertTrue(state.showsStaleNotice)
+    }
+
+    @Test
+    fun aRecentFeedInvitesToNothing() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun offlineTheOfflineBannerSpeaksAloneAboutAnOldFeed() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.cachedArticles.value = listOf(article(id = 1L))
+        repository.enqueueFailure(FeedError.NoNetwork)
+
+        assertTrue(state.isStaleNoticeAvailable)
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun theInvitationIsSilencedByHand() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        viewModel.dismissStaleNotice()
+
+        assertFalse(state.showsStaleNotice)
+        assertEquals(1, freshnessRepository.acknowledgeCallCount)
+    }
+
+    @Test
+    fun anInvitationSilencedInTheOtherModeStaysSilentHere() {
+        // Le dépôt est unique : c'est lui qui porte l'acquittement, et non le
+        // ViewModel, que la bascule de mode détruit et reconstruit.
+        freshnessRepository.set(
+            FeedFreshness(
+                lastRefreshEpochMillis = staleSince(),
+                acknowledgedRefreshEpochMillis = staleSince(),
+            ),
+        )
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertFalse(state.showsStaleNotice)
+    }
+
+    @Test
+    fun theFeedGrowsOldWithoutAnyEventAtAll() {
+        freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
+        repository.enqueuePage(listOf(article(id = 1L)))
+        assertFalse(state.showsStaleNotice)
+
+        clock.advanceBy(SIX_HOURS_MILLIS)
+        dispatcher.scheduler.advanceTimeBy(SIX_HOURS_MILLIS)
+
+        assertTrue(state.showsStaleNotice)
+    }
+
+    /** Un horodatage de contact serveur assez vieux pour que l'avis soit dû. */
+    private fun staleSince(): Long = clock.nowEpochMillis() - SEVEN_HOURS_MILLIS
 }

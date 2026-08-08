@@ -839,8 +839,9 @@ serveur, une bandelette actionnable invite à rafraîchir.
       l'écran. La surveillance est écrite une fois, dans
       `FeedStalenessWatcher`, pour que les deux modes ne divergent pas.
       11 tests, dont le vieillissement sans aucun événement
-- [ ] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
-      compris — acquitter dans un mode fait taire l'autre
+- [x] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
+      compris — acquitter dans un mode fait taire l'autre. 6 tests, dont
+      celui-là précisément
 - [ ] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle est
       aujourd'hui écrite deux fois, à l'identique, dans les deux écrans
 - [ ] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Rafraîchir » y

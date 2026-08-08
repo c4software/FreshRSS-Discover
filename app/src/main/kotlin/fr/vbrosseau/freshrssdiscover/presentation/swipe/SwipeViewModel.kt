@@ -8,13 +8,14 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.CACHED_FEED_LIMIT
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadDetector
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
-import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStalenessWatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,10 +39,19 @@ class SwipeViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
     private val readSyncRepository: ReadSyncRepository,
     settingsRepository: SettingsRepository,
+    freshnessRepository: FeedFreshnessRepository,
     private val clock: Clock,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SwipeUiState())
     val uiState: StateFlow<SwipeUiState> = _uiState.asStateFlow()
+
+    /**
+     * Surveille l'ancienneté du flux (SPECS.md §4.6).
+     *
+     * La même classe qu'en mode Liste, sur le même dépôt : c'est ce qui fait
+     * qu'un avis acquitté d'un côté reste muet de l'autre.
+     */
+    private val staleness = FeedStalenessWatcher(freshnessRepository, clock, viewModelScope)
 
     /** Position atteinte dans le flux. `null` demande le début, et seulement `null`. */
     private var cursor: PageCursor? = null
@@ -101,6 +111,10 @@ class SwipeViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        staleness.isStale
+            .onEach { isStale -> _uiState.update { it.copy(isStaleNoticeAvailable = isStale) } }
+            .launchIn(viewModelScope)
+
         load()
     }
 
@@ -147,7 +161,12 @@ class SwipeViewModel @Inject constructor(
 
         viewModelScope.launch {
             when (val result = articleRepository.refresh()) {
-                is Outcome.Success -> onRefreshed(result.value)
+                is Outcome.Success -> {
+                    cursor = result.value.nextCursor
+                    hasServerContent = true
+                    _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis()) }
+                }
+
                 is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
             }
             _uiState.update { it.copy(isRefreshing = false) }
@@ -195,6 +214,11 @@ class SwipeViewModel @Inject constructor(
         _uiState.update { it.copy(isOfflineOpenNoticeVisible = false) }
     }
 
+    /** Fait taire l'invitation à rafraîchir, dans les deux modes à la fois. */
+    fun dismissStaleNotice() {
+        staleness.acknowledge()
+    }
+
     /**
      * Marque localement, puis transmet ce qui ne l'a pas déjà été.
      *
@@ -232,30 +256,6 @@ class SwipeViewModel @Inject constructor(
                 is Outcome.Success -> onPageLoaded(result.value)
                 is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
             }
-        }
-    }
-
-    /**
-     * Remplace la pile par la page qui vient d'arriver.
-     *
-     * Rien n'est remis à zéro, et il faut le dire parce que ce serait le
-     * réflexe : ni le détecteur de lecture, dont `onVisibilityChanged` écarte
-     * de lui-même les chronomètres des articles absents de l'observation
-     * suivante ; ni `alreadyReported`, qui retient ce qui est déjà parti au
-     * serveur — ce qu'un rechargement ne change pas.
-     */
-    private fun onRefreshed(page: ArticlePage) {
-        val now = clock.nowEpochMillis()
-
-        cursor = page.nextCursor
-        hasServerContent = true
-
-        _uiState.update { state ->
-            state.copy(
-                articles = page.articles.map { article -> article.toUiModel(now) },
-                phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
-                isOffline = false,
-            )
         }
     }
 
