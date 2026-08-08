@@ -823,9 +823,11 @@ serveur, une bandelette actionnable invite à rafraîchir.
 
 ### Tâches
 
-- [ ] `GOAL-014-T01` **Le domaine décide de l'ancienneté** : `FeedFreshness`,
+- [x] `GOAL-014-T01` **Le domaine décide de l'ancienneté** : `FeedFreshness`,
       `STALE_FEED_THRESHOLD_MILLIS`, `FeedFreshnessRepository`. Jamais ancien
-      sans point de référence ; une horloge qui recule ne rend rien ancien
+      sans point de référence ; une horloge qui recule ne rend rien ancien.
+      15 tests, dont l'horodatage restauré depuis le futur et l'acquittement
+      que le temps rouvre
 - [ ] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
       `DataStore`, acquittement en mémoire vive et partagé
 - [ ] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
