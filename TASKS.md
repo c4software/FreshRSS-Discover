@@ -192,8 +192,14 @@ fonctionnalité applicative.
 - [ ] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
       (`ignoreTestSources = true`, hérité). AGP 9.3.1 plante sur ses propres
       composants d'analyse Kotlin. À réactiver dès qu'une version corrige.
-- [ ] `GOAL-001-T18` **Robolectric simule l'API 35** alors que `targetSdk` vaut
-      37 : aucune image n'existe pour 37. À relever dès que possible.
+- [x] `GOAL-001-T18` **Robolectric relevé de l'API 35 à 36**, le dernier niveau
+      qu'il sait instancier — 37 lève `UnknownSdk`, essayé avant de trancher.
+      Un écart d'un niveau subsiste avec `targetSdk`, et il ne se refermera
+      qu'avec une version de Robolectric qui porte l'image 37.
+      Le rendu bouge un peu au passage : les 48 références ont été
+      réenregistrées et **regardées** en comparaison. Seul l'anticrénelage des
+      arrondis diffère — curseurs, interrupteur, coins de carte — la mise en
+      page, les textes et les couleurs sont inchangés.
 - [!] `GOAL-001-T19` **CI volontairement neutralisée sur `push`**
       (`branches: [never]`).
       > Décision de l'auteur : chaque exécution consomme du crédit de build, et
