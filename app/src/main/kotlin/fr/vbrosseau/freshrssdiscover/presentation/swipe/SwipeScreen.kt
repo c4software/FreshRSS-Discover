@@ -1,11 +1,8 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -23,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -44,8 +39,6 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import coil3.compose.AsyncImagePainter
-import coil3.compose.rememberAsyncImagePainter
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
@@ -56,6 +49,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
@@ -73,25 +67,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
  * de page.
  */
 private const val PREFETCH_DISTANCE = 3
-
-/**
- * Rapport largeur/hauteur du créneau d'illustration.
- *
- * Dimensionné par ce rapport, **jamais** par la taille de l'image reçue : une
- * hauteur déduite de l'image changerait au moment où elle arrive, et le contenu
- * sauterait sous les yeux du lecteur.
- */
-private const val ILLUSTRATION_ASPECT_RATIO = 16f / 9f
-
-/**
- * Opacité de la teinte qui marque le créneau pendant le chargement.
- *
- * Appliquée à `onSurface`, c'est-à-dire à la couleur *opposée* au fond : elle
- * assombrit en thème clair et éclaircit en thème sombre. `surfaceVariant`, lui,
- * se confond avec le fond en thème clair — un réservé d'image de contraste 1,00
- * a déjà été livré ainsi dans ce dépôt.
- */
-private const val ILLUSTRATION_PLACEHOLDER_ALPHA = 0.12f
 
 /** Clé de la page de fin, distincte de tout identifiant d'article. */
 private const val TRAILING_PAGE_KEY = "swipe:trailing"
@@ -401,7 +376,9 @@ private fun ArticlePage(
             .verticalScroll(rememberScrollState())
             .testTag(SwipeTestTags.page(article.id)),
     ) {
-        if (article.hasIllustration) ArticleIllustration(imageUrl = article.imageUrl)
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
+        }
 
         Column(
             modifier = Modifier.padding(Spacing.md),
@@ -461,38 +438,6 @@ private fun OpenAction(
             .testTag(SwipeTestTags.OPEN),
     ) {
         Text(stringResource(R.string.swipe_open_article))
-    }
-}
-
-/**
- * L'illustration de l'article.
- *
- * **Décorative, sans description** (SPECS.md §7.1) : le flux ne fournit aucun
- * texte alternatif, et une description forgée sur place ajouterait un nœud à
- * parcourir sans rien apprendre. Un échec de chargement **referme le créneau**
- * plutôt que d'y laisser un cadre teinté — une image qu'on ne peut pas obtenir
- * ne se distingue en rien, pour le lecteur, d'un article qui n'en a pas.
- */
-@Composable
-private fun ArticleIllustration(imageUrl: String?, modifier: Modifier = Modifier) {
-    val painter = rememberAsyncImagePainter(model = imageUrl, contentScale = ContentScale.Crop)
-    val state by painter.state.collectAsState()
-
-    if (imageUrl == null || state is AsyncImagePainter.State.Error) return
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(ILLUSTRATION_ASPECT_RATIO)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = ILLUSTRATION_PLACEHOLDER_ALPHA))
-            .testTag(SwipeTestTags.ILLUSTRATION),
-    ) {
-        Image(
-            painter = painter,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
     }
 }
 
