@@ -119,12 +119,45 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
             )
         }
     }
+
+    /**
+     * Le fanion des articles déjà lus (SPECS.md §4.5).
+     *
+     * Trois situations d'un coup, et il faut les trois : sur une illustration —
+     * où le fanion doit rester lisible quelle que soit l'image —, **sans**
+     * illustration — où il occupe la même place, ce qui est tout l'intérêt du
+     * choix retenu — et un article non lu, qui ne porte rien.
+     */
+    @Test
+    fun readArticlesCarryTheirFlag() {
+        capture("discover-articles-lus") {
+            DiscoverScreen(
+                uiState = DiscoverUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Lu, avec une illustration",
+                            imageUrl = LOADABLE_IMAGE_URL,
+                            isRead = true,
+                        ),
+                        sampleArticle(id = 2L, title = "Lu, sans illustration", isRead = true),
+                        sampleArticle(id = 3L, title = "Pas encore lu"),
+                    ),
+                    phase = DiscoverPhase.EndOfFeed,
+                ),
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = {},
+            )
+        }
+    }
 }
 
 private fun sampleArticle(
     id: Long,
     title: String,
     imageUrl: String? = null,
+    isRead: Boolean = false,
 ): ArticleUiModel = ArticleUiModel(
     id = id,
     title = title,
@@ -133,4 +166,5 @@ private fun sampleArticle(
     excerpt = "Un extrait de l'article, écourté par l'application avant l'affichage.",
     imageUrl = imageUrl,
     isOpenable = true,
+    isRead = isRead,
 )

@@ -51,6 +51,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -376,8 +377,16 @@ private fun ArticlePage(
             .verticalScroll(rememberScrollState())
             .testTag(SwipeTestTags.page(article.id)),
     ) {
-        if (article.hasIllustration) {
-            ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
+        // Même règle qu'en mode Liste : par-dessus le haut de la carte, donc à
+        // la même place qu'il y ait une illustration ou non.
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (article.hasIllustration) {
+                ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
+            }
+
+            if (article.isRead) {
+                ReadFlag(modifier = Modifier.align(Alignment.TopEnd))
+            }
         }
 
         Column(

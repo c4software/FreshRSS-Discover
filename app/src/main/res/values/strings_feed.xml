@@ -17,4 +17,11 @@
     <string name="feed_stale_refresh">Recharger</string>
     <!-- Faire taire l'invitation sans recharger, pour qui ne le peut pas maintenant. -->
     <string name="feed_stale_dismiss">Plus tard</string>
+
+    <!--
+        Description du fanion des articles déjà lus, lue par les lecteurs
+        d'écran. Un participe, et non une phrase : elle qualifie l'article que
+        le lecteur vient d'annoncer.
+    -->
+    <string name="feed_article_read">Déjà lu</string>
 </resources>

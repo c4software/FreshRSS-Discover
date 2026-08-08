@@ -1187,13 +1187,17 @@ neuf, et l'on peut relire sans le savoir.
 
 ### Tâches
 
-- [ ] `GOAL-017-T01` **Le fanion**, composant partagé dans `presentation/feed` :
+- [x] `GOAL-017-T01` **Le fanion**, composant partagé dans `presentation/feed` :
       forme, contraste sur n'importe quelle image, description pour le lecteur
       d'écran
-- [ ] `GOAL-017-T02` **Posé dans les deux modes**, en haut de la carte, avec ou
-      sans illustration
-- [ ] `GOAL-017-T03` **Captures Roborazzi** : lu et non lu, avec et sans
-      illustration, clair et sombre
+- [x] `GOAL-017-T02` **Posé dans les deux modes**, en haut de la carte, avec ou
+      sans illustration. Le conteneur prend toute la largeur : sans cela il se
+      dimensionnait au fanion seul quand l'article n'avait pas d'image, et
+      l'alignement à droite n'avait rien sur quoi s'appuyer — le fanion
+      apparaissait collé à gauche, vu sur capture
+- [x] `GOAL-017-T03` **Captures Roborazzi** : lu et non lu, avec et sans
+      illustration, clair et sombre — deux références, **regardées**, et c'est
+      la première qui a révélé le défaut d'alignement
 - [ ] `GOAL-017-T04` **Constaté sur appareil**
 - [ ] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9, TASKS
 

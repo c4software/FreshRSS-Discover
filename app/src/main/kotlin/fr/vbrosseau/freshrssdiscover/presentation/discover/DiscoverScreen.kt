@@ -44,6 +44,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -438,8 +439,24 @@ private fun ArticleCard(
 
 @Composable
 private fun ArticleCardContent(article: ArticleUiModel) {
-    if (article.hasIllustration) {
-        ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
+    /*
+     * Le fanion se pose **par-dessus** le haut de la carte, illustration
+     * comprise, et non dans le flux vertical : sa place ne dépend donc pas de
+     * la présence d'une image (SPECS.md §4.5). Un `Box` autour du seul haut de
+     * carte suffit — l'englober en entier ferait porter au fanion la hauteur
+     * du texte.
+     */
+    // `fillMaxWidth` : sans illustration, le `Box` se dimensionnerait au fanion
+    // seul et l'alignement à droite n'aurait rien sur quoi s'appuyer — il est
+    // apparu collé au bord gauche, constaté sur capture.
+    Box(modifier = Modifier.fillMaxWidth()) {
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
+        }
+
+        if (article.isRead) {
+            ReadFlag(modifier = Modifier.align(Alignment.TopEnd))
+        }
     }
 
     Column(

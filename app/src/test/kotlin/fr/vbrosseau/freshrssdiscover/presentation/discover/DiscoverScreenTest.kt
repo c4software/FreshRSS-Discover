@@ -5,6 +5,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedTestTags
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -354,6 +356,45 @@ class DiscoverScreenTest {
         composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
     }
 
+    // ----- Un article lu se voit (SPECS.md §4.5) ------------------------------
+
+    @Test
+    fun aReadArticleCarriesItsFlag() {
+        // Les articles lus restent affichés jusqu'au rechargement (SPECS.md
+        // §4.1) : sans marque, on les relit sans le savoir.
+        show(DiscoverUiState(articles = listOf(uiArticle(isRead = true)), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun anUnreadArticleCarriesNothing() {
+        show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun theFlagIsThereWithoutAnyIllustration() {
+        // Sa place ne dépend pas de l'image : c'est ce qui évite un second
+        // emplacement, et le second rendu qui va avec.
+        show(
+            DiscoverUiState(
+                articles = listOf(uiArticle(isRead = true, hasIllustration = false)),
+                phase = DiscoverPhase.Idle,
+            ),
+        )
+
+        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun theFlagAnnouncesItselfToScreenReaders() {
+        show(DiscoverUiState(articles = listOf(uiArticle(isRead = true)), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithContentDescription("Déjà lu").assertExists()
+    }
+
     // ----- Le lancement ne demande rien (SPECS.md §5.1) -----------------------
 
     @Test
@@ -530,6 +571,7 @@ private fun uiArticle(
     imageUrl: String? = null,
     hasIllustration: Boolean = imageUrl != null,
     isOpenable: Boolean = true,
+    isRead: Boolean = false,
 ): ArticleUiModel = ArticleUiModel(
     id = id,
     title = "Un titre",
@@ -539,4 +581,5 @@ private fun uiArticle(
     imageUrl = imageUrl,
     hasIllustration = hasIllustration,
     isOpenable = isOpenable,
+    isRead = isRead,
 )
