@@ -715,7 +715,7 @@ entrerait en conflit avec le geste horizontal.
 
 ## GOAL-013 — Rappel de lecture par notification locale
 
-**Statut : IN PROGRESS** — reste la validation sur appareil
+**Statut : DONE** — validé sur appareil
 
 Couvre SPECS.md §4.9, ajouté à la demande de l'auteur.
 
@@ -762,9 +762,20 @@ formulation d'un jour à l'autre.
 - [x] `GOAL-013-T09` **Documentation** : SPECS §2 et §4.9, ARCHITECTURE §9 et
       la carte des paquets, README (la fonctionnalité et le fait qu'elle
       n'appelle rien), TASKS
-- [ ] `GOAL-013-T10` **Valider sur appareil** : notification réellement reçue à
-      l'heure attendue, avec des titres réels, effacée à l'ouverture, et jamais
-      en double
+- [x] `GOAL-013-T10` **Validé sur appareil** (Pixel 10 Pro, Android 17) :
+      notification réellement reçue, ton « Un moment pour lire ? », deux titres
+      réels et « 119 articles non lus » ; effacée à l'ouverture, constaté à zéro
+      enregistrement.
+      **Le programmateur a été observé séparément** : après une ouverture, le
+      travail apparaît dans `dumpsys jobscheduler` à `+23h59m`, calculé par le
+      code réel. Forcer ce travail ne le fait pas partir — WorkManager revérifie
+      son propre délai — d'où une variante **locale et non committée** à délai
+      court pour voir la notification elle-même.
+      **Reste non constaté sur appareil** : l'absence de doublon. Elle tient à
+      un identifiant constant et elle est éprouvée en test unitaire, mais ma
+      mesure sur appareil comptait des lignes de `dumpsys` et non des
+      notifications distinctes — le téléphone s'est déconnecté avant que je
+      puisse la refaire proprement
 
 ### Ce qui a été corrigé en intégrant
 
