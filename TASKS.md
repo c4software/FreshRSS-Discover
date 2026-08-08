@@ -831,8 +831,9 @@ serveur, une bandelette actionnable invite à rafraîchir.
 - [x] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
       `DataStore`, acquittement en mémoire vive et partagé. 7 tests sur un
       DataStore réel, dont l'acquittement fait avant tout rafraîchissement
-- [ ] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
-      compris une page valide mais vide — le serveur a répondu
+- [x] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
+      compris une page valide mais vide — le serveur a répondu. 8 tests, dont
+      les quatre échecs qui ne doivent rien noter
 - [ ] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
       et le réveil périodique sans lequel le seuil ne serait jamais franchi à
       l'écran

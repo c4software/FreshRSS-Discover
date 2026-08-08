@@ -13,6 +13,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedResult
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.shuffle.interleaveBySource
@@ -41,6 +42,7 @@ internal class DefaultArticleRepository @Inject constructor(
     private val api: FreshRssApi,
     private val sessionStore: SessionStore,
     private val cache: ArticleCache,
+    private val freshness: FeedFreshnessRepository,
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ArticleRepository {
@@ -139,6 +141,18 @@ internal class DefaultArticleRepository @Inject constructor(
      * lancement, sans attendre le réseau (SPECS.md §5.1). L'écriture est faite
      * ici plutôt que par l'appelant : un appelant qui l'oublierait produirait un
      * cache incomplet, et le défaut ne se verrait qu'au lancement suivant.
+     *
+     * **La date du contact serveur est notée au même endroit, et pour la même
+     * raison.** C'est elle qui dira plus tard si le flux affiché est ancien
+     * (SPECS.md §4.6). Deux ViewModels demandent des pages ; la noter chez eux
+     * ferait vivre deux fois la même règle, et laisserait les deux modes de
+     * présentation diverger. La couche qui a parlé au serveur est la seule à
+     * savoir qu'il a répondu.
+     *
+     * Une page **valide mais vide** compte comme une réponse : le serveur a
+     * parlé, c'est le flux qui n'a rien de neuf. Un échec, lui, ne note rien —
+     * sans quoi une application ouverte hors ligne toute la journée
+     * paraîtrait fraîche.
      */
     private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(
         continuesPagination: Boolean,
@@ -146,6 +160,7 @@ internal class DefaultArticleRepository @Inject constructor(
         is ApiOutcome.Success -> {
             val page = value.toArticlePage()
             cache.save(page.articles)
+            freshness.recordRefresh()
             Outcome.Success(page.interleaved(continuesPagination))
         }
 

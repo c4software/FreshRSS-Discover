@@ -19,6 +19,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.core.errorOrNull
 import fr.vbrosseau.freshrssdiscover.domain.core.valueOrNull
+import fr.vbrosseau.freshrssdiscover.domain.feed.FakeFeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
@@ -69,6 +70,8 @@ class DefaultArticleRepositoryTest {
     private lateinit var sessionStore: SessionStore
     private lateinit var dataStore: DataStore<Preferences>
 
+    private val freshness = FakeFeedFreshnessRepository()
+
     @After
     fun stopWriting() = scope.cancel()
 
@@ -104,6 +107,7 @@ class DefaultArticleRepositoryTest {
             api = FreshRssApi(createFreshRssHttpClient(engine)),
             sessionStore = sessionStore,
             cache = cache,
+            freshness = freshness,
             network = NetworkAvailability { online },
             ioDispatcher = dispatcher,
         )
@@ -539,5 +543,97 @@ class DefaultArticleRepositoryTest {
 
         assertTrue(result is Outcome.Success)
         assertNull(result.errorOrNull())
+    }
+
+    @Test
+    fun aPageObtainedFromTheServerRecordsTheContact() = runTest {
+        // SPECS.md §4.6 : c'est cette date qui dira si le flux affiché est
+        // ancien. Une page ordinaire compte autant qu'un rafraîchissement.
+        val repository = repository(MockEngineResponse.Body(onePage))
+        signedIn()
+        freshness.nowEpochMillis = 1_700_000_000_000L
+
+        repository.loadPage()
+
+        assertEquals(1, freshness.recordCallCount)
+        assertEquals(1_700_000_000_000L, freshness.current.lastRefreshEpochMillis)
+    }
+
+    @Test
+    fun aRefreshRecordsTheContact() = runTest {
+        val repository = repository(MockEngineResponse.Body(onePage))
+        signedIn()
+
+        repository.refresh()
+
+        assertEquals(1, freshness.recordCallCount)
+    }
+
+    @Test
+    fun anEmptyButValidPageStillRecordsTheContact() = runTest {
+        // Le serveur a répondu ; c'est le flux qui n'a rien de neuf. Ne rien
+        // noter ferait paraître ancien un flux qu'on vient d'épuiser.
+        val repository = repository(MockEngineResponse.Body("""{"items":[]}"""))
+        signedIn()
+
+        repository.loadPage()
+
+        assertEquals(1, freshness.recordCallCount)
+    }
+
+    @Test
+    fun anExpiredSessionRecordsNoContact() = runTest {
+        val repository = repository(
+            MockEngineResponse.Body(onePage, status = HttpStatusCode.Unauthorized),
+        )
+        signedIn()
+
+        repository.loadPage()
+
+        assertEquals(0, freshness.recordCallCount)
+    }
+
+    @Test
+    fun aServerErrorRecordsNoContact() = runTest {
+        val repository = repository(
+            MockEngineResponse.Body(onePage, status = HttpStatusCode.InternalServerError),
+        )
+        signedIn()
+
+        repository.loadPage()
+
+        assertEquals(0, freshness.recordCallCount)
+    }
+
+    @Test
+    fun anOfflineFailureRecordsNoContact() = runTest {
+        // Sans cette règle, une application laissée ouverte hors ligne toute la
+        // journée paraîtrait fraîche.
+        val repository = repository(MockEngineResponse.Failure { IOException("réseau") })
+        signedIn()
+        online = false
+
+        repository.loadPage()
+
+        assertEquals(0, freshness.recordCallCount)
+    }
+
+    @Test
+    fun aMalformedAnswerRecordsNoContact() = runTest {
+        val repository = repository(MockEngineResponse.Body("pas du JSON"))
+        signedIn()
+
+        repository.loadPage()
+
+        assertEquals(0, freshness.recordCallCount)
+    }
+
+    @Test
+    fun withoutASessionNothingIsRecorded() = runTest {
+        val repository = repository(MockEngineResponse.Body(onePage))
+
+        repository.loadPage()
+
+        assertEquals(0, freshness.recordCallCount)
     }
 }
