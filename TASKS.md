@@ -37,8 +37,7 @@ main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
 `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
 version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : aucune n'est due. La suite dépend de ce que l'auteur
-décidera d'ajouter à SPECS.md.
+**Prochaine tâche** : `GOAL-015-T01`.
 
 ---
 
@@ -60,6 +59,7 @@ décidera d'ajouter à SPECS.md.
 | GOAL-012 | Vue Balayage, article par article | `[x]` |
 | GOAL-013 | Rappel de lecture par notification locale | `[x]` |
 | GOAL-014 | Toast d'ancienneté du flux | `[x]` |
+| GOAL-015 | Lancement calme : cache seul, sans reprise | `[-]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -976,6 +976,42 @@ serveur, une bandelette actionnable invite à rafraîchir.
       et le bouton « Ouvrir l'article » revient **entièrement** à l'écran une
       fois le contenu défilé. Le défaut est en outre tenu par un test qui
       échouait avant la correction et passe après.
+
+---
+
+## GOAL-015 — Lancement calme : cache seul, sans reprise de position
+
+**Statut : IN PROGRESS**
+
+Change SPECS.md §5.1 et §5.3, tranche §8 question 10. Décision d'auteur du
+2026-08-08, prise devant deux défauts constatés sur appareil le même jour : la
+tête du flux différait d'un lancement à l'autre (course entre le disque et le
+réseau, ordre serveur ≠ ordre de publication — corrigé par `GOAL-005-T05`), et
+la position mémorisée se réécrivait toute seule au lancement, l'article en tête
+des premières images écrasant la vraie place. Plutôt que de corriger la
+mémorisation — le correctif était écrit aux deux tiers — l'auteur retire la
+fonctionnalité et le rechargement automatique avec elle : un flux stable qui
+rouvre à l'identique n'a plus besoin qu'on lui garde une place.
+
+### Ce qui a été tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| Reprise de lecture (§5.3) | **Supprimée**, code compris | Sa mémoire dérivait ; sur un flux devenu stable, elle ne payait plus sa complexité |
+| Requête au lancement | **Aucune**, sauf cache vide | La course disque/réseau décidait de l'écran ; un cache vide reste amorcé tout seul, une application sans contenu serait morte |
+| Défilement en bas de connu | **Continue de charger** | Défiler est une action ; seul le rechargement de la tête exige le bouton |
+| L'avis d'ancienneté (GOAL-014) | Devient **le** rappel de mise à jour | Sans rechargement automatique, c'est lui qui dit quand le geste vaut la peine |
+
+### Tâches
+
+- [ ] `GOAL-015-T01` **La reprise de position disparaît**, du domaine à l'écran :
+      `ReadingPosition`, dépôt, store, ViewModel, effets des deux écrans,
+      liaisons Hilt, et chaque test qui les éprouvait
+- [ ] `GOAL-015-T02` **Le lancement n'interroge plus le réseau** : les deux
+      ViewModels affichent le cache et s'y tiennent ; un cache vide déclenche
+      seul le premier chargement ; le défilement pagine comme avant
+- [ ] `GOAL-015-T03` **Documentation** : SPECS §5.1, §5.3, §4.6 et §8
+      question 10 ; ARCHITECTURE §5.1 et §9.1 ; README ; TASKS
 
 ---
 

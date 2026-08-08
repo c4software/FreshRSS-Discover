@@ -285,16 +285,16 @@ Liste, où rien ne le remplaçait.
 Insérer les nouveaux articles en tête sans bouger l'utilisateur préserve sa
 lecture, mais laisse le flux s'allonger indéfiniment et rend le geste presque
 invisible — on tire, et rien ne semble se passer. Le rechargement complet donne
-au geste un effet immédiat et lisible, au prix de la position de lecture ; c'est
-la convention des applications où le flux est le contenu principal, et c'est
-celle-ci qui a été retenue.
+au geste un effet immédiat et lisible, au prix de la position de défilement ;
+c'est la convention des applications où le flux est le contenu principal, et
+c'est celle-ci qui a été retenue.
 
 Conséquence assumée : un utilisateur qui recharge par réflexe perd l'endroit où
 il lisait. Le geste doit donc rester délibéré — il n'est déclenché que par un
 tirage franc, jamais par un simple défilement vers le haut.
 
-**Cela ne vaut que pour un rechargement demandé.** Voir §5.3 : la position de
-lecture, elle, survit à la fermeture de l'application.
+**Cela ne vaut que pour un rechargement demandé.** Une fermeture, elle, n'est
+pas une demande : le lancement suivant rouvre le même flux, inchangé (§5.3).
 
 #### Quand le flux affiché date
 
@@ -423,10 +423,19 @@ est un défaut.
 ### 5.1 Cache local
 
 Les articles récupérés sont conservés localement. Au lancement, le flux affiche
-**immédiatement** le contenu du cache, puis se met à jour.
+**immédiatement** le contenu du cache — et s'y arrête : **aucune requête ne part
+tant qu'il y a quelque chose à montrer** (§8, question 10). Le flux du lancement
+est celui qu'on a laissé, stable et identique d'une ouverture à l'autre ; sa
+mise à jour est un geste — le rechargement de §4.6, que l'avis d'ancienneté
+(§4.6, « quand le flux affiché date ») vient rappeler au bon moment. Le
+défilement, lui, reste un geste comme un autre : atteindre le bas du connu
+charge la suite (§4.4).
 
+Un cache **vide** est l'unique exception : première ouverture, retour après
+déconnexion — il n'y a rien à montrer, le premier chargement part de lui-même.
 Un écran vide pendant une requête réseau donnerait l'impression d'une
-application sans contenu, alors qu'elle en a.
+application sans contenu ; un écran vide sans requête serait pire, une
+application morte.
 
 ### 5.2 Hors ligne
 
@@ -438,21 +447,28 @@ Sans réseau :
   réseau ;
 - l'ouverture d'un article échoue avec un message explicite.
 
-### 5.3 Reprise de la lecture
+### 5.3 Le lancement rouvre en tête d'un flux stable
 
-La position de lecture **survit à la fermeture de l'application**, y compris
-lorsque le système tue le processus. Rouvrir l'application ramène à l'article où
-l'on s'était arrêté, pas en haut du flux.
+**La position de lecture n'est pas conservée.** Rouvrir l'application ramène en
+haut du flux — le même flux, dans le même ordre, que celui qu'on a quitté
+(§5.1).
 
-C'est la contrepartie exacte de §4.6 : le tirage remonte en haut parce que
-l'utilisateur l'a demandé ; une fermeture, elle, n'est pas une demande. Perdre
-sa place à chaque retour rendrait le flux impraticable — il est continu et sans
-repère, et rien ne permettrait de retrouver ce qu'on avait déjà parcouru.
+Cette section a longtemps spécifié l'inverse : une reprise « au plus proche »,
+mémorisée à la fermeture. Elle a été **retirée par décision d'auteur** le
+2026-08-08, et il faut dire pourquoi, parce que la raison n'est pas « c'était
+trop dur ». La mémoire de position se réécrivait à chaque lancement — l'article
+en tête d'écran pendant les premières images écrasait la vraie place — et
+chaque ouverture restaurait ce que le hasard de la précédente avait laissé.
+Constaté sur appareil : un lancement sans un seul geste déplaçait la position
+mémorisée. Le correctif existait, mais l'arbitrage est ailleurs : la reprise
+protégeait contre un flux qui bougeait sous les pieds, et ce flux ne bouge
+plus — le lancement n'interroge plus le réseau (§5.1). Sur un flux stable qui
+rouvre à l'identique, retrouver sa place se fait en défilant ce qu'on
+reconnaît ; la mécanique de mémorisation ne payait plus sa complexité.
 
-Ce qui est mémorisé est l'**article** en tête d'écran, pas son rang : le flux
-peut s'être allongé entre-temps, et un rang ne désignerait plus le même contenu.
-Si cet article n'est plus disponible — purgé, ou lu et disparu du flux — la
-reprise se fait au plus proche, et à défaut en haut.
+Ce qui reste garanti, et qui compte davantage : le haut du flux au lancement
+est **exactement** celui de la fermeture, nouveaux articles exclus puisqu'il
+n'y en a pas sans geste.
 
 ### 5.4 Purge
 
@@ -549,6 +565,7 @@ la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
 | 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
 | 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
 | 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
+| 10 | Le lancement recharge-t-il le flux ? | **Non.** Décision d'auteur (2026-08-08) : le lancement montre le cache, stable, et aucune requête ne part sans geste — hors cache vide, où il n'y a rien à montrer. La requête automatique du lancement créait une course entre le disque et le réseau, dont l'issue décidait de l'écran ; et un flux qui bouge à l'ouverture se lit comme un flux qui se mélange. Le rechargement est un geste (§4.6), rappelé par l'avis d'ancienneté au-delà de six heures. |
 | 9 | Seuil au-delà duquel le flux affiché est « ancien » (§4.6) | **6 heures.** Rien ne se synchronise en arrière-plan (§2), donc l'écran montre le cache jusqu'à ce que l'utilisateur demande autre chose : sans repère, un flux de la veille est indiscernable d'un flux frais. Un seuil court — une ou deux heures — transformerait l'invitation en réflexe quotidien, et une invitation qu'on apprend à ignorer ne dit plus rien. Six heures séparent nettement la session reprise dans l'heure, où le flux est encore celui qu'on a laissé, de la réouverture du lendemain matin. |
 
 ### Encore ouvertes
