@@ -141,6 +141,8 @@ fun SwipeScreen(
     onArticleClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOfflineNoticeDismiss: () -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onStaleNoticeDismiss: () -> Unit = {},
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
@@ -163,13 +165,49 @@ fun SwipeScreen(
             )
         }
 
+        /*
+         * Un seul avis à la fois au bas de l'écran : l'ouverture refusée
+         * n'existe que hors ligne, où `showsStaleNotice` est justement faux.
+         */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+
+        if (uiState.showsStaleNotice) {
+            StaleFeedNotice(
+                onRefresh = onRefresh,
+                onDismiss = onStaleNoticeDismiss,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
+}
+
+/**
+ * Le flux affiché date de plusieurs heures (SPECS.md §4.6).
+ *
+ * Mêmes chaînes qu'en mode Liste, même action : c'est le rechargement de la
+ * barre de titre que la commande emprunte, et non un chemin à elle.
+ */
+@Composable
+private fun StaleFeedNotice(
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FeedNotice(
+        message = stringResource(R.string.feed_stale_notice),
+        actionLabel = stringResource(R.string.feed_stale_refresh),
+        onAction = onRefresh,
+        modifier = modifier.testTag(SwipeTestTags.STALE_NOTICE),
+        actionModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_REFRESH),
+        dismissLabel = stringResource(R.string.feed_stale_dismiss),
+        onDismiss = onDismiss,
+        dismissModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_DISMISS),
+    )
 }
 
 /**

@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -303,6 +304,83 @@ class SwipeScreenTest {
         articles = (1..LONG_FEED_SIZE).map { uiArticle(id = it.toLong(), title = "Article $it") },
         phase = DiscoverPhase.Idle,
     )
+
+    // ----- Flux ancien (SPECS.md §4.6) ----------------------------------------
+
+    @Test
+    fun anOldFeedInvitesToReloadIt() {
+        showStale()
+
+        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).assertExists()
+    }
+
+    @Test
+    fun aFeedThatIsNotOldSaysNothing() {
+        show(SwipeUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
+
+        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).assertDoesNotExist()
+    }
+
+    @Test
+    fun theInvitationBorrowsTheExistingReload() {
+        var refreshed = 0
+        showStale(onRefresh = { refreshed++ })
+
+        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE_REFRESH).performClick()
+
+        assertEquals(1, refreshed)
+    }
+
+    @Test
+    fun theInvitationCanBeSilencedWithoutReloading() {
+        var silenced = 0
+        showStale(onStaleNoticeDismiss = { silenced++ })
+
+        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE_DISMISS).performClick()
+
+        assertEquals(1, silenced)
+    }
+
+    @Test
+    fun theInvitationDoesNotCoverTheOpenAction() {
+        // En plein écran la bandelette se pose sur la carte : elle ne doit pas
+        // recouvrir la seule commande d'ouverture de l'article (SPECS.md §4.7).
+        showStale()
+
+        val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
+        val open = composeRule.onNodeWithTag(SwipeTestTags.OPEN).getBoundsInRoot()
+
+        assertTrue(
+            open.bottom <= notice.top,
+            "la commande d\'ouverture est recouverte par la bandelette",
+        )
+    }
+
+    /**
+     * Un flux ancien, avec de quoi lire : l'invitation y est due.
+     *
+     * Point d'entrée propre à ces cas plutôt qu'un [show] élargi : le
+     * rechargement et l'acquittement ne concernent qu'eux.
+     */
+    private fun showStale(
+        onRefresh: () -> Unit = {},
+        onStaleNoticeDismiss: () -> Unit = {},
+    ) {
+        composeRule.setContent {
+            SwipeScreen(
+                uiState = SwipeUiState(
+                    articles = listOf(uiArticle()),
+                    phase = DiscoverPhase.Idle,
+                    isStaleNoticeAvailable = true,
+                ),
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = {},
+                onRefresh = onRefresh,
+                onStaleNoticeDismiss = onStaleNoticeDismiss,
+            )
+        }
+    }
 
     private fun uiArticle(
         id: Long = 1L,

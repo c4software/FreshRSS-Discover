@@ -12,6 +12,9 @@ object SwipeTestTags {
     const val OPEN = "swipe:open"
     const val OFFLINE_NOTICE = "swipe:offline-notice"
     const val OFFLINE_NOTICE_DISMISS = "swipe:offline-notice-dismiss"
+    const val STALE_NOTICE = "swipe:stale-notice"
+    const val STALE_NOTICE_REFRESH = "swipe:stale-notice-refresh"
+    const val STALE_NOTICE_DISMISS = "swipe:stale-notice-dismiss"
 
     fun page(id: Long) = "swipe:page:$id"
 }

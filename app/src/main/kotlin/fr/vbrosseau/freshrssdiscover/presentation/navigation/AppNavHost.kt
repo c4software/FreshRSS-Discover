@@ -136,6 +136,8 @@ private fun SwipeRoute(
             }
         },
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
+        onRefresh = viewModel::refresh,
+        onStaleNoticeDismiss = viewModel::dismissStaleNotice,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
