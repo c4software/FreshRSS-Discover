@@ -82,12 +82,17 @@ data class ArticleUiModel(
      */
     val isOpenable: Boolean = url != null,
     /**
-     * Vraie une fois l'article resté assez longtemps à l'écran (SPECS.md §4.5).
+     * Vrai pour un article déjà lu, **qu'il l'ait été dans cette session ou
+     * dans une précédente** (SPECS.md §4.5).
+     *
+     * Les deux origines comptent, et l'oubli de la seconde a été visible à
+     * l'écran : projeté sans cet état, un article lu la veille arrivait du cache
+     * comme neuf, et son fanion n'apparaissait qu'après une seconde de
+     * visibilité — le temps que le marquage de la session le rétablisse.
      *
      * L'article marqué **reste dans la liste et à sa place** : le drapeau
-     * n'existe que pour que l'état local dise la vérité — et que le marquage
-     * survive à une recomposition — jamais pour le faire disparaître, ce qui
-     * déplacerait le contenu en cours de lecture.
+     * n'existe que pour dire la vérité sur son état, jamais pour le faire
+     * disparaître, ce qui déplacerait le contenu en cours de lecture.
      */
     val isRead: Boolean = false,
 )
@@ -106,6 +111,7 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     excerpt = summary.toExcerpt(),
     imageUrl = imageUrl,
     url = url,
+    isRead = isRead,
 )
 
 /**

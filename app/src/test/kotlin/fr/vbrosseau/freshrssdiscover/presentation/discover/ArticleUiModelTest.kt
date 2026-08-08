@@ -83,4 +83,21 @@ class ArticleUiModelTest {
         assertFalse(article(url = null).toUiModel(NOW_MILLIS).isOpenable)
         assertTrue(article(url = "https://exemple.org/a").toUiModel(NOW_MILLIS).isOpenable)
     }
+
+    @Test
+    fun anArticleAlreadyReadArrivesRead() {
+        // Constaté sur appareil : la projection perdait cet état, si bien qu'un
+        // article lu la veille revenait du cache comme neuf. Son fanion
+        // (SPECS.md §4.5) n'apparaissait qu'après une seconde de visibilité, le
+        // temps que le marquage de la session le rétablisse — un délai visible
+        // au chargement, et un état faux entre-temps.
+        val projected = article(id = 1L, isRead = true).toUiModel(nowEpochMillis = 0L)
+
+        assertTrue(projected.isRead)
+    }
+
+    @Test
+    fun anUnreadArticleArrivesUnread() {
+        assertFalse(article(id = 1L, isRead = false).toUiModel(nowEpochMillis = 0L).isRead)
+    }
 }
