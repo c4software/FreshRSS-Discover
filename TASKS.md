@@ -39,8 +39,9 @@ GOAL-012-T05 et T07 (position partagée, accessibilité du balayage). Aucune
 n'appartient à un chantier commun, et les traiter dans l'ordre d'un plan
 d'ensemble reviendrait à s'en inventer un.
 
-**Prochaine tâche** : constater GOAL-014 sur appareil, puis reprendre
-GOAL-012-T05.
+**Prochaine tâche** : `GOAL-012-T11` — le bouton « Ouvrir l'article » est
+tronqué en mode Balayage quand l'extrait est long, constaté sur appareil le
+2026-08-08. Puis `GOAL-012-T05`.
 
 ---
 
@@ -707,6 +708,16 @@ suivant, comme les Stories d'un réseau social.
       Liste, l'illustration en Balayage. La destination affichée le publie donc
       à l'ossature (`FeedRefresh`), qui n'a aucune raison de connaître son
       ViewModel
+- [ ] `GOAL-012-T11` **Le bouton « Ouvrir l'article » est tronqué quand
+      l'extrait est long.** Vu sur appareil le 2026-08-08 en constatant
+      GOAL-014 : sur un article dont l'extrait approche les 1 400 caractères
+      (question tranchée ci-dessous), le texte pousse le bouton hors de la
+      carte, et il n'en reste qu'un arc coupé par le bas.
+      **Le défaut ne vient pas de la bandelette d'ancienneté** — il est là
+      aussi quand elle est absente — mais elle l'aggrave en recouvrant ce qui
+      dépassait encore. C'est la **seule** commande d'ouverture de ce mode
+      (SPECS.md §4.7), et aucune capture ne l'avait montré : elles emploient
+      toutes des extraits courts.
 
 ### Question tranchée
 
@@ -802,7 +813,7 @@ synchronisation en arrière-plan.
 
 ## GOAL-014 — Toast d'ancienneté du flux
 
-**Statut : DONE** — reste à constater sur appareil
+**Statut : DONE** — constaté sur appareil, avec deux réserves écrites plus bas
 
 Couvre SPECS.md §4.6, ajouté à la demande de l'auteur.
 
@@ -862,6 +873,26 @@ serveur, une bandelette actionnable invite à rafraîchir.
       l'article » n'est pas recouvert
 - [x] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8 question 9,
       ARCHITECTURE §5.1 et §9.6, README, TASKS
+- [x] `GOAL-014-T11` **Constaté sur appareil** (Pixel 10 Pro, Android 17,
+      2026-08-08). Protocole : la date écrite par le dépôt a été reculée de 7 h
+      dans le DataStore, et l'adresse du serveur pointée sur `192.0.2.1`
+      (TEST-NET, sans route) — c'est le **seul** montage qui réunit les deux
+      conditions de l'avis, un flux ancien et un appareil qui n'est pas hors
+      ligne.
+      **Ce qui a été vu** : la date du dernier contact serveur est bien écrite
+      par le dépôt au lancement ; la bandelette paraît en Balayage sur du
+      contenu réel, puis en Liste ; « Plus tard » l'éteint ; elle **reste
+      éteinte après une bascule Balayage → Liste**, ce qui est le point que
+      l'acquittement partagé devait garantir ; elle **revient après un
+      redémarrage du processus**, l'acquittement ne vivant qu'en mémoire ; et
+      un contact serveur réussi l'éteint — flux rechargé, date remise à
+      l'instant, plus aucune bandelette.
+      **Deux choses n'ont pas été constatées sur appareil, et il faut le
+      dire** : l'appui sur « Recharger » lui-même, faute de pouvoir réunir un
+      avis visible et un serveur joignable — au lancement la page arrive et
+      éteint l'avis avant tout appui ; et le cas hors ligne, le mode avion
+      coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
+      test.
 
 ---
 
