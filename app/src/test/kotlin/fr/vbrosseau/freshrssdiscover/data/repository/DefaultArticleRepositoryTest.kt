@@ -10,6 +10,7 @@ import fr.vbrosseau.freshrssdiscover.data.api.createFreshRssHttpClient
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.AppDatabase
 import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
+import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkQueue
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.security.FakeSecretCipher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
@@ -121,12 +122,24 @@ class DefaultArticleRepositoryTest {
      * c'est exactement la situation d'un lancement d'application, où le contenu
      * précède la première requête.
      */
-    private val cache: ArticleCache by lazy {
-        val database = Room.inMemoryDatabaseBuilder(
+    private val database: AppDatabase by lazy {
+        Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        ArticleCache(database.articleDao(), Clock { 0L })
+    }
+
+    private val cache: ArticleCache by lazy { ArticleCache(database.articleDao(), Clock { 0L }) }
+
+    /**
+     * La file des marquages en attente, sur la **même** base que le cache.
+     *
+     * C'est ce qui permet d'éprouver ce que la purge du rechargement épargne :
+     * la condition vit dans une sous-requête SQL, et deux bases distinctes la
+     * rendraient toujours vraie — le cas passerait sans rien prouver.
+     */
+    private val pendingMarks: PendingMarkQueue by lazy {
+        PendingMarkQueue(database.pendingMarkDao(), Clock { 0L })
     }
 
     private sealed interface MockEngineResponse {
@@ -541,6 +554,75 @@ class DefaultArticleRepositoryTest {
         val refreshed = assertNotNull(repository.refresh().valueOrNull())
 
         assertEquals(setOf(1L, 2L, 3L), refreshed.articles.map { it.id.value }.toSet())
+    }
+
+    // ----- Le rechargement renouvelle le cache (GOAL-026) ---------------------
+
+    /**
+     * Le défaut signalé par l'auteur : vider le flux, tuer l'application, la
+     * relancer — et retrouver le jeu d'articles qu'on venait d'épuiser. Le
+     * rechargement vidait l'affichage sans toucher à la base.
+     */
+    @Test
+    fun aReloadDropsFromTheCacheWhatHasAlreadyBeenRead() = runTest {
+        cache.save(listOf(article(id = 1L, title = "Lu", isRead = true)))
+        val repository = repository(MockEngineResponse.Body(page(2L to "feed/1")))
+        signedIn()
+
+        repository.refresh()
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        assertEquals(listOf(2L), cached, "l'article lu doit disparaître du cache, pas seulement de l'écran")
+    }
+
+    @Test
+    fun aReloadKeepsWhatIsStillUnread() = runTest {
+        // Un non lu que le serveur ne renvoie pas — trop ancien pour la page de
+        // tête — reste consultable : SPECS.md §5.4 ne purge jamais du non-lu.
+        cache.save(listOf(article(id = 7L, title = "Non lu")))
+        val repository = repository(MockEngineResponse.Body(page(2L to "feed/1")))
+        signedIn()
+
+        repository.refresh()
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        assertEquals(setOf(2L, 7L), cached.toSet())
+    }
+
+    /**
+     * L'article lu **dont le marquage n'est pas encore parti** est épargné : sa
+     * ligne porte la mémoire locale du « déjà lu », et la perdre le ferait
+     * revenir comme neuf au prochain passage du serveur
+     * (`ArticleDao.deleteReadCachedBefore`).
+     */
+    @Test
+    fun aReloadSparesAReadArticleWhoseMarkHasNotLeftYet() = runTest {
+        cache.save(listOf(article(id = 1L, title = "Lu hors ligne", isRead = true)))
+        pendingMarks.enqueue(listOf(ArticleId(1L)))
+        val repository = repository(MockEngineResponse.Body(page(2L to "feed/1")))
+        signedIn()
+
+        repository.refresh()
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        assertTrue(1L in cached, "un marquage encore en file interdit la purge de sa ligne")
+    }
+
+    /**
+     * **La pagination ne purge rien.** Purger à chaque page effacerait le flux
+     * sous les yeux de qui le parcourt : les articles lus en haut disparaîtraient
+     * pendant que le bas se charge.
+     */
+    @Test
+    fun loadingTheNextPagePurgesNothing() = runTest {
+        cache.save(listOf(article(id = 1L, title = "Lu", isRead = true)))
+        val repository = repository(MockEngineResponse.Body(page(2L to "feed/1")))
+        signedIn()
+
+        repository.loadPage(cursor = PageCursor("45219"))
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        assertTrue(1L in cached, "seul un rechargement demandé renouvelle la liste (SPECS.md §4.6)")
     }
 
     @Test

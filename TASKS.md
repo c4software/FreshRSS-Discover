@@ -92,6 +92,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
 | GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
 | GOAL-025 | An empty feed stops being a dead end | `[x]` |
+| GOAL-026 | Killing the app resurrected the feed one had just emptied | `[ ]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1829,6 +1830,64 @@ The Detekt threshold `TooManyFunctions` went from 11 to 12 along the way, with
 its reason in `config/detekt/detekt.yml`: a screen's ViewModel is a **collector
 of gestures**, its method count tracks the commands the screen offers, and
 splitting it in two to satisfy a counter would make two halves of one state.
+
+---
+
+## GOAL-026 — Killing the app resurrected the feed one had just emptied
+
+**Status: IN PROGRESS**
+
+Reported by the author immediately after GOAL-025, and revealed by it: *"if I
+empty the feed I get the no-more-articles message, but if I kill and relaunch I
+get the last set of articles back."*
+
+### What the reading of the code established
+
+**The reload empties the display, never the cache.**
+
+| Where | What the code does |
+|---|---|
+| `DefaultArticleRepository.kt:195` | `cache.save(page.articles)` — an upsert. Nothing ever deletes |
+| `DefaultArticleRepository.kt:113` | The cache is re-read **read articles included** (GOAL-015, ARCHITECTURE.md §9.7) |
+| `DiscoverViewModel.kt:161` | On launch, a non-empty cache is displayed and nothing is asked |
+
+So: reload, the server has nothing unread left, the screen empties. But the
+forty read articles are still in the database. Kill, relaunch — the database
+answers, the screen brings them back, and the rule of GOAL-025 stays silent
+since there **is** something to show.
+
+Two things made it worse. Since GOAL-020 there is no read flag any more, so
+those resurrected articles are **indistinguishable** from genuinely unread ones.
+And the doc comment on `observeCachedArticles` has been promising since
+GOAL-015 that the list holds "until the next requested reload, **which alone
+renews it**". The promise was written; the cache never implemented it.
+
+### The decision
+
+A **successful** reload purges the articles that are read *and* synchronised,
+by way of the existing `purgeAllRead()`. That query spares exactly the two
+things that must never disappear (SPECS.md §5.4): what is unread, and what is
+still **waiting to be transmitted** — those rows carry the local memory of
+"already read", and dropping them would make what one has just read come back
+as new (`ArticleDao.kt:103`).
+
+The purge runs **after** the save, not before: `upsertPreservingLocalReadState`
+reads the existing read state from those very rows, and purging first would make
+a returned article lose its memory and come back unread.
+
+The owned price: after a reload, one can no longer scroll back to something read
+before it. That is what SPECS.md §4.6 has always said — the reload replaces what
+is displayed — but it is not what the application did.
+
+**Loading the next page purges nothing.** Tying the purge to pagination would
+erase the feed under the reader as they scroll; a case guards that.
+
+### Tasks
+
+- [x] `GOAL-026-T01` **A successful reload renews the cache**, with its cases:
+      what is read goes, what is unread stays, a pending mark is spared, and
+      pagination purges nothing
+- [-] `GOAL-026-T02` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9.7
 
 ---
 

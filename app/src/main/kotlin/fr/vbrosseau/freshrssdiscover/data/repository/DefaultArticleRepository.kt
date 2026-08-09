@@ -70,16 +70,21 @@ internal class DefaultArticleRepository @Inject constructor(
         // Rien ne précède le début du flux : un rechargement complet doit
         // produire exactement le même ordre que le premier affichage (règle 3).
         if (cursor == null) paginationTail = emptyList()
-        fetchPage(cursor, continuesPagination = true)
+        fetchPage(cursor, continuesPagination = true, renewsCache = false)
     }
 
     /**
      * Le mélange repart de zéro et la continuité de la pagination n'est pas
      * touchée : la page rendue est la tête du flux, alors que [paginationTail]
      * en décrit le bas.
+     *
+     * **Et le cache est renouvelé**, ce qu'il n'était pas (GOAL-026) : le
+     * rechargement vidait l'affichage sans toucher à la base, si bien qu'une
+     * application tuée puis relancée ressuscitait le flux qu'on venait
+     * d'épuiser. Voir [renewCache].
      */
     override suspend fun refresh(): FeedResult<ArticlePage> = withContext(ioDispatcher) {
-        fetchPage(cursor = null, continuesPagination = false)
+        fetchPage(cursor = null, continuesPagination = false, renewsCache = true)
     }
 
     /**
@@ -116,6 +121,7 @@ internal class DefaultArticleRepository @Inject constructor(
     private suspend fun fetchPage(
         cursor: PageCursor?,
         continuesPagination: Boolean,
+        renewsCache: Boolean,
     ): FeedResult<ArticlePage> {
         /*
          * Aucune session : l'aiguillage racine a déjà dû basculer vers l'écran
@@ -129,7 +135,42 @@ internal class DefaultArticleRepository @Inject constructor(
             token = session.token,
             pageSize = PAGE_SIZE,
             cursor = cursor,
-        ).toFeedResult(continuesPagination)
+        ).toFeedResult(continuesPagination, renewsCache)
+    }
+
+    /**
+     * Le rechargement renouvelle le cache : ce qui est lu s'en va (GOAL-026).
+     *
+     * **Le défaut, signalé par l'auteur.** Le rechargement vidait l'affichage et
+     * laissait la base intacte : tout lire, recharger — l'écran annonçait qu'il
+     * n'y avait plus rien — puis tuer l'application et la relancer ressuscitait
+     * les quarante articles lus. Le cache répondait, et rien ne demandait plus
+     * au serveur puisqu'il y avait quelque chose à montrer. Depuis GOAL-020 il
+     * n'y a plus de fanion de lecture : ces revenants étaient **indiscernables**
+     * de vrais non lus.
+     *
+     * Ce n'était pas une règle manquante mais une règle non tenue : la
+     * documentation d'[observeCachedArticles] promet depuis GOAL-015 que la
+     * liste tient « jusqu'au prochain rechargement demandé, qui seul la
+     * renouvelle ». Le cache ne l'avait jamais fait.
+     *
+     * **`purgeAllRead` plutôt qu'un effacement.** Sa requête épargne les deux
+     * choses qui ne doivent jamais disparaître (SPECS.md §5.4) : ce qui est non
+     * lu, qui est le contenu même de l'application, et ce dont le marquage
+     * **attend encore d'être transmis** — ces lignes portent la mémoire locale
+     * du « déjà lu », et les effacer ferait revenir comme neuf ce que
+     * l'utilisateur vient de lire (`ArticleDao.deleteReadCachedBefore`).
+     *
+     * **Après l'enregistrement, jamais avant** : `upsertPreservingLocalReadState`
+     * lit l'état lu dans ces mêmes lignes, et purger d'abord ferait revenir non
+     * lu un article que le serveur vient de rendre.
+     *
+     * **La pagination ne purge rien** : ce serait effacer le flux sous les yeux
+     * de qui le parcourt. Seul un rechargement demandé renouvelle, comme
+     * SPECS.md §4.6 le dit.
+     */
+    private suspend fun renewCache() {
+        cache.purgeAllRead()
     }
 
     /**
@@ -189,10 +230,12 @@ internal class DefaultArticleRepository @Inject constructor(
      */
     private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(
         continuesPagination: Boolean,
+        renewsCache: Boolean,
     ): FeedResult<ArticlePage> = when (this) {
         is ApiOutcome.Success -> {
             val page = value.toArticlePage()
             cache.save(page.articles)
+            if (renewsCache) renewCache()
             freshness.recordRefresh()
             Outcome.Success(page.interleaved(continuesPagination))
         }
