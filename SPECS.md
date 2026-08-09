@@ -50,7 +50,7 @@ Explicitement exclus, afin qu'aucun Goal ne les introduise par glissement :
 - lecture hors ligne du contenu intégral des articles ;
 - comptes multiples ;
 - widgets, tuiles rapides ;
-- partage social, commentaires, annotations ;
+- commentaires, annotations ;
 - **synchronisation en arrière-plan** — l'application ne va chercher des
   articles que lorsqu'elle est ouverte, et aucune connexion ne part sans geste
   de l'utilisateur (§7.4).
@@ -63,6 +63,15 @@ première version, et les introduire demanderait de mettre à jour ce document.
 > local** et ne se connecte à rien. C'est ce qui distingue une notification
 > locale d'une synchronisation de fond, et ce qui fait qu'une seule des deux est
 > ici.
+>
+> **Le partage aussi**, à la demande de l'auteur : voir §4.3. Il figurait sous
+> « partage social, commentaires, annotations », et n'est aucun des trois — mais
+> l'exclusion était écrite assez largement pour le couvrir, et la lever
+> explicitement vaut mieux que l'interpréter. Ce qui est ajouté est le
+> **sélecteur du système** : l'application n'a aucune destination, elle passe la
+> main. Aucun service tiers n'est engagé, aucune connexion ne part de nous —
+> §7.4 reste vraie mot pour mot. Les commentaires et les annotations, eux,
+> restent exclus : ils demanderaient un compte, un stockage et une modération.
 
 ---
 
@@ -218,6 +227,17 @@ Chaque article expose :
 Un article sans image reste lisible : l'absence d'illustration ne doit pas
 produire un espace vide, ni une image de remplacement générique.
 
+**Chaque article se partage**, dans les deux modes de présentation (§4.8). Une
+commande sur la carte ouvre le **sélecteur du système** : c'est lui qui propose
+les destinations, et l'application n'en connaît aucune. Ce qui part est le
+**titre puis le lien d'origine** — une URL nue ne dit pas ce qu'on envoie, et
+l'extrait, écourté par nous (§8, question 7), transmettrait notre troncature
+pour du contenu.
+
+Un article sans lien exploitable **ne se partage pas**, et la commande n'y
+figure pas : même règle qu'à l'ouverture (§4.7), parce qu'envoyer un titre seul
+serait un message sans objet.
+
 **Une illustration n'est jamais agrandie.** Beaucoup de flux publient des
 vignettes plus étroites que le créneau ; les étirer les rend floues, et une
 image floue dessert l'article qu'elle illustre. Elle s'affiche donc à sa taille,
@@ -361,6 +381,14 @@ Ouvrir un article le marque comme lu, quelle que soit sa visibilité passée.
 
 Un article sans lien exploitable n'est pas cliquable, et le donne à voir.
 
+**C'est la carte entière qui ouvre, dans les deux modes.** En Balayage, un
+bouton explicite l'a fait un temps, par crainte qu'un appui pris pendant un
+balayage hésitant ne fasse partir dans le navigateur. La crainte n'était pas
+fondée : la plateforme distingue l'appui du glissement, le geste horizontal
+n'est pas consommé par le clic, et un test le constate. Le bouton coûtait une
+ligne de commande au bas d'un contenu déjà défilable, pour une garantie que le
+système donnait déjà.
+
 ### 4.8 Deux modes de présentation
 
 Le flux se parcourt de deux façons, au choix de l'utilisateur. **Le contenu est
@@ -393,6 +421,9 @@ Ce que ce mode implique, et qui n'est pas neutre :
 - **L'extrait laisse place au contenu.** Le plein écran permet d'en montrer
   davantage que les trois lignes d'une carte ; la limite de §8 question 7 est
   propre au mode Liste.
+- **Une seule commande demeure sur la carte** : le partage. L'ouverture est
+  passée à la carte entière (§4.7), et le mode retrouve ainsi ce qui fait son
+  intérêt — un article, et presque rien autour.
 - **Le mode est un réglage persistant** (§6) : l'application rouvre dans le
   mode que l'utilisateur a quitté.
 - **Le geste est animé en pile de cartes.** L'article qui s'en va s'incline et

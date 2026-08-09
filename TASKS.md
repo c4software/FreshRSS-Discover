@@ -39,8 +39,8 @@ Un point reste bloqué, hors de notre main : `GOAL-001-T17` — AGP 9.3.1 plante
 toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera
 avec une version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : `GOAL-019-T01`, `GOAL-020-T01` et `GOAL-021-T01`, menées
-en parallèle par trois agents à la demande de l'auteur.
+**Prochaine tâche** : `GOAL-019-T01` et `GOAL-021-T01`, menées en parallèle
+par trois agents à la demande de l'auteur — GOAL-020 est terminé.
 
 > ⚠️ **Aucune validation sur appareil n'est possible sur cette phase**, l'auteur
 > l'a signalé le 2026-08-09 : le téléphone n'est pas disponible. La garantie
@@ -75,7 +75,7 @@ en parallèle par trois agents à la demande de l'auteur.
 | GOAL-017 | Un article déjà lu se voit | `[x]` |
 | GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
 | GOAL-019 | Le marquage automatique devient optionnel | `[ ]` |
-| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[ ]` |
+| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
@@ -1315,7 +1315,15 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 
 ## GOAL-020 — La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui
 
-**Statut : IN PROGRESS**
+**Statut : DONE**
+
+> ⚠️ **Rien n'a été constaté sur appareil**, aucun n'étant disponible
+> (voir l'avertissement de la Phase courante). Ce que les tests ne peuvent
+> pas dire, et qu'il faudra regarder au premier lancement réel : **la feuille
+> de partage du système** — qu'elle s'ouvre, ce qu'elle propose, et la mine
+> que fait le texte « titre puis lien » une fois collé dans une messagerie.
+> `ArticleShareIntentTest` établit le contenu de l'intention, pas ce
+> qu'Android en fait.
 
 Trois demandes de l'auteur sur la même surface — la carte d'article — donc un
 seul Goal : elles se croisent dans `DiscoverScreen` et `SwipeScreen`, et les
@@ -1387,8 +1395,13 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
       d'ouverture. Deux captures supprimées par `T01`
       (`discover-articles-lus`), 26 modifiées, 2 ajoutées : l'icône de partage
       se détache dans les deux thèmes, sur carte comme sur illustration
-- [ ] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
-      ARCHITECTURE.md §9.9 et §9, TASKS.md
+- [x] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
+      ARCHITECTURE.md §9.9 et §9, TASKS.md. Deux morceaux ont été traités plus
+      tôt, là où le code qu'ils décrivaient disparaissait : ARCHITECTURE.md
+      §9.9 en `T01` et le rôle du paquet `browser/` (§9) en `T02`. SPECS.md
+      §4.5 s'y est ajoutée, qui décrivait le fanion et n'était listée nulle
+      part. §7.4 n'a pas bougé et n'avait pas à bouger : un sélecteur système
+      n'ouvre aucune connexion depuis l'application
 
 ---
 
