@@ -1,75 +1,74 @@
-# PROMPT.md — Prompt d'initialisation (figé)
+# PROMPT.md — Initialisation prompt (frozen)
 
-> **Ce fichier ne se met pas à jour.** Il conserve l'intention initiale du
-> projet, telle qu'elle a été formulée avant que la moindre ligne soit écrite.
+> **This file does not get updated.** It preserves the project's initial intent,
+> as it was formulated before a single line was written.
 >
-> Il a servi une seule fois, pour créer le Harness (Phase 0). Ensuite, les
-> agents travaillent à partir de [AGENTS.md](./AGENTS.md), [SPECS.md](./SPECS.md),
-> [ARCHITECTURE.md](./ARCHITECTURE.md) et [TASKS.md](./TASKS.md).
+> It served once, to create the Harness (Phase 0). After that, agents work from
+> [AGENTS.md](./AGENTS.md), [SPECS.md](./SPECS.md),
+> [ARCHITECTURE.md](./ARCHITECTURE.md) and [TASKS.md](./TASKS.md).
 >
-> **Lorsqu'une règle applicable a remplacé ce texte sur un point, c'est
-> [AGENTS.md](./AGENTS.md) qui fait foi.** Les écarts constatés sont recensés en
-> fin de fichier.
+> **Where an applicable rule has superseded this text on some point, it is
+> [AGENTS.md](./AGENTS.md) that is authoritative.** The observed divergences are
+> listed at the end of the file.
 
 ---
 
-## Rôle
+## Role
 
-Tu es l'agent responsable de l'**initialisation du projet FreshRSS Discover et
-de son Harness de développement pour Claude Code**.
+You are the agent responsible for the **initialisation of the FreshRSS Discover
+project and of its development Harness for Claude Code**.
 
-Cette étape constitue la **Phase 0 — Harness / Initialisation**.
+This step constitutes **Phase 0 — Harness / Initialisation**.
 
-Le but n'est pas uniquement de créer l'application, mais de mettre en place un
-environnement permettant ensuite à plusieurs agents Claude Code de développer le
-projet progressivement, de manière autonome et reproductible.
+The aim is not solely to create the application, but to put in place an
+environment that then allows several Claude Code agents to develop the project
+incrementally, autonomously and reproducibly.
 
-Le Harness doit permettre de transformer un objectif de haut niveau en une série
-de tâches exécutables, validées et traçables.
+The Harness must make it possible to turn a high-level objective into a series
+of executable, validated and traceable tasks.
 
-**Ne commence pas l'implémentation complète de l'application pendant cette
-étape.**
+**Do not begin the full implementation of the application during this step.**
 
-## 1. Projet
+## 1. Project
 
-**FreshRSS Discover** est une application Android native servant de client pour
-un serveur FreshRSS.
+**FreshRSS Discover** is a native Android application acting as a client for a
+FreshRSS server.
 
-L'application récupère les articles RSS de l'utilisateur via l'API FreshRSS et
-les présente dans un flux vertical inspiré du principe de **Google Discover /
-Google Feed**.
+The application retrieves the user's RSS articles through the FreshRSS API and
+presents them in a vertical feed inspired by the principle of **Google Discover
+/ Google Feed**.
 
-L'expérience recherchée est :
+The intended experience is:
 
 ```
-FreshRSS → Articles des différents flux → Mélange des sources
-→ Flux vertical continu → L'utilisateur fait défiler
-→ Les articles suffisamment visibles deviennent lus
-→ De nouveaux articles sont chargés
+FreshRSS → Articles from the various feeds → Source interleaving
+→ Continuous vertical feed → The user scrolls
+→ Articles seen long enough become read
+→ New articles are loaded
 ```
 
-Fonctionnalités principales prévues : connexion à un serveur FreshRSS ;
-authentification via l'API ; récupération des abonnements ; récupération des
-articles ; mélange des articles provenant des différents flux ; flux vertical
-infini ; pagination ; marquage automatique comme lu lorsqu'un article est
-suffisamment visible ; synchronisation du statut lu ; *Pull to Refresh* ;
-récupération des nouveaux articles ; ouverture de l'article original ; cache
-local et résilience réseau ; interface Android moderne.
+Main planned features: connection to a FreshRSS server; authentication through
+the API; retrieval of subscriptions; retrieval of articles; interleaving of
+articles coming from the various feeds; infinite vertical feed; pagination;
+automatic marking as read once an article has been visible long enough; read
+status synchronisation; *Pull to Refresh*; retrieval of new articles; opening
+the original article; local cache and network resilience; a modern Android
+interface.
 
-## 2. Documentation FreshRSS
+## 2. FreshRSS documentation
 
-La documentation officielle concernant l'accès mobile constitue la référence :
+The official documentation on mobile access is the reference:
 <https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html>
 
-L'intégration doit utiliser l'**API compatible Google Reader**, à l'adresse
-`https://<serveur>/api/greader.php`.
+The integration must use the **Google Reader compatible API**, at
+`https://<server>/api/greader.php`.
 
-`POST /api/greader.php/accounts/ClientLogin` authentifie. Le mot de passe
-utilisé doit être le **mot de passe API**, distinct du mot de passe principal.
-Les requêtes authentifiées utilisent `Authorization: GoogleLogin auth=<auth>`.
-`GET /api/greader.php/reader/api/0/token` fournit le jeton de modification.
+`POST /api/greader.php/accounts/ClientLogin` authenticates. The password used
+must be the **API password**, distinct from the main password. Authenticated
+requests use `Authorization: GoogleLogin auth=<auth>`.
+`GET /api/greader.php/reader/api/0/token` provides the modification token.
 
-Points d'entrée à étudier précisément avant implémentation :
+Endpoints to study precisely before implementation:
 
 ```
 GET /reader/api/0/subscription/list?output=json
@@ -78,15 +77,14 @@ GET /reader/api/0/tag/list?output=json
 GET /reader/api/0/stream/contents/reading-list
 ```
 
-La documentation doit être consultée avant toute décision concernant :
-authentification, pagination, récupération des articles, récupération des
-nouveaux articles, statut lu, marquage comme lu, jeton de modification, gestion
-des erreurs.
+The documentation must be consulted before any decision concerning:
+authentication, pagination, article retrieval, retrieval of new articles, read
+status, marking as read, the modification token, error handling.
 
-**Ne jamais inventer le comportement d'un point d'entrée.** Les points non
-documentés doivent être identifiés comme tels et validés avant implémentation.
+**Never invent the behaviour of an endpoint.** Undocumented points must be
+identified as such and validated before implementation.
 
-## 3. Structure du dépôt
+## 3. Repository structure
 
 ```
 PROMPT.md · SPECS.md · AGENTS.md · ARCHITECTURE.md
@@ -95,168 +93,164 @@ TASKS.md · CONTRIBUTING.md · README.md
 .claude/commands/{goal,task,status,verify}.md
 ```
 
-Les fichiers racine constituent la mémoire persistante du projet ; les commandes
-Claude Code constituent l'interface permettant de la piloter.
+The root files constitute the project's persistent memory; the Claude Code
+commands constitute the interface for driving it.
 
-## 4. Rôle des fichiers
+## 4. Role of the files
 
-| Fichier | Rôle |
+| File | Role |
 |---|---|
-| `PROMPT.md` | Prompt d'initialisation, utilisé une seule fois |
-| `SPECS.md` | Source de vérité fonctionnelle — **ce que l'application doit faire** |
-| `AGENTS.md` | Source de vérité des règles — **comment les agents doivent travailler** |
-| `ARCHITECTURE.md` | Source de vérité technique — **comment l'application est conçue** |
-| `TASKS.md` | État du travail — **ce qui doit être fait, est en cours, est terminé** |
-| `CONTRIBUTING.md` | Comment contribuer |
-| `README.md` | Documentation générale |
+| `PROMPT.md` | Initialisation prompt, used once only |
+| `SPECS.md` | Functional source of truth — **what the application must do** |
+| `AGENTS.md` | Source of truth for the rules — **how agents must work** |
+| `ARCHITECTURE.md` | Technical source of truth — **how the application is designed** |
+| `TASKS.md` | State of the work — **what must be done, is in progress, is finished** |
+| `CONTRIBUTING.md` | How to contribute |
+| `README.md` | General documentation |
 
-## 5 à 8. Le Harness et la commande `/goal`
+## 5 to 8. The Harness and the `/goal` command
 
-`/goal` reçoit un objectif de haut niveau et le transforme en tâches réalisables :
-
-```
-Goal → Analyse → Décomposition → Plan → TASKS.md
-     → Exécution → Validation → Documentation
-```
-
-**Étape 1 — Comprendre le contexte.** Lire obligatoirement `AGENTS.md`,
-`SPECS.md`, `ARCHITECTURE.md`, `TASKS.md`, puis uniquement les fichiers de code
-nécessaires. Ne pas modifier le code immédiatement.
-
-**Étape 2 — Vérifier les dépendances.** Déterminer ce qui existe déjà, ce qui
-manque, les tâches concernées, les contraintes d'architecture, les tests
-existants. Ne pas recréer une fonctionnalité existante.
-
-**Étape 3 — Décomposer.** Transformer l'objectif en tâches suffisamment petites
-pour être exécutées et validées indépendamment. Éviter les tâches vagues du type
-« Faire l'API », « Faire l'interface », « Finir l'authentification ».
-
-**Étape 4 — Plan avant exécution.** Présenter Goal, plan, fichiers concernés et
-validation, puis commencer. Le Harness privilégie l'autonomie : ne poser une
-question que si la décision ne peut pas être déduite de `SPECS.md`,
-`ARCHITECTURE.md`, `AGENTS.md`, de l'état du code ou des conventions.
-
-## 9 à 12. Exécution, TASKS.md, identifiants
-
-Une fois le plan établi : prendre la première tâche non terminée, l'implémenter,
-lancer les validations, corriger, marquer terminée, passer à la suivante. Ne pas
-modifier massivement le dépôt sans validation intermédiaire.
-
-États : `[ ]` TODO · `[-]` IN PROGRESS · `[x]` DONE · `[!]` BLOCKED.
-
-Chaque Goal a un identifiant stable (`GOAL-001`, `GOAL-002`, …), chaque tâche
-également (`GOAL-002-T01`), afin d'être référençable dans les commits.
-
-Avant de créer un Goal, `/goal` vérifie `TASKS.md` : si un objectif identique ou
-très proche existe, ne pas créer de doublon — proposer de reprendre l'existant.
-
-## 13 à 15. Les autres commandes
-
-- **`/task [ID]`** — travailler une tâche précise ; sans identifiant,
-  sélectionner la prochaine tâche pertinente.
-- **`/status`** — vue synthétique dérivée de `TASKS.md` **et de l'état réel du
-  dépôt**.
-- **`/verify`** — compiler, tester, analyser, vérifier les fichiers importants,
-  les changements Git, les erreurs évidentes, et que les tâches déclarées `DONE`
-  sont réellement validées. Résultat en `PASS` / `WARN` / `FAIL`. Une tâche dont
-  la validation échoue n'est pas `DONE`.
-
-## 16. Règle fondamentale
-
-Le Harness ne doit jamais considérer que `code écrit = tâche terminée`.
+`/goal` receives a high-level objective and turns it into achievable tasks:
 
 ```
-code écrit → tests → validation → documentation → TASKS.md = DONE
+Goal → Analysis → Breakdown → Plan → TASKS.md
+     → Execution → Validation → Documentation
 ```
 
-## 17. Reprise après interruption
+**Step 1 — Understand the context.** Read `AGENTS.md`, `SPECS.md`,
+`ARCHITECTURE.md`, `TASKS.md` — this is mandatory — then only the code files
+that are needed. Do not modify the code immediately.
 
-Le système doit permettre à un agent d'être interrompu à tout moment. Au
-redémarrage : lire `AGENTS.md`, lire `TASKS.md`, identifier les tâches
-`IN PROGRESS`, vérifier l'état réel du code, reprendre la tâche.
+**Step 2 — Check the dependencies.** Determine what already exists, what is
+missing, the tasks concerned, the architecture constraints, the existing tests.
+Do not recreate an existing feature.
 
-**Ne jamais considérer automatiquement une tâche `IN PROGRESS` comme terminée.**
+**Step 3 — Break it down.** Turn the objective into tasks small enough to be
+carried out and validated independently. Avoid vague tasks of the kind "Do the
+API", "Do the interface", "Finish authentication".
 
-## 18. Détection des incohérences
+**Step 4 — Plan before execution.** Present the Goal, the plan, the files
+concerned and the validation, then start. The Harness favours autonomy: only ask
+a question if the decision cannot be derived from `SPECS.md`, `ARCHITECTURE.md`,
+`AGENTS.md`, the state of the code or the conventions.
 
-`TASKS.md` dit `DONE` mais le code ne compile pas ; `TASKS.md` dit `TODO` mais
-la fonctionnalité existe ; `ARCHITECTURE.md` décrit A mais le code fait B.
+## 9 to 12. Execution, TASKS.md, identifiers
 
-Dans ces cas : identifier l'incohérence, ne pas la masquer, corriger le côté qui
-a tort, signaler la décision dans le rapport.
+Once the plan is established: take the first unfinished task, implement it, run
+the validations, fix, mark it finished, move on to the next. Do not modify the
+repository massively without intermediate validation.
 
-## 19. Mise à jour de la documentation
+States: `[ ]` TODO · `[-]` IN PROGRESS · `[x]` DONE · `[!]` BLOCKED.
 
-Nouvelle fonctionnalité → `SPECS.md`, `ARCHITECTURE.md`, `TASKS.md`.
-Changement architectural → `ARCHITECTURE.md` **obligatoirement**.
-Nouvelle règle → `AGENTS.md`. Procédure de contribution → `CONTRIBUTING.md`.
+Every Goal has a stable identifier (`GOAL-001`, `GOAL-002`, …), and so does
+every task (`GOAL-002-T01`), so that they can be referenced in commits.
 
-## 20. Goals spécialisés FreshRSS
+Before creating a Goal, `/goal` checks `TASKS.md`: if an identical or very close
+objective exists, do not create a duplicate — offer to resume the existing one.
 
-Pour un Goal touchant à l'API : consulter `SPECS.md`, la section FreshRSS de
-`ARCHITECTURE.md`, la documentation officielle FreshRSS, vérifier
-l'implémentation actuelle, déterminer les points d'entrée nécessaires,
-identifier les paramètres réellement supportés, implémenter, tester, documenter.
+## 13 to 15. The other commands
 
-**Ne jamais déduire le comportement de l'API uniquement à partir d'une
-implémentation existante.**
+- **`/task [ID]`** — work on a specific task; without an identifier, select the
+  next relevant task.
+- **`/status`** — a synthetic view derived from `TASKS.md` **and from the actual
+  state of the repository**.
+- **`/verify`** — build, test, analyse, check the important files, the Git
+  changes, the obvious errors, and that the tasks declared `DONE` are really
+  validated. Result as `PASS` / `WARN` / `FAIL`. A task whose validation fails
+  is not `DONE`.
 
-## 21. Architecture du client FreshRSS
+## 16. Fundamental rule
+
+The Harness must never consider that `code written = task finished`.
+
+```
+code written → tests → validation → documentation → TASKS.md = DONE
+```
+
+## 17. Resuming after an interruption
+
+The system must allow an agent to be interrupted at any moment. On restarting:
+read `AGENTS.md`, read `TASKS.md`, identify the `IN PROGRESS` tasks, check the
+actual state of the code, resume the task.
+
+**Never automatically consider an `IN PROGRESS` task to be finished.**
+
+## 18. Detecting inconsistencies
+
+`TASKS.md` says `DONE` but the code does not compile; `TASKS.md` says `TODO` but
+the feature exists; `ARCHITECTURE.md` describes A but the code does B.
+
+In those cases: identify the inconsistency, do not hide it, fix whichever side
+is wrong, report the decision in the report.
+
+## 19. Updating the documentation
+
+New feature → `SPECS.md`, `ARCHITECTURE.md`, `TASKS.md`.
+Architectural change → `ARCHITECTURE.md`, **mandatorily**.
+New rule → `AGENTS.md`. Contribution procedure → `CONTRIBUTING.md`.
+
+## 20. FreshRSS-specific Goals
+
+For a Goal touching the API: consult `SPECS.md`, the FreshRSS section of
+`ARCHITECTURE.md`, the official FreshRSS documentation, check the current
+implementation, determine the endpoints needed, identify the parameters actually
+supported, implement, test, document.
+
+**Never infer the API's behaviour solely from an existing implementation.**
+
+## 21. Architecture of the FreshRSS client
 
 ```
 UI → ViewModel → Use Case → Repository → FreshRssApi → HTTP → FreshRSS
 ```
 
-Les détails suivants restent confinés à la couche FreshRSS : `ClientLogin`,
-`Auth`, jeton de modification, en-têtes, points d'entrée, formats de réponse,
-gestion des erreurs HTTP spécifiques.
+The following details stay confined to the FreshRSS layer: `ClientLogin`,
+`Auth`, the modification token, headers, endpoints, response formats, handling
+of specific HTTP errors.
 
-## 22 à 23. Phase 0 et sa checklist
+## 22 to 23. Phase 0 and its checklist
 
-Créer les sept fichiers racine et les quatre commandes ; documenter l'API
-FreshRSS à partir de sa documentation officielle ; identifier les points
-nécessitant une validation ; vérifier la cohérence des documents et du Harness.
+Create the seven root files and the four commands; document the FreshRSS API
+from its official documentation; identify the points requiring validation; check
+the consistency of the documents and of the Harness.
 
-## 24. Ce qui ne doit PAS être fait pendant cette phase
+## 24. What must NOT be done during this phase
 
-Ne pas implémenter : authentification FreshRSS, récupération des articles,
-pagination, flux Discover, marquage automatique comme lu, synchronisation des
-statuts, *Pull to Refresh*, cache local, écran Settings.
+Do not implement: FreshRSS authentication, article retrieval, pagination, the
+Discover feed, automatic marking as read, status synchronisation, *Pull to
+Refresh*, local cache, the Settings screen.
 
-Le Harness doit être prêt à les accueillir ; ils seront réalisés par les Goals
-suivants.
+The Harness must be ready to receive them; they will be built by the following
+Goals.
 
-## 25. Critère de réussite
+## 25. Success criterion
 
-La Phase 0 est réussie lorsqu'un nouvel agent Claude Code peut arriver dans le
-dépôt, exécuter `/status` puis `/goal Implémenter l'authentification FreshRSS`,
-et obtenir automatiquement : analyse du contexte → plan → décomposition en
-tâches → mise à jour de `TASKS.md` → implémentation → tests → validation →
-documentation → Goal terminé, **sans avoir besoin qu'on lui redonne l'ensemble
-du contexte du projet**.
+Phase 0 is a success when a new Claude Code agent can arrive in the repository,
+run `/status` then `/goal Implement FreshRSS authentication`, and automatically
+obtain: context analysis → plan → breakdown into tasks → update of `TASKS.md` →
+implementation → tests → validation → documentation → Goal finished, **without
+needing the whole project context to be given to it again**.
 
-## 26. Fin de l'initialisation
+## 26. End of the initialisation
 
-Lorsque la Phase 0 est terminée, **ne pas commencer automatiquement la
-Phase 1**. Fournir un rapport indiquant : les fichiers créés, les fichiers
-modifiés, l'architecture retenue, la documentation FreshRSS étudiée, les
-commandes créées, les Goals initialement définis, les points bloquants ou
-décisions restantes.
+When Phase 0 is finished, **do not automatically begin Phase 1**. Provide a
+report stating: the files created, the files modified, the architecture chosen,
+the FreshRSS documentation studied, the commands created, the Goals initially
+defined, the blocking points or remaining decisions.
 
-Le dépôt doit être laissé dans un état propre et directement exploitable par le
-Harness.
+The repository must be left in a clean state, directly usable by the Harness.
 
 ---
 
-## Écarts assumés
+## Accepted divergences
 
-Ce que la réalisation a fait autrement que ce texte, et pourquoi. La règle
-applicable est celle d'[AGENTS.md](./AGENTS.md).
+What the implementation did differently from this text, and why. The applicable
+rule is the one in [AGENTS.md](./AGENTS.md).
 
-| Point du prompt | Ce qui a été fait | Raison |
+| Point of the prompt | What was done | Reason |
 |---|---|---|
-| §9, §16 : validation à chaque étape | Les tâches s'enchaînent sans demander de validation ; l'arrêt est régi par AGENTS.md §1.2 | Une validation par tâche rendrait l'avance autonome impossible. La granularité de relecture est le **commit**, qui reste réversible |
-| §2 : la documentation officielle comme référence | La documentation établit l'usage, mais **`p/api/greader.php` fait foi** sur les paramètres et la forme des réponses | La documentation officielle ne détaille ni les paramètres de pagination ni le JSON renvoyé. S'y limiter aurait obligé à deviner — ce que §2 interdit par ailleurs |
-| §3 : structure du dépôt | Ajout de `docs/freshrss-api.md` et de `CLAUDE.md` | Le relevé de l'API est trop volumineux pour `ARCHITECTURE.md` et se met à jour à un autre rythme |
-| §24 : ne rien implémenter | Une ossature exécutable a été livrée : thème, navigation, `PlaceholderScreen`, chaîne Roborazzi | Sans elle, `/verify` n'aurait rien à vérifier et le Harness serait invérifiable. Aucune fonctionnalité de la liste §24 n'a été écrite |
-| §22 : structure documentaire seule | Le dépôt part d'un template Android existant, dépouillé de sa logique métier | Fournir une architecture, un outillage de qualité et une CI éprouvés plutôt que reconstruits |
+| §9, §16: validation at every step | Tasks follow one another without asking for approval; stopping is governed by AGENTS.md §1.2 | One validation per task would make autonomous progress impossible. The granularity of review is the **commit**, which stays reversible |
+| §2: the official documentation as reference | The documentation establishes usage, but **`p/api/greader.php` is authoritative** on parameters and response shapes | The official documentation details neither the pagination parameters nor the JSON returned. Sticking to it would have forced guessing — which §2 forbids elsewhere |
+| §3: repository structure | Addition of `docs/freshrss-api.md` and of `CLAUDE.md` | The API survey is too bulky for `ARCHITECTURE.md` and is updated at a different pace |
+| §24: implement nothing | An executable skeleton was delivered: theme, navigation, `PlaceholderScreen`, Roborazzi pipeline | Without it, `/verify` would have nothing to verify and the Harness would be unverifiable. None of the features in the §24 list was written |
+| §22: documentation structure only | The repository starts from an existing Android template, stripped of its business logic | To provide an architecture, quality tooling and CI that are proven rather than rebuilt |

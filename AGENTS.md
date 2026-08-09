@@ -1,342 +1,342 @@
-# AGENTS.md — Règles de développement
+# AGENTS.md — Development rules
 
-Contrat de travail pour tout agent (Claude Code, Codex, …) ou développeur humain
-intervenant sur ce dépôt. Il prévaut sur toute habitude personnelle.
+The working contract for any agent (Claude Code, Codex, …) or human developer
+acting on this repository. It overrides any personal habit.
 
-Documents liés : [SPECS.md](./SPECS.md) (le quoi) ·
-[ARCHITECTURE.md](./ARCHITECTURE.md) (le comment) · [TASKS.md](./TASKS.md)
-(l'ordre) · [docs/freshrss-api.md](./docs/freshrss-api.md) (l'API distante) ·
-[PROMPT.md](./PROMPT.md) (l'intention initiale, figée).
-
----
-
-## 1. Méthode de travail
-
-Le travail est organisé en **Goals**, eux-mêmes découpés en **tâches**. Tout est
-consigné dans [TASKS.md](./TASKS.md), qui est la mémoire persistante du projet.
-
-**Un commit par tâche, dans l'ordre. Les tâches s'enchaînent sans demander de
-validation.**
-
-Pour chaque tâche :
-
-1. Énoncer brièvement le choix technique retenu, et pourquoi.
-2. Passer la tâche à `[-]` dans TASKS.md.
-3. Implémenter **cette tâche uniquement**.
-4. Écrire les tests dans le même incrément que le code.
-5. Lancer la vérification complète (§5) et **rapporter la sortie réelle**.
-6. Mettre à jour la documentation impactée (§6).
-7. Passer la tâche à `[x]`, committer, puis passer à la suivante.
-
-Si une tâche se révèle plus grosse que prévu, la découper en plusieurs commits —
-mais ne jamais fusionner deux tâches en un seul.
-
-La granularité est **le commit, pas la conversation** : c'est lui qui rend le
-travail relisible et réversible étape par étape. C'est ce qui rend l'avance
-autonome sûre.
-
-### 1.1 La règle fondamentale
-
-Ne jamais considérer que :
-
-```
-code écrit = tâche terminée
-```
-
-La règle est :
-
-```
-code écrit → tests → vérification → documentation → TASKS.md = [x]
-```
-
-Une tâche dont la vérification échoue **n'est pas** `DONE`. Une tâche déclarée
-`DONE` sans que la sortie de la vérification ait été constatée est un mensonge,
-et le prochain agent le paiera.
-
-### 1.2 Quand s'arrêter quand même
-
-L'enchaînement automatique ne dispense pas de savoir s'interrompre. Quatre cas,
-et seulement ceux-là :
-
-- **La vérification (§5) échoue et la corriger demande un arbitrage** — abaisser
-  une version, relâcher une règle de qualité, renoncer à un test.
-- **La spécification est ambiguë sur une règle métier.** Ne jamais trancher en
-  silence sur un comportement visible par l'utilisateur.
-- **Une action sortante ou difficilement réversible** : `git push`, publication,
-  réécriture d'historique, suppression de données.
-- **Un choix structurant s'impose** qui contredirait
-  [ARCHITECTURE.md](./ARCHITECTURE.md) ou [SPECS.md](./SPECS.md).
-
-Hors de ces cas : décider, documenter la décision dans le message de commit, et
-continuer.
-
-### 1.3 Reprise après interruption
-
-Un agent peut être arrêté à tout moment. Au redémarrage :
-
-1. lire ce fichier ;
-2. lire [TASKS.md](./TASKS.md) ;
-3. identifier les tâches `[-]` (IN PROGRESS) ;
-4. **vérifier l'état réel du code**, ne jamais supposer qu'une tâche `[-]` est
-   terminée ;
-5. lancer la vérification (§5) pour constater où en est le dépôt ;
-6. reprendre la tâche.
-
-La commande `/status` produit cette lecture automatiquement.
+Related documents: [SPECS.md](./SPECS.md) (the what) ·
+[ARCHITECTURE.md](./ARCHITECTURE.md) (the how) · [TASKS.md](./TASKS.md)
+(the order) · [docs/freshrss-api.md](./docs/freshrss-api.md) (the remote API) ·
+[PROMPT.md](./PROMPT.md) (the initial intent, frozen).
 
 ---
 
-## 2. Interdits
+## 1. Working method
 
-- ❌ Livrer du code qui ne compile pas, ou une fonctionnalité sans ses tests.
-- ❌ Déclarer une tâche terminée sans avoir constaté la sortie de la
-  vérification.
-- ❌ Laisser du code mort, une classe inutilisée, un paramètre ignoré.
-  (Aucune dérogation en cours ; toute exception s'inscrit dans
-  ARCHITECTURE.md §9.2 pour être visible plutôt que tacite.)
-- ❌ Écrire un `TODO` sans tâche correspondante dans [TASKS.md](./TASKS.md).
-- ❌ Utiliser une API Android dépréciée.
-- ❌ Importer `android.*`, `androidx.*`, Room, DataStore, Ktor, Hilt ou Compose
-  depuis `:domain`.
-- ❌ Mettre de la logique métier dans un ViewModel ou un Composable.
-- ❌ Laisser un détail de l'API FreshRSS (jeton, `continuation`, en-tête,
-  identifiant hexadécimal) franchir la couche `data` — voir ARCHITECTURE.md §2.1.
-- ❌ Créer un singleton métier (`object` porteur d'état) — la portée se déclare
-  à Hilt.
-- ❌ Appeler `System.currentTimeMillis()` ailleurs que dans l'implémentation de
-  `Clock`.
-- ❌ Référencer `kotlinx.coroutines.Dispatchers` ailleurs que dans
+Work is organised into **Goals**, themselves broken down into **tasks**.
+Everything is recorded in [TASKS.md](./TASKS.md), which is the project's
+persistent memory.
+
+**One commit per task, in order. Tasks follow one another without asking for
+approval.**
+
+For each task:
+
+1. State briefly the technical choice made, and why.
+2. Move the task to `[-]` in TASKS.md.
+3. Implement **that task only**.
+4. Write the tests in the same increment as the code.
+5. Run the full verification (§5) and **report the actual output**.
+6. Update the affected documentation (§6).
+7. Move the task to `[x]`, commit, then move on to the next one.
+
+If a task turns out to be bigger than expected, split it across several commits —
+but never merge two tasks into one.
+
+The granularity is **the commit, not the conversation**: it is the commit that
+makes the work reviewable and reversible step by step. That is what makes
+autonomous progress safe.
+
+### 1.1 The fundamental rule
+
+Never consider that:
+
+```
+code written = task finished
+```
+
+The rule is:
+
+```
+code written → tests → verification → documentation → TASKS.md = [x]
+```
+
+A task whose verification fails is **not** `DONE`. A task declared `DONE`
+without the verification output having been seen is a lie, and the next agent
+will pay for it.
+
+### 1.2 When to stop anyway
+
+Automatic chaining does not excuse you from knowing when to break off. Four
+cases, and only those:
+
+- **Verification (§5) fails and fixing it calls for a judgement call** —
+  lowering a version, relaxing a quality rule, giving up a test.
+- **The specification is ambiguous on a business rule.** Never settle a
+  user-visible behaviour silently.
+- **An outgoing or hard-to-reverse action**: `git push`, publishing, history
+  rewriting, deleting data.
+- **A structural choice imposes itself** that would contradict
+  [ARCHITECTURE.md](./ARCHITECTURE.md) or [SPECS.md](./SPECS.md).
+
+Outside those cases: decide, document the decision in the commit message, and
+carry on.
+
+### 1.3 Resuming after an interruption
+
+An agent can be stopped at any moment. On restarting:
+
+1. read this file;
+2. read [TASKS.md](./TASKS.md);
+3. identify the `[-]` (IN PROGRESS) tasks;
+4. **check the actual state of the code**, never assume that a `[-]` task is
+   finished;
+5. run the verification (§5) to see where the repository stands;
+6. resume the task.
+
+The `/status` command produces this reading automatically.
+
+---
+
+## 2. Prohibitions
+
+- ❌ Delivering code that does not compile, or a feature without its tests.
+- ❌ Declaring a task finished without having seen the verification output.
+- ❌ Leaving dead code, an unused class, an ignored parameter.
+  (No waiver in force; any exception is recorded in ARCHITECTURE.md §9.2 so as
+  to be visible rather than tacit.)
+- ❌ Writing a `TODO` without a matching task in [TASKS.md](./TASKS.md).
+- ❌ Using a deprecated Android API.
+- ❌ Importing `android.*`, `androidx.*`, Room, DataStore, Ktor, Hilt or Compose
+  from `:domain`.
+- ❌ Putting business logic in a ViewModel or a Composable.
+- ❌ Letting a FreshRSS API detail (token, `continuation`, header, hexadecimal
+  identifier) cross the `data` layer — see ARCHITECTURE.md §2.1.
+- ❌ Creating a business singleton (a state-carrying `object`) — scope is
+  declared to Hilt.
+- ❌ Calling `System.currentTimeMillis()` anywhere other than in the `Clock`
+  implementation.
+- ❌ Referencing `kotlinx.coroutines.Dispatchers` anywhere other than in
   `DispatcherModule`.
-- ❌ Introduire une dépendance sans justification écrite dans le message de
-  commit.
-- ❌ Anticiper : ne pas créer de structure « pour plus tard ». Une abstraction
-  arrive avec son deuxième cas d'usage, pas avant.
+- ❌ Introducing a dependency without a written justification in the commit
+  message.
+- ❌ Anticipating: do not create structure "for later". An abstraction arrives
+  with its second use case, not before.
 
-En cas de choix entre plusieurs solutions, l'ordre de préférence est :
-**simplicité → lisibilité → testabilité → maintenabilité → API Android
-officielle**.
+When choosing between several solutions, the order of preference is:
+**simplicity → readability → testability → maintainability → official Android
+API**.
 
 ---
 
-## 3. L'API FreshRSS
+## 3. The FreshRSS API
 
-Une règle, et elle n'a pas d'exception :
+One rule, and it has no exception:
 
-> **Ne jamais inventer le comportement d'un point d'entrée.**
+> **Never invent the behaviour of an endpoint.**
 
-Avant toute décision touchant à l'authentification, la pagination, la
-récupération des articles, le statut lu, le marquage ou la gestion des erreurs :
+Before any decision touching authentication, pagination, article retrieval, read
+status, marking or error handling:
 
-1. lire [docs/freshrss-api.md](./docs/freshrss-api.md) ;
-2. si le point n'y figure pas, ou y figure comme incertain (§6 de ce relevé),
-   **lire la source** —
+1. read [docs/freshrss-api.md](./docs/freshrss-api.md);
+2. if the point is not there, or is there as uncertain (§6 of that survey),
+   **read the source** —
    [`p/api/greader.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/p/api/greader.php)
-   fait foi sur les paramètres et la forme des réponses, la
-   [documentation officielle](https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html)
-   sur l'usage attendu ;
-3. **mettre à jour `docs/freshrss-api.md`** avec ce qui a été constaté.
+   is authoritative on parameters and response shapes, the
+   [official documentation](https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html)
+   on the expected usage;
+3. **update `docs/freshrss-api.md`** with what was observed.
 
-Ne **jamais** déduire le comportement de l'API à partir d'une implémentation
-existante dans ce dépôt : ce serait figer une erreur.
+**Never** infer the API's behaviour from an existing implementation in this
+repository: that would cast an error in stone.
 
-Un point qui reste incertain après lecture est **signalé comme tel**, pas
-supposé. Il rejoint la §6 de `docs/freshrss-api.md` et une tâche de TASKS.md.
+A point that remains uncertain after reading is **reported as such**, not
+assumed. It joins §6 of `docs/freshrss-api.md` and a task in TASKS.md.
 
 ---
 
 ## 4. Tests
 
-- **Aucune fonctionnalité sans tests, dans le même commit.**
-- Un test par comportement, nommé d'après le comportement observable.
-- Le domaine se teste en JVM pur : ni Robolectric, ni émulateur, ni Android.
-- Les doubles sont des **Fakes** versionnés, pas des mocks générés.
-- Le temps et les dispatchers sont injectés ; les tests utilisent
-  `kotlinx-coroutines-test` et son ordonnanceur virtuel. Jamais de
-  `Thread.sleep`.
-- La couche API se teste avec le `MockEngine` de Ktor, sur des réponses HTTP
-  **littérales** — y compris malformées, tronquées, ou en texte brut là où du
-  JSON était attendu.
-- Couverture visée : **~100 % sur `:domain`**.
+- **No feature without tests, in the same commit.**
+- One test per behaviour, named after the observable behaviour.
+- The domain is tested in pure JVM: no Robolectric, no emulator, no Android.
+- Doubles are versioned **Fakes**, not generated mocks.
+- Time and dispatchers are injected; tests use `kotlinx-coroutines-test` and its
+  virtual scheduler. Never `Thread.sleep`.
+- The API layer is tested with Ktor's `MockEngine`, against **literal** HTTP
+  responses — including malformed, truncated, or plain text where JSON was
+  expected.
+- Coverage target: **~100 % on `:domain`**.
 
-### 4.1 Rendu visuel (Roborazzi)
+### 4.1 Visual rendering (Roborazzi)
 
-Les tests d'interface vérifient **ce qui est affiché** ; les captures vérifient
-**à quoi cela ressemble**. Une régression de mise en page, de contraste ou de
-thème sombre ne casse aucune assertion textuelle.
+Interface tests check **what is displayed**; screenshots check **what it looks
+like**. A regression in layout, contrast or dark theme breaks no textual
+assertion.
 
-- Les références vivent dans `app/src/test/screenshots/`, **versionnées** : une
-  revue doit voir le changement visuel dans le diff, pas seulement lire qu'un
-  test a échoué.
-- Chaque écran est capturé en clair **et** en sombre. Le thème sombre n'est
-  jamais celui qu'on regarde en développant : c'est là que les défauts de
-  contraste s'installent sans être vus. Ce n'est pas théorique — la Phase 0 a
-  livré un titre noir sur fond noir, invisible autrement.
-- La couleur dynamique est désactivée et le format d'écran figé
-  (`@Config(qualifiers)`) : sans cela, la référence dépendrait du fond d'écran
-  ou de la configuration par défaut de Robolectric.
+- The references live in `app/src/test/screenshots/`, **versioned**: a review
+  must see the visual change in the diff, not merely read that a test failed.
+- Every screen is captured in light **and** in dark. The dark theme is never the
+  one you look at while developing: that is where contrast defects settle in
+  unseen. This is not theoretical — Phase 0 shipped a black title on a black
+  background, invisible otherwise.
+- Dynamic colour is disabled and the screen format pinned
+  (`@Config(qualifiers)`): without that, the reference would depend on the
+  wallpaper or on Robolectric's default configuration.
 
 ```bash
-./gradlew :app:verifyRoborazziDebug   # comparer aux références
-./gradlew :app:recordRoborazziDebug   # réenregistrer après un changement voulu
+./gradlew :app:verifyRoborazziDebug   # compare against the references
+./gradlew :app:recordRoborazziDebug   # re-record after an intended change
 ```
 
-⚠️ **Ces commandes ne sont pas dans la vérification de §5, ni dans la CI.** Le
-rendu graphique natif coûte plusieurs minutes de temps machine ; le payer à
-chaque commit et à chaque Pull Request ne se justifie pas.
+⚠️ **These commands are not in the §5 verification, nor in CI.** Native graphics
+rendering costs several minutes of machine time; paying it on every commit and
+every Pull Request is not justified.
 
-**Conséquence, à assumer :** une régression visuelle n'est rattrapée par
-personne automatiquement. **Quiconque touche à l'interface lance
-`verifyRoborazziDebug` avant de committer** — c'est le seul filet.
+**A consequence to be owned:** a visual regression is caught automatically by
+nobody. **Whoever touches the interface runs `verifyRoborazziDebug` before
+committing** — that is the only net.
 
-### Une capture ne vaut que si elle rend ce que l'application rend
+### A screenshot is only worth anything if it renders what the application renders
 
-Le harnais de capture enveloppe le contenu dans un `Surface`. Ce n'est pas un
-détail de mise en scène : `Surface` installe `LocalContentColor`, et sans lui
-tout texte qui ne fixe pas sa couleur retombe sur du **noir**.
+The screenshot harness wraps the content in a `Surface`. This is not a staging
+detail: `Surface` installs `LocalContentColor`, and without it any text that
+does not set its colour falls back to **black**.
 
-En Phase 0, ce défaut est apparu sur une capture — un titre noir sur fond noir —
-et il a été « corrigé » **là où il se voyait**, c'est-à-dire dans le harnais. Les
-images sont redevenues correctes ; l'application, elle, est restée fautive. Le
-défaut n'a été retrouvé que des Goals plus tard, à la première exécution sur
-appareil, et il rendait alors **tout l'écran de connexion illisible**.
+In Phase 0, this defect showed up on a screenshot — a black title on a black
+background — and it was "fixed" **where it was visible**, that is, in the
+harness. The images became correct again; the application stayed at fault. The
+defect was only found again several Goals later, on the first run on a device,
+and by then it made **the whole login screen unreadable**.
 
-La règle qui en découle : **quand une capture révèle un défaut, corriger
-l'application, jamais le harnais** — sauf à démontrer que le harnais s'écarte de
-ce que fait la production, et alors le rapprocher d'elle plutôt que l'inverse.
-Un harnais plus indulgent que l'application transforme une suite de captures en
-décor.
+The rule that follows: **when a screenshot reveals a defect, fix the
+application, never the harness** — unless you can show that the harness departs
+from what production does, and then bring it closer to production rather than
+the other way round. A harness more lenient than the application turns a suite
+of screenshots into scenery.
 
-**Réenregistrer n'est pas anodin** : un `record` accepte en bloc toute
-différence, y compris une régression. Ne le lancer qu'après avoir constaté que
-le changement visuel est celui qu'on voulait, et **regarder les images**
-produites avant de committer.
+**Re-recording is not innocuous**: a `record` accepts every difference
+wholesale, regressions included. Only run it after seeing that the visual change
+is the one you wanted, and **look at the images** produced before committing.
 
-Un agent qui touche à l'interface **regarde réellement les captures** — il en a
-les moyens — plutôt que de constater seulement qu'une tâche Gradle a réussi.
+An agent that touches the interface **actually looks at the screenshots** — it
+has the means to — rather than merely observing that a Gradle task succeeded.
 
 ---
 
-## 5. Vérification
+## 5. Verification
 
-Ce dépôt se construit avec le JDK embarqué d'Android Studio. `gradlew` lit
-`JAVA_HOME` en priorité et ne consulte le `PATH` que si elle est absente :
-**définir `JAVA_HOME` suffit, ne jamais bricoler le `PATH`.**
+This repository builds with the JDK bundled with Android Studio. `gradlew` reads
+`JAVA_HOME` first and only consults the `PATH` if it is absent: **setting
+`JAVA_HOME` is enough, never tamper with the `PATH`.**
 
-- **Agents Claude Code** — rien à faire : `JAVA_HOME` et `ANDROID_HOME` sont
-  déclarées dans `.claude/settings.local.json` (non versionné, car les chemins
-  dépendent de la machine). Lancer `./gradlew …` directement.
-- **En shell interactif** :
+- **Claude Code agents** — nothing to do: `JAVA_HOME` and `ANDROID_HOME` are
+  declared in `.claude/settings.local.json` (unversioned, because the paths
+  depend on the machine). Run `./gradlew …` directly.
+- **In an interactive shell**:
 
   ```bash
   export JAVA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/android-studio/jbr
   export ANDROID_HOME=$HOME/Android/Sdk
   ```
 
-⚠️ Ne **jamais** préfixer une commande d'un `export PATH="$JAVA_HOME/bin:$PATH"`.
-La valeur n'étant résolue qu'à l'exécution, la commande devient impossible à
-rapprocher d'une règle d'autorisation : le harness redemande confirmation à
-chaque appel, et aucune règle réutilisable ne peut être enregistrée.
+⚠️ **Never** prefix a command with `export PATH="$JAVA_HOME/bin:$PATH"`. Since
+the value is only resolved at execution time, the command becomes impossible to
+match against a permission rule: the harness asks for confirmation on every
+call, and no reusable rule can be recorded.
 
-### 5.1 Écrire des commandes qui ne redemandent pas confirmation
+### 5.1 Writing commands that do not ask for confirmation again
 
-Une commande n'est mémorisable dans une règle d'autorisation que si sa forme se
-répète. Quatre habitudes suffisent à éviter l'essentiel des demandes :
+A command can only be captured in a permission rule if its shape repeats. Four
+habits are enough to avoid most of the prompts:
 
-| À faire | Plutôt que |
+| Do | Rather than |
 |---|---|
-| Écrire les fichiers avec les outils **Write** et **Edit** | `cat > fichier <<'EOF'`, `sed -i '…'`, `python3 - <<'PY'` |
-| `git commit -m "…"` (l'identité est dans `.git/config`) | `git -c user.email=… -c user.name=… commit …` |
-| Un motif `grep` stable, ou lire la sortie complète | un `grep -E "…"` différent à chaque appel |
-| Une commande de vérification unique (ci-dessous) | des variantes de tâches Gradle au coup par coup |
+| Write files with the **Write** and **Edit** tools | `cat > file <<'EOF'`, `sed -i '…'`, `python3 - <<'PY'` |
+| `git commit -m "…"` (the identity is in `.git/config`) | `git -c user.email=… -c user.name=… commit …` |
+| A stable `grep` pattern, or reading the whole output | a `grep -E "…"` that differs on every call |
+| A single verification command (below) | one-off variations of Gradle tasks |
 
-Les règles partagées vivent dans `.claude/settings.json`, versionné et sans
-chemin machine. `git push` en est **volontairement absent** : une action
-sortante se confirme.
+The shared rules live in `.claude/settings.json`, versioned and free of
+machine-specific paths. `git push` is **deliberately absent** from it: an
+outgoing action gets confirmed.
 
-### 5.2 La commande
+### 5.2 The command
 
-À passer **avant tout commit** :
+To be run **before any commit**:
 
 ```bash
 ./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug
 ```
 
-C'est exactement ce que fait `/verify`.
+That is exactly what `/verify` does.
 
-`koverVerify` échoue sous 98 % de couverture sur `:domain`.
+`koverVerify` fails below 98 % coverage on `:domain`.
 
-Correction automatique du formatage :
+Automatic formatting fix:
 
 ```bash
 ./gradlew ktlintFormat
 ```
 
-⚠️ **`ktlintFormat` ne corrige que `:domain`.** Le greffon ktlint-gradle ne
-découvre pas les jeux de sources Android d'AGP 9 : sur `:app`, il n'enregistre
-de tâche que pour les fichiers `.kts`. Les règles de style y sont appliquées par
-**`detekt-formatting`**, qui les signale sans les corriger.
+⚠️ **`ktlintFormat` only fixes `:domain`.** The ktlint-gradle plugin does not
+discover AGP 9's Android source sets: on `:app`, it only registers a task for
+`.kts` files. Style rules are applied there by **`detekt-formatting`**, which
+reports them without fixing them.
 
-Conséquence pratique : dans `:app`, une violation de style se répare à la main.
-La plus fréquente est l'ordre des imports — lexicographique, avec `java`,
-`javax`, `kotlin` et les alias en fin. Voir ARCHITECTURE.md §8.0 pour l'histoire
-de ce garde-fou, qui est resté vide pendant plusieurs Goals.
+Practical consequence: in `:app`, a style violation is repaired by hand. The
+most frequent one is import ordering — lexicographic, with `java`, `javax`,
+`kotlin` and the aliases at the end. See ARCHITECTURE.md §8.0 for the story of
+this safeguard, which stayed empty for several Goals.
 
-Rien n'est déclaré terminé sans que cette commande soit passée **et sa sortie
-réellement constatée**. En cas d'échec, rapporter la sortie ; ne jamais annoncer
-un succès non observé.
+Nothing is declared finished without this command having been run **and its
+output actually seen**. On failure, report the output; never announce a success
+you have not observed.
 
-### 5.3 Définition de « terminé »
+### 5.3 Definition of "finished"
 
-- [ ] `./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug` passe.
-- [ ] Si l'interface a changé : `./gradlew :app:verifyRoborazziDebug` passe, ou
-      les références ont été réenregistrées **et regardées**.
-- [ ] Les tests couvrent le comportement ajouté, y compris ses cas limites.
-- [ ] Aucun code mort, aucun `TODO` orphelin.
-- [ ] [ARCHITECTURE.md](./ARCHITECTURE.md) §9 reste juste — elle décrit des
-      **paquets et leur rôle**, elle ne se met donc à jour que si l'architecture
-      change, pas à chaque fichier ajouté.
-- [ ] La case correspondante de [TASKS.md](./TASKS.md) est cochée.
-- [ ] Le commit suit §7.
+- [ ] `./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug` passes.
+- [ ] If the interface changed: `./gradlew :app:verifyRoborazziDebug` passes, or
+      the references have been re-recorded **and looked at**.
+- [ ] The tests cover the added behaviour, including its edge cases.
+- [ ] No dead code, no orphan `TODO`.
+- [ ] [ARCHITECTURE.md](./ARCHITECTURE.md) §9 remains accurate — it describes
+      **packages and their role**, so it is only updated if the architecture
+      changes, not on every file added.
+- [ ] The matching checkbox in [TASKS.md](./TASKS.md) is ticked.
+- [ ] The commit follows §7.
 
 ---
 
 ## 6. Documentation
 
-La documentation fait partie de la tâche, pas de sa suite.
+Documentation is part of the task, not of its aftermath.
 
-| Changement | Fichier à mettre à jour |
+| Change | File to update |
 |---|---|
-| Nouveau comportement visible par l'utilisateur | [SPECS.md](./SPECS.md) |
-| Décision d'architecture, dépendance, découpage | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| Nouveau paquet, ou paquet dont le rôle change | [ARCHITECTURE.md](./ARCHITECTURE.md) §9 |
-| Constat sur l'API FreshRSS | [docs/freshrss-api.md](./docs/freshrss-api.md) |
-| Nouvelle règle de développement | ce fichier |
-| Procédure de contribution | [CONTRIBUTING.md](./CONTRIBUTING.md) |
-| Avancement, nouvelle tâche, blocage | [TASKS.md](./TASKS.md) |
+| New user-visible behaviour | [SPECS.md](./SPECS.md) |
+| Architecture decision, dependency, splitting | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| New package, or package whose role changes | [ARCHITECTURE.md](./ARCHITECTURE.md) §9 |
+| An observation about the FreshRSS API | [docs/freshrss-api.md](./docs/freshrss-api.md) |
+| New development rule | this file |
+| Contribution procedure | [CONTRIBUTING.md](./CONTRIBUTING.md) |
+| Progress, new task, blocker | [TASKS.md](./TASKS.md) |
 
-[PROMPT.md](./PROMPT.md) est **figé** : il conserve l'intention initiale et ne se
-met pas à jour. Lorsqu'une règle applicable l'a remplacé sur un point, c'est ce
-fichier-ci qui fait foi.
+[PROMPT.md](./PROMPT.md) is **frozen**: it preserves the initial intent and is
+not updated. Where an applicable rule has superseded it on some point, it is
+this file that is authoritative.
 
 ---
 
 ## 7. Git
 
-**Un commit = une seule tâche cohérente.** Format
-[Conventional Commits](https://www.conventionalcommits.org/) :
+**One commit = one coherent task.**
+[Conventional Commits](https://www.conventionalcommits.org/) format:
 
 ```
-<type>(<portée>): <description à l'impératif, en minuscule>
+<type>(<scope>): <description in the imperative, lowercase>
 
-<corps facultatif : pourquoi, pas quoi>
+<optional body: why, not what>
 
 Réf: GOAL-00X-TYY
 ```
 
-Types : `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`.
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`.
 
-Portées usuelles : `domain`, `data`, `api`, `auth`, `feed`, `discover`, `cache`,
+Usual scopes: `domain`, `data`, `api`, `auth`, `feed`, `discover`, `cache`,
 `ui`, `di`, `settings`, `gradle`, `harness`.
+
+Commit messages are written **in French** (§9): the examples below are therefore
+in French, and stay that way.
 
 ```
 feat(auth): implémenter ClientLogin contre l'API FreshRSS
@@ -344,65 +344,69 @@ test(api): couvrir la pagination par curseur, curseur invalide compris
 docs(architecture): décrire la confinement des détails FreshRSS
 ```
 
-Référencer l'identifiant de tâche (`GOAL-002-T03`) dans le pied du message :
-c'est ce qui relie l'historique Git à TASKS.md.
+Reference the task identifier (`GOAL-002-T03`) in the message footer: that is
+what ties the Git history to TASKS.md.
 
-Ne jamais committer : `local.properties`, `.claude/settings.local.json`, un
-keystore, une clé, un jeton, une capture de build.
+Never commit: `local.properties`, `.claude/settings.local.json`, a keystore, a
+key, a token, a build screenshot.
 
 ---
 
-## 8. Détection des incohérences
+## 8. Detecting inconsistencies
 
-Le dépôt peut se retrouver dans un état contradictoire. Trois formes courantes :
+The repository can end up in a contradictory state. Three common forms:
 
-| Symptôme | Source de vérité |
+| Symptom | Source of truth |
 |---|---|
-| TASKS.md dit `[x]`, le code ne compile pas | **Le code.** Repasser la tâche à `[-]` et corriger |
-| TASKS.md dit `[ ]`, la fonctionnalité existe | **Le code.** Cocher, après avoir vérifié qu'elle est testée |
-| ARCHITECTURE.md décrit A, le code fait B | **ARCHITECTURE.md**, sauf si B est meilleur — auquel cas mettre à jour le document et le dire |
-| SPECS.md décrit un comportement absent | **SPECS.md.** C'est une tâche manquante |
-| `docs/freshrss-api.md` contredit le serveur réel | **Le serveur.** Corriger le relevé |
+| TASKS.md says `[x]`, the code does not compile | **The code.** Move the task back to `[-]` and fix it |
+| TASKS.md says `[ ]`, the feature exists | **The code.** Tick it, after checking that it is tested |
+| ARCHITECTURE.md describes A, the code does B | **ARCHITECTURE.md**, unless B is better — in which case update the document and say so |
+| SPECS.md describes an absent behaviour | **SPECS.md.** That is a missing task |
+| `docs/freshrss-api.md` contradicts the real server | **The server.** Fix the survey |
 
-Dans tous les cas :
+In every case:
 
-1. identifier l'incohérence ;
-2. **ne pas la masquer** ;
-3. corriger le côté qui a tort ;
-4. signaler la décision dans le rapport et dans le message de commit.
+1. identify the inconsistency;
+2. **do not hide it**;
+3. fix whichever side is wrong;
+4. report the decision in the report and in the commit message.
 
 ---
 
-## 9. Conventions de code
+## 9. Code conventions
 
-Appliquées par ktlint, Detekt et `.editorconfig`.
+Applied by ktlint, Detekt and `.editorconfig`.
 
-### Mise en forme
+### Formatting
 
-- Indentation 4 espaces (2 pour XML, YAML, TOML, JSON).
-- Ligne à 120 colonnes maximum.
-- **Trailing commas systématiques** sur les listes multi-lignes.
-- Imports explicites, jamais d'étoile.
+- 4-space indentation (2 for XML, YAML, TOML, JSON).
+- 120 columns maximum per line.
+- **Trailing commas everywhere** on multi-line lists.
+- Explicit imports, never a star.
 
-### Nommage
+### Naming
 
-| Élément | Convention | Exemple |
+| Element | Convention | Example |
 |---|---|---|
-| Fichier Kotlin | Nom de la déclaration principale | `DiscoverViewModel.kt` |
-| Classe, interface, enum | `PascalCase` | `FreshRssApi` |
-| Fonction, propriété | `camelCase` | `loadNextPage`, `isRead` |
+| Kotlin file | Name of the main declaration | `DiscoverViewModel.kt` |
+| Class, interface, enum | `PascalCase` | `FreshRssApi` |
+| Function, property | `camelCase` | `loadNextPage`, `isRead` |
 | `@Composable` | `PascalCase` | `DiscoverScreen` |
-| Constante de fichier | `private val PascalCase` en tête de fichier | `private val CardHeight = 96.dp` |
-| Test | `camelCase` descriptif, sans backticks | `anAbsentContinuationEndsTheFeed` |
-| Fake | Préfixe `Fake` | `FakeArticleRepository` |
+| File constant | `private val PascalCase` at the top of the file | `private val CardHeight = 96.dp` |
+| Test | descriptive `camelCase`, no backticks | `anAbsentContinuationEndsTheFeed` |
+| Fake | `Fake` prefix | `FakeArticleRepository` |
 
-### Documentation du code
+### Code documentation
 
-- KDoc **en français**, sur ce qui n'est pas évident : un choix, une contrainte,
-  une raison. Pas de paraphrase de la signature.
-- Un commentaire explique **pourquoi**, jamais **quoi**.
+- KDoc **in French**, on what is not obvious: a choice, a constraint, a reason.
+  No paraphrasing of the signature.
+- A comment explains **why**, never **what**.
+- **French stays the language of KDoc and of commit messages.** Only the
+  Markdown documentation of the repository is in English: the switch to English
+  applies to the `.md` files, and to them alone. A KDoc block or a commit
+  message written in English is a deviation to be fixed.
 
-Exemple du style attendu :
+An example of the expected style:
 
 ```kotlin
 /**
@@ -414,24 +418,24 @@ Exemple du style attendu :
 
 ### Compose
 
-- Un Composable public prend `modifier: Modifier = Modifier` en **premier
-  paramètre optionnel**, après les paramètres obligatoires.
-- Aucun calcul dans un Composable : il affiche `UiState`, il ne le dérive pas.
-- Chaque écran a une `@Preview` privée qui fonctionne **sans injection**.
-- Les dimensions récurrentes passent par `Spacing`, pas par des `.dp` épars.
-- Toute chaîne affichée est une ressource, jamais un littéral.
+- A public Composable takes `modifier: Modifier = Modifier` as its **first
+  optional parameter**, after the mandatory ones.
+- No computation in a Composable: it displays `UiState`, it does not derive it.
+- Every screen has a private `@Preview` that works **without injection**.
+- Recurring dimensions go through `Spacing`, not through scattered `.dp`.
+- Every displayed string is a resource, never a literal.
 
 ---
 
-## 10. Ce qu'il faut faire quand on est bloqué
+## 10. What to do when stuck
 
-- **Le SDK Android manque une plateforme** → l'installer via le SDK Manager
-  d'Android Studio ; ne pas contourner en abaissant silencieusement une version.
-- **Une dépendance impose un `compileSdk` supérieur** → le signaler et proposer
-  le choix, plutôt que de rétrograder la dépendance sans le dire.
-- **La spécification est ambiguë** → poser la question. Ne pas trancher en
-  silence sur une règle métier.
-- **Le comportement de l'API FreshRSS est incertain** → §3. Lire la source,
-  constater, documenter. Ne jamais supposer.
-- **Une abstraction résiste** → le dire. Contourner une abstraction est une
-  dette ; la corriger est une étape.
+- **The Android SDK is missing a platform** → install it via Android Studio's
+  SDK Manager; do not work around it by silently lowering a version.
+- **A dependency requires a higher `compileSdk`** → report it and offer the
+  choice, rather than downgrading the dependency without saying so.
+- **The specification is ambiguous** → ask the question. Do not settle a
+  business rule silently.
+- **The FreshRSS API's behaviour is uncertain** → §3. Read the source, observe,
+  document. Never assume.
+- **An abstraction resists** → say so. Working around an abstraction is a debt;
+  fixing it is a step.

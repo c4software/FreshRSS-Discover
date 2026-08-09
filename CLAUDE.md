@@ -1,43 +1,43 @@
 # CLAUDE.md
 
-Les règles de développement de ce dépôt sont consignées dans un fichier unique,
-partagé par tous les agents et par les contributeurs humains :
+The development rules for this repository live in a single file, shared by every
+agent and by human contributors alike:
 
-👉 **[AGENTS.md](./AGENTS.md)** — méthode de travail, interdits, tests,
-commande de vérification, conventions de code et de commit.
+👉 **[AGENTS.md](./AGENTS.md)** — working method, prohibitions, tests,
+verification command, code and commit conventions.
 
-Lire également, dans cet ordre :
+Also read, in this order:
 
-1. [SPECS.md](./SPECS.md) — la spécification fonctionnelle (le **quoi**)
-2. [ARCHITECTURE.md](./ARCHITECTURE.md) — l'architecture technique (le **comment**)
-3. [TASKS.md](./TASKS.md) — la feuille de route et l'avancement réel (l'**ordre**)
+1. [SPECS.md](./SPECS.md) — the functional specification (the **what**)
+2. [ARCHITECTURE.md](./ARCHITECTURE.md) — the technical architecture (the **how**)
+3. [TASKS.md](./TASKS.md) — the roadmap and the actual progress (the **order**)
 
-Si le travail touche à l'API FreshRSS — authentification, pagination, articles,
-statut lu, marquage, erreurs — lire **aussi**
-[docs/freshrss-api.md](./docs/freshrss-api.md), et sa §6 en particulier :
-**ne jamais inventer le comportement d'un point d'entrée** (AGENTS.md §3).
+If the work touches the FreshRSS API — authentication, pagination, articles,
+read status, marking, errors — **also** read
+[docs/freshrss-api.md](./docs/freshrss-api.md), and §6 in particular:
+**never invent the behaviour of an endpoint** (AGENTS.md §3).
 
-## Commandes du Harness
+## Harness commands
 
-| Commande | Rôle |
+| Command | Role |
 |---|---|
-| `/status` | Où en est le projet, et ce qui cloche |
-| `/goal <objectif>` | Décomposer un objectif en tâches, puis les exécuter |
-| `/task [GOAL-00X-TYY]` | Exécuter une tâche précise, ou la prochaine |
-| `/verify` | Compiler, tester, et confronter TASKS.md à la réalité |
+| `/status` | Where the project stands, and what is wrong |
+| `/goal <objective>` | Break an objective down into tasks, then carry them out |
+| `/task [GOAL-00X-TYY]` | Carry out a specific task, or the next one |
+| `/verify` | Build, test, and confront TASKS.md with reality |
 
-En arrivant sur le dépôt, commencer par `/status`.
+When arriving on the repository, start with `/status`.
 
-## Points de vigilance
+## Points to watch
 
-**Une tâche de `TASKS.md` à la fois**, tests inclus, vérification passée **et sa
-sortie constatée**, puis commit — avant de poursuivre.
+**One `TASKS.md` task at a time**, tests included, verification passed **and its
+output seen**, then commit — before going any further.
 
-`code écrit ≠ tâche terminée` :
+`code written ≠ task finished`:
 
 ```
-code écrit → tests → vérification → documentation → TASKS.md = [x]
+code written → tests → verification → documentation → TASKS.md = [x]
 ```
 
-Ne jamais annoncer un succès non observé. Ne jamais supposer qu'une tâche `[-]`
-est terminée : le vérifier.
+Never announce a success you have not observed. Never assume a `[-]` task is
+finished: check it.

@@ -1,92 +1,92 @@
 # FreshRSS Discover
 
-Client Android pour un serveur [FreshRSS](https://freshrss.org/) personnel, qui
-présente les articles à la manière de **Google Discover** : un flux vertical
-unique, mélangé, sans fin apparente.
+An Android client for a personal [FreshRSS](https://freshrss.org/) server that
+presents articles the way **Google Discover** does: a single vertical feed,
+interleaved, with no visible end.
 
-Pas de liste de flux à parcourir, pas de compteur de non-lus à faire descendre.
-On fait défiler ; ce qui a été suffisamment vu devient lu.
+No list of feeds to work through, no unread counter to bring down. You scroll;
+whatever has been seen long enough becomes read.
 
-Deux façons de le parcourir, au choix : la **liste** verticale, ou le
-**balayage** — un article en plein écran, que l'on met de côté d'un geste
-horizontal comme une carte d'une pile.
+Two ways to go through it, as you prefer: the vertical **list**, or **swipe** —
+one article full screen, set aside with a horizontal gesture like a card off a
+deck.
 
 <p align="center">
   <img src="docs/demo.jpg"
-       alt="Le flux Discover sur un téléphone Android : deux articles en cartes, chacun avec son illustration, le nom de son flux d'origine, son ancienneté relative et un extrait. En bas, la navigation entre Discover et Paramètres."
+       alt="The Discover feed on an Android phone: two articles as cards, each with its illustration, the name of its source feed, its relative age and an excerpt. At the bottom, navigation between Discover and Settings."
        width="320">
 </p>
 
-<p align="center"><em>Le flux Discover, alimenté par une instance FreshRSS réelle.</em></p>
+<p align="center"><em>The Discover feed, fed by a real FreshRSS instance.</em></p>
 
-> **État : utilisable, et éprouvé sur appareil.** Connexion au serveur, flux et
-> pagination, mélange des sources, cache local et purge, détection de lecture et
-> file de marquages, rechargement, ouverture des articles,
-> écran de réglages et les deux modes de présentation sont en place.
+> **Status: usable, and proven on a device.** Connection to the server, feed and
+> pagination, source interleaving, local cache and purge, read detection and the
+> marking queue, reloading, opening articles,
+> the settings screen and both presentation modes are in place.
 >
-> Ce qui reste ouvert est écrit comme tel : le mode Balayage n'a **pas
-> d'alternative à son geste**, arbitrage assumé et tranché dans
-> [SPECS.md §7.1](./SPECS.md) — le mode Liste, celui par défaut, donne accès au
-> même flux sans lui. **La position de lecture n'est pas conservée**, et c'est
-> voulu : le flux rouvre tel qu'on l'a laissé, il n'y a plus de place à
-> retrouver (§5.3). [TASKS.md](./TASKS.md) donne l'avancement tâche par tâche,
-> [ARCHITECTURE.md §9](./ARCHITECTURE.md) l'état réel du dépôt.
+> What remains open is written down as such: Swipe mode has **no alternative to
+> its gesture**, a trade-off accepted and settled in
+> [SPECS.md §7.1](./SPECS.md) — List mode, the default one, gives access to the
+> same feed without it. **Reading position is not preserved**, and that is
+> deliberate: the feed reopens exactly as it was left, so there is no place left
+> to find again (§5.3). [TASKS.md](./TASKS.md) gives progress task by task,
+> [ARCHITECTURE.md §9](./ARCHITECTURE.md) the actual state of the repository.
 
 ---
 
-## Ce que fait l'application
+## What the application does
 
-- connexion à un serveur FreshRSS via son API compatible Google Reader ;
-- flux unique, tous abonnements mélangés, pagination sans fin apparente ;
-- **deux modes de présentation** au choix, liste ou balayage, sur le même flux
-  et dans le même ordre ;
-- marquage automatique comme lu selon la visibilité réelle d'un article, avec
-  seuils réglables ;
-- synchronisation du statut lu avec le serveur, y compris après une coupure, et
-  transmission forcée au passage en arrière-plan ;
-- rechargement du flux : tirer en mode Liste, bouton dans les deux modes ;
-- **invitation à recharger** quand le flux affiché date de plus de six heures,
-  à faire taire d'un geste et absente hors ligne, où elle n'aurait rien à
-  proposer ;
-- **lancement calme** : le flux rouvre exactement tel qu'on l'a laissé, sans
-  interroger le serveur — c'est le rechargement, demandé, qui le renouvelle ;
-- **fanion sur les articles déjà lus**, qui restent au flux jusqu'au
-  rechargement ;
-- illustrations **jamais agrandies** : une vignette trop étroite s'affiche à sa
-  taille, sur un fond flouté tiré d'elle-même, plutôt qu'étirée et floue ;
-- ouverture de l'article d'origine dans le navigateur ;
-- cache local consultable hors ligne, avec purge automatique et manuelle ;
-- **rappel de lecture quotidien**, à l'heure d'ouverture de la veille, citant
-  des titres réels — et qui **n'appelle rien** : il lit le cache, jamais le
-  serveur ;
-- interface Material 3, thèmes clair et sombre.
+- connects to a FreshRSS server through its Google Reader compatible API;
+- a single feed, all subscriptions interleaved, pagination with no visible end;
+- **two presentation modes** to choose from, list or swipe, over the same feed
+  and in the same order;
+- automatic marking as read based on an article's actual visibility, with
+  adjustable thresholds;
+- read status synchronisation with the server, including after an outage, and
+  forced transmission when moving to the background;
+- feed reloading: pull in List mode, a button in both modes;
+- **an invitation to reload** when the displayed feed is more than six hours
+  old, dismissed with a gesture and absent offline, where it would have nothing
+  to offer;
+- **a quiet launch**: the feed reopens exactly as it was left, without querying
+  the server — it is reloading, when asked for, that renews it;
+- **a flag on articles already read**, which stay in the feed until the next
+  reload;
+- illustrations **never enlarged**: a thumbnail that is too narrow is shown at
+  its own size, over a blurred background drawn from itself, rather than
+  stretched and fuzzy;
+- opening the original article in the browser;
+- a local cache readable offline, with automatic and manual purge;
+- **a daily reading reminder**, at the previous day's opening time, quoting real
+  titles — and which **calls nothing**: it reads the cache, never the server;
+- a Material 3 interface, light and dark themes.
 
-La spécification complète est dans [SPECS.md](./SPECS.md).
+The full specification is in [SPECS.md](./SPECS.md).
 
-## Ce qu'elle ne fera pas
+## What it will not do
 
-Gestion des abonnements, comptes multiples, widgets, partage social,
-**synchronisation en arrière-plan**. Voir [SPECS.md §2](./SPECS.md).
+Subscription management, multiple accounts, widgets, social sharing,
+**background synchronisation**. See [SPECS.md §2](./SPECS.md).
 
-Le rappel de lecture est une notification **locale** : il n'ouvre aucune
-connexion, et c'est ce qui le distingue de la synchronisation de fond, toujours
-exclue.
-
----
-
-## Prérequis
-
-- Un serveur **FreshRSS** dont l'**API est activée**
-  (*Administration → Authentification → Autoriser l'accès par API*).
-- Un **mot de passe API**, distinct du mot de passe de connexion
-  (*Profil → Mot de passe API*). C'est la principale cause d'échec de connexion.
-- **Android 8.0** (API 26) ou supérieur.
+The reading reminder is a **local** notification: it opens no connection, and
+that is what sets it apart from background synchronisation, which stays
+excluded.
 
 ---
 
-## Construire
+## Requirements
 
-Le projet se construit avec le JDK embarqué d'Android Studio.
+- A **FreshRSS** server with its **API enabled**
+  (*Administration → Authentication → Allow API access*).
+- An **API password**, distinct from the login password
+  (*Profile → API password*). It is the main cause of failed connections.
+- **Android 8.0** (API 26) or above.
+
+---
+
+## Building
+
+The project builds with the JDK bundled with Android Studio.
 
 ```bash
 export JAVA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/android-studio/jbr
@@ -95,20 +95,20 @@ export ANDROID_HOME=$HOME/Android/Sdk
 ./gradlew assembleDebug
 ```
 
-Vérification complète, à passer avant tout commit :
+Full verification, to be passed before any commit:
 
 ```bash
 ./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug
 ```
 
-Rendu visuel (hors CI, plusieurs minutes) :
+Visual rendering (outside CI, several minutes):
 
 ```bash
-./gradlew :app:verifyRoborazziDebug   # comparer aux références
-./gradlew :app:recordRoborazziDebug   # réenregistrer un changement voulu
+./gradlew :app:verifyRoborazziDebug   # compare against the references
+./gradlew :app:recordRoborazziDebug   # re-record an intended change
 ```
 
-Installer sur un appareil connecté :
+Install on a connected device:
 
 ```bash
 ./gradlew :app:installDebug
@@ -116,90 +116,90 @@ Installer sur un appareil connecté :
 
 ### Version
 
-Elle n'est **pas écrite dans le dépôt** : `versionName` et `versionCode` sont
-tous deux dérivés de l'étiquette Git, pour qu'ils ne puissent pas diverger.
+It is **not written in the repository**: `versionName` and `versionCode` are
+both derived from the Git tag, so that they cannot diverge.
 
-| Ce qui est construit | `versionName` | `versionCode` |
+| What is built | `versionName` | `versionCode` |
 |---|---|---|
-| l'étiquette `v1.2.13` | `1.2.13` | `1002013` |
-| trois commits après elle | `1.2.13-3-gabc1234` | `1002013` |
-| sans étiquette ni `git` | `0.0.0-inconnue` | `1` |
+| the `v1.2.13` tag | `1.2.13` | `1002013` |
+| three commits after it | `1.2.13-3-gabc1234` | `1002013` |
+| with no tag and no `git` | `0.0.0-inconnue` | `1` |
 
-Le nom dit donc de lui-même si la construction est publiable, ce qu'une capture
-d'écran de rapport de bogue suffit à lire. La variable `RELEASE_VERSION` prend
-le pas sur `git describe` — c'est par elle que la CI transmet l'étiquette, son
-`checkout` ne rapatriant pas l'historique.
+The name therefore says by itself whether a build is publishable, which a
+screenshot in a bug report is enough to read. The `RELEASE_VERSION` variable
+takes precedence over `git describe` — that is how CI passes the tag along, its
+`checkout` not fetching the history.
 
-**Publier une version, c'est donc poser une étiquette** : rien d'autre à
-modifier.
+**Publishing a version is therefore a matter of placing a tag**: nothing else to
+change.
 
 ```bash
 git tag -a v1.1.0 -m "…" && git push origin v1.1.0
 ```
 
-### Construction de production
+### Production build
 
-`assembleRelease` produit un artefact **signé** si quatre variables
-d'environnement décrivent un keystore — `RELEASE_KEYSTORE`,
-`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — et un
-artefact **non signé** sinon, sans échouer : quiconque construit le projet sans
-elles doit y parvenir. Rien de tout cela n'est écrit dans le dépôt.
+`assembleRelease` produces a **signed** artifact if four environment variables
+describe a keystore — `RELEASE_KEYSTORE`, `RELEASE_KEYSTORE_PASSWORD`,
+`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — and an **unsigned** artifact
+otherwise, without failing: anyone building the project without them must
+succeed. None of this is written in the repository.
 
-Le workflow `release.yml` fait de même en CI. Il n'est **jamais** déclenché par
-un `push` : seulement à la main, ou par une étiquette `v*`.
+The `release.yml` workflow does the same in CI. It is **never** triggered by a
+`push`: only by hand, or by a `v*` tag.
 
 ---
 
 ## Structure
 
 ```
-:domain   Kotlin/JVM pur — les décisions. Le SDK Android n'y est pas.
-:app      Android — l'affichage, le stockage, les appels réseau.
+:domain   Pure Kotlin/JVM — the decisions. The Android SDK is not in it.
+:app      Android — display, storage, network calls.
 ```
 
-Le détail est dans [ARCHITECTURE.md](./ARCHITECTURE.md).
+The details are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 
 ## Documentation
 
-| Fichier | Contenu |
+| File | Contents |
 |---|---|
-| [SPECS.md](./SPECS.md) | Ce que l'application doit faire |
-| [LICENSE](./LICENSE) | Licence MIT |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Comment elle est conçue |
-| [TASKS.md](./TASKS.md) | Ce qui est fait, en cours, et à faire |
-| [AGENTS.md](./AGENTS.md) | Les règles de développement |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Comment contribuer |
-| [docs/freshrss-api.md](./docs/freshrss-api.md) | Relevé de l'API FreshRSS |
-| [PROMPT.md](./PROMPT.md) | L'intention initiale, figée |
+| [SPECS.md](./SPECS.md) | What the application must do |
+| [LICENSE](./LICENSE) | MIT licence |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | How it is designed |
+| [TASKS.md](./TASKS.md) | What is done, in progress, and to be done |
+| [AGENTS.md](./AGENTS.md) | The development rules |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute |
+| [docs/freshrss-api.md](./docs/freshrss-api.md) | A survey of the FreshRSS API |
+| [PROMPT.md](./PROMPT.md) | The initial intent, frozen |
 
 ---
 
-## Développement assisté
+## Assisted development
 
-Le dépôt est piloté par un **Harness** : le travail est organisé en *Goals*
-découpés en tâches, consignés dans [TASKS.md](./TASKS.md). Quatre commandes
-Claude Code l'actionnent :
+The repository is driven by a **Harness**: work is organised into *Goals* broken
+down into tasks, recorded in [TASKS.md](./TASKS.md). Four Claude Code commands
+operate it:
 
-| Commande | Rôle |
+| Command | Role |
 |---|---|
-| `/status` | Où en est le projet, et ce qui cloche |
-| `/goal <objectif>` | Décomposer un objectif en tâches, puis les exécuter |
-| `/task [GOAL-00X-TYY]` | Exécuter une tâche précise, ou la prochaine |
-| `/verify` | Compiler, tester, et confronter TASKS.md à la réalité |
+| `/status` | Where the project stands, and what is wrong |
+| `/goal <objective>` | Break an objective down into tasks, then carry them out |
+| `/task [GOAL-00X-TYY]` | Carry out a specific task, or the next one |
+| `/verify` | Build, test, and confront TASKS.md with reality |
 
-Un agent arrivant sur le dépôt lance `/status`, puis `/goal` ou `/task`. Il n'a
-pas besoin qu'on lui redonne le contexte : il est dans les fichiers.
+An agent arriving on the repository runs `/status`, then `/goal` or `/task`. It
+does not need to be given the context again: the context is in the files.
 
 ---
 
-## Vie privée
+## Privacy
 
-L'application ne communique qu'avec **le serveur FreshRSS de l'utilisateur**.
-Aucune télémétrie, aucun service tiers, aucune publicité. Les seules autres
-connexions sortantes sont le chargement des images d'articles et l'ouverture
-d'un lien dans le navigateur, l'une et l'autre à l'initiative de l'utilisateur.
+The application communicates only with **the user's FreshRSS server**. No
+telemetry, no third-party service, no advertising. The only other outgoing
+connections are the loading of article images and the opening of a link in the
+browser, both at the user's initiative.
 
 ---
 
@@ -209,9 +209,9 @@ d'un lien dans le navigateur, l'une et l'autre à l'initiative de l'utilisateur.
 
 ---
 
-## Origine
+## Origin
 
-L'ossature technique — architecture, configuration Gradle, outillage de qualité,
-conventions — provient de
+The technical skeleton — architecture, Gradle configuration, quality tooling,
+conventions — comes from
 [`c4software/tailscale-auto-rules`](https://github.com/c4software/tailscale-auto-rules),
-dont la logique métier a été retirée.
+whose business logic has been removed.

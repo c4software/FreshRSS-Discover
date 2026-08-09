@@ -1376,7 +1376,7 @@ français conservé.
 
 ### Tâches
 
-- [ ] `GOAL-021-T01` Traduire `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+- [x] `GOAL-021-T01` Traduire `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
       `CLAUDE.md`, `PROMPT.md` et `docs/freshrss-api.md`. Ces six-là ne sont
       touchés ni par GOAL-019 ni par GOAL-020 : ils se traduisent en parallèle
 - [ ] `GOAL-021-T02` **Interface bilingue** : les six fichiers de chaînes

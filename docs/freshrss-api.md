@@ -1,107 +1,106 @@
-# API FreshRSS — référence de travail
+# FreshRSS API — working reference
 
-Référence de l'**API compatible Google Reader** de FreshRSS, telle qu'utilisée
-par ce projet.
+A reference for FreshRSS's **Google Reader compatible API**, as used by this
+project.
 
-## Provenance et niveau de confiance
+## Provenance and level of confidence
 
-Quatre sources, de valeur inégale — les deux premières se lisent, les deux
-dernières s'interrogent :
+Four sources, of unequal value — the first two are read, the last two are
+queried:
 
-| Source | Ce qu'elle établit |
+| Source | What it establishes |
 |---|---|
-| [Documentation officielle « Accès mobile »](https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html) | L'URL de base, `ClientLogin`, l'en-tête d'autorisation, la liste des points d'entrée principaux, le mot de passe API |
-| [`p/api/greader.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/p/api/greader.php) et [`app/Models/Entry.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/app/Models/Entry.php), branche `edge` | Les **noms exacts des paramètres**, leurs valeurs par défaut, la forme des réponses, la sémantique de pagination |
-| **`https://demo.freshrss.org/`**, interrogé le 2026-08-07 | Les **codes et corps réellement renvoyés** sur les chemins non authentifiés |
-| Une **instance personnelle**, interrogée le 2026-08-07 | Tout ce qui exige un compte : la réponse de `ClientLogin` en succès, le jeton de modification, la forme réelle des articles, le comportement effectif de la pagination |
+| [Official "Mobile access" documentation](https://freshrss.github.io/FreshRSS/fr/users/06_Mobile_access.html) | The base URL, `ClientLogin`, the authorization header, the list of main endpoints, the API password |
+| [`p/api/greader.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/p/api/greader.php) and [`app/Models/Entry.php`](https://github.com/FreshRSS/FreshRSS/blob/edge/app/Models/Entry.php), `edge` branch | The **exact parameter names**, their default values, the shape of the responses, the pagination semantics |
+| **`https://demo.freshrss.org/`**, queried on 2026-08-07 | The **codes and bodies actually returned** on unauthenticated paths |
+| A **personal instance**, queried on 2026-08-07 | Everything that requires an account: the successful `ClientLogin` response, the modification token, the real shape of articles, the effective behaviour of pagination |
 
-L'instance personnelle n'est pas nommée ici, et ne doit pas l'être : elle n'a
-servi que de banc d'essai. Les constats qu'elle a permis sont reproductibles sur
-n'importe quelle installation FreshRSS disposant d'un mot de passe API.
+The personal instance is not named here, and must not be: it served only as a
+test bench. The observations it allowed are reproducible on any FreshRSS
+installation that has an API password.
 
-La documentation officielle ne détaille pas les paramètres de pagination ni la
-forme du JSON renvoyé. Tout ce qui figure ci-dessous sans mention contraire a
-donc été **lu dans le code source**, et non deviné.
+The official documentation details neither the pagination parameters nor the
+shape of the JSON returned. Everything below, unless stated otherwise, was
+therefore **read in the source code**, not guessed.
 
-Ce qui porte la mention **« constaté »** a été vérifié contre un serveur réel —
-le serveur de démonstration pour les chemins ouverts, une instance personnelle
-pour les chemins authentifiés. Cela a d'ailleurs **corrigé une erreur de
-lecture** : voir §2.1, où la frontière entre `400` et `401` n'est pas celle que
-la source laissait supposer. Les points qui restent incertains sont regroupés en
-fin de document.
+Anything marked **"observed"** has been checked against a real server — the demo
+server for the open paths, a personal instance for the authenticated ones. That
+also **corrected a misreading**: see §2.1, where the boundary between `400` and
+`401` is not the one the source suggested. The points that remain uncertain are
+gathered at the end of the document.
 
-> ⚠️ Cette page est un relevé, pas un contrat. FreshRSS peut la faire évoluer.
-> Un Goal qui touche à l'API relit la source avant d'implémenter (AGENTS.md §3).
+> ⚠️ This page is a survey, not a contract. FreshRSS may change it. A Goal that
+> touches the API re-reads the source before implementing (AGENTS.md §3).
 
 ---
 
-## 1. URL de base
+## 1. Base URL
 
 ```
-https://<serveur-freshrss>/api/greader.php
+https://<freshrss-server>/api/greader.php
 ```
 
-Le préfixe `/api/greader.php` est retiré du chemin par le routeur, qui tolère
-également son absence. Les chemins ci-dessous sont donnés complets.
+The `/api/greader.php` prefix is stripped from the path by the router, which
+also tolerates its absence. The paths below are given in full.
 
-### 1.1 Reconnaître une instance FreshRSS — *constaté*
+### 1.1 Recognising a FreshRSS instance — *observed*
 
 ```
 GET /api/greader.php
 ```
 
-répond **`OK`** — exactement deux octets, sans saut de ligne — avec un statut
-`200`. C'est le moyen le plus économique de valider une adresse saisie par
-l'utilisateur, et le seul discriminant fiable pour
+answers **`OK`** — exactly two bytes, with no line break — with a `200` status.
+It is the cheapest way to validate an address entered by the user, and the only
+reliable discriminator for
 [`AuthError.NotAFreshRssServer`](../domain/src/main/kotlin/fr/vbrosseau/freshrssdiscover/domain/auth/AuthError.kt).
 
-Deux pièges, tous deux constatés :
+Two traps, both observed:
 
-- **le `Content-Type` est `text/html`**, pas `text/plain`. Se fier au type MIME
-  pour décider ne marcherait pas ;
-- **la moindre chaîne de requête casse la détection.** `GET …/greader.php?x=1`
-  répond `400 Bad Request` : le court-circuit qui renvoie `OK` exige un chemin
-  **et** une chaîne de requête vides. La sonde doit donc être un `GET` nu.
+- **the `Content-Type` is `text/html`**, not `text/plain`. Relying on the MIME
+  type to decide would not work;
+- **the slightest query string breaks the detection.** `GET …/greader.php?x=1`
+  answers `400 Bad Request`: the shortcut that returns `OK` requires both an
+  empty path **and** an empty query string. The probe must therefore be a bare
+  `GET`.
 
-Un hôte joignable qui n'est pas une instance FreshRSS répond ce qu'il veut —
-`404` sur `example.com`, constaté. Aucun code ne caractérise ce cas : seul le
-corps `OK` caractérise le cas favorable.
+A reachable host that is not a FreshRSS instance answers whatever it likes —
+`404` on `example.com`, observed. No code characterises that case: only the `OK`
+body characterises the favourable one.
 
-> ⚠️ **Cette sonde ne dit rien de l'état de l'API.** Elle répond `OK` avec un
-> statut `200` **même lorsque l'accès par API est désactivé** sur le serveur —
-> constaté. Le court-circuit qui renvoie `OK` est placé avant la vérification
-> `api_enabled` dans le routeur, et n'en tient donc aucun compte.
+> ⚠️ **This probe says nothing about the state of the API.** It answers `OK`
+> with a `200` status **even when API access is disabled** on the server —
+> observed. The shortcut that returns `OK` is placed before the `api_enabled`
+> check in the router, and therefore takes no account of it.
 >
-> Conséquence directe sur l'ordre des appels : reconnaître l'instance ne suffit
-> pas, c'est `ClientLogin` qui révèle le `503`. Une implémentation qui
-> conclurait « serveur valide » après cette seule sonde afficherait ensuite un
-> diagnostic faux.
+> Direct consequence on the order of the calls: recognising the instance is not
+> enough, it is `ClientLogin` that reveals the `503`. An implementation that
+> concluded "valid server" after that probe alone would then display a false
+> diagnosis.
 
-### 1.2 Vérifier la configuration du serveur web — *constaté*
+### 1.2 Checking the web server's configuration — *observed*
 
 ```
 GET /api/greader.php/check/compatibility
 ```
 
-Atteste que le serveur web **transmet bien l'en-tête `Authorization`**. Certains
-reverse-proxies le suppriment ; sans cette sonde, toute authentification
-échouerait ensuite en `401`, avec un message accusant à tort les identifiants de
-l'utilisateur.
+Attests that the web server **does forward the `Authorization` header**. Some
+reverse proxies strip it; without this probe, any authentication would then fail
+with a `401`, with a message wrongly blaming the user's credentials.
 
-Deux particularités, sans lesquelles la sonde ne sert à rien :
+Two peculiarities, without which the probe is useless:
 
-- **le statut est `200` dans les deux cas.** Le verdict est dans le **corps** :
-  `PASS`, ou `FAIL <raison>`. Tester le code HTTP ne vérifie rien ;
-- **la requête doit elle-même porter un en-tête `Authorization`**, fût-il
-  factice. La sonde constate la présence de l'en-tête qu'elle reçoit — appelée
-  sans en-tête, elle répond toujours `FAIL get HTTP Authorization header!
-  Wrong Web server configuration.`, y compris sur un serveur parfaitement
-  configuré. Constaté sur le serveur de démonstration : `FAIL` sans en-tête,
-  `PASS` avec `Authorization: GoogleLogin auth=x/y`.
+- **the status is `200` in both cases.** The verdict is in the **body**: `PASS`,
+  or `FAIL <reason>`. Testing the HTTP code checks nothing;
+- **the request must itself carry an `Authorization` header**, even a bogus one.
+  The probe observes the presence of the header it receives — called without a
+  header, it always answers `FAIL get HTTP Authorization header!
+  Wrong Web server configuration.`, including on a perfectly configured server.
+  Observed on the demo server: `FAIL` without a header, `PASS` with
+  `Authorization: GoogleLogin auth=x/y`.
 
 ---
 
-## 2. Authentification
+## 2. Authentication
 
 ### 2.1 ClientLogin
 
@@ -109,136 +108,131 @@ Deux particularités, sans lesquelles la sonde ne sert à rien :
 POST /api/greader.php/accounts/ClientLogin
 Content-Type: application/x-www-form-urlencoded
 
-Email=<utilisateur>&Passwd=<mot de passe API>
+Email=<user>&Passwd=<API password>
 ```
 
-Le serveur accepte aussi ces paramètres en query string, mais **journalise un
-avertissement de dépréciation** : le mot de passe apparaîtrait dans les
-journaux. Toujours utiliser `POST`.
+The server also accepts these parameters in the query string, but **logs a
+deprecation warning**: the password would appear in the logs. Always use `POST`.
 
-Le mot de passe attendu est le **mot de passe API**, distinct du mot de passe
-de connexion. Il se définit dans FreshRSS sous *Profil → Mot de passe API*. Un
-compte sans mot de passe API configuré ne peut pas se connecter : le champ
-correspondant est vide côté serveur et la comparaison échoue systématiquement.
+The expected password is the **API password**, distinct from the login password.
+It is set in FreshRSS under *Profile → API password*. An account with no API
+password configured cannot log in: the corresponding field is empty on the
+server side and the comparison always fails.
 
-**Réponse en succès** — *constaté contre une instance personnelle, le
-2026-08-07* : statut `200`, `text/plain`, **exactement trois lignes, dans cet
-ordre** :
+**Successful response** — *observed against a personal instance, on 2026-08-07*:
+status `200`, `text/plain`, **exactly three lines, in this order**:
 
 ```
-SID=<utilisateur>/<condensat>
+SID=<user>/<digest>
 LSID=null
-Auth=<utilisateur>/<condensat>
+Auth=<user>/<digest>
 ```
 
-`SID` et `Auth` portent bien la **même** valeur — la source le laissait
-entendre, l'expérience le confirme. `LSID` vaut littéralement la chaîne `null`,
-et non une valeur absente : un analyseur qui traiterait les trois lignes de la
-même façon récupérerait la chaîne `"null"`, pas un vide.
+`SID` and `Auth` do carry the **same** value — the source suggested as much,
+experience confirms it. `LSID` is literally the string `null`, not an absent
+value: a parser treating all three lines the same way would get back the string
+`"null"`, not an empty one.
 
-Seule `Auth` nous intéresse. L'ordre étant stable, il reste néanmoins plus sûr
-de chercher la ligne par son préfixe `Auth=` que par son rang : rien dans la
-source ne garantit contractuellement cet ordre.
+Only `Auth` is of interest to us. The order being stable, it is nonetheless
+safer to look for the line by its `Auth=` prefix than by its rank: nothing in
+the source contractually guarantees that order.
 
-Le jeton est un condensat déterministe de (sel du serveur + utilisateur +
-condensat du mot de passe API). Conséquences pratiques :
+The token is a deterministic digest of (server salt + user + digest of the API
+password). Practical consequences:
 
-- **il n'expire pas** — il reste valable tant que le mot de passe API et le sel
-  du serveur ne changent pas ;
-- il est donc **stockable** et réutilisable entre deux lancements ;
-- il **s'invalide sans préavis** si l'utilisateur change son mot de passe API.
-  Une réponse `401` sur une requête authentifiée doit donc ramener l'utilisateur
-  à l'écran de connexion, pas afficher une erreur réseau.
+- **it does not expire** — it stays valid as long as the API password and the
+  server salt do not change;
+- it is therefore **storable** and reusable between two launches;
+- it **becomes invalid without notice** if the user changes their API password.
+  A `401` response on an authenticated request must therefore bring the user
+  back to the login screen, not display a network error.
 
-**Échecs** — *constaté, et différent de ce que la source laissait supposer* :
+**Failures** — *observed, and different from what the source suggested*:
 
-| Situation | Réponse | Corps |
+| Situation | Response | Body |
 |---|---|---|
-| Nom d'utilisateur **syntaxiquement invalide** — vide, espaces, `!`, `../` | `400` | `Bad Request!` |
-| Nom **bien formé** mais inconnu du serveur | `401` | `Unauthorized!` |
-| Mot de passe API incorrect | `401` | `Unauthorized!` |
-| Compte sans mot de passe API configuré | `401` | `Unauthorized!` |
-| API désactivée sur le serveur | `503` | `Service Unavailable!` |
+| **Syntactically invalid** username — empty, spaces, `!`, `../` | `400` | `Bad Request!` |
+| **Well-formed** name but unknown to the server | `401` | `Unauthorized!` |
+| Wrong API password | `401` | `Unauthorized!` |
+| Account with no API password configured | `401` | `Unauthorized!` |
+| API disabled on the server | `503` | `Service Unavailable!` |
 
-> ⚠️ **Correction d'une erreur de lecture.** La source appelle
-> `checkUsername()` avant tout, ce qui donnait à croire qu'un utilisateur
-> inconnu produisait `400`. C'est faux : cette fonction ne valide que la
-> **syntaxe** du nom. Un nom bien formé mais inexistant poursuit son chemin,
-> trouve une configuration vide, et échoue en `401` comme un mauvais mot de
-> passe.
+> ⚠️ **Correction of a misreading.** The source calls `checkUsername()` first of
+> all, which gave the impression that an unknown user produced `400`. That is
+> wrong: this function only validates the **syntax** of the name. A well-formed
+> but non-existent name carries on, finds an empty configuration, and fails with
+> `401` just like a wrong password.
 >
-> **Conséquence directe sur SPECS.md §3.3** : « utilisateur inconnu » et
-> « mot de passe refusé » sont **indistinguables**, et c'est le comportement
-> souhaitable — distinguer les deux permettrait d'énumérer les comptes. Le
-> message affiché doit donc couvrir les deux hypothèses à la fois, ce qu'il fait
-> déjà (« Vérifier l'identifiant et le **mot de passe API** »).
+> **Direct consequence on SPECS.md §3.3**: "unknown user" and "password refused"
+> are **indistinguishable**, and that is the desirable behaviour —
+> distinguishing the two would allow accounts to be enumerated. The message
+> displayed must therefore cover both hypotheses at once, which it already does
+> ("Check the username and the **API password**").
 >
-> Un `400` n'est donc **jamais** la faute de l'utilisateur sur son mot de passe :
-> c'est une anomalie de saisie du seul identifiant, ou de programmation.
+> A `400` is therefore **never** the user's fault regarding their password: it
+> is an input anomaly on the username alone, or a programming one.
 
-Les corps d'erreur sont en `text/plain; charset=UTF-8`, avec
-`X-Content-Type-Options: nosniff` — constaté.
+The error bodies are `text/plain; charset=UTF-8`, with
+`X-Content-Type-Options: nosniff` — observed.
 
-L'API doit être activée globalement dans FreshRSS (*Administration →
-Authentification → Autoriser l'accès par API*).
+The API must be enabled globally in FreshRSS (*Administration → Authentication →
+Allow API access*).
 
-**Ce que répond alors le serveur — constaté**, API réellement désactivée :
+**What the server then answers — observed**, with the API actually disabled:
 
-| Chemin | Réponse |
+| Path | Response |
 |---|---|
-| `/api/greader.php` (sonde de reconnaissance) | **`OK`, statut `200`** — inchangé |
+| `/api/greader.php` (recognition probe) | **`OK`, status `200`** — unchanged |
 | `/accounts/ClientLogin` | `503`, `Service Unavailable!` |
 | `/check/compatibility` | `503`, `Service Unavailable!` |
 | `/reader/api/0/…` | `503`, `Service Unavailable!` |
 
-La première ligne est contre-intuitive et elle compte : la sonde de
-reconnaissance est aveugle à l'état de l'API. Dire « tous les points d'entrée
-répondent `503` » serait faux, et conduirait à une détection qui ne marche pas.
+The first line is counter-intuitive and it matters: the recognition probe is
+blind to the state of the API. Saying "every endpoint answers `503`" would be
+wrong, and would lead to a detection that does not work.
 
-### 2.2 En-tête des requêtes authentifiées
+### 2.2 Header of authenticated requests
 
 ```
-Authorization: GoogleLogin auth=<utilisateur>/<jeton>
+Authorization: GoogleLogin auth=<user>/<token>
 ```
 
-Toutes les requêtes hors `/accounts/*` l'exigent. Sans lui, ou avec un jeton
-invalide : `401`.
+Every request outside `/accounts/*` requires it. Without it, or with an invalid
+token: `401`.
 
-### 2.3 Jeton de modification
+### 2.3 Modification token
 
 ```
 GET /api/greader.php/reader/api/0/token
 ```
 
-Renvoie en texte brut une chaîne de **57 caractères** (condensat complété par
-des `Z`), suivie d'un saut de ligne. La longueur a été *constatée contre une
-instance personnelle, le 2026-08-07* : elle vaut exactement 57, ce que la
-lecture de la source laissait attendre.
+Returns, in plain text, a **57-character** string (a digest padded with `Z`),
+followed by a line break. The length was *observed against a personal instance,
+on 2026-08-07*: it is exactly 57, which reading the source led one to expect.
 
-Cette longueur ne doit pas pour autant être codée en dur comme critère de
-validité : elle n'est garantie par aucun contrat, et un jeton refusé se signale
-de toute façon par un `401`, pas par sa taille.
+That length must nonetheless not be hard-coded as a validity criterion: it is
+guaranteed by no contract, and a refused token announces itself with a `401`
+anyway, not by its size.
 
-Ce jeton se transmet dans le champ **`T`** du corps `POST` de toute opération
-modifiante (`edit-tag`, `mark-all-as-read`, `rename-tag`, `disable-tag`).
+This token is passed in the **`T`** field of the `POST` body of any modifying
+operation (`edit-tag`, `mark-all-as-read`, `rename-tag`, `disable-tag`).
 
-Constat de lecture du code, à connaître mais **à ne pas exploiter** : la
-vérification accepte aussi `T` vide ou `T=x`, par compatibilité avec des clients
-existants. Ce projet envoie toujours le vrai jeton — dépendre d'une tolérance
-non documentée serait fragile.
+An observation from reading the code, to be known but **not to be exploited**:
+the check also accepts an empty `T` or `T=x`, for compatibility with existing
+clients. This project always sends the real token — depending on an undocumented
+leniency would be fragile.
 
-Le jeton étant lui aussi déterministe, il peut être obtenu une fois puis
-réutilisé. Un `401` sur une opération modifiante signifie que le jeton n'est
-plus valable : le redemander une fois, et si l'échec persiste, traiter comme une
-perte de session.
+The token being deterministic too, it can be obtained once and then reused. A
+`401` on a modifying operation means the token is no longer valid: ask for it
+again once, and if the failure persists, treat it as a lost session.
 
-### 2.4 Identité du compte connecté — *constaté*
+### 2.4 Identity of the logged-in account — *observed*
 
 ```
 GET /api/greader.php/reader/api/0/user-info?output=json
 ```
 
-*Constaté contre une instance personnelle, le 2026-08-07* :
+*Observed against a personal instance, on 2026-08-07*:
 
 ```json
 {
@@ -249,34 +243,34 @@ GET /api/greader.php/reader/api/0/user-info?output=json
 }
 ```
 
-Un point à retenir : **`userEmail` peut être vide**. FreshRSS n'impose pas
-d'adresse de courriel à ses comptes, et le champ est alors présent mais réduit à
-la chaîne vide — il n'est pas omis. Un client qui s'en servirait pour afficher
-l'utilisateur doit donc se rabattre sur `userName`, jamais sur `userEmail`.
+One point to remember: **`userEmail` can be empty**. FreshRSS does not require
+an email address on its accounts, and the field is then present but reduced to
+the empty string — it is not omitted. A client using it to display the user must
+therefore fall back on `userName`, never on `userEmail`.
 
-Ce point d'entrée est le moyen le plus léger de vérifier qu'un jeton stocké est
-toujours valable au démarrage : il ne renvoie aucun article et se contente de
-`401` si le jeton a été invalidé.
+This endpoint is the lightest way to check that a stored token is still valid at
+startup: it returns no article and simply answers `401` if the token has been
+invalidated.
 
 ---
 
-## 3. Lecture
+## 3. Reading
 
-### 3.1 Liste des abonnements
+### 3.1 List of subscriptions
 
 ```
 GET /api/greader.php/reader/api/0/subscription/list?output=json
 ```
 
-`output=json` est **obligatoire** : toute autre valeur répond `501 Not
-Implemented`. Cette contrainte vaut aussi pour `tag/list` et `unread-count`.
+`output=json` is **mandatory**: any other value answers `501 Not Implemented`.
+This constraint also applies to `tag/list` and `unread-count`.
 
 ```json
 {
   "subscriptions": [
     {
       "id": "feed/12",
-      "title": "Titre du flux",
+      "title": "Feed title",
       "categories": [{ "id": "user/-/label/Tech", "label": "Tech" }],
       "url": "https://exemple.org/rss",
       "htmlUrl": "https://exemple.org/",
@@ -287,19 +281,19 @@ Implemented`. Cette contrainte vaut aussi pour `tag/list` et `unread-count`.
 }
 ```
 
-Les flux de priorité « masqué » sont absents de la liste.
+Feeds with the "hidden" priority are absent from the list.
 
-### 3.2 Liste des étiquettes et dossiers
+### 3.2 List of tags and folders
 
 ```
 GET /api/greader.php/reader/api/0/tag/list?output=json
 ```
 
-Renvoie les états système (`user/-/state/com.google/starred`,
-`…/reading-list`, `user/-/state/org.freshrss/main`, `…/important`), puis une
-entrée par catégorie (`type: "folder"`) et par étiquette.
+Returns the system states (`user/-/state/com.google/starred`,
+`…/reading-list`, `user/-/state/org.freshrss/main`, `…/important`), then one
+entry per category (`type: "folder"`) and per tag.
 
-### 3.3 Compteurs de non-lus
+### 3.3 Unread counts
 
 ```
 GET /api/greader.php/reader/api/0/unread-count?output=json
@@ -316,43 +310,43 @@ GET /api/greader.php/reader/api/0/unread-count?output=json
 }
 ```
 
-`newestItemTimestampUsec` est en **microsecondes**, transmis comme chaîne.
+`newestItemTimestampUsec` is in **microseconds**, sent as a string.
 
-### 3.4 Contenu d'un flux — le point d'entrée central
+### 3.4 Contents of a stream — the central endpoint
 
 ```
 GET /api/greader.php/reader/api/0/stream/contents/reading-list
 ```
 
-Le chemin peut désigner d'autres flux :
+The path can designate other streams:
 
-| Chemin | Contenu |
+| Path | Contents |
 |---|---|
-| `…/stream/contents/reading-list` | Tous les articles, hors flux masqués |
-| `…/stream/contents/user/-/state/com.google/reading-list` | Identique (forme longue) |
-| `…/stream/contents/user/-/state/com.google/starred` | Favoris |
-| `…/stream/contents/user/-/state/org.freshrss/main` | Flux de priorité « principale » |
-| `…/stream/contents/user/-/state/org.freshrss/important` | Flux de priorité « importante » |
-| `…/stream/contents/feed/<id ou url>` | Un flux précis |
-| `…/stream/contents/user/-/label/<nom>` | Une catégorie ou une étiquette |
+| `…/stream/contents/reading-list` | All articles, hidden feeds excluded |
+| `…/stream/contents/user/-/state/com.google/reading-list` | Identical (long form) |
+| `…/stream/contents/user/-/state/com.google/starred` | Favourites |
+| `…/stream/contents/user/-/state/org.freshrss/main` | Feeds with the "main" priority |
+| `…/stream/contents/user/-/state/org.freshrss/important` | Feeds with the "important" priority |
+| `…/stream/contents/feed/<id or url>` | A specific feed |
+| `…/stream/contents/user/-/label/<name>` | A category or a tag |
 
-Sans segment de flux, `reading-list` s'applique par défaut.
+With no stream segment, `reading-list` applies by default.
 
-#### Paramètres
+#### Parameters
 
-| Paramètre | Type | Défaut | Effet |
+| Parameter | Type | Default | Effect |
 |---|---|---|---|
-| `n` | entier | **20** | Nombre maximal d'articles renvoyés |
-| `c` | entier (chaîne) | — | Jeton de continuation (voir §3.5) |
-| `r` | `d` \| `n` \| `o` | `d` | Ordre : `d`/`n` = date décroissante, `o` = croissante |
-| `xt` | identifiant d'état | — | **Exclure** les articles portant cet état |
-| `it` | identifiant d'état | — | **Ne garder que** les articles portant cet état |
-| `ot` | horodatage Unix (s) | — | Articles postérieurs à cette date |
-| `nt` | horodatage Unix (s) | — | Articles antérieurs à cette date |
-| `ck` | horodatage Unix (s) | — | Anti-cache. Accepté, sans effet fonctionnel |
-| `output` | `json` | — | **Sans effet ici** : la réponse est toujours du JSON |
+| `n` | integer | **20** | Maximum number of articles returned |
+| `c` | integer (string) | — | Continuation token (see §3.5) |
+| `r` | `d` \| `n` \| `o` | `d` | Order: `d`/`n` = descending date, `o` = ascending |
+| `xt` | state identifier | — | **Exclude** articles carrying this state |
+| `it` | state identifier | — | **Keep only** articles carrying this state |
+| `ot` | Unix timestamp (s) | — | Articles later than this date |
+| `nt` | Unix timestamp (s) | — | Articles earlier than this date |
+| `ck` | Unix timestamp (s) | — | Cache buster. Accepted, with no functional effect |
+| `output` | `json` | — | **No effect here**: the response is always JSON |
 
-Valeurs admises pour `xt` et `it` :
+Accepted values for `xt` and `it`:
 
 ```
 user/-/state/com.google/read
@@ -360,17 +354,17 @@ user/-/state/com.google/unread
 user/-/state/com.google/starred
 ```
 
-Pour un flux Discover, l'appel utile est donc :
+For a Discover feed, the useful call is therefore:
 
 ```
 GET …/stream/contents/reading-list?n=40&xt=user/-/state/com.google/read
 ```
 
-`ot` et `nt` filtrent sur la date de publication **ou** de modification de
-l'article, pas sur sa date de récupération par le serveur — contrairement à ce
-que laisse entendre la documentation historique de Google Reader.
+`ot` and `nt` filter on the article's publication **or** modification date, not
+on the date the server fetched it — contrary to what Google Reader's historical
+documentation suggests.
 
-#### Réponse
+#### Response
 
 ```json
 {
@@ -381,15 +375,15 @@ que laisse entendre la documentation historique de Google Reader.
 }
 ```
 
-Le champ `id` vaut **toujours** `user/-/state/com.google/reading-list`, quel que
-soit le flux demandé : il ne peut pas servir à identifier la requête.
+The `id` field is **always** `user/-/state/com.google/reading-list`, whatever
+stream was requested: it cannot be used to identify the request.
 
-*Constaté contre une instance personnelle, le 2026-08-07* : la racine de la
-réponse ne porte **que** ces quatre clés — `id`, `updated`, `items`,
-`continuation` — et `continuation` disparaît en fin de flux (voir §3.5). Aucune
-clé de métadonnée supplémentaire n'est à attendre.
+*Observed against a personal instance, on 2026-08-07*: the root of the response
+carries **only** these four keys — `id`, `updated`, `items`, `continuation` —
+and `continuation` disappears at the end of the stream (see §3.5). No additional
+metadata key is to be expected.
 
-Forme d'un article (mode `compat`, celui de ce point d'entrée) :
+Shape of an article (`compat` mode, the one of this endpoint):
 
 ```json
 {
@@ -397,7 +391,7 @@ Forme d'un article (mode `compat`, celui de ce point d'entrée) :
   "crawlTimeMsec": "1700000000000",
   "timestampUsec": "1700000000000000",
   "published": 1699999000,
-  "title": "Titre de l'article",
+  "title": "Article title",
   "canonical": [{ "href": "https://exemple.org/article" }],
   "alternate": [{ "href": "https://exemple.org/article" }],
   "categories": [
@@ -409,314 +403,310 @@ Forme d'un article (mode `compat`, celui de ce point d'entrée) :
   "origin": {
     "streamId": "feed/12",
     "htmlUrl": "https://exemple.org/",
-    "title": "Titre du flux"
+    "title": "Feed title"
   },
   "summary": { "content": "<p>…</p>" },
-  "author": "Nom de l'auteur",
+  "author": "Author name",
   "enclosure": [{ "href": "https://…/image.jpg", "type": "image/jpeg", "length": 12345 }]
 }
 ```
 
-*Constaté contre une instance personnelle, le 2026-08-07*, sur des articles
-réels : les clés effectivement présentes sont `id`, `crawlTimeMsec`,
-`timestampUsec`, `published`, `title`, `canonical`, `alternate`, `categories`,
-`origin`, `summary` et `author` — `origin` portant lui-même `streamId`,
-`htmlUrl` et `title`. Deux absences méritent d'être notées :
+*Observed against a personal instance, on 2026-08-07*, on real articles: the
+keys actually present are `id`, `crawlTimeMsec`, `timestampUsec`, `published`,
+`title`, `canonical`, `alternate`, `categories`, `origin`, `summary` and
+`author` — `origin` itself carrying `streamId`, `htmlUrl` and `title`. Two
+absences deserve to be noted:
 
-- **`content` est absent**, comme annoncé plus bas : seul `summary` existe dans
-  ce mode. Le constat confirme la lecture de la source ;
-- **`enclosure` est absent** de tous les articles observés. Ce n'est pas une
-  particularité de l'instance : beaucoup de flux RSS n'émettent tout simplement
-  aucune pièce jointe. La conséquence est directe pour ce projet — un client qui
-  ne chercherait l'illustration d'un article que dans `enclosure` n'en trouverait
-  presque jamais. **Il faut se rabattre sur les balises `<img>` du contenu HTML**
-  de `summary.content`, et ne traiter `enclosure` que comme un bonus quand il est
-  là.
+- **`content` is absent**, as announced below: only `summary` exists in this
+  mode. The observation confirms the reading of the source;
+- **`enclosure` is absent** from every article observed. This is not a
+  peculiarity of the instance: many RSS feeds simply emit no attachment at all.
+  The consequence is direct for this project — a client that looked for an
+  article's illustration only in `enclosure` would almost never find one. **It
+  must fall back on the `<img>` tags of the HTML content** of `summary.content`,
+  and treat `enclosure` only as a bonus when it is there.
 
-Points à retenir, tous vérifiés dans `Entry.php` :
+Points to remember, all checked in `Entry.php`:
 
-- **`id` est hexadécimal**, préfixé de `tag:google.com,2005:reader/item/`. Le
-  jeton `continuation` et le paramètre `i` d'`edit-tag` sont, eux, **décimaux**.
-  Ce sont deux représentations du même entier — la conversion est à la charge du
-  client, et c'est une source d'erreur classique.
-- Le contenu est dans **`summary.content`**, et **tronqué** par le serveur dans
-  ce mode. Le champ `content` (non tronqué) n'apparaît que dans d'autres modes,
-  inaccessibles depuis ce point d'entrée.
-- **Il n'existe pas de champ « lu »** : l'état se lit dans `categories`, par la
-  présence de `user/-/state/com.google/read`. Son absence signifie « non lu » —
-  `…/unread` n'est jamais émis dans ce mode.
-- `author`, `enclosure` et `origin.htmlUrl` sont **facultatifs**.
-- `published` est en secondes ; `timestampUsec` en microsecondes ;
-  `crawlTimeMsec` en millisecondes. Trois unités différentes dans le même objet.
+- **`id` is hexadecimal**, prefixed with `tag:google.com,2005:reader/item/`. The
+  `continuation` token and `edit-tag`'s `i` parameter, on the other hand, are
+  **decimal**. These are two representations of the same integer — the
+  conversion is the client's responsibility, and it is a classic source of
+  error.
+- The content is in **`summary.content`**, and **truncated** by the server in
+  this mode. The `content` field (untruncated) only appears in other modes,
+  which are unreachable from this endpoint.
+- **There is no "read" field**: the state is read from `categories`, through the
+  presence of `user/-/state/com.google/read`. Its absence means "unread" —
+  `…/unread` is never emitted in this mode.
+- `author`, `enclosure` and `origin.htmlUrl` are **optional**.
+- `published` is in seconds; `timestampUsec` in microseconds; `crawlTimeMsec` in
+  milliseconds. Three different units in the same object.
 
-#### `categories` mélange trois formes hétérogènes — *constaté*
+#### `categories` mixes three heterogeneous forms — *observed*
 
-C'est le piège le moins visible de cette réponse. *Constaté contre une instance
-personnelle, le 2026-08-07* : un même tableau `categories` peut contenir, côte à
-côte, trois natures d'entrées qui ne partagent aucune convention de nommage.
+This is the least visible trap of this response. *Observed against a personal
+instance, on 2026-08-07*: one and the same `categories` array can contain, side
+by side, three kinds of entry that share no naming convention.
 
-| Nature | Forme | Exemples constatés |
+| Kind | Form | Observed examples |
 |---|---|---|
-| État système | préfixée `user/-/state/…` | `user/-/state/com.google/reading-list`, `user/-/state/org.freshrss/main`, `user/-/state/com.google/read` |
-| Catégorie (dossier) | préfixée `user/-/label/…` | `user/-/label/Sans catégorie` |
-| **Étiquette utilisateur** | **texte nu, sans aucun préfixe** | `AirPods Ultra`, `iPhone Ultra`, `MacBook Ultra` |
+| System state | prefixed with `user/-/state/…` | `user/-/state/com.google/reading-list`, `user/-/state/org.freshrss/main`, `user/-/state/com.google/read` |
+| Category (folder) | prefixed with `user/-/label/…` | `user/-/label/Sans catégorie` |
+| **User tag** | **bare text, with no prefix at all** | `AirPods Ultra`, `iPhone Ultra`, `MacBook Ultra` |
 
-Deux conséquences, l'une immédiate, l'autre plus sournoise.
+Two consequences, one immediate, the other more insidious.
 
-**On ne peut pas supposer que toute entrée est préfixée.** Un client qui
-découperait chaque entrée sur `user/-/label/` pour en extraire un nom lisible
-laisserait tomber les étiquettes utilisateur, qui sont pourtant les plus
-susceptibles d'intéresser le lecteur. Il faut traiter le cas « pas de préfixe
-connu » comme un cas nominal, et non comme une donnée corrompue.
+**One cannot assume that every entry is prefixed.** A client that split each
+entry on `user/-/label/` to extract a readable name would drop the user tags,
+which are nevertheless the ones most likely to interest the reader. The "no
+known prefix" case must be treated as a nominal case, not as corrupt data.
 
-**Le test d'appartenance doit être une égalité exacte, jamais un `startsWith`
-ni un `contains`.** Puisque les étiquettes utilisateur sont du texte libre, rien
-n'empêche en théorie un utilisateur d'en nommer une littéralement
-`user/-/state/com.google/read`. Un test approximatif ferait alors passer pour lus
-tous les articles ainsi étiquetés — et, symétriquement, une étiquette contenant
-le mot `read` suffirait à égarer un `contains`. L'état de lecture d'un article
-est une information trop structurante pour être déduite d'une correspondance
-partielle : la seule règle sûre est l'égalité de chaîne complète avec
+**The membership test must be an exact equality, never a `startsWith` nor a
+`contains`.** Since user tags are free text, nothing in theory prevents a user
+from naming one literally `user/-/state/com.google/read`. An approximate test
+would then mark as read every article tagged that way — and, symmetrically, a
+tag containing the word `read` would be enough to mislead a `contains`. An
+article's read state is too structuring a piece of information to be inferred
+from a partial match: the only safe rule is full string equality with
 `user/-/state/com.google/read`.
 
 ### 3.5 Pagination
 
-Le mécanisme n'est **pas** un simple décalage. Il fonctionne ainsi, tel que lu
-dans `streamContents()` :
+The mechanism is **not** a simple offset. It works as follows, as read in
+`streamContents()`:
 
-1. La réponse porte un champ `continuation` **uniquement** si le nombre
-   d'articles renvoyés atteint `n` — autrement dit, s'il peut rester quelque
-   chose. Son absence signifie « fin du flux ».
-2. La valeur est l'identifiant **décimal** du dernier article renvoyé.
-3. La requête suivante répète les mêmes paramètres en ajoutant `c=<valeur>`.
-4. Le serveur demande alors `n + 1` articles à partir de cet identifiant inclus,
-   puis **écarte le premier** — celui déjà transmis.
+1. The response carries a `continuation` field **only** if the number of
+   articles returned reaches `n` — in other words, if something may remain. Its
+   absence means "end of stream".
+2. The value is the **decimal** identifier of the last article returned.
+3. The next request repeats the same parameters, adding `c=<value>`.
+4. The server then asks for `n + 1` articles starting from that identifier
+   inclusive, then **discards the first one** — the one already sent.
 
-#### Ce que l'expérience confirme — *constaté*
+#### What experience confirms — *observed*
 
-*Constaté contre une instance personnelle, le 2026-08-07.* Les trois
-affirmations ci-dessus ne sont plus des déductions de lecture : elles ont été
-éprouvées, et elles se vérifient.
+*Observed against a personal instance, on 2026-08-07.* The three statements
+above are no longer deductions from reading: they have been tested, and they
+hold.
 
-**1. Le `continuation` est bien l'identifiant décimal du dernier article
-renvoyé.** Une page de trois articles dont les `id` hexadécimaux se terminent
-respectivement par `dde5`, `dde4` et `dde3` s'est accompagnée d'un
-`continuation` valant `1786131047833059` — c'est-à-dire exactement la valeur
-décimale de l'identifiant `…dde3`, le dernier de la page. La conversion
-hexadécimal ↔ décimal évoquée plus haut n'est donc pas théorique : elle est la
-clé de tout raisonnement sur la pagination.
+**1. The `continuation` is indeed the decimal identifier of the last article
+returned.** A page of three articles whose hexadecimal `id`s end respectively in
+`dde5`, `dde4` and `dde3` came with a `continuation` of `1786131047833059` —
+that is, exactly the decimal value of identifier `…dde3`, the last one on the
+page. The hexadecimal ↔ decimal conversion mentioned above is therefore not
+theoretical: it is the key to any reasoning about pagination.
 
-**2. La page suivante ne contient aucun doublon.** Rappelée avec
-`c=1786131047833059`, la requête a renvoyé `dde2`, `dde1`, `dde0` — et **pas**
-`dde3`. L'article servant de curseur n'est pas retransmis : le rejet du premier
-élément décrit au point 4 fonctionne comme annoncé. Un client n'a donc aucune
-déduplication à faire de son côté.
+**2. The next page contains no duplicate.** Called again with
+`c=1786131047833059`, the request returned `dde2`, `dde1`, `dde0` — and **not**
+`dde3`. The article serving as the cursor is not sent again: the discarding of
+the first element described in point 4 works as announced. A client therefore
+has no deduplication to do on its side.
 
-**3. Un curseur invalide répète silencieusement la première page.** C'est le
-point le plus grave, et il mérite d'être isolé.
+**3. An invalid cursor silently repeats the first page.** This is the most
+serious point, and it deserves to be set apart.
 
-> ⚠️ **Le piège le plus dangereux de cette API.** Interrogé avec
-> `c=nimportequoi`, le serveur ne renvoie **aucune erreur** : ni `400`, ni
-> message, ni champ signalant l'anomalie. Il répond `200`, avec **la première
-> page** du flux et **le même `continuation`** que celui d'un appel sans `c` du
-> tout.
+> ⚠️ **The most dangerous trap of this API.** Queried with `c=anythingatall`,
+> the server returns **no error**: no `400`, no message, no field reporting the
+> anomaly. It answers `200`, with **the first page** of the stream and **the
+> same `continuation`** as a call with no `c` at all.
 >
-> Constaté. La conséquence est sévère : une erreur de sérialisation du curseur —
-> un entier passé sous une forme que PHP ne sait pas lire, une valeur
-> hexadécimale envoyée là où le décimal est attendu, une chaîne vide, un `null`
-> textuel — ne produit **jamais un échec**, mais une **boucle infinie sur la
-> première page**. Le client croit paginer, reçoit indéfiniment les mêmes
-> articles, et rien dans la réponse ne le lui signale.
+> Observed. The consequence is severe: an error in serialising the cursor — an
+> integer passed in a form PHP cannot read, a hexadecimal value sent where
+> decimal is expected, an empty string, a textual `null` — **never** produces a
+> failure, but an **infinite loop on the first page**. The client believes it is
+> paginating, receives the same articles indefinitely, and nothing in the
+> response tells it so.
 >
-> Deux protections s'imposent côté client : sérialiser le curseur en décimal de
-> façon vérifiée, et **détecter la répétition** — si une page renvoie un
-> `continuation` identique au précédent, ou des identifiants déjà vus, il faut
-> arrêter la boucle et traiter cela comme une anomalie, jamais continuer.
+> Two protections are called for on the client side: serialise the cursor in
+> decimal in a checked way, and **detect repetition** — if a page returns a
+> `continuation` identical to the previous one, or identifiers already seen, the
+> loop must be stopped and treated as an anomaly, never continued.
 
-#### Fin de flux — *constaté*
+#### End of stream — *observed*
 
-L'absence de `continuation` est bien le **seul** signal de fin, et il est
-fiable. *Constaté contre une instance personnelle, le 2026-08-07* : appelée avec
-`n=100000`, la requête a renvoyé 4645 articles — la totalité du flux — et la
-réponse ne portait **aucun champ `continuation`**. Il n'y a donc pas d'autre
-marqueur à chercher : un client s'arrête quand la clé est absente, point.
+The absence of `continuation` is indeed the **only** end signal, and it is
+reliable. *Observed against a personal instance, on 2026-08-07*: called with
+`n=100000`, the request returned 4645 articles — the whole stream — and the
+response carried **no `continuation` field**. There is therefore no other marker
+to look for: a client stops when the key is absent, full stop.
 
-Au passage, `n=100000` a été **accepté sans erreur** : aucune borne supérieure
-n'a été rencontrée à cette valeur. Il ne faut pas en conclure qu'il n'y en a
-pas — seulement qu'aucune n'a été atteinte ici. Et surtout, demander tout le
-flux d'un seul appel reste **déconseillé** : la réponse est intégralement
-matérialisée en mémoire, côté serveur comme côté client, et la latence croît
-avec le nombre d'articles. La pagination existe pour être utilisée.
+Incidentally, `n=100000` was **accepted without error**: no upper bound was met
+at that value. One must not conclude that there is none — only that none was
+reached here. And above all, asking for the whole stream in a single call
+remains **inadvisable**: the response is materialised in memory in its entirety,
+on the server side as on the client side, and latency grows with the number of
+articles. Pagination exists to be used.
 
-#### Conséquences pour le client
+#### Consequences for the client
 
-- La pagination est **relative à un curseur**, pas à un rang : insérer un
-  article en tête du flux entre deux pages ne provoque ni doublon ni saut.
-- Un `c` non numérique est silencieusement ramené à `0`, c'est-à-dire au début
-  du flux. Une erreur de sérialisation du curseur se manifeste donc par une
-  **répétition de la première page**, jamais par une erreur — constaté.
-- Le curseur n'est valable que pour un même jeu de paramètres (`n` compris) : le
-  conserver en changeant de filtre n'a pas de sens.
+- Pagination is **relative to a cursor**, not to a rank: inserting an article at
+  the top of the stream between two pages causes neither a duplicate nor a skip.
+- A non-numeric `c` is silently brought back to `0`, that is, to the start of
+  the stream. An error in serialising the cursor therefore shows up as a
+  **repetition of the first page**, never as an error — observed.
+- The cursor is only valid for one and the same set of parameters (`n`
+  included): keeping it while changing filter makes no sense.
 
-### 3.6 Identifiants seuls
+### 3.6 Identifiers alone
 
 ```
 GET /api/greader.php/reader/api/0/stream/items/ids?s=<streamId>&n=…&c=…&xt=…
 ```
 
-Mêmes paramètres de filtrage et de pagination que `stream/contents`, mais
-renvoie les seuls identifiants. Utile pour réconcilier un cache local sans
-retélécharger les contenus.
+The same filtering and pagination parameters as `stream/contents`, but returns
+the identifiers only. Useful for reconciling a local cache without downloading
+the contents again.
 
-Ici, le flux se désigne par le paramètre **`s`**, et non par le chemin.
+Here, the stream is designated by the **`s`** parameter, and not by the path.
 
 ```
 POST /api/greader.php/reader/api/0/stream/items/contents
 i=<id>&i=<id>&…
 ```
 
-Récupère plusieurs articles par identifiant. Paramètre `i` répété, en `POST`.
+Retrieves several articles by identifier. Repeated `i` parameter, in `POST`.
 
 ---
 
-## 4. Écriture
+## 4. Writing
 
-### 4.1 Marquer comme lu / non lu
+### 4.1 Marking as read / unread
 
 ```
 POST /api/greader.php/reader/api/0/edit-tag
 Content-Type: application/x-www-form-urlencoded
 
-T=<jeton>&a=user/-/state/com.google/read&i=<id>&i=<id>
+T=<token>&a=user/-/state/com.google/read&i=<id>&i=<id>
 ```
 
-| Champ | Rôle |
+| Field | Role |
 |---|---|
-| `T` | Jeton de modification (§2.3) |
-| `a` | État à **ajouter**. Répétable |
-| `r` | État à **retirer**. Répétable |
-| `i` | Identifiant d'article. **Répétable** |
+| `T` | Modification token (§2.3) |
+| `a` | State to **add**. Repeatable |
+| `r` | State to **remove**. Repeatable |
+| `i` | Article identifier. **Repeatable** |
 
-- Marquer lu : `a=user/-/state/com.google/read`
-- Marquer non lu : `r=user/-/state/com.google/read`
-- Favori : `a=` / `r=user/-/state/com.google/starred`
+- Mark as read: `a=user/-/state/com.google/read`
+- Mark as unread: `r=user/-/state/com.google/read`
+- Favourite: `a=` / `r=user/-/state/com.google/starred`
 
-Le champ `i` accepte les deux formes : décimale, ou hexadécimale préfixée
-(`tag:google.com,2005:reader/item/…`). Le serveur détecte la forme et convertit.
+The `i` field accepts both forms: decimal, or prefixed hexadecimal
+(`tag:google.com,2005:reader/item/…`). The server detects the form and converts.
 
-**Le traitement est par lot** : un seul appel peut porter plusieurs `i`. C'est
-ce qui permet à un flux Discover de grouper les marquages plutôt que d'émettre
-une requête par article visible.
+**Processing is batched**: a single call can carry several `i`. That is what
+allows a Discover feed to group markings rather than issue one request per
+visible article.
 
-> ⚠️ **Le lot n'est pas illimité, et son dépassement est muet.** La borne ne
-> vient pas de FreshRSS mais de PHP : `max_input_vars` vaut 1 000 par défaut, et
-> au-delà les champs excédentaires sont **ignorés en silence**. `edit-tag`
-> répondrait alors `OK` sans qu'aucun compte-rendu ne signale les articles
-> perdus — l'API n'en produit de toute façon aucun. Cette limite est déduite du
-> comportement de PHP, elle n'a **pas** été constatée contre un serveur ; c'est
-> précisément pourquoi ce projet plafonne ses lots bien en dessous (100).
+> ⚠️ **The batch is not unlimited, and exceeding it is silent.** The bound does
+> not come from FreshRSS but from PHP: `max_input_vars` is 1,000 by default, and
+> beyond that the excess fields are **silently ignored**. `edit-tag` would then
+> answer `OK` with no report signalling the lost articles — the API produces
+> none anyway. This limit is inferred from PHP's behaviour, it has **not** been
+> observed against a server; that is precisely why this project caps its batches
+> well below it (100).
 
-`user/-/state/com.google/broadcast`, `…/like` et `…/tracking-kept-unread` sont
-acceptés mais **ignorés** — FreshRSS ne les implémente pas.
+`user/-/state/com.google/broadcast`, `…/like` and `…/tracking-kept-unread` are
+accepted but **ignored** — FreshRSS does not implement them.
 
-**Réponse** : `OK` en texte brut. Aucun corps JSON, aucun compte-rendu par
-article. Un article inexistant ne produit pas d'erreur.
+**Response**: `OK` in plain text. No JSON body, no per-article report. A
+non-existent article produces no error.
 
-### 4.2 Tout marquer comme lu
+### 4.2 Marking everything as read
 
 ```
 POST /api/greader.php/reader/api/0/mark-all-as-read
-T=<jeton>&s=<streamId>&ts=<horodatage>
+T=<token>&s=<streamId>&ts=<timestamp>
 ```
 
-`ts` est en **nanosecondes** et signifie « uniquement les articles plus anciens
-que ». Il doit être composé de chiffres uniquement, sinon `400`.
+`ts` is in **nanoseconds** and means "only articles older than". It must consist
+of digits only, otherwise `400`.
 
-Attention : trois unités de temps coexistent dans cette API — `ot`/`nt` en
-secondes, `newestItemTimestampUsec` en microsecondes, `ts` en nanosecondes.
+Careful: three time units coexist in this API — `ot`/`nt` in seconds,
+`newestItemTimestampUsec` in microseconds, `ts` in nanoseconds.
 
 ---
 
-## 5. Codes d'erreur
+## 5. Error codes
 
-| Code | Signification côté FreshRSS | Traitement attendu côté client |
+| Code | Meaning on the FreshRSS side | Expected handling on the client side |
 |---|---|---|
-| `400` | Requête mal formée, ou identifiant syntaxiquement invalide | Anomalie de saisie ou de programmation : ne pas réessayer |
-| `401` | Jeton absent ou invalide, identifiant inconnu, mot de passe API changé — **ou chemin inconnu** | Retour à l'écran de connexion |
-| `404` | **L'hôte n'est pas une instance FreshRSS**, ou le préfixe d'URL est faux | Adresse de serveur à corriger |
-| `500` | Configuration serveur absente | Erreur serveur, réessai possible |
-| `501` | `output` autre que `json` là où il est exigé | Anomalie de programmation |
-| `503` | API désactivée sur le serveur | Message explicite : « activez l'API dans FreshRSS » |
+| `400` | Malformed request, or syntactically invalid identifier | Input or programming anomaly: do not retry |
+| `401` | Token absent or invalid, unknown username, API password changed — **or unknown path** | Back to the login screen |
+| `404` | **The host is not a FreshRSS instance**, or the URL prefix is wrong | Server address to be corrected |
+| `500` | Server configuration missing | Server error, retry possible |
+| `501` | `output` other than `json` where it is required | Programming anomaly |
+| `503` | API disabled on the server | Explicit message: "enable the API in FreshRSS" |
 
-> ⚠️ **`404` ne signifie pas « point d'entrée inconnu ».** L'autorisation est
-> vérifiée **avant** le routage : un chemin inexistant sous `/reader/api/0/`
-> répond `401`, pas `404`. Constaté sur `…/reader/api/0/nexistepas`.
+> ⚠️ **`404` does not mean "unknown endpoint".** Authorization is checked
+> **before** routing: a non-existent path under `/reader/api/0/` answers `401`,
+> not `404`. Observed on `…/reader/api/0/nexistepas`.
 >
-> Conséquence : un `404` reçu d'un client authentifié désigne l'**hôte**, pas le
-> chemin — mauvaise adresse de serveur, ou installation FreshRSS dans un
-> sous-répertoire non pris en compte. Et un `401` ne prouve pas que les
-> identifiants sont mauvais : il peut aussi trahir une faute de frappe dans un
-> chemin. D'où l'intérêt de la sonde §1.1 **avant** toute tentative de connexion.
+> Consequence: a `404` received by an authenticated client designates the
+> **host**, not the path — wrong server address, or a FreshRSS installation in a
+> subdirectory that has not been accounted for. And a `401` does not prove that
+> the credentials are wrong: it may equally betray a typo in a path. Hence the
+> value of the §1.1 probe **before** any connection attempt.
 
-Les corps d'erreur sont en **texte brut**, jamais en JSON — constaté :
-`text/plain; charset=UTF-8`. Tenter de désérialiser une réponse d'erreur
-échouerait et masquerait le vrai code.
+The error bodies are in **plain text**, never JSON — observed:
+`text/plain; charset=UTF-8`. Trying to deserialise an error response would fail
+and hide the real code.
 
 ---
 
-## 6. Points à valider contre un serveur réel
+## 6. Points to be validated against a real server
 
-Ces éléments n'ont pas pu être établis avec certitude par la seule lecture. Ils
-doivent être **constatés** avant d'être tenus pour acquis — et cette section
-mise à jour en conséquence.
+These items could not be established with certainty by reading alone. They must
+be **observed** before being taken for granted — and this section updated
+accordingly.
 
-| # | Point | Pourquoi c'est incertain |
+| # | Point | Why it is uncertain |
 |---|---|---|
-| 1 | Valeur maximale acceptée pour `n` | `n=100000` a été **accepté sans erreur** (§3.5) : aucune borne n'a été atteinte à cette valeur. Cela ne prouve pas qu'il n'en existe aucune — une limite peut exister en aval (mémoire, temps d'exécution PHP), et n'apparaîtrait que sur un flux plus volumineux |
-| 2 | Longueur réelle de la troncature de `summary.content` | La constante `API_MAX_COMPAT_CONTENT_LENGTH` n'a pas été lue |
-| 3 | Comportement de `continuation` en ordre croissant (`r=o`) | La logique de curseur a été éprouvée en ordre décroissant seulement (§3.5) ; l'ordre inverse n'a pas été essayé |
-| 4 | Présence effective de `enclosure` selon les flux | Dépend des flux RSS sources, pas de FreshRSS. Constat partiel : **absente de tous les articles observés** (§3.4), ce qui suffit à décider de ne pas s'y fier |
-| 5 | Nombre d'`i` acceptés dans un `edit-tag` | Limité en pratique par la taille du corps POST et `max_input_vars` de PHP (§4.1). La valeur exacte dépend de la configuration du serveur et **n'a pas été constatée** ; le projet contourne en plafonnant ses lots à 100 plutôt qu'en cherchant la borne |
-| 6 | Forme exacte de `frss:priority` | Valeurs issues d'une énumération non lue |
+| 1 | Maximum value accepted for `n` | `n=100000` was **accepted without error** (§3.5): no bound was reached at that value. That does not prove none exists — a limit may exist downstream (memory, PHP execution time), and would only show up on a bulkier stream |
+| 2 | Actual truncation length of `summary.content` | The `API_MAX_COMPAT_CONTENT_LENGTH` constant has not been read |
+| 3 | Behaviour of `continuation` in ascending order (`r=o`) | The cursor logic was tested in descending order only (§3.5); the reverse order has not been tried |
+| 4 | Actual presence of `enclosure` depending on the feed | Depends on the source RSS feeds, not on FreshRSS. Partial observation: **absent from every article observed** (§3.4), which is enough to decide not to rely on it |
+| 5 | Number of `i` accepted in an `edit-tag` | Limited in practice by the size of the POST body and PHP's `max_input_vars` (§4.1). The exact value depends on the server's configuration and **has not been observed**; the project works around it by capping its batches at 100 rather than looking for the bound |
+| 6 | Exact form of `frss:priority` | Values come from an enumeration that has not been read |
 
-Ces points sont suivis collectivement par la section « Questions ouvertes » de
-[TASKS.md](../TASKS.md) : chacun est tranché par le Goal qui le rencontre, non
-par une tâche ouverte d'avance. Aucun ne doit être « supposé » dans le code : si
-un Goal en a besoin, il commence par le constater, puis l'inscrit ici et le
-déplace dans la section suivante.
+These points are tracked collectively by the "Open questions" section of
+[TASKS.md](../TASKS.md): each is settled by the Goal that meets it, not by a
+task opened in advance. None of them must be "assumed" in the code: if a Goal
+needs one, it starts by observing it, then records it here and moves it to the
+next section.
 
-### Ce qui a été constaté, et vaut désormais acquis
+### What has been observed, and now counts as established
 
-- reconnaissance d'une instance : `GET` nu sur la racine → corps `OK` (§1.1) ;
-- une chaîne de requête sur la racine → `400` ;
-- `check/compatibility` : statut toujours `200`, verdict dans le corps, en-tête
-  `Authorization` requis dans la requête même (§1.2) ;
-- frontière `400` / `401` de `ClientLogin` : syntaxe contre existence (§2.1) ;
-- utilisateur inconnu et mot de passe faux sont **indistinguables** (§2.1) ;
-- chemin inconnu sous `/reader/api/0/` → `401`, jamais `404` (§5) ;
-- corps d'erreur en `text/plain; charset=UTF-8` (§5) ;
-- API désactivée : `503` partout **sauf** sur la sonde de reconnaissance, qui
-  continue de répondre `OK` (§1.1 et §2.1).
+- recognising an instance: a bare `GET` on the root → `OK` body (§1.1);
+- a query string on the root → `400`;
+- `check/compatibility`: status always `200`, verdict in the body,
+  `Authorization` header required in the request itself (§1.2);
+- the `400` / `401` boundary of `ClientLogin`: syntax versus existence (§2.1);
+- unknown user and wrong password are **indistinguishable** (§2.1);
+- unknown path under `/reader/api/0/` → `401`, never `404` (§5);
+- error bodies in `text/plain; charset=UTF-8` (§5);
+- API disabled: `503` everywhere **except** on the recognition probe, which goes
+  on answering `OK` (§1.1 and §2.1).
 
-Acquis depuis l'accès à une instance personnelle *(2026-08-07)* :
+Established since gaining access to a personal instance *(2026-08-07)*:
 
-- **`ClientLogin` en succès** : `200`, `text/plain`, exactement trois lignes
-  `SID` / `LSID=null` / `Auth`, `SID` et `Auth` portant la même valeur (§2.1) ;
-- **le jeton de modification fait exactement 57 caractères** (§2.3) ;
-- `user-info` renvoie `userId`, `userName`, `userProfileId`, `userEmail` — ce
-  dernier pouvant être **vide** (§2.4) ;
-- **forme réelle d'un article** : racine à quatre clés, article à onze clés,
-  `origin` à trois. **`content` est absent**, **`enclosure` aussi** sur tous les
-  articles observés — l'illustration doit être cherchée dans les `<img>` du
-  contenu (§3.4) ;
-- **`categories` mélange trois formes** : états système préfixés, catégories
-  préfixées, et **étiquettes utilisateur en texte nu**. Le test d'appartenance
-  doit être une **égalité exacte** (§3.4) ;
-- **le `continuation` est bien l'identifiant décimal du dernier article
-  renvoyé**, et la page suivante ne contient **aucun doublon** (§3.5) ;
-- **un curseur invalide répète silencieusement la première page**, sans erreur
-  HTTP — donc boucle infinie possible, à détecter côté client (§3.5) ;
-- **l'absence de `continuation` est bien le seul signal de fin de flux** :
-  4645 articles renvoyés d'un coup, sans `continuation` (§3.5) ;
-- `n=100000` est **accepté sans erreur** ; aucune borne atteinte, ce qui ne veut
-  pas dire qu'il n'en existe pas (§3.5 et §6, point 1).
+- **successful `ClientLogin`**: `200`, `text/plain`, exactly three lines
+  `SID` / `LSID=null` / `Auth`, `SID` and `Auth` carrying the same value (§2.1);
+- **the modification token is exactly 57 characters long** (§2.3);
+- `user-info` returns `userId`, `userName`, `userProfileId`, `userEmail` — the
+  last of which may be **empty** (§2.4);
+- **the real shape of an article**: a four-key root, an eleven-key article, a
+  three-key `origin`. **`content` is absent**, **so is `enclosure`** on every
+  article observed — the illustration must be looked for in the `<img>` tags of
+  the content (§3.4);
+- **`categories` mixes three forms**: prefixed system states, prefixed
+  categories, and **user tags as bare text**. The membership test must be an
+  **exact equality** (§3.4);
+- **the `continuation` is indeed the decimal identifier of the last article
+  returned**, and the next page contains **no duplicate** (§3.5);
+- **an invalid cursor silently repeats the first page**, with no HTTP error — so
+  an infinite loop is possible, to be detected on the client side (§3.5);
+- **the absence of `continuation` is indeed the only end-of-stream signal**:
+  4645 articles returned at once, with no `continuation` (§3.5);
+- `n=100000` is **accepted without error**; no bound reached, which does not
+  mean none exists (§3.5 and §6, point 1).
