@@ -282,7 +282,30 @@ Nothing is declared finished without this command having been run **and its
 output actually seen**. On failure, report the output; never announce a success
 you have not observed.
 
-### 5.3 Definition of "finished"
+### 5.3 The local test stack, and shutting it down
+
+An emulator and a real FreshRSS instance can be raised on the development
+machine in one command. It is **optional** — nothing in §5.2 depends on it, and
+the CI ignores it — but it is the only thing that exercises what lies below the
+transport layer. See [envTest/README.md](./envTest/README.md), which also
+records the defect its very first run uncovered: `http://` was promised by
+SPECS.md §3.1 and refused by the manifest, for fourteen Goals.
+
+```bash
+./envTest/test-stack.sh init   # once
+./envTest/test-stack.sh run    # afterwards
+./envTest/test-stack.sh stop   # at the end of every Goal
+```
+
+> **Always shut the stack down at the end of a Goal.** An emulator holds four
+> gigabytes of memory and a core, and a container holds a port; left running,
+> they are paid for by every task that follows, including those that never
+> needed them. `stop` shuts down without destroying: the AVD, the container,
+> the user, the feeds and the accumulated read state all survive, and `run`
+> finds them again. Shutting down is therefore never a loss — which is exactly
+> why there is no excuse for skipping it.
+
+### 5.4 Definition of "finished"
 
 - [ ] `./gradlew ktlintCheck detekt lint test :domain:koverVerify assembleDebug` passes.
 - [ ] If the interface changed: `./gradlew :app:verifyRoborazziDebug` passes, or

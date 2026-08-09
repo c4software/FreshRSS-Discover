@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Flux de test — FreshRSS Discover</title></head>
+  <body>
+    <outline text="Le Monde — Une" type="rss" xmlUrl="https://www.lemonde.fr/rss/une.xml"/>
+    <outline text="BBC World" type="rss" xmlUrl="https://feeds.bbci.co.uk/news/world/rss.xml"/>
+    <outline text="Hacker News" type="rss" xmlUrl="https://news.ycombinator.com/rss"/>
+    <outline text="Korben" type="rss" xmlUrl="https://korben.info/feed"/>
+    <outline text="LinuxFr" type="rss" xmlUrl="https://linuxfr.org/news.atom"/>
+    <outline text="NASA" type="rss" xmlUrl="https://www.nasa.gov/feed/"/>
+    <outline text="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index"/>
+  </body>
+</opml>

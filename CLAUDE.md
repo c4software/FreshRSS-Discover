@@ -41,3 +41,8 @@ code written → tests → verification → documentation → TASKS.md = [x]
 
 Never announce a success you have not observed. Never assume a `[-]` task is
 finished: check it.
+
+An optional local test stack — an emulator and a real FreshRSS instance — lives
+in [envTest/](./envTest/README.md). **Shut it down at the end of every Goal**
+with `./envTest/test-stack.sh stop` (AGENTS.md §5.3): stopping destroys nothing,
+so there is no reason to leave four gigabytes running for the next task.

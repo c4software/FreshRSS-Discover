@@ -1436,9 +1436,22 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > retire. Constat de mutation : retiré → `FAILED`, remis → `SUCCESSFUL`.
       > Puis constaté sur l'émulateur : connexion réussie contre
       > `http://10.0.2.2:8088`, flux réel de 134 articles sur 8 sources
-- [ ] `GOAL-022-T02` **Script `scripts/test-stack.sh`**, demandé par l'auteur :
-      deux commandes, `init` qui fabrique tout une fois, `run` qui relance.
-      Documenté dans `CONTRIBUTING.md` pour l'avenir
+- [x] `GOAL-022-T02` **Dossier `envTest/`**, demandé par l'auteur : le script
+      `test-stack.sh` et la configuration de chaque élément — `config.env`
+      (ports, identifiants, définition de l'AVD) et `feeds.opml` (les flux).
+      Trois commandes : `init` fabrique, `run` relance, **`stop` éteint**.
+      La règle « éteindre à la fin de chaque Goal » est inscrite dans
+      AGENTS.md §5.3, dont elle décale l'ancienne §5.3 en §5.4.
+      > **Le script avait un défaut que seule son exécution a montré.** `init`
+      > faisait tout son travail — AVD, conteneur, utilisateur, flux, API
+      > vérifiée, application installée — puis **ne rendait jamais la main** :
+      > l'émulateur restait enfant du script, qui l'attendait à sa sortie. Le
+      > `&` d'un sous-shell ne suffit pas ; il fallait `setsid` et `disown`.
+      > Le même travers guettait le message de `run` : `actualize-user.php`
+      > annonce « failed! » quand il n'a **rien** eu à rafraîchir, TTL non
+      > écoulé, ce qui est le cas courant de deux `run` rapprochés. Relayé tel
+      > quel, il aurait fait lire une panne à chaque relance.
+      > `init`, `run` et `stop` ont été exécutés, et leur sortie constatée
 - [ ] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
       GOAL-019 et GOAL-020 fusionnés : connexion, flux, partage, carte cliquable
       en Balayage, interrupteur de marquage
