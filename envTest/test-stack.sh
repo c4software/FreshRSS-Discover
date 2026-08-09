@@ -251,7 +251,39 @@ refresh_feeds() {
 install_app() {
     say "Construction et installation de l'application"
     ( cd "$ROOT" && ./gradlew :app:assembleDebug -q )
-    adb install -r "$ROOT/app/build/outputs/apk/debug/app-debug.apk" | tail -1
+
+    # `sys.boot_completed` ne dit pas que le gestionnaire de paquets répond :
+    # juste après un démarrage à froid, `adb install` échoue encore. Constaté —
+    # le script annonçait alors la pile prête sur l'**ancienne** application, ce
+    # qui est le pire des cas : on valide en croyant regarder son travail.
+    for _ in $(seq 1 60); do
+        adb shell pm path android >/dev/null 2>&1 && break
+        sleep 2
+    done
+
+    # Deux précautions, et chacune répond à un fait constaté.
+    #
+    # `adb install` **sort en 0 même quand il échoue** : c'est sa sortie qu'il
+    # faut lire, pas son code de retour. Sans cela le script annonçait la pile
+    # prête sur l'**ancienne** application — le pire des cas, puisqu'on valide
+    # alors en croyant regarder son travail.
+    #
+    # Et il faut **réessayer** : après un démarrage à froid l'installation
+    # échoue encore un moment, quand bien même `sys.boot_completed` est vrai et
+    # que `pm` répond. Le second appel passe. Plutôt que de deviner la bonne
+    # condition d'attente, on retente — puis on abandonne franchement.
+    local out
+    for attempt in $(seq 1 6); do
+        out=$(adb install -r "$ROOT/app/build/outputs/apk/debug/app-debug.apk" 2>&1 || true)
+        if printf '%s' "$out" | grep -q 'Success'; then
+            printf '  installée\n'
+            return
+        fi
+        [ "$attempt" -eq 1 ] && warn "installation refusée, nouvel essai"
+        sleep 5
+    done
+
+    die "L'installation a échoué six fois :"$'\n'"$out"
     # Accordée d'office : la boîte de dialogue système recouvre l'écran de
     # connexion et fausserait la première capture.
     adb shell pm grant "$APP_ID" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
