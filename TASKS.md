@@ -77,7 +77,7 @@ par trois agents à la demande de l'auteur — GOAL-020 est terminé.
 | GOAL-019 | Le marquage automatique devient optionnel | `[x]` |
 | GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
-| GOAL-022 | Une pile de test locale, et les défauts qu'elle a révélés | `[-]` |
+| GOAL-022 | Une pile de test locale, et les défauts qu'elle a révélés | `[x]` |
 | GOAL-023 | La carte se resserre : source et date en pied, partage discret | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
@@ -1475,7 +1475,7 @@ français conservé.
 
 ## GOAL-022 — Une pile de test locale, et les défauts qu'elle a révélés
 
-**Statut : IN PROGRESS** — reste `T04`, un appui sur l'appareil
+**Statut : DONE** — quatre défauts trouvés, la feuille de partage validée
 
 Le téléphone n'étant pas disponible (voir « Phase courante »), l'auteur a demandé
 qu'une pile de test soit montée sur la machine : un émulateur Android et une
@@ -1566,12 +1566,12 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > demande, contre son instance FreshRSS réelle : session conservée par la
       > réinstallation, thème sombre et couleur dynamique, plus aucun fanion,
       > bouton de partage rangé au bord de chaque carte.
-- [ ] `GOAL-022-T04` **La feuille de partage du système**, seule pièce que rien
-      n'a encore constatée. `ArticleShareIntentTest` établit le contenu de
-      l'intention ; ce qu'Android en fait, et l'allure du texte « titre + lien »
-      une fois collé dans une messagerie, demandent un appui sur l'appareil.
-      L'essai a été interrompu plutôt que mené : l'auteur se servait de son
-      téléphone au même moment, et lui disputer l'écran n'aurait rien prouvé
+- [x] `GOAL-022-T04` **La feuille de partage du système**, la seule pièce
+      qu'aucun test ne pouvait atteindre — `ArticleShareIntentTest` établit le
+      contenu de l'intention, pas ce qu'Android en fait. **Validée par l'auteur
+      sur son appareil** le 2026-08-09. Le premier essai avait été interrompu
+      plutôt que mené : il se servait de son téléphone au même moment, et lui
+      disputer l'écran n'aurait rien prouvé
 
 ---
 
@@ -1628,6 +1628,16 @@ rendent une ligne au contenu.
       son propre vide sous lui. Et l'espacement entre le titre et l'extrait,
       supprimé : leur interligne les sépare déjà, et le pied reprend cet écart
       à son compte puisqu'il change de nature, pas de paragraphe
+- [x] `GOAL-023-T05` **L'icône à 16 dp, et en Balayage sur la ligne du titre**,
+      demandés par l'auteur après essai sur son appareil. Le dessin passe donc
+      24 → 18 → 16 dp en trois paliers : il n'est le sujet d'aucune des deux
+      cartes, et chaque palier pesait encore trop.
+      En Balayage il quittait le bas de carte, où il tombait après un extrait
+      pouvant faire 1 400 caractères — donc sous la ligne de flottaison d'un
+      écran sur deux, alors que c'est la seule commande visible de ce mode.
+      `Alignment.Top` et non un centrage : sur un titre de trois lignes, un
+      bouton centré se placerait à une hauteur qui dépend de la longueur du
+      texte
 
 ---
 

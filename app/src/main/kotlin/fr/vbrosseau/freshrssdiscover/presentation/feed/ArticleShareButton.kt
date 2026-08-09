@@ -17,9 +17,11 @@ private val MinTouchTarget = 48.dp
 /**
  * Taille du **dessin**, distincte de celle de la cible.
  *
- * 18 dp est la hauteur d'une capitale de `labelMedium`, le style de la ligne de
- * source et de date que le bouton côtoie désormais : à 24 dp, l'icône dominait
- * un pied de carte dont elle n'est pas le sujet.
+ * 16 dp, en deux temps et à la demande de l'auteur : 24 dp d'origine, puis 18,
+ * puis ceci. Le bouton n'est le sujet d'aucune des deux cartes — il côtoie la
+ * ligne de source et de date en mode Liste, celle du titre en Balayage — et à
+ * chaque palier il pesait encore trop lourd à l'écran. 16 dp reste au-dessus de
+ * la hauteur d'une capitale de `labelMedium`, donc lisible.
  *
  * **La cible tactile ne suit pas.** SPECS.md §7.1 fixe 48 dp, et « plus
  * compact » ne peut pas vouloir dire « plus difficile à toucher » : ce que le
@@ -27,7 +29,7 @@ private val MinTouchTarget = 48.dp
  * pixels de sa surface sensible. Les deux mesures sont donc séparées, et c'est
  * exactement ce que `IconButton` permet — il centre son contenu dans sa cible.
  */
-private val GlyphSize = 18.dp
+private val GlyphSize = 16.dp
 
 /**
  * Partager le lien de l'article (SPECS.md §4.3).

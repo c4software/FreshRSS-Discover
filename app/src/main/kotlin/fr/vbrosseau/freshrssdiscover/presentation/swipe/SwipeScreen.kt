@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -455,7 +456,36 @@ private fun ArticleText(
             overflow = TextOverflow.Ellipsis,
         )
 
-        Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
+        /*
+         * **Le partage sur la ligne du titre**, demandé par l'auteur. En bas de
+         * carte il tombait après un extrait qui peut faire 1 400 caractères,
+         * donc sous la ligne de flottaison d'un écran sur deux : il fallait
+         * faire défiler pour atteindre la seule commande visible du mode.
+         *
+         * `Alignment.Top` et non un centrage : un titre de trois lignes
+         * emmènerait sinon le bouton en son milieu, à une hauteur qui dépend de
+         * la longueur du texte. En haut, il est toujours au même endroit.
+         *
+         * `weight(1f)` sur le titre, comme en mode Liste : c'est à lui de se
+         * replier, jamais à la commande d'être poussée hors de la carte.
+         */
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(
+                text = article.title,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f),
+            )
+
+            if (article.isOpenable) {
+                ArticleShareButton(
+                    onShare = onShare,
+                    testTag = SwipeTestTags.share(article.id),
+                )
+            }
+        }
 
         if (article.excerpt.isNotBlank()) {
             Text(
@@ -471,13 +501,7 @@ private fun ArticleText(
          * muette ne se distingue pas d'une surface qui ne répond plus
          * (SPECS.md §4.7).
          */
-        if (article.isOpenable) {
-            ArticleShareButton(
-                onShare = onShare,
-                testTag = SwipeTestTags.share(article.id),
-                modifier = Modifier.align(Alignment.End),
-            )
-        } else {
+        if (!article.isOpenable) {
             Text(
                 text = stringResource(R.string.swipe_article_no_link),
                 style = MaterialTheme.typography.labelLarge,
