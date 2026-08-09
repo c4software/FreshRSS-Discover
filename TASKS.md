@@ -74,7 +74,7 @@ en parallèle par trois agents à la demande de l'auteur.
 | GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
 | GOAL-017 | Un article déjà lu se voit | `[x]` |
 | GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
-| GOAL-019 | Le marquage automatique devient optionnel | `[ ]` |
+| GOAL-019 | Le marquage automatique devient optionnel | `[x]` |
 | GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[ ]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
 
@@ -1281,7 +1281,14 @@ l'empreinte vérifiée à l'arrivée — va dans le bon sens pour un artefact si
 
 ## GOAL-019 — Le marquage automatique devient optionnel
 
-**Statut : TODO**
+**Statut : DONE** — cinq tâches, cinq commits, sur la branche
+`worktree-agent-a1efdfaeef67c4f8e`. Vérification passée et constatée avant
+chaque commit, `:app:verifyRoborazziDebug` compris à `T04`, où les captures des
+réglages ont été réenregistrées **et regardées** en clair et en sombre.
+
+Aucun constat sur appareil : le téléphone n'était pas disponible (voir l'avis de
+« Phase courante »). La garantie tient aux tests unitaires, aux tests d'écran et
+aux captures.
 
 Demandé par l'auteur. SPECS.md §1 pose « lire, c'est faire défiler » comme
 principe, et §4.5 en fait un mécanisme sans échappatoire : qui parcourt son flux
@@ -1309,7 +1316,29 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
       quand il se rallume. L'ouverture d'un article marque toujours
 - [x] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
       dessous — tests d'écran et captures Roborazzi **regardées**
-- [ ] `GOAL-019-T05` Documentation : SPECS.md §4.5 et §6, TASKS.md
+- [x] `GOAL-019-T05` Documentation : SPECS.md §4.5 et §6, TASKS.md
+
+### Ce que la réalisation a appris
+
+| Point | Constat |
+|---|---|
+| Le détecteur éteint | Il devient `null` plutôt que d'être doublé d'un booléen : l'absence de détecteur ne peut pas être oubliée, un drapeau à côté si. Les écrans continuent d'échantillonner la visibilité — sans effet, et c'est ce qui rend le rallumage immédiat |
+| Le chronomètre en cours | L'extinction le jette avec le détecteur. Le laisser aboutir marquerait un article après que l'utilisateur a demandé que cela cesse : un test le constate |
+| `DiscoverViewModelTest` | Ajouter les cas du réglage y faisait dépasser le seuil `LargeClass` de Detekt. Ils vivent dans `DiscoverAutomaticMarkingTest`, qui a son propre état de départ — aucune règle relâchée, aucun test abandonné |
+| Les textes des seuils | Ils s'atténuent avec le curseur (`0.38`, l'opacité que Material 3 n'expose pas). Un chiffre resté vif au-dessus d'une piste grisée se lirait comme un réglage encore appliqué |
+
+### Restes ouverts
+
+- La ligne « Prochaine tâche » de « Phase courante » cite encore
+  `GOAL-019-T01`. Elle n'a pas été retouchée ici : GOAL-020 et GOAL-021 sont
+  menés en parallèle sur d'autres branches, et trois agents réécrivant la même
+  phrase produiraient un conflit à la fusion. À reprendre une fois les trois
+  Goals fusionnés.
+- **ARCHITECTURE.md n'a pas été mise à jour** : elle sortait du périmètre confié
+  à cette branche. Rien d'architectural n'a changé — ni paquet, ni dépendance,
+  ni découpage : un champ s'est ajouté à `ReadingSettings` et une clé au
+  DataStore. §5.1 gagnerait tout de même la mention de
+  `reading.auto_mark_as_read`, à faire lors d'une passe où le fichier est libre.
 
 ---
 

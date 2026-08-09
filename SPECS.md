@@ -246,6 +246,24 @@ sorte que le défilement ne s'interrompe pas.
 Un article est considéré comme lu lorsqu'il a été **suffisamment visible** :
 au moins **60 % de sa hauteur** affichée pendant au moins **1 seconde continue**.
 
+Ce mécanisme est **facultatif**. Un interrupteur des réglages (§6) l'éteint et
+le rallume, et il est **actif par défaut** — c'est le principe de §1, « lire,
+c'est faire défiler », et une installation existante ne doit rien voir changer.
+Trois précisions, parce qu'elles décident du reste :
+
+- **L'extinction n'arrête que la détection par visibilité.** Ouvrir un article
+  le marque toujours comme lu (§4.7) : c'est un geste délibéré, pas un effet du
+  défilement, et les confondre laisserait le mode Balayage incapable de
+  consommer quoi que ce soit.
+- **Les deux seuils restent affichés, grisés.** Les cacher ferait disparaître
+  deux réglages sans dire pourquoi ; les laisser actifs proposerait d'ajuster ce
+  qui ne s'applique plus. Ils sont conservés tels quels pour le rallumage.
+- **Ce qui est déjà marqué le reste.** La file de marquages en attente n'est pas
+  vidée : éteindre le marquage n'annule pas les lectures passées.
+
+Le rallumage s'applique **sans redémarrage**, comme le mode de présentation
+(§4.8) : le flux affiché recommence à marquer dès l'instant du basculement.
+
 Ce double seuil est délibéré : la surface seule marquerait comme lus les
 articles traversés par un défilement rapide ; la durée seule marquerait un
 article à peine effleuré en bord d'écran.
@@ -532,7 +550,8 @@ L'écran de réglages reste minimal :
 - adresse du serveur et identifiant connectés (en lecture seule) ;
 - **mode de présentation du flux** : Liste ou Balayage (§4.8) ;
 - **rappel de lecture** : activé ou non (§4.9) ;
-- seuils du marquage automatique (§4.5) ;
+- **marquage automatique** : actif ou non, puis ses deux seuils (§4.5) — les
+  seuils restent affichés, grisés, quand il est éteint ;
 - taille du cache et action de purge manuelle ;
 - déconnexion ;
 - version de l'application et licence.
