@@ -76,9 +76,10 @@ three agents at the author's request — GOAL-020 is finished.
 | GOAL-018 | CI stops running on deprecated actions | `[-]` |
 | GOAL-019 | Automatic marking becomes optional | `[x]` |
 | GOAL-020 | The card can be shared, the flag goes, the swipe opens on a tap | `[x]` |
-| GOAL-021 | The documentation switches to English, the interface becomes bilingual | `[ ]` |
+| GOAL-021 | The documentation switches to English, the interface becomes bilingual | `[x]` |
 | GOAL-022 | A local test stack, and the defects it revealed | `[x]` |
 | GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
+| GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1434,7 +1435,7 @@ separately would amount to fixing the same layout twice.
 
 ## GOAL-021 — The documentation switches to English, the interface becomes bilingual
 
-**Status: TODO**
+**Status: DONE**
 
 Requested by the author: the repository's documentation is **replaced** by its
 English translation — there are not two versions left, which would diverge at
@@ -1458,14 +1459,31 @@ default, French kept.
 - [x] `GOAL-021-T01` Translate `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
       `CLAUDE.md`, `PROMPT.md` and `docs/freshrss-api.md`. Those six are touched
       neither by GOAL-019 nor by GOAL-020: they can be translated in parallel
-- [ ] `GOAL-021-T02` **Bilingual interface**: the six string files move to
-      `values-fr/`, `values/` receives English, and a screen test in `en-rUS`
-      observes that nothing is missing there
-- [ ] `GOAL-021-T03` Translate `SPECS.md`, `ARCHITECTURE.md` and `TASKS.md`.
+- [x] `GOAL-021-T02` **Bilingual interface**: the six string files moved to
+      `values-fr/`, `values/` received English, and `EnglishStringsTest`
+      observes in `en-rUS` that nothing is missing there.
+      > **The move broke three screen test classes, and that was the useful
+      > part.** `DiscoverScreenTest`, `LoginScreenTest` and `SwipeScreenTest`
+      > assert **literal** labels without pinning a language: they had always
+      > run on the default locale, which happened to be French. It no longer
+      > is. They are now pinned to `fr-rFR`, like the screenshot harness and
+      > like the three test classes that already were.
+      > The guard was mutation-checked, and the **first** mutation was the
+      > wrong one: deleting an English string breaks compilation, since the
+      > main code references `R.string`. The defect that can actually happen is
+      > a string **left in French** in `values/` — mutated that way, the test
+      > fails as it should
+- [x] `GOAL-021-T03` Translate `SPECS.md`, `ARCHITECTURE.md` and `TASKS.md`.
       **After** GOAL-019 and GOAL-020, which modify them — translating first
-      would mean translating twice
-- [ ] `GOAL-021-T04` SPECS.md §7.3 rewritten: the interface is no longer "in
-      French" but bilingual, English by default
+      would have meant translating twice. Three agents in parallel, one file
+      each, each checked mechanically against its original: headings, table
+      rows, checkbox counts of every kind, blockquote blocks and `GOAL-0XX`
+      occurrences all match
+- [x] `GOAL-021-T04` SPECS.md §7.3 rewritten: the interface is no longer "in
+      French" but bilingual, English by default. The section also records the
+      consequence that is not obvious — the screenshots being pinned to
+      `fr-rFR`, they verify **French**, and a separate `en-rUS` test is what
+      keeps `values/` complete
 
 ---
 
@@ -1652,6 +1670,62 @@ line back to the content.
       the edge.
       `Spacing.none` is added to the scale so that this zero reads as a decision
       and not as an oversight
+
+---
+
+## GOAL-024 — Refreshing twice was needed to see new articles
+
+**Status: DONE** — reproduced by measurement, fixed, and observed fixed
+
+Reported by the author on his own device: new articles only appeared after
+**two** refreshes. The defect was real, it had been there since GOAL-008, and no
+test could see it.
+
+### What the measurement established
+
+Refreshing does not tell the server what has just been read before asking it for
+the feed again. Read marks are batched for up to **five seconds** before being
+transmitted (SPECS.md §8, question 4), so a refresh made inside that window
+queries a server that still believes those articles unread. It returns them,
+they take their places back in the page of forty, and the genuinely new articles
+do not appear. The second refresh — the batch having gone by then — shows the
+new state.
+
+Measured on the emulator, against a real FreshRSS instance:
+
+| Moment | Unread, server-side |
+|---|---|
+| Before reading | 162 |
+| **At the instant of the refresh** | **162** — the server had not been told |
+| Twelve seconds later | 158 |
+
+And after the fix, on the same course: 158 before reading, **156 immediately
+after the refresh** — the marks left *with* the refresh instead of trailing it.
+
+### Why no test caught it
+
+The two ViewModels each called `flush()` **once**, at construction — the startup
+replay of SPECS.md §4.5 — and `refresh()` called `articleRepository.refresh()`
+straight away. Every existing case counted calls, and a count says that a thing
+happened, never that it happened **before** another: `flushCallCount == 1` and
+`refreshCallCount == 1` are both true in the faulty order.
+
+`FakeArticleRepository.onRefresh` is what closes that hole — a hook that
+observes the state of the world **at the moment** the refresh leaves. Both
+modes have their case, because the same rule lives in two ViewModels and a fix
+applied to one side only would make them diverge, which has happened often
+enough in this repository (ARCHITECTURE.md §9.6).
+
+### Tasks
+
+- [x] `GOAL-024-T01` **Refreshing transmits pending marks first**, in both
+      modes, and waits for them. This is the only place in the code where
+      `flush` is **awaited** before anything else: elsewhere it leaves without
+      its outcome being watched, marking being optimistic. Here its result
+      decides whether what the server returns is right. A failure still blocks
+      nothing — the queue keeps what it holds, and the refresh happens anyway
+- [x] `GOAL-024-T02` **Two cases that fail without the fix**, mutation-checked:
+      remove the `flush()` and both go red, put it back and both go green
 
 ---
 

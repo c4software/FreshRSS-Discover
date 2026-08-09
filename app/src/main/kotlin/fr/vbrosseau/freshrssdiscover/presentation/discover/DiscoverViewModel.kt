@@ -219,6 +219,28 @@ class DiscoverViewModel @Inject constructor(
         _uiState.update { it.copy(isRefreshing = true) }
 
         viewModelScope.launch {
+            /*
+             * **Dire au serveur ce qui a été lu, avant de lui demander la
+             * suite.** Sans cela, le rechargement interroge un serveur qui
+             * ignore encore les lectures des dernières secondes : le
+             * regroupement des marquages retient jusqu'à 5 s (SPECS.md §8,
+             * question 4). Le serveur renvoie donc ces articles comme non lus,
+             * ils reprennent leur place dans la page de 40, et les nouveaux
+             * n'apparaissent pas — **il faut recharger une seconde fois**.
+             *
+             * Signalé par l'auteur, puis mesuré sur l'émulateur : 162 non lus
+             * avant lecture, 162 encore à l'instant du rechargement, 158 douze
+             * secondes plus tard.
+             *
+             * L'attente est délibérée, et c'est le seul endroit du code où
+             * `flush` est **attendu** avant autre chose : ailleurs il part sans
+             * qu'on en guette l'issue, le marquage étant optimiste. Ici son
+             * résultat conditionne la justesse de ce que le serveur va rendre.
+             * Un échec ne bloque rien pour autant — la file conserve, et le
+             * rechargement a lieu quand même, comme avant.
+             */
+            readSyncRepository.flush()
+
             when (val result = articleRepository.refresh()) {
                 is Outcome.Success -> {
                     cursor = result.value.nextCursor

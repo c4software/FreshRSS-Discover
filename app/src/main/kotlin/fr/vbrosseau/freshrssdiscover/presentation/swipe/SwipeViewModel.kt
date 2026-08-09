@@ -186,6 +186,22 @@ class SwipeViewModel @Inject constructor(
         _uiState.update { it.copy(isRefreshing = true) }
 
         viewModelScope.launch {
+            /*
+             * **Dire au serveur ce qui a été lu, avant de lui demander la
+             * suite** — même raison qu'en mode Liste, où le défaut a été
+             * mesuré : le regroupement des marquages retient jusqu'à 5 s
+             * (SPECS.md §8, question 4), donc un rechargement immédiat
+             * interroge un serveur qui croit encore ces articles non lus. Ils
+             * reprennent leur place dans la page, et il faut recharger deux
+             * fois pour voir la suite.
+             *
+             * Le mode Balayage y est **plus exposé** : un article y occupe
+             * tout l'écran, la durée seule décide du marquage, et le
+             * rechargement suit souvent de près la lecture de la carte
+             * courante.
+             */
+            readSyncRepository.flush()
+
             when (val result = articleRepository.refresh()) {
                 is Outcome.Success -> {
                     cursor = result.value.nextCursor

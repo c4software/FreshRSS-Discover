@@ -59,11 +59,24 @@ class FakeArticleRepository : ArticleRepository {
     }
 
     /**
+     * Observe l'état du monde **au moment** où le rechargement part.
+     *
+     * Un compteur d'appels dit qu'une chose a eu lieu, jamais qu'elle a eu lieu
+     * **avant** une autre : deux `assertEquals` sur deux compteurs passent quel
+     * que soit l'ordre. Or l'ordre est exactement ce qui compte pour le
+     * rechargement, qui doit transmettre les marquages en attente avant
+     * d'interroger le serveur (GOAL-024). Ce crochet est le seul endroit d'où
+     * un test peut le constater.
+     */
+    var onRefresh: (() -> Unit)? = null
+
+    /**
      * Sert la même file que [loadPage] : un test de rafraîchissement programme
      * ses pages sans avoir à savoir par quelle méthode elles seront demandées.
      */
     override suspend fun refresh(): FeedResult<ArticlePage> {
         refreshCallCount++
+        onRefresh?.invoke()
 
         return nextResult()
     }
