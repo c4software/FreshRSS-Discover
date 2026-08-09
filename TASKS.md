@@ -1,1677 +1,1676 @@
-# TASKS.md — Feuille de route et avancement réel
+# TASKS.md — Roadmap and actual progress
 
-Mémoire persistante du projet. Un agent qui arrive doit pouvoir lire ce seul
-fichier et comprendre **où le travail s'est arrêté**.
+The project's persistent memory. An arriving agent must be able to read this
+single file and understand **where the work stopped**.
 
-Documents liés : [AGENTS.md](./AGENTS.md) (les règles) ·
-[SPECS.md](./SPECS.md) (le quoi) · [ARCHITECTURE.md](./ARCHITECTURE.md) (le
-comment).
+Related documents: [AGENTS.md](./AGENTS.md) (the rules) ·
+[SPECS.md](./SPECS.md) (the what) · [ARCHITECTURE.md](./ARCHITECTURE.md) (the
+how).
 
 ---
 
 ## Conventions
 
-| Marque | État |
+| Mark | State |
 |---|---|
-| `[ ]` | TODO — pas commencé |
-| `[-]` | IN PROGRESS — commencé, **jamais supposé terminé** |
-| `[x]` | DONE — code **et** tests **et** vérification constatée |
-| `[!]` | BLOCKED — la raison est écrite juste en dessous |
+| `[ ]` | TODO — not started |
+| `[-]` | IN PROGRESS — started, **never assumed finished** |
+| `[x]` | DONE — code **and** tests **and** verification observed |
+| `[!]` | BLOCKED — the reason is written just below |
 
-Identifiants : `GOAL-00X` pour un Goal, `GOAL-00X-TYY` pour une tâche. Ils sont
-**stables** : une tâche abandonnée est barrée, jamais renumérotée. Les messages
-de commit les référencent (AGENTS.md §7).
+Identifiers: `GOAL-00X` for a Goal, `GOAL-00X-TYY` for a task. They are
+**stable**: an abandoned task is struck through, never renumbered. Commit
+messages reference them (AGENTS.md §7).
 
-Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
+Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 
 ---
 
-## Phase courante
+## Current phase
 
-**Phase 0 — Harness** ✅ terminée
-**Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
-**Phase 2 — Flux Discover** ✅ assemblée et livrée
+**Phase 0 — Harness** ✅ finished
+**Phase 1 — FreshRSS API** ✅ finished (GOAL-002, GOAL-003)
+**Phase 2 — Discover feed** ✅ assembled and delivered
 
-**Phase 3 — Réglage du marquage, partage, documentation anglaise** 🚧 en cours
+**Phase 3 — Tuning the marking, sharing, English documentation** 🚧 in progress
 (GOAL-019, GOAL-020, GOAL-021)
 
-Un point reste bloqué, hors de notre main : `GOAL-001-T17` — AGP 9.3.1 plante
-toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera
-avec une version d'AGP, pas avec du code d'ici.
+One point remains blocked, out of our hands: `GOAL-001-T17` — AGP 9.3.1 still
+crashes on `lintAnalyzeDebugUnitTest`, retried on 2026-08-08. It will be lifted
+by an AGP version, not by code from here.
 
-**Prochaine tâche** : `GOAL-019-T01` et `GOAL-021-T01`, menées en parallèle
-par trois agents à la demande de l'auteur — GOAL-020 est terminé.
+**Next task**: `GOAL-019-T01` and `GOAL-021-T01`, carried out in parallel by
+three agents at the author's request — GOAL-020 is finished.
 
-> ⚠️ **Aucune validation sur appareil n'est possible sur cette phase**, l'auteur
-> l'a signalé le 2026-08-09 : le téléphone n'est pas disponible. La garantie
-> repose donc entièrement sur les tests unitaires, les tests d'écran et les
-> captures Roborazzi **regardées**. Les Goals précédents avaient chacun leur
-> tâche « constaté sur appareil », et trois défauts sur trois n'y avaient été
-> vus qu'ainsi (`GOAL-001-T22`) : ce filet-là manque, et il faut le dire plutôt
-> que de laisser croire à une couverture équivalente.
+> ⚠️ **No validation on a device is possible during this phase**, as the author
+> reported on 2026-08-09: the phone is not available. The guarantee therefore
+> rests entirely on the unit tests, the screen tests and the Roborazzi
+> screenshots **actually looked at**. Each of the previous Goals had its
+> "observed on a device" task, and three defects out of three were only seen
+> that way (`GOAL-001-T22`): that net is missing, and it is better to say so
+> than to let anyone believe the cover is equivalent.
 
 ---
 
-## Vue d'ensemble
+## Overview
 
-| Goal | Titre | État |
+| Goal | Title | State |
 |---|---|---|
-| GOAL-001 | Harness et initialisation | `[x]` |
-| GOAL-002 | Authentification FreshRSS | `[x]` |
-| GOAL-003 | Récupération paginée des articles | `[x]` |
-| GOAL-004 | Cache local et résilience réseau | `[x]` |
-| GOAL-005 | Mélange des sources | `[x]` |
-| GOAL-006 | Flux Discover — interface | `[x]` |
-| GOAL-007 | Marquage automatique comme lu | `[x]` |
-| GOAL-008 | Synchronisation du statut lu | `[x]` |
-| GOAL-009 | Tirer-pour-rafraîchir | `[x]` |
-| GOAL-010 | Ouverture de l'article d'origine | `[x]` |
-| GOAL-011 | Écran de réglages | `[x]` |
-| GOAL-012 | Vue Balayage, article par article | `[x]` |
-| GOAL-013 | Rappel de lecture par notification locale | `[x]` |
-| GOAL-014 | Toast d'ancienneté du flux | `[x]` |
-| GOAL-015 | Lancement calme : cache seul, sans reprise | `[x]` |
-| GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
-| GOAL-017 | Un article déjà lu se voit | `[x]` |
-| GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
-| GOAL-019 | Le marquage automatique devient optionnel | `[x]` |
-| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
-| GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
-| GOAL-022 | Une pile de test locale, et les défauts qu'elle a révélés | `[x]` |
-| GOAL-023 | La carte se resserre : source et date en pied, partage discret | `[x]` |
+| GOAL-001 | Harness and initialisation | `[x]` |
+| GOAL-002 | FreshRSS authentication | `[x]` |
+| GOAL-003 | Paginated article retrieval | `[x]` |
+| GOAL-004 | Local cache and network resilience | `[x]` |
+| GOAL-005 | Source interleaving | `[x]` |
+| GOAL-006 | Discover feed — interface | `[x]` |
+| GOAL-007 | Automatic marking as read | `[x]` |
+| GOAL-008 | Read status synchronisation | `[x]` |
+| GOAL-009 | Pull to refresh | `[x]` |
+| GOAL-010 | Opening the original article | `[x]` |
+| GOAL-011 | Settings screen | `[x]` |
+| GOAL-012 | Swipe view, article by article | `[x]` |
+| GOAL-013 | Reading reminder by local notification | `[x]` |
+| GOAL-014 | Feed staleness notice | `[x]` |
+| GOAL-015 | Quiet launch: cache only, no restore | `[x]` |
+| GOAL-016 | Small illustrations stop being stretched | `[x]` |
+| GOAL-017 | An already-read article shows it | `[x]` |
+| GOAL-018 | CI stops running on deprecated actions | `[-]` |
+| GOAL-019 | Automatic marking becomes optional | `[x]` |
+| GOAL-020 | The card can be shared, the flag goes, the swipe opens on a tap | `[x]` |
+| GOAL-021 | The documentation switches to English, the interface becomes bilingual | `[ ]` |
+| GOAL-022 | A local test stack, and the defects it revealed | `[x]` |
+| GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
 
-L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
-découpés en tâches par `/goal` au moment de les entreprendre : les découper
-d'avance reviendrait à décider sans connaître l'état du code (AGENTS.md §2,
-« ne pas anticiper »).
+The state carried here is that of the Goal's own section, which is
+authoritative. Goals are broken down into tasks by `/goal` at the moment of
+taking them on: breaking them down in advance would mean deciding without
+knowing the state of the code (AGENTS.md §2, "do not anticipate").
 
 ---
 
-## GOAL-001 — Harness et initialisation
+## GOAL-001 — Harness and initialisation
 
-**Statut : DONE**
+**Status: DONE**
 
-Mise en place du dépôt, de sa documentation et des commandes de pilotage. Aucune
-fonctionnalité applicative.
+Setting up the repository, its documentation and the steering commands. No
+application feature.
 
-- [x] `GOAL-001-T01` Analyser le dépôt et le template
-- [x] `GOAL-001-T02` Cloner le template et retirer sa logique métier
-- [x] `GOAL-001-T03` Renommer projet, paquet et identifiants
-- [x] `GOAL-001-T04` Étudier la documentation FreshRSS et la source `greader.php`
-- [x] `GOAL-001-T05` Rédiger `docs/freshrss-api.md`
-- [x] `GOAL-001-T06` Rédiger `SPECS.md`
-- [x] `GOAL-001-T07` Rédiger `ARCHITECTURE.md`
-- [x] `GOAL-001-T08` Rédiger `AGENTS.md`
-- [x] `GOAL-001-T09` Rédiger `TASKS.md`, `CONTRIBUTING.md`, `README.md`
-- [x] `GOAL-001-T10` Créer `/goal`, `/task`, `/status`, `/verify`
-- [x] `GOAL-001-T11` Ossature exécutable : thème, navigation, écran d'attente
-- [x] `GOAL-001-T12` Chaîne Roborazzi éprouvée, références enregistrées
-- [x] `GOAL-001-T13` Vérification complète passée et constatée
+- [x] `GOAL-001-T01` Analyse the repository and the template
+- [x] `GOAL-001-T02` Clone the template and strip out its business logic
+- [x] `GOAL-001-T03` Rename project, package and identifiers
+- [x] `GOAL-001-T04` Study the FreshRSS documentation and the `greader.php` source
+- [x] `GOAL-001-T05` Write `docs/freshrss-api.md`
+- [x] `GOAL-001-T06` Write `SPECS.md`
+- [x] `GOAL-001-T07` Write `ARCHITECTURE.md`
+- [x] `GOAL-001-T08` Write `AGENTS.md`
+- [x] `GOAL-001-T09` Write `TASKS.md`, `CONTRIBUTING.md`, `README.md`
+- [x] `GOAL-001-T10` Create `/goal`, `/task`, `/status`, `/verify`
+- [x] `GOAL-001-T11` Runnable skeleton: theme, navigation, placeholder screen
+- [x] `GOAL-001-T12` Roborazzi chain proven, references recorded
+- [x] `GOAL-001-T13` Full verification passed and observed
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| Template `c4software/tailscale-auto-rules` | Architecture Clean éprouvée, ktlint/detekt/kover/Roborazzi/CI déjà câblés |
-| Hilt et Room conservés (au lieu de Koin et SQLDelight) | Infrastructure du template déjà éprouvée ; migrer aurait coûté la Phase 0 sans gain |
-| Ktor retenu pour HTTP | Aucun client HTTP dans le template : ajout franc, sans conflit |
-| Room retiré d'`app/build.gradle.kts` | Une base sans entité ne compile pas ; réappliqué par GOAL-004 |
-| `PlaceholderScreen` | Rend l'ossature exécutable et vérifiable sans anticiper les écrans |
+| Template `c4software/tailscale-auto-rules` | Proven Clean architecture, ktlint/detekt/kover/Roborazzi/CI already wired |
+| Hilt and Room kept (instead of Koin and SQLDelight) | The template's infrastructure is already proven; migrating would have cost Phase 0 for no gain |
+| Ktor chosen for HTTP | No HTTP client in the template: a clean addition, with no conflict |
+| Room removed from `app/build.gradle.kts` | A database without an entity does not compile; reapplied by GOAL-004 |
+| `PlaceholderScreen` | Makes the skeleton runnable and verifiable without anticipating the screens |
 
-### Dettes ouvertes par ce Goal
+### Debts opened by this Goal
 
-- [x] `GOAL-001-T14` ~~Le garde-fou de couverture est vide.~~ **Levé par
-      `GOAL-002-T02`** : `koverVerify` mesure désormais réellement, et a
-      immédiatement échoué à 86,2 % sur les premiers modèles.
-- [x] `GOAL-001-T15` ~~Retirer `PlaceholderScreen`~~ **Levé** : les deux
-      destinations ont leur écran réel, l'écran d'attente et ses chaînes ont été
-      supprimés.
-- [x] `GOAL-001-T22` ~~L'application n'a jamais été lancée.~~ **Levé le
-      2026-08-07** : installée et exécutée sur un Pixel 10 Pro, connectée à une
-      instance FreshRSS réelle. Le parcours complet fonctionne — connexion, flux
-      d'articles réels avec illustrations, marquage automatique **transmis au
-      serveur** (49 articles en cache dont 11 lus et synchronisés), réglages,
-      déconnexion avec confirmation.
-      > **Trois défauts que 487 tests et 30 captures n'avaient pas vus** :
-      > 1. l'écran de connexion passait **sous la barre d'état**, son titre
-      >    chevauché par l'heure. Les captures rendent le Composable isolé, sans
-      >    barres système : elles ne pouvaient pas le voir ;
-      > 2. son titre était **noir sur noir** en thème sombre, faute de `Surface`
-      >    à la racine. Voir ci-dessous, c'est le plus instructif ;
-      > 3. l'écran de réglages affiche **deux titres empilés** — « Paramètres »
-      >    dans la barre, « Réglages » dans l'écran.
-- [x] `GOAL-001-T23` **Le harnais de capture masquait un défaut de production.**
-      > Le titre noir sur noir avait déjà été rencontré en Phase 0, sur une
-      > capture. Il avait été corrigé **dans le harnais** — un `Surface` ajouté à
-      > `ScreenshotTest` — plutôt que dans l'application. Les images sont
-      > redevenues correctes pendant que la production restait fautive, et le
-      > défaut n'a resurgi qu'à la première exécution réelle, des Goals plus tard.
+- [x] `GOAL-001-T14` ~~The coverage safeguard is empty.~~ **Lifted by
+      `GOAL-002-T02`**: `koverVerify` now really measures, and immediately
+      failed at 86.2 % on the first models.
+- [x] `GOAL-001-T15` ~~Remove `PlaceholderScreen`~~ **Lifted**: both
+      destinations have their real screen, the placeholder screen and its
+      strings have been deleted.
+- [x] `GOAL-001-T22` ~~The application has never been launched.~~ **Lifted on
+      2026-08-07**: installed and run on a Pixel 10 Pro, connected to a real
+      FreshRSS instance. The whole journey works — login, feed of real articles
+      with illustrations, automatic marking **transmitted to the server**
+      (49 articles cached, of which 11 read and synchronised), settings,
+      sign-out with confirmation.
+      > **Three defects that 487 tests and 30 screenshots had not seen**:
+      > 1. the login screen went **under the status bar**, its title overlapped
+      >    by the clock. The screenshots render the Composable in isolation,
+      >    without system bars: they could not see it;
+      > 2. its title was **black on black** in the dark theme, for want of a
+      >    `Surface` at the root. See below, it is the most instructive one;
+      > 3. the settings screen shows **two stacked titles** — "Paramètres" in
+      >    the bar, "Réglages" in the screen.
+- [x] `GOAL-001-T23` **The screenshot harness was masking a production defect.**
+      > The black-on-black title had already been met in Phase 0, on a
+      > screenshot. It had been fixed **in the harness** — a `Surface` added to
+      > `ScreenshotTest` — rather than in the application. The images became
+      > correct again while production stayed at fault, and the defect only
+      > resurfaced on the first real run, several Goals later.
       >
-      > Corrigé à la racine : `MainActivity` enveloppe désormais l'application
-      > dans un `Surface`. Le harnais et la production coïncident enfin.
-      > La règle est inscrite dans AGENTS.md §4.1 : **quand une capture révèle un
-      > défaut, on corrige l'application, jamais le harnais.**
-- [x] `GOAL-001-T24` ~~Deux titres empilés dans l'écran de réglages~~ **Levé** :
-      le titre d'écran est retiré, la barre du `Scaffold` suffit. Énoncé initial :
-      « Paramètres » (barre de titre) et « Réglages » (en-tête d'écran). La barre
-      affiche déjà le libellé de la destination — l'en-tête est redondant, et les
-      deux mots diffèrent pour désigner la même chose.
-      > 487 tests passent, 30 captures sont conformes, et pourtant **aucune
-      > exécution réelle n'a eu lieu** : ni sur appareil, ni sur émulateur.
-      > Tenté le 2026-08-07, `adb devices` ne renvoie aucun appareil.
+      > Fixed at the root: `MainActivity` now wraps the application in a
+      > `Surface`. The harness and production coincide at last.
+      > The rule is recorded in AGENTS.md §4.1: **when a screenshot reveals a
+      > defect, fix the application, never the harness.**
+- [x] `GOAL-001-T24` ~~Two stacked titles in the settings screen~~ **Lifted**:
+      the screen title is removed, the `Scaffold` bar is enough. Original
+      statement: "Paramètres" (title bar) and "Réglages" (screen header). The
+      bar already shows the destination's label — the header is redundant, and
+      the two words differ while designating the same thing.
+      > 487 tests pass, 30 screenshots conform, and yet **no real run has taken
+      > place**: neither on a device nor on an emulator. Attempted on
+      > 2026-08-07, `adb devices` returns no device.
       >
-      > Ce que les tests ne peuvent pas établir, et qui n'est donc pas établi :
-      > l'ouverture réelle de la base Room sur disque, le fonctionnement du
-      > chiffrement `AndroidKeyStore` — non couvert par construction, voir
-      > `GOAL-002-T18` — l'onglet personnalisé, le chargement d'images par le
-      > réseau, et le comportement de la liste au défilement réel, sur lequel
-      > repose tout le marquage automatique.
+      > What the tests cannot establish, and which is therefore not
+      > established: the real opening of the Room database on disk, the working
+      > of `AndroidKeyStore` encryption — not covered by construction, see
+      > `GOAL-002-T18` — the custom tab, image loading over the network, and
+      > the behaviour of the list under real scrolling, on which the whole
+      > automatic marking rests.
       >
-      > **À faire avant toute annonce de fonctionnement** :
-      > `./gradlew :app:installDebug` puis
+      > **To be done before announcing anything works**:
+      > `./gradlew :app:installDebug` then
       > `adb shell am start -n fr.vbrosseau.freshrssdiscover/.MainActivity`,
-      > avec une instance FreshRSS réelle.
-- [x] `GOAL-001-T16` **Icône de l'application** : « le fil », icône adaptative
-      dessinée pour l'application — un ruban qui descend en serpentant, plutôt
-      que les ondes RSS que porte déjà tout autre lecteur. Fond, calque avant et
-      monochrome. Celle du template n'est plus en place.
-- [x] `GOAL-001-T21` ~~ktlint ne vérifie aucune source Kotlin de `:app`~~
-      **Levé par `detekt-formatting`**, qui embarque les règles ktlint dans
-      Detekt. Le garde-fou n'était pas décoratif : il a immédiatement révélé
-      **22 violations**, dont quatre imports morts laissés par le refactor
-      `AuthResult` → `Outcome`. Le constat d'origine :
-      > Constaté : `./gradlew :app:tasks --all` ne montre que
-      > `ktlintKotlinScriptCheck` — les fichiers `.kts`. `:domain`, lui, a bien
-      > `ktlintMainSourceSetCheck`, `ktlintTestSourceSetCheck` et
-      > `ktlintTestFixturesSourceSetCheck`. Le greffon ktlint-gradle 12.1.1 ne
-      > découvre pas les jeux de sources Android d'AGP 9.
+      > against a real FreshRSS instance.
+- [x] `GOAL-001-T16` **Application icon**: "le fil", an adaptive icon drawn for
+      the application — a ribbon winding downwards, rather than the RSS waves
+      that every other reader already carries. Background, foreground layer and
+      monochrome. The template's own is no longer in place.
+- [x] `GOAL-001-T21` ~~ktlint checks no Kotlin source of `:app`~~
+      **Lifted by `detekt-formatting`**, which embeds the ktlint rules in
+      Detekt. The safeguard was not decorative: it immediately revealed
+      **22 violations**, including four dead imports left by the `AuthResult`
+      → `Outcome` refactor. The original observation:
+      > Observed: `./gradlew :app:tasks --all` shows only
+      > `ktlintKotlinScriptCheck` — the `.kts` files. `:domain`, for its part,
+      > does have `ktlintMainSourceSetCheck`, `ktlintTestSourceSetCheck` and
+      > `ktlintTestFixturesSourceSetCheck`. The ktlint-gradle 12.1.1 plugin does
+      > not discover AGP 9's Android source sets.
       >
-      > **Conséquence : la commande de vérification d'AGENTS.md §5 est
-      > partiellement vide depuis l'origine**, exactement comme l'était le
-      > garde-fou de couverture en Phase 0. Preuve : dans `LoginScreen.kt`,
-      > `LinearProgressIndicator` est importé avant `Icon` — un ordre que ktlint
-      > refuse, et qui a survécu à toutes les vérifications.
+      > **Consequence: the verification command of AGENTS.md §5 has been
+      > partly empty from the start**, exactly as the coverage safeguard was in
+      > Phase 0. Proof: in `LoginScreen.kt`, `LinearProgressIndicator` is
+      > imported before `Icon` — an order ktlint refuses, and which survived
+      > every verification.
       >
-      > Detekt, lui, couvre bien `:app` : le formatage n'est donc pas totalement
-      > sans surveillance, mais les règles de style de ktlint n'y sont pas
-      > appliquées. Piste retenue : ajouter `detekt-formatting`, qui embarque les
-      > règles ktlint dans Detekt, plutôt que de tenter de faire découvrir les
-      > jeux de sources au greffon.
-      > La correction a été différée jusqu'à la fin des travaux parallèles :
-      > modifier les fichiers Gradle sous des agents en cours leur aurait fait
-      > voir des violations apparues en cours de route.
-- [!] `GOAL-001-T17` **Lint Android désactivé sur les sources de test**
-      (`ignoreTestSources = true`). AGP 9.3.1 plante sur ses propres composants
-      d'analyse Kotlin.
-      > **Réessayé le 2026-08-08, le plantage subsiste.** Passer à `false` fait
-      > échouer `:app:lintAnalyzeDebugUnitTest` sur
-      > `SymbolLightClassForClassOrObject.getSuperTypes`, exactement la trace
-      > d'origine. À noter pour la prochaine tentative : `:app:lintDebug` seul
-      > **passe** — c'est la variante de test unitaire qui plante, et s'arrêter
-      > à `lintDebug` ferait croire le problème résolu.
+      > Detekt, for its part, does cover `:app`: formatting is therefore not
+      > entirely unwatched, but ktlint's style rules are not applied there.
+      > Chosen route: add `detekt-formatting`, which embeds the ktlint rules in
+      > Detekt, rather than trying to make the plugin discover the source sets.
+      > The fix was deferred until the end of the parallel work: modifying the
+      > Gradle files under running agents would have made them see violations
+      > that appeared along the way.
+- [!] `GOAL-001-T17` **Android lint disabled on the test sources**
+      (`ignoreTestSources = true`). AGP 9.3.1 crashes on its own Kotlin
+      analysis components.
+      > **Retried on 2026-08-08, the crash persists.** Switching to `false`
+      > makes `:app:lintAnalyzeDebugUnitTest` fail on
+      > `SymbolLightClassForClassOrObject.getSuperTypes`, exactly the original
+      > trace. Worth noting for the next attempt: `:app:lintDebug` alone
+      > **passes** — it is the unit-test variant that crashes, and stopping at
+      > `lintDebug` would make the problem look solved.
       >
-      > Ce que l'essai a tout de même appris : hors ce plantage, les sources de
-      > test ne portent que cinq avertissements, tous de nommage
-      > (`ComposableNaming` sur des aides de capture). Rien de structurel
-      > n'attend derrière ce garde-fou.
+      > What the attempt did teach nonetheless: apart from that crash, the test
+      > sources carry only five warnings, all of naming (`ComposableNaming` on
+      > screenshot helpers). Nothing structural is waiting behind this
+      > safeguard.
       >
-      > Reste bloquée jusqu'à une version d'AGP qui corrige.
-- [x] `GOAL-001-T18` **Robolectric relevé de l'API 35 à 36**, le dernier niveau
-      qu'il sait instancier — 37 lève `UnknownSdk`, essayé avant de trancher.
-      Un écart d'un niveau subsiste avec `targetSdk`, et il ne se refermera
-      qu'avec une version de Robolectric qui porte l'image 37.
-      Le rendu bouge un peu au passage : les 48 références ont été
-      réenregistrées et **regardées** en comparaison. Seul l'anticrénelage des
-      arrondis diffère — curseurs, interrupteur, coins de carte — la mise en
-      page, les textes et les couleurs sont inchangés.
-- [x] `GOAL-001-T19` **CI neutralisée sur `push` — décision close, pas une
-      dette** (`branches: [never]`). Confirmée par l'auteur le 2026-08-08 :
-      elle figurait encore parmi les points bloqués, ce qui laissait croire à un
-      obstacle en attente de levée. Il n'y en a pas.
-      > Chaque exécution consomme du crédit de build, et la vérification locale
-      > est exactement la même commande. Le déclencheur `pull_request` reste
-      > actif — il consomme lui aussi, et se neutralise de la même façon si
-      > besoin. La garantie repose donc entièrement sur AGENTS.md §5, dont la
-      > sortie doit être **constatée** avant chaque commit.
+      > Stays blocked until an AGP version that fixes it.
+- [x] `GOAL-001-T18` **Robolectric raised from API 35 to 36**, the highest level
+      it can instantiate — 37 throws `UnknownSdk`, tried before deciding.
+      A one-level gap remains with `targetSdk`, and it will only close with a
+      Robolectric version that carries image 37.
+      The rendering moves a little in passing: the 48 references have been
+      re-recorded and **looked at** side by side. Only the antialiasing of the
+      rounded shapes differs — sliders, switch, card corners — the layout, the
+      texts and the colours are unchanged.
+- [x] `GOAL-001-T19` **CI neutralised on `push` — a closed decision, not a
+      debt** (`branches: [never]`). Confirmed by the author on 2026-08-08: it
+      still figured among the blocked points, which suggested an obstacle
+      awaiting removal. There is none.
+      > Every run consumes build credit, and the local verification is exactly
+      > the same command. The `pull_request` trigger stays active — it consumes
+      > too, and can be neutralised the same way if needed. The guarantee
+      > therefore rests entirely on AGENTS.md §5, whose output must be
+      > **observed** before every commit.
 
 ---
 
-## GOAL-002 — Authentification FreshRSS
+## GOAL-002 — FreshRSS authentication
 
-**Statut : DONE**
+**Status: DONE**
 
-Permettre à l'utilisateur de connecter l'application à son serveur FreshRSS et
-de conserver sa session. Couvre SPECS.md §3.
+Let the user connect the application to their FreshRSS server and keep their
+session. Covers SPECS.md §3.
 
-Référence obligatoire : [docs/freshrss-api.md §2](./docs/freshrss-api.md).
-Rappel AGENTS.md §3 : ne jamais inventer le comportement d'un point d'entrée.
+Mandatory reference: [docs/freshrss-api.md §2](./docs/freshrss-api.md).
+AGENTS.md §3 reminder: never invent the behaviour of an endpoint.
 
-- [x] `GOAL-002-T01` Constater `ClientLogin` contre un serveur réel — forme
-      exacte de la réponse, codes d'erreur, comportement API désactivée — et
-      mettre à jour `docs/freshrss-api.md`
-      > Constaté contre `https://demo.freshrss.org/` le 2026-08-07. A **corrigé
-      > une erreur de lecture de la source** : un utilisateur inconnu répond
-      > `401` et non `400`, donc « inconnu » et « mauvais mot de passe » sont
-      > indistinguables — ce qui est le comportement souhaitable. Autres
-      > constats : sonde de reconnaissance `GET` nu → `OK` (une chaîne de requête
-      > la casse), `check/compatibility` répond toujours `200` et exige un
-      > en-tête `Authorization` dans sa propre requête, un chemin inconnu répond
-      > `401` et non `404`.
-      > **Reste non constaté** — le serveur de démonstration n'a pas de mot de
-      > passe API exploitable : la réponse de succès de `ClientLogin` et le `503`
-      > d'une API désactivée. **Constatés depuis** — voir la section « Ce qui a
-      > été constaté » de `docs/freshrss-api.md`.
-- [x] `GOAL-002-T02` Modèles de `:domain` : `ServerAddress`, `Credentials`,
-      `AuthToken`, type d'erreur scellé couvrant les cinq causes de SPECS.md §3.3
-- [x] `GOAL-002-T03` `ServerAddress` et `AuthSession` : normalisation de l'adresse
-      saisie (schéma implicite, dérivation de `…/api/greader.php`, `http://` toléré
-      et signalé) — pure, testée exhaustivement
-- [x] `GOAL-002-T04` Câbler Ktor dans `app/build.gradle.kts` (moteur OkHttp,
-      négociation de contenu limitée à `application/json`, journalisation sans
-      secrets) et fournir le client par Hilt
-- [x] `GOAL-002-T05` `FreshRssApi` : sonde de reconnaissance, sonde de
-      transmission de l'en-tête, `clientLogin()` — réponse en texte brut, paires
-      `clé=valeur`
-- [x] `GOAL-002-T06` Traduction des codes HTTP en erreurs de domaine
-      (`400/401/404/503`, corps en texte brut, connectivité pour distinguer
-      « hors ligne » de « injoignable »)
-- [x] `GOAL-002-T07` `AuthRepository` : interface dans `:domain`, implémentation
-      dans `:app/data`, plus `NetworkAvailability`.
-      **A ajouté une sixième cause à SPECS.md §3.3** : en-tête `Authorization`
-      supprimé par un reverse-proxy.
-- [x] `GOAL-002-T08` Stockage chiffré du jeton (DataStore adossé au keystore) —
-      jamais journalisé. **Traité avant T07**, dont le dépôt s'appuie dessus.
-      **A modifié SPECS.md §3.4** : le mot de passe API n'est plus enregistré du
-      tout, le jeton n'expirant pas.
-- [ ] ~~`GOAL-002-T09` Récupération et conservation du jeton de modification `T`~~
-      **Reporté à GOAL-008** (synchronisation du statut lu). Le jeton `T` ne sert
-      qu'aux opérations modifiantes : le récupérer ici produirait un appel dont
-      personne n'a l'usage, et du code mort jusqu'à GOAL-008 (AGENTS.md §2).
-      `AuthSession` le porte déjà, en option, et `SessionStore` sait le
-      conserver — ce qu'un test couvre.
-- [x] `GOAL-002-T10` Tests de la couche API au `MockEngine` : succès, chaque
-      code d'erreur, réponse tronquée, réponse JSON là où du texte est attendu.
-      Écrits dans le même incrément que le code qu'ils couvrent (AGENTS.md §4),
-      donc livrés par T04, T05 et T06 plutôt qu'en une passe séparée.
-- [x] `GOAL-002-T11` Tests du repository, stockage chiffré compris — livrés par
-      T07 et T08, même raison.
-- [x] `GOAL-002-T12` `LoginViewModel` et son `UiState`
-- [x] `GOAL-002-T13` Écran de connexion, avec l'explication du mot de passe API
-      (SPECS.md §3.2) et un message distinct par cause d'échec
-- [x] `GOAL-002-T14` Aiguillage racine par la présence d'une session ; jeton
-      refusé → écran de connexion prérempli de l'adresse et de l'identifiant
-- [x] `GOAL-002-T15` Tests d'écran, et captures Roborazzi de la connexion en
-      clair et sombre — vide, remplie, en cours, en erreur. **Regardées** : elles
-      ont révélé un indicateur de progression quasi invisible dans un bouton
-      désactivé.
-- [x] `GOAL-002-T16` Reconstater `koverVerify` sur `:domain` (lève
-      `GOAL-001-T14`) — fait dès T02 : le seuil a réellement échoué à 86,2 %.
-- [x] `GOAL-002-T17` Mettre à jour `ARCHITECTURE.md` §9 et `SPECS.md`
+- [x] `GOAL-002-T01` Observe `ClientLogin` against a real server — exact shape
+      of the response, error codes, behaviour with the API disabled — and
+      update `docs/freshrss-api.md`
+      > Observed against `https://demo.freshrss.org/` on 2026-08-07. It
+      > **corrected a misreading of the source**: an unknown user answers
+      > `401` and not `400`, so "unknown" and "wrong password" are
+      > indistinguishable — which is the desirable behaviour. Other
+      > observations: bare `GET` recognition probe → `OK` (a query string
+      > breaks it), `check/compatibility` always answers `200` and requires an
+      > `Authorization` header in its own request, an unknown path answers
+      > `401` and not `404`.
+      > **Still not observed** — the demonstration server has no usable API
+      > password: `ClientLogin`'s success response and the `503` of a disabled
+      > API. **Observed since** — see the "What has been observed" section of
+      > `docs/freshrss-api.md`.
+- [x] `GOAL-002-T02` `:domain` models: `ServerAddress`, `Credentials`,
+      `AuthToken`, sealed error type covering the five causes of SPECS.md §3.3
+- [x] `GOAL-002-T03` `ServerAddress` and `AuthSession`: normalisation of the
+      entered address (implicit scheme, derivation of `…/api/greader.php`,
+      `http://` tolerated and flagged) — pure, exhaustively tested
+- [x] `GOAL-002-T04` Wire Ktor into `app/build.gradle.kts` (OkHttp engine,
+      content negotiation limited to `application/json`, logging without
+      secrets) and provide the client through Hilt
+- [x] `GOAL-002-T05` `FreshRssApi`: recognition probe, header-forwarding probe,
+      `clientLogin()` — plain text response, `key=value` pairs
+- [x] `GOAL-002-T06` Translation of HTTP codes into domain errors
+      (`400/401/404/503`, plain text body, connectivity to tell "offline" from
+      "unreachable")
+- [x] `GOAL-002-T07` `AuthRepository`: interface in `:domain`, implementation
+      in `:app/data`, plus `NetworkAvailability`.
+      **Added a sixth cause to SPECS.md §3.3**: `Authorization` header stripped
+      by a reverse proxy.
+- [x] `GOAL-002-T08` Encrypted token storage (DataStore backed by the keystore)
+      — never logged. **Handled before T07**, whose repository rests on it.
+      **Modified SPECS.md §3.4**: the API password is no longer stored at all,
+      since the token does not expire.
+- [ ] ~~`GOAL-002-T09` Retrieve and keep the `T` modification token~~
+      **Deferred to GOAL-008** (read status synchronisation). The `T` token
+      only serves modifying operations: fetching it here would produce a call
+      nobody has any use for, and dead code until GOAL-008 (AGENTS.md §2).
+      `AuthSession` already carries it, optionally, and `SessionStore` knows how
+      to keep it — which a test covers.
+- [x] `GOAL-002-T10` API layer tests with `MockEngine`: success, each error
+      code, truncated response, JSON response where text is expected. Written in
+      the same increment as the code they cover (AGENTS.md §4), so delivered by
+      T04, T05 and T06 rather than in a separate pass.
+- [x] `GOAL-002-T11` Repository tests, encrypted storage included — delivered by
+      T07 and T08, same reason.
+- [x] `GOAL-002-T12` `LoginViewModel` and its `UiState`
+- [x] `GOAL-002-T13` Login screen, with the explanation of the API password
+      (SPECS.md §3.2) and a distinct message per failure cause
+- [x] `GOAL-002-T14` Root routing by the presence of a session; token refused →
+      login screen pre-filled with the address and the username
+- [x] `GOAL-002-T15` Screen tests, and Roborazzi screenshots of the login in
+      light and dark — empty, filled, in progress, in error. **Looked at**: they
+      revealed a progress indicator that was nearly invisible inside a disabled
+      button.
+- [x] `GOAL-002-T16` Re-observe `koverVerify` on `:domain` (lifts
+      `GOAL-001-T14`) — done as early as T02: the threshold really did fail at
+      86.2 %.
+- [x] `GOAL-002-T17` Update `ARCHITECTURE.md` §9 and `SPECS.md`
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| Le mot de passe API n'est pas enregistré | Le jeton n'expire pas : le conserver suffit. **A modifié SPECS.md §3.4** |
-| Sixième cause d'échec : en-tête `Authorization` non transmis | Sans elle, un reverse-proxy fautif ferait accuser les identifiants. **A modifié SPECS.md §3.3** |
-| Chiffrement AES/GCM écrit à la main | `androidx.security:security-crypto` est déprécié (AGENTS.md §2) |
-| `SecretCipher` abstrait | Robolectric ne simule pas `AndroidKeyStore` ; sans lui, persistance et effacement seraient inéprouvables |
-| `SecretKeySource` extrait (GOAL-002-T18) | Le chiffrement lui-même restait inéprouvable parce qu'il fabriquait sa clé. Le partage réduit l'angle mort à l'appel de plateforme |
-| Sonde de reconnaissance **avant** l'envoi des identifiants | Une faute de frappe enverrait sinon le mot de passe à un serveur tiers |
-| Sonde de transmission d'en-tête **après** l'obtention du jeton | Plus tôt : un aller-retour gaspillé par tentative. Plus tard : une session vouée à boucler sur des 401 |
-| `invalidateSession()` distinct de `signOut()` | Un jeton refusé conserve adresse et identifiant ; une déconnexion efface tout |
+| The API password is not stored | The token does not expire: keeping it is enough. **Modified SPECS.md §3.4** |
+| Sixth failure cause: `Authorization` header not forwarded | Without it, a faulty reverse proxy would get the credentials blamed. **Modified SPECS.md §3.3** |
+| AES/GCM encryption written by hand | `androidx.security:security-crypto` is deprecated (AGENTS.md §2) |
+| `SecretCipher` abstracted | Robolectric does not simulate `AndroidKeyStore`; without it, persistence and erasure would be unprovable |
+| `SecretKeySource` extracted (GOAL-002-T18) | The encryption itself stayed unprovable because it manufactured its own key. Splitting it reduces the blind spot to the platform call |
+| Recognition probe **before** sending the credentials | A typo would otherwise send the password to a third-party server |
+| Header-forwarding probe **after** obtaining the token | Earlier: one wasted round trip per attempt. Later: a session doomed to loop on 401s |
+| `invalidateSession()` distinct from `signOut()` | A refused token keeps address and username; a sign-out erases everything |
 
-### Dettes ouvertes par ce Goal
+### Debts opened by this Goal
 
-- [x] `GOAL-002-T18` **Le chiffrement des secrets est éprouvé** — 9 tests, dont
-      l'aller-retour, le vecteur d'initialisation qui change à chaque
-      chiffrement, un octet altéré que GCM refuse, et le texte illisible traité
-      comme une session absente plutôt qu'en plantant.
-      Robolectric ne simule toujours pas `AndroidKeyStore` — réessayé, le
-      fournisseur lève `NoSuchAlgorithmException`. La classe restait donc
-      inéprouvable **pour la seule raison qu'elle fabriquait sa clé** : la
-      provenance de la clé est passée derrière `SecretKeySource`, et ce qui
-      reste non couvert tient en une vingtaine de lignes qui n'appellent que la
-      plateforme.
-- [x] `GOAL-002-T19` ~~Deux points de l'API non constatés~~ **Levé.** La réponse
-      de succès de `ClientLogin` et le `503` d'une API désactivée ont été
-      observés sur une instance personnelle.
-      > Le second a **corrigé une erreur de documentation** : la sonde de
-      > reconnaissance répond `OK` et `200` **même API désactivée**, le
-      > court-circuit qui la sert étant placé avant la vérification
-      > `api_enabled`. Écrire « tous les points d'entrée répondent 503 » était
-      > faux. L'implémentation était déjà correcte — c'est `ClientLogin` qui
-      > révèle le `503` — mais pour une raison qui n'était pas écrite ; un test
-      > la verrouille désormais.
-- [x] `GOAL-002-T20` ~~Aucun appel authentifié n'existe encore~~ **Levé par
-      `GOAL-003-T06`** : la lecture du flux est le premier appel authentifié, et
-      un `401` y efface bien les jetons tout en conservant le rappel de saisie.
+- [x] `GOAL-002-T18` **Secret encryption is proven** — 9 tests, including the
+      round trip, the initialisation vector that changes on every encryption, an
+      altered byte that GCM refuses, and unreadable text treated as an absent
+      session rather than crashing.
+      Robolectric still does not simulate `AndroidKeyStore` — retried, the
+      provider throws `NoSuchAlgorithmException`. The class therefore stayed
+      unprovable **for the sole reason that it manufactured its own key**: the
+      key's provenance has moved behind `SecretKeySource`, and what remains
+      uncovered fits in about twenty lines that do nothing but call the
+      platform.
+- [x] `GOAL-002-T19` ~~Two API points not observed~~ **Lifted.** `ClientLogin`'s
+      success response and the `503` of a disabled API have been observed on a
+      personal instance.
+      > The second one **corrected a documentation error**: the recognition
+      > probe answers `OK` and `200` **even with the API disabled**, the
+      > short-circuit serving it being placed before the `api_enabled` check.
+      > Writing "every endpoint answers 503" was false. The implementation was
+      > already correct — it is `ClientLogin` that reveals the `503` — but for a
+      > reason that was not written down; a test now locks it in.
+- [x] `GOAL-002-T20` ~~No authenticated call exists yet~~ **Lifted by
+      `GOAL-003-T06`**: reading the feed is the first authenticated call, and a
+      `401` there does erase the tokens while keeping the entry reminder.
 
 ---
 
-## GOAL-003 — Récupération paginée des articles
+## GOAL-003 — Paginated article retrieval
 
-**Statut : DONE**
+**Status: DONE**
 
-Couvre SPECS.md §4.1 et §4.4. Point délicat : le curseur `continuation` est
-relatif et non positionnel, et un curseur invalide provoque une **répétition
-silencieuse de la première page** — voir docs/freshrss-api.md §3.5 et
-ARCHITECTURE.md §4.2.
+Covers SPECS.md §4.1 and §4.4. The delicate point: the `continuation` cursor is
+relative and not positional, and an invalid cursor causes a **silent repetition
+of the first page** — see docs/freshrss-api.md §3.5 and ARCHITECTURE.md §4.2.
 
-Tranche SPECS.md §8 question 1 (taille de page).
+Settles SPECS.md §8 question 1 (page size).
 
-- [x] `GOAL-003-T01` Généraliser `AuthResult` en `Outcome<T, E>` — l'échec des
-      articles est le deuxième cas d'usage, donc le moment prévu par AGENTS.md §2
-      pour créer l'abstraction, pas avant
-- [x] `GOAL-003-T02` Modèles de `:domain` : `Article`, `ArticleId`, `FeedRef`,
+- [x] `GOAL-003-T01` Generalise `AuthResult` into `Outcome<T, E>` — article
+      failure is the second use case, so the moment AGENTS.md §2 foresees for
+      creating the abstraction, not before
+- [x] `GOAL-003-T02` `:domain` models: `Article`, `ArticleId`, `FeedRef`,
       `PageCursor`, `ArticlePage`, `FeedError`
-- [x] `GOAL-003-T03` DTO de `stream/contents` et désérialisation — champs
-      facultatifs, unités de temps hétérogènes, `categories` porteur de l'état lu
-- [x] `GOAL-003-T04` Conversion DTO → domaine : identifiant hexadécimal vers
-      décimal, extraction de l'illustration, article sans lien exploitable
-- [x] `GOAL-003-T05` `FreshRssApi.streamContents()` — en-tête d'autorisation,
-      `n`, `c`, `xt`, et l'absence de `continuation` comme seul signal de fin
-- [x] `GOAL-003-T06` `ArticleRepository` : interface `:domain`, implémentation
-      `:app/data`, et `401` → `invalidateSession()` (lève `GOAL-002-T20`)
-- [x] `GOAL-003-T07` Trancher la taille de page et l'inscrire dans SPECS.md §8 —
-      **40**, et la question 6 (illustration) tranchée au passage. Une septième
-      question s'est ouverte : le serveur ne tronque pas utilement le résumé.
-- [x] `GOAL-003-T08` Mettre à jour `ARCHITECTURE.md` §9
+- [x] `GOAL-003-T03` `stream/contents` DTOs and deserialisation — optional
+      fields, heterogeneous time units, `categories` carrying the read state
+- [x] `GOAL-003-T04` DTO → domain conversion: hexadecimal identifier to decimal,
+      illustration extraction, article with no usable link
+- [x] `GOAL-003-T05` `FreshRssApi.streamContents()` — authorisation header, `n`,
+      `c`, `xt`, and the absence of `continuation` as the only end signal
+- [x] `GOAL-003-T06` `ArticleRepository`: `:domain` interface, `:app/data`
+      implementation, and `401` → `invalidateSession()` (lifts `GOAL-002-T20`)
+- [x] `GOAL-003-T07` Settle the page size and record it in SPECS.md §8 —
+      **40**, and question 6 (illustration) settled along the way. A seventh
+      question opened: the server does not usefully truncate the summary.
+- [x] `GOAL-003-T08` Update `ARCHITECTURE.md` §9
 
 ---
 
-## GOAL-004 — Cache local et résilience réseau
+## GOAL-004 — Local cache and network resilience
 
-**Statut : DONE** — cache lu au lancement et hors ligne, purge et file livrées
+**Status: DONE** — cache read at launch and offline, purge and queue delivered
 
-Couvre SPECS.md §5.
+Covers SPECS.md §5.
 
-- [x] `GOAL-004-T01` Réappliquer Room : plugin, dépendances, `schemaDirectory`,
-      schéma versionné `app/schemas/…/1.json`
+- [x] `GOAL-004-T01` Reapply Room: plugin, dependencies, `schemaDirectory`,
+      versioned schema `app/schemas/…/1.json`
 - [x] `GOAL-004-T02` `ArticleEntity`, `ArticleDao`, `AppDatabase`, `DatabaseModule`
-- [x] `GOAL-004-T03` `ArticleCache` : `save`, `observeArticles`, `clear`,
-      `purgeReadOlderThan` — 12 tests sur base en mémoire
-- [x] `GOAL-004-T04` Câbler l'écriture : chaque page récupérée est déposée au
-      cache, et la déconnexion le vide (SPECS.md §3.5)
-- [x] `GOAL-004-T05` `observeCachedArticles()` : le cache s'affiche avant toute
-      requête (SPECS.md §5.1)
-- [x] `GOAL-004-T06` Repli hors ligne complet : bandeau discret par-dessus le
-      contenu du cache, écran plein cadre réservé au cas **sans aucun article**
-- [x] `GOAL-004-T07` **Purge déclenchée, seuil tranché à 7 jours** (SPECS.md §8,
-      question 3), une fois par démarrage de processus.
-      > ⚠️ **Un défaut sérieux corrigé au passage.** La purge ne testait que
-      > « lu **et** assez ancien » : sur un appareil hors ligne plus longtemps
-      > que le seuil, elle effaçait un article dont le marquage attendait encore
-      > d'être transmis. La file survivait, mais **la mémoire locale du « déjà
-      > lu » partait avec la ligne** — elle ne vit nulle part ailleurs. Au
-      > rafraîchissement suivant le serveur redécrivait l'article comme non lu,
-      > plus rien ne le contredisait, et il **réapparaissait dans le flux**.
-      > Corrigé par une exclusion explicite des marquages en attente, et
-      > SPECS.md §5.3 dit désormais littéralement pourquoi.
-- [x] `GOAL-004-T08` File des marquages en attente (ARCHITECTURE.md §5.1) :
-      `PendingMarkEntity`, `PendingMarkDao` et `PendingMarkQueue`, base en
-      version 2 avec ses deux schémas versionnés (`app/schemas/1.json` et
-      `2.json`). Couverte par `PendingMarkQueueTest`
+- [x] `GOAL-004-T03` `ArticleCache`: `save`, `observeArticles`, `clear`,
+      `purgeReadOlderThan` — 12 tests on an in-memory database
+- [x] `GOAL-004-T04` Wire the writing: every fetched page is deposited in the
+      cache, and signing out empties it (SPECS.md §3.5)
+- [x] `GOAL-004-T05` `observeCachedArticles()`: the cache is displayed before any
+      request (SPECS.md §5.1)
+- [x] `GOAL-004-T06` Full offline fallback: discreet banner over the cached
+      content, full-frame screen reserved for the case with **no article at all**
+- [x] `GOAL-004-T07` **Purge triggered, threshold settled at 7 days** (SPECS.md
+      §8, question 3), once per process start.
+      > ⚠️ **A serious defect fixed along the way.** The purge only tested
+      > "read **and** old enough": on a device offline for longer than the
+      > threshold, it erased an article whose marking was still waiting to be
+      > transmitted. The queue survived, but **the local memory of "already
+      > read" went with the row** — it lives nowhere else. On the next refresh
+      > the server described the article as unread, nothing contradicted it any
+      > more, and it **reappeared in the feed**.
+      > Fixed by an explicit exclusion of pending markings, and SPECS.md §5.3
+      > now says literally why.
+- [x] `GOAL-004-T08` Pending markings queue (ARCHITECTURE.md §5.1):
+      `PendingMarkEntity`, `PendingMarkDao` and `PendingMarkQueue`, database at
+      version 2 with its two versioned schemas (`app/schemas/1.json` and
+      `2.json`). Covered by `PendingMarkQueueTest`
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| L'état lu local ne recule jamais | Un marquage parti hors ligne n'est transmis qu'au retour du réseau ; jusque-là le serveur décrit l'article comme non lu. L'écraser ferait **réapparaître ce que l'utilisateur vient de lire** — la régression la plus visible qu'un cache puisse produire. « Lu » se propage, « non lu » non |
-| Purge sur l'ancienneté **dans le cache**, pas sur la date de publication | Sinon un vieil article qu'on vient d'ouvrir disparaîtrait dans la seconde, alors qu'il est encore à l'écran |
-| Titre du flux dupliqué par ligne, pas de table de flux | Un seul lecteur : l'abstraction arrive avec son deuxième usage (AGENTS.md §2) |
+| The local read state never goes backwards | A marking sent offline is only transmitted when the network returns; until then the server describes the article as unread. Overwriting it would **make what the user has just read reappear** — the most visible regression a cache can produce. "Read" propagates, "unread" does not |
+| Purge on age **in the cache**, not on the publication date | Otherwise an old article just opened would vanish within the second, while still on screen |
+| Feed title duplicated per row, no feed table | A single reader: the abstraction arrives with its second use (AGENTS.md §2) |
 
 ---
 
-## GOAL-005 — Mélange des sources
+## GOAL-005 — Source interleaving
 
-**Statut : DONE** — `interleaveBySource` ordonne les pages du serveur et du cache
+**Status: DONE** — `interleaveBySource` orders the server's and the cache's pages
 
-Cœur de l'application (SPECS.md §4.2). Tranche SPECS.md §8 question 2.
+The heart of the application (SPECS.md §4.2). Settles SPECS.md §8 question 2.
 
-- [x] `GOAL-005-T01` `interleaveBySource(articles, previousTail)` — fonction pure,
-      14 tests, 100 % de couverture
-- [x] `GOAL-005-T02` Inscrire dans SPECS.md §4.2 l'arbitrage entre les règles 1
-      et 2, que la spécification ne tranchait pas
-- [x] `GOAL-005-T03` **Mélange appliqué** : `loadPage` et `refresh` rendent
-      désormais l'ordre d'affichage. La fonction n'est plus du code mort
-- [x] `GOAL-005-T04` Cas du rafraîchissement tranché : `refresh()` mélange la
-      première page **entre ses seuls articles** — rien ne la précède — et le
-      dédoublonnage revient à l'appelant, seul à savoir ce qui est à l'écran
+- [x] `GOAL-005-T01` `interleaveBySource(articles, previousTail)` — pure
+      function, 14 tests, 100 % coverage
+- [x] `GOAL-005-T02` Record in SPECS.md §4.2 the trade-off between rules 1 and
+      2, which the specification did not settle
+- [x] `GOAL-005-T03` **Interleaving applied**: `loadPage` and `refresh` now
+      return the display order. The function is no longer dead code
+- [x] `GOAL-005-T04` Refresh case settled: `refresh()` interleaves the first page
+      **among its own articles only** — nothing precedes it — and deduplication
+      falls to the caller, the only one that knows what is on screen
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| La récence l'emporte sur la répartition des sources | Les deux règles sont structurellement incompatibles au-delà d'une certaine amplitude, et SPECS.md ne disait pas laquelle gagne |
-| Borne de sept positions, exprimée en **rangs** et non en durée | Un seuil temporel se comporterait très différemment sur un flux qui publie trois articles par jour et sur un qui en publie trois cents. La borne en rangs est la même partout, et c'est elle que l'utilisateur perçoit |
-| Fenêtre glissante plutôt que blocs fixes | Des blocs laisseraient la monotonie réapparaître à chaque jonction |
+| Recency wins over source spreading | The two rules are structurally incompatible beyond a certain amplitude, and SPECS.md did not say which one wins |
+| A bound of seven positions, expressed in **ranks** and not in duration | A time-based threshold would behave very differently on a feed publishing three articles a day and on one publishing three hundred. The bound in ranks is the same everywhere, and it is the one the user perceives |
+| Sliding window rather than fixed blocks | Blocks would let the monotony reappear at every junction |
 
 ---
 
-## GOAL-006 — Flux Discover — interface
+## GOAL-006 — Discover feed — interface
 
-**Statut : DONE** — écran, illustrations et états de chargement livrés
+**Status: DONE** — screen, illustrations and loading states delivered
 
-Couvre SPECS.md §4.3 et §4.4.
+Covers SPECS.md §4.3 and §4.4.
 
-- [x] `GOAL-006-T01` `DiscoverUiState`, `DiscoverPhase`, `DiscoverViewModel` :
-      chargement anticipé, accumulation des pages, `loadMore` idempotent
-- [x] `GOAL-006-T02` `DiscoverScreen` : liste paresseuse, clés stables,
-      carte d'article, fin de flux explicite, article sans lien non cliquable
-- [x] `GOAL-006-T03` Date relative et écourtement de l'extrait — fonctions pures
-      testées, le temps venant de `Clock`
-- [x] `GOAL-006-T04` Brancher l'écran sur la destination Discover
-- [x] `GOAL-006-T05` Tests d'écran et de ViewModel, plus dix captures Roborazzi
-      (flux, vide, chargement, erreur, fin) — **regardées** : aucun défaut visuel
-- [x] `GOAL-006-T06` **Illustrations affichées** (Coil), rapport d'aspect stable,
-      échec de chargement qui referme la carte, et contraste du réservé corrigé —
-      il était strictement invisible en thème clair (ratio 1,00). Énoncé initial : Un `TODO(GOAL-006)` subsiste
-      dans `DiscoverScreen` : aucune bibliothèque de chargement d'images n'est au
-      projet, l'emplacement est réservé mais reste gris. Demande une dépendance
-      (Coil), donc une modification des fichiers Gradle. À traiter en même temps :
-      transporter `imageUrl` jusqu'à `ArticleUiModel`, poser une
-      `contentDescription` — volontairement absente tant que rien n'est montré —
-      et **corriger le contraste du réservé en thème clair**, constaté sur
-      `discover-flux-clair.png` : `surfaceVariant` sur un conteneur de carte quasi
-      identique le rend presque invisible, alors qu'il se distingue nettement en
-      sombre.
-- [x] `GOAL-006-T07` Mélange appliqué par le dépôt
-- [x] `GOAL-006-T08` Visibilité mesurée et détecteur alimenté
+- [x] `GOAL-006-T01` `DiscoverUiState`, `DiscoverPhase`, `DiscoverViewModel`:
+      prefetching, page accumulation, idempotent `loadMore`
+- [x] `GOAL-006-T02` `DiscoverScreen`: lazy list, stable keys, article card,
+      explicit end of feed, article with no link not clickable
+- [x] `GOAL-006-T03` Relative date and excerpt shortening — pure functions
+      tested, time coming from `Clock`
+- [x] `GOAL-006-T04` Plug the screen into the Discover destination
+- [x] `GOAL-006-T05` Screen and ViewModel tests, plus ten Roborazzi screenshots
+      (feed, empty, loading, error, end) — **looked at**: no visual defect
+- [x] `GOAL-006-T06` **Illustrations displayed** (Coil), stable aspect ratio,
+      load failure that closes the card back up, and placeholder contrast fixed —
+      it was strictly invisible in the light theme (ratio 1.00). Original
+      statement: A `TODO(GOAL-006)` remains
+      in `DiscoverScreen`: no image-loading library is in the project, the slot
+      is reserved but stays grey. Requires a dependency (Coil), hence a change
+      to the Gradle files. To be handled at the same time: carry `imageUrl`
+      through to `ArticleUiModel`, set a
+      `contentDescription` — deliberately absent as long as nothing is shown —
+      and **fix the contrast of the placeholder in the light theme**, observed on
+      `discover-flux-clair.png`: `surfaceVariant` on a nearly identical card
+      container makes it almost invisible, whereas it stands out clearly in
+      dark.
+- [x] `GOAL-006-T07` Interleaving applied by the repository
+- [x] `GOAL-006-T08` Visibility measured and detector fed
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| Articles et phase de chargement **séparés** dans l'état | SPECS.md §4.4 exige qu'un échec de page suivante ne vide pas l'affichage, ce qui serait impossible si la liste ne vivait que dans le cas « chargé » d'un type scellé |
-| Cinq phases distinctes plutôt que des booléens croisés | Deux drapeaux indépendants autoriseraient l'état ambigu « ni en cours, ni fini, ni en erreur », c'est-à-dire exactement la liste qui cesse de s'allonger sans rien dire |
-| `SessionExpired` n'affiche **rien** mais arrête les demandes | L'écran va disparaître ; sans arrêt explicite, le défilement réclamerait une page à chaque image jusqu'à la bascule |
-| « Flux vide » distingué de « fin de flux » | « Vous avez tout lu » sous une liste vide n'explique rien |
+| Articles and loading phase **separated** in the state | SPECS.md §4.4 requires that a next-page failure does not empty the display, which would be impossible if the list only lived in the "loaded" case of a sealed type |
+| Five distinct phases rather than crossed booleans | Two independent flags would allow the ambiguous state "neither in progress, nor finished, nor in error", that is to say exactly the list that stops growing without saying anything |
+| `SessionExpired` displays **nothing** but stops the requests | The screen is about to disappear; without an explicit stop, scrolling would ask for a page on every frame until the switch |
+| "Empty feed" distinguished from "end of feed" | "You have read everything" under an empty list explains nothing |
 
 ---
 
-## GOAL-007 — Marquage automatique comme lu
+## GOAL-007 — Automatic marking as read
 
-**Statut : DONE** — la mesure de visibilité alimente le détecteur dans les deux modes
+**Status: DONE** — the visibility measurement feeds the detector in both modes
 
-Couvre SPECS.md §4.5.
+Covers SPECS.md §4.5.
 
-- [x] `GOAL-007-T01` `ReadDetector` : double seuil surface + durée continue,
-      seuils injectés, `Clock` pour le temps — 18 tests, 100 % de couverture
-- [x] `GOAL-007-T02` Lever les deux ambiguïtés de SPECS.md §4.5 que
-      l'implémentation a révélées
-- [x] `GOAL-007-T03` Mesure de la visibilité dans la `LazyColumn` — fonction
-      pure `visibleFraction`, 22 tests
-- [x] `GOAL-007-T04` Observation périodique à 200 ms, arrêtée hors premier plan
-- [x] `GOAL-007-T05` Détecteur relié au marquage optimiste : `markAsRead` puis
-      `flush`, et rejeu au démarrage
-- [x] `GOAL-007-T06` `onVisibilityChanged` passé depuis `AppNavHost` — la mesure
-      s'exécute réellement
-- [x] `GOAL-007-T07` `ReadDetector` construit depuis les réglages observés, et
-      reconstruit à chaque changement — sans redémarrage
+- [x] `GOAL-007-T01` `ReadDetector`: dual threshold, area plus continuous
+      duration, injected thresholds, `Clock` for time — 18 tests, 100 % coverage
+- [x] `GOAL-007-T02` Lift the two ambiguities of SPECS.md §4.5 that the
+      implementation revealed
+- [x] `GOAL-007-T03` Visibility measurement inside the `LazyColumn` — pure
+      function `visibleFraction`, 22 tests
+- [x] `GOAL-007-T04` Periodic observation at 200 ms, stopped when not in the
+      foreground
+- [x] `GOAL-007-T05` Detector connected to optimistic marking: `markAsRead` then
+      `flush`, and replay at start-up
+- [x] `GOAL-007-T06` `onVisibilityChanged` passed down from `AppNavHost` — the
+      measurement actually runs
+- [x] `GOAL-007-T07` `ReadDetector` built from the observed settings, and
+      rebuilt on every change — without a restart
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| La fraction se mesure sur `min(hauteur de l'article, hauteur de la fenêtre)` | Un article plus haut que l'écran plafonnerait sinon sous 60 % et ne serait **jamais** marqué lu |
-| Cadence d'observation à 200 ms | Le retard maximal vaut une période : le seuil d'une seconde se déclenche entre 1,0 s et 1,2 s. À 16 ms on réveillerait la coroutine 60 fois par seconde pour une règle dont l'unité est la seconde ; à 1 s on pourrait doubler le seuil annoncé |
-| Observation liée à `RESUMED`, pas `STARTED` | `STARTED` inclut l'écran derrière une boîte de dialogue : des articles seraient marqués lus sans être lus |
-| `onVisibilityChanged` **nullable**, nul par défaut | Armer une boucle périodique sans destinataire brûlerait de la batterie et rendrait les tests de rendu perpétuellement occupés. `null` dit « personne n'écoute », ce qu'un `{}` ne peut pas exprimer |
-| `ReadDetector` construit dans le ViewModel, non injecté | Son état est propre à cette liste ; injecté, il survivrait à l'écran et croirait déjà signalés des articles réaffichés |
+| The fraction is measured against `min(article height, window height)` | An article taller than the screen would otherwise cap below 60 % and would **never** be marked read |
+| Observation cadence at 200 ms | The maximum lag is one period: the one-second threshold fires between 1.0 s and 1.2 s. At 16 ms the coroutine would be woken 60 times a second for a rule whose unit is the second; at 1 s the announced threshold could double |
+| Observation tied to `RESUMED`, not `STARTED` | `STARTED` includes the screen behind a dialog: articles would be marked read without being read |
+| `onVisibilityChanged` **nullable**, null by default | Arming a periodic loop with no recipient would burn battery and keep rendering tests perpetually busy. `null` says "nobody is listening", which a `{}` cannot express |
+| `ReadDetector` built in the ViewModel, not injected | Its state belongs to this list; injected, it would outlive the screen and believe redisplayed articles already reported |
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| Les deux seuils sont **inclusifs** | SPECS.md dit « au moins » ; et 0,6 n'est pas représentable exactement en binaire — un seuil exclusif rendrait la règle dépendante de l'arrondi fait par l'interface |
-| Les articles déjà signalés sont retenus pour la vie du détecteur | C'est le prix de la garantie « jamais signalé deux fois ». Le coût est borné par ce que l'utilisateur a lu, pas par le nombre d'observations |
+| Both thresholds are **inclusive** | SPECS.md says "at least"; and 0.6 is not exactly representable in binary — an exclusive threshold would make the rule depend on the rounding done by the interface |
+| Already-reported articles are retained for the lifetime of the detector | That is the price of the "never reported twice" guarantee. The cost is bounded by what the user has read, not by the number of observations |
 
 ---
 
-## GOAL-008 — Synchronisation du statut lu
+## GOAL-008 — Read status synchronisation
 
-**Statut : DONE** — lots, file d'attente, rejeu au démarrage et transmission forcée
+**Status: DONE** — batches, queue, replay at start-up and forced transmission
 
-- [x] `GOAL-008-T01` `FreshRssApi.modificationToken()` et `markAsRead()` —
-      12 tests, dont l'identifiant non signé
+- [x] `GOAL-008-T01` `FreshRssApi.modificationToken()` and `markAsRead()` —
+      12 tests, including the unsigned identifier
 - [x] `GOAL-008-T02` `PendingMarkEntity`, `PendingMarkDao`, `PendingMarkQueue`,
-      et migration réelle `AppDatabase` 1 → 2 — 11 tests, migration comprise
-- [x] `GOAL-008-T03` **`addMigrations(MIGRATION_1_2)` déclarée** dans
-      `DatabaseModule`, avec `providePendingMarkDao`. Sans elle, tout appareil
-      déjà en version 1 aurait planté au premier accès — invisible aux tests,
-      qui construisent la base en mémoire, donc toujours à la version courante
-- [x] `GOAL-008-T04` `ReadSyncRepository` : marquage optimiste, lots de 100,
-      acquittement après confirmation, rejeu au démarrage — 30 tests
-- [x] `GOAL-008-T05` Sur `401`, le jeton de modification est redemandé **une
-      seule fois** ; un second `401` conclut à une session perdue **sans vider
-      la file**
-- [x] `GOAL-008-T06` La déconnexion vide la file, là où le cache l'est déjà
-- [x] `GOAL-008-T08` Le marquage local repasse par `ArticleCache` et non par le
-      DAO. L'agent avait dû court-circuiter l'enveloppe, faute d'accès en
-      écriture dans son périmètre ; il l'a signalé plutôt que de le taire
-- [x] `GOAL-008-T07` Taille de lot **100**, fenêtre de regroupement **5 s à
-      échéance fixe** (SPECS.md §8, question 4) — 17 tests
-- [x] `GOAL-008-T09` Forcer la transmission au passage en arrière-plan :
-      `ReadFlushOnBackgroundObserver` appelle `flush()` sur `ON_STOP` — et non
-      `ON_PAUSE`, qui se déclenche dès qu'une autre fenêtre passe devant. Sur la
-      portée de l'application, pour que la transmission survive à la destruction
-      de l'écran. Couvert par `ReadFlushOnBackgroundObserverTest`
+      and a real `AppDatabase` 1 → 2 migration — 11 tests, migration included
+- [x] `GOAL-008-T03` **`addMigrations(MIGRATION_1_2)` declared** in
+      `DatabaseModule`, with `providePendingMarkDao`. Without it, any device
+      already at version 1 would have crashed on first access — invisible to the
+      tests, which build the database in memory, hence always at the current
+      version
+- [x] `GOAL-008-T04` `ReadSyncRepository`: optimistic marking, batches of 100,
+      acknowledgement after confirmation, replay at start-up — 30 tests
+- [x] `GOAL-008-T05` On a `401`, the modification token is requested again
+      **only once**; a second `401` concludes the session is lost **without
+      emptying the queue**
+- [x] `GOAL-008-T06` Signing out empties the queue, as it already does the cache
+- [x] `GOAL-008-T08` Local marking goes back through `ArticleCache` and not
+      through the DAO. The agent had had to short-circuit the wrapper, for want
+      of write access within its scope; it reported the fact rather than keeping
+      quiet about it
+- [x] `GOAL-008-T07` Batch size **100**, batching window **5 s at a fixed
+      deadline** (SPECS.md §8, question 4) — 17 tests
+- [x] `GOAL-008-T09` Force transmission when going into the background:
+      `ReadFlushOnBackgroundObserver` calls `flush()` on `ON_STOP` — and not
+      `ON_PAUSE`, which fires as soon as another window comes in front. On the
+      application scope, so that transmission survives the destruction of the
+      screen. Covered by `ReadFlushOnBackgroundObserverTest`
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| `OnConflictStrategy.IGNORE` plutôt que `REPLACE` | Le dédoublonnage préserve la date de mise en file d'origine. Avec `REPLACE`, un article fréquemment revu verrait son horodatage repoussé et **pourrait ne jamais atteindre la tête de file** |
-| Tri sur `(date, identifiant)` et non sur la seule date | Sans second critère, une transmission partielle pourrait retomber en boucle sur le même lot |
-| `acknowledge` distincte de `pending` | Retirer avant confirmation perdrait le marquage sur un échec réseau — précisément ce que la file existe pour empêcher |
-| Migration réelle, pas de `fallbackToDestructiveMigration` | Une migration destructive viderait le cache et **les marquages non transmis** de tout utilisateur existant |
-| La longueur du jeton n'est pas validée | Un jeton refusé se signale par un `401`, pas par sa taille |
-| Lot de **100** articles | Par le bas : une page fait 40 articles, un lot plus petit ferait plusieurs requêtes pour une page parcourue. Par le haut : chaque article est un champ `i`, et PHP n'accepte par défaut que 1 000 champs (`max_input_vars`) — au-delà **les champs excédentaires sont ignorés en silence**, et `edit-tag` répond `OK` sans compte-rendu. La perte serait totalement muette |
-| Fenêtre de regroupement **fixe**, non glissante | Un défilement continu produit un lot toutes les 200 ms : une fenêtre relançable ne se refermerait **jamais** tant que l'utilisateur lit, et la transmission n'aurait lieu qu'à la fermeture |
-| Un `5xx` sur `/token` ne déconnecte pas | Seul un `401` signifie « jeton refusé ». Une panne serveur ferait sinon perdre la session à chaque hoquet |
+| `OnConflictStrategy.IGNORE` rather than `REPLACE` | Deduplication preserves the original queueing date. With `REPLACE`, a frequently revisited article would see its timestamp pushed back and **might never reach the head of the queue** |
+| Sorting on `(date, identifier)` and not on the date alone | Without a second criterion, a partial transmission could loop back onto the same batch |
+| `acknowledge` distinct from `pending` | Removing before confirmation would lose the marking on a network failure — precisely what the queue exists to prevent |
+| Real migration, no `fallbackToDestructiveMigration` | A destructive migration would empty the cache **and the untransmitted markings** of every existing user |
+| The token's length is not validated | A refused token announces itself with a `401`, not with its size |
+| Batch of **100** articles | From below: a page holds 40 articles, a smaller batch would make several requests for one page browsed. From above: each article is an `i` field, and PHP by default accepts only 1,000 fields (`max_input_vars`) — beyond that **the extra fields are silently ignored**, and `edit-tag` answers `OK` with no report. The loss would be entirely mute |
+| **Fixed** batching window, not sliding | Continuous scrolling produces a batch every 200 ms: a restartable window would **never** close while the user reads, and transmission would only happen on closing |
+| A `5xx` on `/token` does not sign out | Only a `401` means "token refused". A server outage would otherwise lose the session on every hiccup |
 
-> ⚠️ **Piège identifié d'avance.** Un identifiant d'article dépassant
-> `Long.MAX_VALUE` est conservé sous forme de bits, donc **négatif** en Kotlin.
-> Le reformater avec `toString()` enverrait `-1` au serveur : c'est
-> `java.lang.Long.toUnsignedString` qu'il faut employer pour le paramètre `i`
-> d'`edit-tag`. Constaté en écrivant les tests de conversion (GOAL-003-T04).
+> ⚠️ **A trap identified in advance.** An article identifier exceeding
+> `Long.MAX_VALUE` is kept as bits, hence **negative** in Kotlin. Reformatting
+> it with `toString()` would send `-1` to the server: it is
+> `java.lang.Long.toUnsignedString` that must be used for `edit-tag`'s `i`
+> parameter. Observed while writing the conversion tests (GOAL-003-T04).
 
-Couvre SPECS.md §4.5 (envoi par lots, optimiste, rejeu). S'appuie sur
-`edit-tag` — voir docs/freshrss-api.md §4.1, dont le traitement par lot via `i`
-répété.
+Covers SPECS.md §4.5 (batched, optimistic sending, replay). Rests on
+`edit-tag` — see docs/freshrss-api.md §4.1, including its batch handling via a
+repeated `i`.
 
-Tranche SPECS.md §8 question 4.
-
----
-
-## GOAL-009 — Tirer-pour-rafraîchir
-
-**Statut : DONE** — validé sur appareil
-
-Couvre SPECS.md §4.6.
-
-- [x] `GOAL-009-T01` `ArticleRepository.refresh()` — rend la première page du
-      jour, sans toucher au curseur de pagination
-- [x] `GOAL-009-T02` Geste de tirage et indicateur — 31 tests, 3 captures
-- [x] ~~`GOAL-009-T03` Insertion en tête des seuls inconnus~~ **Remplacé par
-      `GOAL-009-T04`** : la spécification a changé à la demande de l'auteur
-- [x] `GOAL-009-T04` **Le tirage vide la liste, recharge et remonte en haut**
-      (SPECS.md §4.6 réécrit). Insérer en tête préservait la lecture mais rendait
-      le geste presque invisible — on tirait, et rien ne semblait se passer
-- [x] `GOAL-009-T05` **La position de lecture survit à la fermeture**
-      (SPECS.md §5.3, nouvelle section) : `ReadingPositionViewModel` et
-      `ReadingPositionStore`. C'est la contrepartie exacte du tirage — une
-      fermeture n'est pas une demande de l'utilisateur.
-      **Corrigé après essai sur appareil** : la première version ne retenait que
-      l'identifiant, or l'article de tête est précisément celui que le marquage
-      vient de rendre lu, et le flux ne montre que des non-lus — la reprise ne
-      pouvait presque jamais aboutir. La date de publication part désormais avec
-      l'identifiant, et `ReadingPosition` reprend au plus proche, ce que §5.3
-      demandait déjà
-- [x] `GOAL-009-T06` **Validé sur appareil** (Pixel 10 Pro, Android 17) :
-      tirage → la liste est vidée, rechargée et remontée en haut ; six écrans de
-      défilement puis un `am force-stop` → l'application rouvre exactement sur
-      l'article qui était en tête. C'est cet essai qui avait révélé le défaut de
-      reprise corrigé en `GOAL-009-T05`
+Settles SPECS.md §8 question 4.
 
 ---
 
-## GOAL-010 — Ouverture de l'article d'origine
+## GOAL-009 — Pull to refresh
 
-**Statut : DONE**
+**Status: DONE** — validated on a device
 
-Couvre SPECS.md §4.7.
+Covers SPECS.md §4.6.
 
-- [x] `GOAL-010-T01` `ArticleOpener` : onglet personnalisé, filtrage des schémas,
-      absence de navigateur traitée — 17 tests
-- [x] `GOAL-010-T02` Ouvreur branché : `ArticleUiModel` transporte désormais
-      `url`, et `isOpenable` en est dérivé par défaut
-- [x] `GOAL-010-T03` Article marqué lu à l'ouverture, quelle que soit sa
-      visibilité passée
-- [x] `GOAL-010-T04` Ouverture refusée hors ligne, avec un avis **acquitté à la
-      main** — un message qui s'efface seul se rate. L'article n'est pas marqué
+- [x] `GOAL-009-T01` `ArticleRepository.refresh()` — returns the day's first
+      page, without touching the pagination cursor
+- [x] `GOAL-009-T02` Pull gesture and indicator — 31 tests, 3 screenshots
+- [x] ~~`GOAL-009-T03` Insert only the unknown ones at the head~~ **Replaced by
+      `GOAL-009-T04`**: the specification changed at the author's request
+- [x] `GOAL-009-T04` **The pull empties the list, reloads and goes back to the
+      top** (SPECS.md §4.6 rewritten). Inserting at the head preserved the
+      reading position but made the gesture almost invisible — you pulled, and
+      nothing seemed to happen
+- [x] `GOAL-009-T05` **The reading position survives closing**
+      (SPECS.md §5.3, new section): `ReadingPositionViewModel` and
+      `ReadingPositionStore`. It is the exact counterpart of the pull — a
+      closing is not a request from the user.
+      **Fixed after a trial on a device**: the first version only kept the
+      identifier, but the top article is precisely the one that the marking has
+      just turned read, and the feed only shows unread ones — the restore could
+      almost never succeed. The publication date now travels with the
+      identifier, and `ReadingPosition` resumes at the nearest one, which is what
+      §5.3 already asked for
+- [x] `GOAL-009-T06` **Validated on a device** (Pixel 10 Pro, Android 17): pull
+      → the list is emptied, reloaded and scrolled back to the top; six screens
+      of scrolling then an `am force-stop` → the application reopens exactly on
+      the article that was at the top. It is this trial that revealed the
+      restore defect fixed in `GOAL-009-T05`
 
-### Décisions prises
+---
 
-| Décision | Raison |
+## GOAL-010 — Opening the original article
+
+**Status: DONE**
+
+Covers SPECS.md §4.7.
+
+- [x] `GOAL-010-T01` `ArticleOpener`: custom tab, scheme filtering, absence of a
+      browser handled — 17 tests
+- [x] `GOAL-010-T02` Opener wired in: `ArticleUiModel` now carries `url`, and
+      `isOpenable` is derived from it by default
+- [x] `GOAL-010-T03` Article marked read on opening, whatever its past
+      visibility
+- [x] `GOAL-010-T04` Opening refused offline, with a notice **acknowledged by
+      hand** — a message that fades on its own gets missed. The article is not
+      marked
+
+### Decisions taken
+
+| Decision | Reason |
 |---|---|
-| Seuls `http` et `https` sont ouverts | Le lien d'un flux RSS est du **contenu tiers non maîtrisé**. Laisser passer `intent:`, `javascript:` ou `file:` reviendrait à laisser un serveur distant décider de ce que fait le téléphone |
-| Aucune préconnexion, aucun `warmup`, aucune session liée | SPECS.md §7.4 : l'ouverture est une action **de l'utilisateur**. Un préchargement serait une requête sortante qu'il n'a pas demandée. Prix payé et assumé : ouverture un peu moins rapide |
-| L'ouvreur revalide l'URL que l'écran a déjà filtrée | Il ne fait pas confiance à son appelant : la garantie doit tenir même si un futur écran oublie le filtre |
-| Barre d'onglet en `surface`, pas `primary` | L'onglet prolonge l'écran qu'il recouvre |
+| Only `http` and `https` are opened | An RSS feed's link is **third-party content beyond our control**. Letting `intent:`, `javascript:` or `file:` through would amount to letting a remote server decide what the phone does |
+| No preconnection, no `warmup`, no bound session | SPECS.md §7.4: opening is an action **of the user's**. A preload would be an outgoing request they did not ask for. Price paid and owned: a slightly slower opening |
+| The opener revalidates the URL the screen has already filtered | It does not trust its caller: the guarantee must hold even if some future screen forgets the filter |
+| Tab bar in `surface`, not `primary` | The tab extends the screen it covers |
 
 ---
 
-## GOAL-011 — Écran de réglages
+## GOAL-011 — Settings screen
 
-**Statut : DONE** — déconnexion, purge, seuils de lecture, mode d'affichage et rappel
+**Status: DONE** — sign-out, purge, reading thresholds, display mode and reminder
 
-Couvre SPECS.md §6.
+Covers SPECS.md §6.
 
 - [x] `GOAL-011-T01` `SettingsUiState`, `SettingsViewModel`, `SettingsScreen`,
-      `SettingsTestTags` — 18 tests, 4 captures **regardées**
-- [x] `GOAL-011-T02` Déconnexion avec confirmation (SPECS.md §3.5) : les deux
-      issues sont testées, l'annulation n'appelle pas `signOut()`
-- [x] `GOAL-011-T03` Écran branché sur la destination Réglages, dernier
-      `PlaceholderScreen` retiré (lève `GOAL-001-T15`)
-- [x] `GOAL-011-T04` **Seuils modifiables et persistés**, curseurs à crans,
-      bornes validées dans le domaine — 36 tests. La duplication des défauts est
-      supprimée : l'affichage observe le dépôt, il ne recopie plus rien
-- [x] `GOAL-011-T05` Taille du cache affichée et purge manuelle branchée —
-      28 tests. La taille est un **nombre d'articles**, pas des octets : SQLite ne
-      rend pas ses pages au système, une purge laisserait les mégaoctets
-      inchangés et se lirait comme sans effet
-- [x] `GOAL-011-T06` **Licence choisie : MIT.** `LICENSE` ajouté à la racine,
-      l'écran de réglages affiche « Licence MIT ». L'agent avait refusé d'en
-      inventer une et affichait « Non encore déterminée » — c'était la bonne
-      conduite : la licence est une décision d'auteur, pas un détail à combler
+      `SettingsTestTags` — 18 tests, 4 screenshots **looked at**
+- [x] `GOAL-011-T02` Sign-out with confirmation (SPECS.md §3.5): both outcomes
+      are tested, cancelling does not call `signOut()`
+- [x] `GOAL-011-T03` Screen plugged into the Settings destination, last
+      `PlaceholderScreen` removed (lifts `GOAL-001-T15`)
+- [x] `GOAL-011-T04` **Thresholds editable and persisted**, notched sliders,
+      bounds validated in the domain — 36 tests. The duplication of the defaults
+      is gone: the display observes the repository, it no longer copies anything
+- [x] `GOAL-011-T05` Cache size displayed and manual purge wired in —
+      28 tests. The size is a **number of articles**, not bytes: SQLite does not
+      give its pages back to the system, a purge would leave the megabytes
+      unchanged and would read as having no effect
+- [x] `GOAL-011-T06` **Licence chosen: MIT.** `LICENSE` added at the root, the
+      settings screen shows "Licence MIT". The agent had refused to invent one
+      and displayed "Non encore déterminée" — that was the right conduct: the
+      licence is an author's decision, not a detail to fill in
 
-### Décisions prises
+### Decisions taken
 
-| Décision | Raison |
+| Decision | Reason |
 |---|---|
-| Les seuils sont affichés mais non modifiables | Les rendre modifiables sans stockage donnerait un réglage qui ne survit pas à la fermeture — pire qu'un réglage absent |
-| Le bouton de purge est désactivé, pas caché | Annoncer la fonctionnalité vaut mieux que la faire découvrir plus tard ; la phrase au-dessus explique pourquoi il ne répond pas |
-| L'unité de conversion est faite dans le ViewModel | `0.6f → 60 %` et `1000 ms → 1 s` sont des calculs : AGENTS.md §9 les interdit dans un Composable |
+| The thresholds are displayed but not editable | Making them editable without storage would give a setting that does not survive closing — worse than an absent setting |
+| The purge button is disabled, not hidden | Announcing the feature is better than letting it be discovered later; the sentence above it explains why it does not respond |
+| The unit conversion is done in the ViewModel | `0.6f → 60 %` and `1000 ms → 1 s` are computations: AGENTS.md §9 forbids them in a Composable |
 
 ---
 
-## GOAL-012 — Vue Balayage, article par article
+## GOAL-012 — Swipe view, article by article
 
-**Statut : DONE** — validé sur appareil, position de lecture comprise.
+**Status: DONE** — validated on a device, reading position included.
 
-Couvre SPECS.md §4.8, ajouté à la demande de l'auteur. Un mode de présentation
-alternatif : un article en plein écran, balayage horizontal pour passer au
-suivant, comme les Stories d'un réseau social.
+Covers SPECS.md §4.8, added at the author's request. An alternative
+presentation mode: one article full screen, horizontal swipe to move to the
+next, like a social network's Stories.
 
-### Ce qui est déjà tranché
+### What is already settled
 
-| Point | Décision |
+| Point | Decision |
 |---|---|
-| « Flux suivant » désigne l'**article** suivant | Pas la source ni la catégorie : SPECS.md §1 et §2 excluent toute navigation par flux ou par dossier, et cela reste vrai |
-| Les deux modes **coexistent** | L'écran en liste est conservé, avec sa liste paresseuse, son chargement anticipé et sa mesure de visibilité. Le mode se choisit dans les réglages |
-| Le contenu est **identique** | Mêmes articles, même mélange, mêmes règles. Seule la présentation change — basculer de mode ne réordonne rien (règle 3 de §4.2) |
+| "Next feed" designates the next **article** | Not the source nor the category: SPECS.md §1 and §2 exclude any navigation by feed or by folder, and that remains true |
+| The two modes **coexist** | The list screen is kept, with its lazy list, its prefetching and its visibility measurement. The mode is chosen in the settings |
+| The content is **identical** | Same articles, same interleaving, same rules. Only the presentation changes — switching mode reorders nothing (rule 3 of §4.2) |
 
-### Ce qui reste à concevoir, et qui n'est pas anodin
+### What remains to be designed, and is not trivial
 
-- [x] `GOAL-012-T01` **La mesure de visibilité change de nature.** Un article
-      plein écran est visible à 100 % : le seuil de surface est satisfait
-      d'emblée, et la durée décide seule. `ReadDetector` s'applique tel quel,
-      mais l'alimentation ne peut pas venir de `LazyListState` — il faut une
-      source d'observation propre à ce mode.
-      **Le maillon est désormais éprouvé de bout en bout** : quatre tests
-      d'écran vérifient que le relevé part, qu'il se répète alors que rien ne
-      bouge, qu'il suit le balayage, et qu'il ne s'arme pas sans destinataire.
-      Ils ont été validés par mutation — couper l'observation en fait tomber
-      trois, la rétablir les repasse. Ni `SwipeViewModelTest` ni
-      `SwipeVisibilityTest` ne voyaient ce maillon : le premier suppose qu'on
-      lui parle, le second calcule sans que personne l'appelle
-- [x] `GOAL-012-T02` **Le chargement anticipé doit survivre au geste.** Demander
-      la page suivante avant d'atteindre le dernier article chargé, sans que le
-      balayage ne bute
-- [x] `GOAL-012-T03` **La fin du flux doit se dire**, comme en mode Liste : un
-      balayage qui cesse de répondre est indistinguable d'une panne (§4.4)
-- [x] `GOAL-012-T04` **Le retour en arrière ne délit pas.** Revenir sur un
-      article lu ne le remet pas en non-lu — le marquage n'est pas réversible
-      par un geste de navigation
-- [x] `GOAL-012-T05` **Position partagée entre les deux modes.** Le mode
-      Balayage retient la carte sous les yeux et reprend là où la lecture s'est
-      arrêtée, par le **même** `ReadingPositionViewModel` que le mode Liste — la
-      position appartient au flux, pas à la façon de le parcourir, et deux
-      mémoires séparées se contrediraient à chaque bascule.
-      L'obstacle qui l'avait fait différer est levé par la reprise « au plus
-      proche » de `GOAL-009-T05`, et non contourné : en plein écran l'article
-      quitté est presque toujours celui que le marquage vient de rendre lu, donc
-      absent du flux suivant. `indexIn` retient le premier article qui n'est pas
-      plus récent.
-      `settledPage` et non `currentPage` : le second bascule dès que le geste
-      dépasse la moitié de l'écran, y compris quand le doigt revient — on
-      enregistrerait une position jamais atteinte. 5 tests d'écran, dont
-      l'article disparu et le flux entièrement plus récent
-- [x] `GOAL-012-T06` Réglage persistant du mode, dans l'écran de réglages (§6)
-- [x] `GOAL-012-T07` **Accessibilité du geste de balayage — tranché, et non
-      laissé en suspens.** Décision de l'auteur le 2026-08-08 : la règle de
-      SPECS.md §7.1 porte sur l'**application**, pas sur chacun de ses modes.
-      Le mode Liste — celui par défaut — donne accès au même flux, dans le même
-      ordre, entièrement au défilement vertical et aux cibles ordinaires ; le
-      Balayage est une préférence, jamais un passage obligé, et le réglage qui
-      en sort s'atteint sans le geste en cause.
-      L'historique de la tâche vaut d'être gardé : deux boutons « Précédent » /
-      « Suivant » y avaient répondu, puis ont été retirés — ils encombraient
-      l'écran d'un mode dont l'intérêt est de n'avoir aucune commande. Rouvrir
-      la tâche à ce moment-là était juste ; la laisser ouverte indéfiniment
-      faisait passer un arbitrage pour une dette.
-      Conséquence assumée, inscrite dans SPECS.md §7.1 : qui emploie un lecteur
-      d'écran et se retrouve en Balayage doit passer par les réglages
-- [x] `GOAL-012-T08` Captures Roborazzi du mode Balayage, clair et sombre —
-      **et regardées** : six images enregistrées. Puis **exécution réelle sur
-      appareil** (Pixel 10 Pro, Android 17), qui est ce qui compte : le mode
-      Liste avait montré que trois défauts sur trois n'étaient visibles
-      qu'ainsi. Le réglage bascule, le mode se relit au démarrage suivant, le
-      balayage passe à l'article suivant et « Précédent » s'active alors
+- [x] `GOAL-012-T01` **The visibility measurement changes in nature.** A
+      full-screen article is 100 % visible: the area threshold is satisfied from
+      the outset, and duration alone decides. `ReadDetector` applies as it
+      stands, but its input cannot come from `LazyListState` — an observation
+      source specific to this mode is needed.
+      **The link is now proven end to end**: four screen tests check that the
+      reading starts, that it repeats while nothing moves, that it follows the
+      swipe, and that it does not arm itself without a recipient.
+      They were validated by mutation — cutting the observation makes three of
+      them fail, restoring it makes them pass again. Neither
+      `SwipeViewModelTest` nor `SwipeVisibilityTest` could see this link: the
+      first assumes it is being spoken to, the second computes without anyone
+      calling it
+- [x] `GOAL-012-T02` **Prefetching must survive the gesture.** Request the next
+      page before reaching the last loaded article, without the swipe stalling
+- [x] `GOAL-012-T03` **The end of the feed must be said**, as in List mode: a
+      swipe that stops responding is indistinguishable from a breakdown (§4.4)
+- [x] `GOAL-012-T04` **Going back does not unmark.** Returning to a read article
+      does not put it back to unread — the marking is not reversible by a
+      navigation gesture
+- [x] `GOAL-012-T05` **Position shared between the two modes.** Swipe mode
+      remembers the card under the eyes and resumes where reading stopped,
+      through the **same** `ReadingPositionViewModel` as List mode — the
+      position belongs to the feed, not to the way of going through it, and two
+      separate memories would contradict each other at every switch.
+      The obstacle that had deferred it is lifted by the "nearest" restore of
+      `GOAL-009-T05`, and not worked around: full screen, the article left
+      behind is nearly always the one that the marking has just turned read,
+      hence absent from the next feed. `indexIn` keeps the first article that is
+      not more recent.
+      `settledPage` and not `currentPage`: the second switches as soon as the
+      gesture passes half the screen, including when the finger comes back — a
+      position never reached would be recorded. 5 screen tests, including the
+      vanished article and the entirely more recent feed
+- [x] `GOAL-012-T06` Persistent setting for the mode, in the settings screen (§6)
+- [x] `GOAL-012-T07` **Accessibility of the swipe gesture — settled, and not
+      left hanging.** The author's decision on 2026-08-08: the rule of
+      SPECS.md §7.1 bears on the **application**, not on each of its modes.
+      List mode — the default one — gives access to the same feed, in the same
+      order, entirely by vertical scrolling and ordinary targets; Swipe is a
+      preference, never a compulsory passage, and the setting that leaves it is
+      reachable without the gesture in question.
+      The task's history is worth keeping: two buttons "Previous" / "Next" had
+      answered it, then were removed — they cluttered the screen of a mode whose
+      whole point is to have no controls. Reopening the task at that moment was
+      right; leaving it open indefinitely made a trade-off look like a debt.
+      Consequence owned, recorded in SPECS.md §7.1: whoever uses a screen reader
+      and finds themselves in Swipe must go through the settings
+- [x] `GOAL-012-T08` Roborazzi screenshots of Swipe mode, light and dark —
+      **and looked at**: six images recorded. Then a **real run on a device**
+      (Pixel 10 Pro, Android 17), which is what counts: List mode had shown that
+      three defects out of three were only visible that way. The setting
+      switches, the mode is read back at the next start-up, the swipe moves to
+      the next article and "Previous" then becomes active
 
-- [x] `GOAL-012-T09` **Animation de pile de cartes**, demandée par l'auteur :
-      la carte qui part s'incline et s'efface, celle du dessous reste centrée et
-      grandit. La géométrie est une fonction pure éprouvée à part
-      (`swipeCardTransform`), parce qu'aucune capture ne montre le milieu d'un
-      geste. Constaté sur appareil, capture à l'appui, à mi-parcours
+- [x] `GOAL-012-T09` **Card-stack animation**, requested by the author: the card
+      leaving tilts and fades out, the one underneath stays centred and grows.
+      The geometry is a pure function proven separately
+      (`swipeCardTransform`), because no screenshot shows the middle of a
+      gesture. Observed on a device, screenshot in support, mid-gesture
 
-- [x] `GOAL-012-T10` **Bouton de rechargement**, demandé par l'auteur, partagé
-      par les deux modes : `RefreshButton`. Il est nécessaire en Balayage — il
-      n'y a pas de liste à tirer, et un tirage vertical entrerait en concurrence
-      avec le geste horizontal — et repris en Liste **en plus** du geste, qui
-      n'est pas praticable par tout le monde. Il se change en indicateur pendant
-      l'attente plutôt que de se griser ou de disparaître.
-      **Posé sur la ligne du titre**, à la demande de l'auteur : superposé au
-      flux, il en recouvrait toujours une part — le coin de la première carte en
-      Liste, l'illustration en Balayage. La destination affichée le publie donc
-      à l'ossature (`FeedRefresh`), qui n'a aucune raison de connaître son
-      ViewModel
-- [x] `GOAL-012-T11` ~~Le bouton « Ouvrir l'article » est tronqué quand
-      l'extrait est long~~ **Mal attribué, et repris en `GOAL-014-T12`.**
-      Énoncé initial : sur un article dont l'extrait approche les 1 400
-      caractères, le bouton est poussé hors de la carte, vu sur appareil le
-      2026-08-08. C'est exact **au repos**, mais le contenu de la carte défile
-      (SPECS.md §7.1) : sans bandelette, le bouton revient entièrement à
-      l'écran. Il n'y avait donc pas de défaut ici. Ce qui en faisait un, c'est
-      la bandelette d'ancienneté posée par-dessus, qui recouvrait la fin du
-      contenu défilable — un défaut de GOAL-014, corrigé là-bas.
+- [x] `GOAL-012-T10` **Reload button**, requested by the author, shared by both
+      modes: `RefreshButton`. It is necessary in Swipe — there is no list to
+      pull, and a vertical pull would compete with the horizontal gesture — and
+      taken up in List **in addition** to the gesture, which is not practicable
+      for everyone. It turns into an indicator while waiting rather than greying
+      out or disappearing.
+      **Placed on the title line**, at the author's request: superimposed on the
+      feed, it always covered part of it — the corner of the first card in List,
+      the illustration in Swipe. The displayed destination therefore publishes it
+      to the shell (`FeedRefresh`), which has no reason to know its ViewModel
+- [x] `GOAL-012-T11` ~~The "Open the article" button is truncated when the
+      excerpt is long~~ **Misattributed, and taken up in `GOAL-014-T12`.**
+      Original statement: on an article whose excerpt approaches 1,400
+      characters, the button is pushed out of the card, seen on a device on
+      2026-08-08. That is true **at rest**, but the card's content scrolls
+      (SPECS.md §7.1): without a notice strip, the button comes fully back on
+      screen. So there was no defect here. What made one was the staleness
+      strip laid over it, which covered the end of the scrollable content — a
+      defect of GOAL-014, fixed over there.
 
-### Question tranchée
+### Question settled
 
-L'extrait était limité à 240 caractères en mode Liste (SPECS.md §8, question 7),
-calibré sur trois lignes de carte. En plein écran il monte à **1 400**, coupés sur une
-frontière de mot. Le chiffre n'est pas rond par hasard : le résumé médian mesure
-1 324 caractères, donc l'article ordinaire est montré en entier, et l'écran en
-tient à peu près autant. Pas le contenu entier pour autant — le maximum mesuré
-est de 34 777 caractères, et un article que l'on ferait défiler verticalement
-entrerait en conflit avec le geste horizontal.
+The excerpt was limited to 240 characters in List mode (SPECS.md §8,
+question 7), calibrated on three card lines. Full screen it goes up to
+**1,400**, cut on a word boundary. The figure is not round by accident: the
+median summary measures 1,324 characters, so the ordinary article is shown in
+full, and the screen holds about as much. Not the whole content for all that —
+the maximum measured is 34,777 characters, and an article scrolled vertically
+would conflict with the horizontal gesture.
 
 ---
 
-## GOAL-013 — Rappel de lecture par notification locale
+## GOAL-013 — Reading reminder by local notification
 
-**Statut : DONE** — validé sur appareil
+**Status: DONE** — validated on a device
 
-Couvre SPECS.md §4.9, ajouté à la demande de l'auteur.
+Covers SPECS.md §4.9, added at the author's request.
 
-Une notification quotidienne rappelle qu'il reste des articles à lire. Elle part
-à **l'heure d'ouverture de la veille**, cite des titres réels, et varie sa
-formulation d'un jour à l'autre.
+A daily notification recalls that there are still articles to read. It goes out
+at **the previous day's opening time**, quotes real titles, and varies its
+wording from one day to the next.
 
-### Ce qui a été tranché avant d'écrire
+### What was settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| SPECS.md §2 excluait les notifications | **La spécification change** | C'est une décision d'auteur, pas un contournement. L'exclusion est levée explicitement plutôt que enfreinte en silence (AGENTS.md §1.2) |
-| Source des articles cités | Le **cache local**, jamais le réseau | SPECS.md §2 exclut toujours la synchronisation en arrière-plan, et §7.4 veut qu'aucune connexion ne parte sans geste de l'utilisateur. Un rappel qui interrogerait le serveur serait précisément la synchronisation de fond écartée |
-| Rien à lire | **Aucune notification** | Un rappel annonçant qu'il n'y a rien à lire est une interruption sans contrepartie, et c'est ce qui fait couper les notifications d'une application |
-| Heure retenue quand l'application est ouverte plusieurs fois | La **première** ouverture du jour | C'est le moment où l'utilisateur tend la main vers l'application ; la dernière ouverture retiendrait un passage distrait |
-| Choix de la formulation | **Déterministe** sur le numéro du jour | Une reprise après échec rejoue le même jour ; un tirage au hasard donnerait deux messages pour un seul rappel |
+| SPECS.md §2 excluded notifications | **The specification changes** | It is an author's decision, not a workaround. The exclusion is lifted explicitly rather than silently broken (AGENTS.md §1.2) |
+| Source of the quoted articles | The **local cache**, never the network | SPECS.md §2 still excludes background synchronisation, and §7.4 wants no connection to go out without a gesture from the user. A reminder that queried the server would be precisely the background synchronisation set aside |
+| Nothing to read | **No notification** | A reminder announcing there is nothing to read is an interruption with nothing in return, and that is what makes people turn an application's notifications off |
+| Time kept when the application is opened several times | The **first** opening of the day | That is the moment the user reaches for the application; the last opening would keep a distracted visit |
+| Choice of wording | **Deterministic** on the day number | A retry after failure replays the same day; a random draw would give two messages for a single reminder |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-013-T01` **Le domaine décide** : `DailyMinute`, `nextReminderAt`,
-      `ReminderTone`, `reminderPlanFor`. Aucune chaîne, aucune horloge, aucun
-      fuseau lu — tout est transmis. 17 tests, dont le changement d'heure des
-      deux sens et une horloge d'appareil antérieure à l'époque
-- [x] `GOAL-013-T02` **Le cache sait dire ce qu'il reste** : lecture des
-      articles non lus, sans réseau — filtre fait par SQLite, lecture ponctuelle
-      plutôt que `Flow`, mélange des sources appliqué comme au flux. 5 tests sur
-      base réelle
-- [x] `GOAL-013-T03` **L'heure d'ouverture est retenue** : premier lancement du
-      jour enregistré, `DataStore` (`ReminderTimeStore`, 8 tests dont deux
-      fuseaux et le changement de jour). C'est cette heure que le rappel validé
-      sur appareil a réellement employée
-- [x] `GOAL-013-T04` **WorkManager porte le rappel** : `HiltWorker`, travail
-      unique, réarmement du lendemain par le travailleur lui-même — sans quoi
-      la chaîne s'arrête dès que l'application n'est pas ouverte
-- [x] `GOAL-013-T05` **La notification est construite** : canal, formulations en
-      ressources, ouverture de l'application au toucher
-- [x] `GOAL-013-T06` **La permission est demandée** (`POST_NOTIFICATIONS`,
-      API 33+), et son refus n'empêche rien d'autre de fonctionner
-- [x] `GOAL-013-T07` **Le rappel se désactive** depuis les réglages (§6) : sous
-      API 33 il n'y a aucune permission à retirer, et un rappel qu'on ne peut
-      pas éteindre est un défaut
-- [x] `GOAL-013-T08` **Un seul rappel à la fois, effacé à l'ouverture** : même
-      identifiant de notification d'un jour à l'autre — un nouveau rappel
-      remplace le précédent au lieu de s'empiler — et retrait au retour dans
-      l'application
-- [x] `GOAL-013-T09` **Documentation** : SPECS §2 et §4.9, ARCHITECTURE §9 et
-      la carte des paquets, README (la fonctionnalité et le fait qu'elle
-      n'appelle rien), TASKS
-- [x] `GOAL-013-T10` **Validé sur appareil** (Pixel 10 Pro, Android 17) :
-      notification réellement reçue, ton « Un moment pour lire ? », deux titres
-      réels et « 119 articles non lus » ; effacée à l'ouverture, constaté à zéro
-      enregistrement.
-      **Le programmateur a été observé séparément** : après une ouverture, le
-      travail apparaît dans `dumpsys jobscheduler` à `+23h59m`, calculé par le
-      code réel. Forcer ce travail ne le fait pas partir — WorkManager revérifie
-      son propre délai — d'où une variante **locale et non committée** à délai
-      court pour voir la notification elle-même.
-      **Reste non constaté sur appareil** : l'absence de doublon. Elle tient à
-      un identifiant constant et elle est éprouvée en test unitaire, mais ma
-      mesure sur appareil comptait des lignes de `dumpsys` et non des
-      notifications distinctes — le téléphone s'est déconnecté avant que je
-      puisse la refaire proprement
+- [x] `GOAL-013-T01` **The domain decides**: `DailyMinute`, `nextReminderAt`,
+      `ReminderTone`, `reminderPlanFor`. No string, no clock, no time zone read
+      — everything is passed in. 17 tests, including the clock change in both
+      directions and a device clock earlier than the epoch
+- [x] `GOAL-013-T02` **The cache can say what is left**: reading of the unread
+      articles, without the network — filter done by SQLite, one-off read rather
+      than a `Flow`, source interleaving applied as in the feed. 5 tests on a
+      real database
+- [x] `GOAL-013-T03` **The opening time is kept**: first launch of the day
+      recorded, `DataStore` (`ReminderTimeStore`, 8 tests including two time
+      zones and the day change). It is this time that the reminder validated on
+      a device actually used
+- [x] `GOAL-013-T04` **WorkManager carries the reminder**: `HiltWorker`, unique
+      work, the next day rearmed by the worker itself — without which the chain
+      stops as soon as the application is not opened
+- [x] `GOAL-013-T05` **The notification is built**: channel, wordings in
+      resources, application opened on touch
+- [x] `GOAL-013-T06` **The permission is requested** (`POST_NOTIFICATIONS`,
+      API 33+), and refusing it prevents nothing else from working
+- [x] `GOAL-013-T07` **The reminder can be switched off** from the settings (§6):
+      below API 33 there is no permission to withdraw, and a reminder you cannot
+      turn off is a defect
+- [x] `GOAL-013-T08` **One reminder at a time, cleared on opening**: same
+      notification identifier from one day to the next — a new reminder replaces
+      the previous one instead of stacking up — and removal on returning to the
+      application
+- [x] `GOAL-013-T09` **Documentation**: SPECS §2 and §4.9, ARCHITECTURE §9 and
+      the package map, README (the feature and the fact that it calls nothing),
+      TASKS
+- [x] `GOAL-013-T10` **Validated on a device** (Pixel 10 Pro, Android 17):
+      notification actually received, tone "Un moment pour lire ?", two real
+      titles and "119 articles non lus"; cleared on opening, observed at zero
+      records.
+      **The scheduler was observed separately**: after an opening, the work
+      appears in `dumpsys jobscheduler` at `+23h59m`, computed by the real code.
+      Forcing that work does not make it go — WorkManager rechecks its own delay
+      — hence a **local and uncommitted** variant with a short delay to see the
+      notification itself.
+      **Still not observed on a device**: the absence of a duplicate. It rests
+      on a constant identifier and it is proven in a unit test, but my
+      measurement on the device counted `dumpsys` lines and not distinct
+      notifications — the phone disconnected before I could redo it properly
 
-### Ce qui a été corrigé en intégrant
+### What was fixed while integrating
 
-`AppGraphTest` avait dû remplacer le planificateur réel par un double, faute de
-`WorkManager` initialisé sous `HiltTestApplication`. Le trou est refermé :
-`WorkManagerTestInitHelper` amorce le gestionnaire avant l'injection, et
-**toutes** les dépendances de ce test reviennent du graphe réel — un double y
-serait un trou, pas une commodité.
+`AppGraphTest` had had to replace the real scheduler with a double, for want of
+a `WorkManager` initialised under `HiltTestApplication`. The hole is closed:
+`WorkManagerTestInitHelper` boots the manager before injection, and **all** of
+that test's dependencies come back from the real graph — a double there would be
+a hole, not a convenience.
 
-### Dette ouverte
+### Open debt
 
-Le rappel ne voit que le cache : un article publié depuis la dernière ouverture
-n'y est pas, et ne sera donc pas annoncé. C'est le prix assumé de l'absence de
-synchronisation en arrière-plan.
+The reminder only sees the cache: an article published since the last opening is
+not in it, and so will not be announced. That is the owned price of the absence
+of background synchronisation.
 
 ---
 
-## GOAL-014 — Toast d'ancienneté du flux
+## GOAL-014 — Feed staleness notice
 
-**Statut : DONE** — validé sur appareil
+**Status: DONE** — validated on a device
 
-Couvre SPECS.md §4.6, ajouté à la demande de l'auteur.
+Covers SPECS.md §4.6, added at the author's request.
 
-Le flux ne se synchronise jamais tout seul (SPECS.md §2), et le cache s'affiche
-dès le lancement (§5.1) : l'écran d'un flux vieux de dix heures était
-indiscernable de celui d'un flux frais. Au-delà de **6 h** sans réponse du
-serveur, une bandelette actionnable invite à rafraîchir.
+The feed never synchronises on its own (SPECS.md §2), and the cache is displayed
+from launch (§5.1): the screen of a ten-hour-old feed was indistinguishable from
+that of a fresh one. Beyond **6 h** without a response from the server, an
+actionable strip invites a refresh.
 
-### Ce qui a été tranché avant d'écrire
+### What was settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Seuil d'ancienneté | **6 h** | Décision d'auteur. Inscrite dans SPECS.md §8 |
-| Qui décide | Une fonction pure de `:domain` | Comme `reminderPlanFor` (GOAL-013) : ni horloge, ni chaîne, ni Android dans la règle |
-| Qui horodate | Le **dépôt**, sur toute réponse serveur valide, `loadPage` comprise | Deux ViewModels appellent `refresh()` ; horodater côté présentation dupliquerait la règle et laisserait les deux modes diverger. La couche qui a parlé au serveur est la seule à savoir qu'il a répondu |
-| Support de stockage | DataStore, clé `feed.last_refresh_at` | Scalaire (ARCHITECTURE.md §5.1 : Room porte les collections, DataStore les scalaires) |
-| Hors ligne | **Aucune bandelette** | Le bandeau hors ligne dit déjà pourquoi le flux est ancien. Proposer « Rafraîchir » là où l'appel échouera à coup sûr est une fausse porte, et empilerait deux bandelettes au même endroit de l'écran |
-| Acquittement | **En mémoire**, partagé par les deux modes, repéré par l'horodatage acquitté | Local à un ViewModel, il ferait revenir la bandelette à chaque bascule Liste↔Balayage. Comparer les horodatages la fait revenir après un rafraîchissement réussi puis 6 h, sans horloge supplémentaire |
-| Effacement | **À la main**, jamais par minuteur | Le dépôt a déjà tranché ainsi pour l'avis d'ouverture hors ligne : « un message qui s'efface tout seul se rate » |
-| Commandes de la bandelette | « Rafraîchir » **et** une fermeture | Une seule action imposerait le message à qui n'est pas en état de rafraîchir |
+| Staleness threshold | **6 h** | Author's decision. Recorded in SPECS.md §8 |
+| Who decides | A pure function of `:domain` | Like `reminderPlanFor` (GOAL-013): no clock, no string, no Android in the rule |
+| Who timestamps | The **repository**, on every valid server response, `loadPage` included | Two ViewModels call `refresh()`; timestamping on the presentation side would duplicate the rule and let the two modes diverge. The layer that spoke to the server is the only one that knows it answered |
+| Storage medium | DataStore, key `feed.last_refresh_at` | Scalar (ARCHITECTURE.md §5.1: Room carries the collections, DataStore the scalars) |
+| Offline | **No strip** | The offline banner already says why the feed is old. Offering "Refresh" where the call will certainly fail is a false door, and would stack two strips in the same place on the screen |
+| Acknowledgement | **In memory**, shared by both modes, keyed by the acknowledged timestamp | Local to one ViewModel, it would bring the strip back at every List↔Swipe switch. Comparing timestamps brings it back after a successful refresh and then 6 h, without any extra clock |
+| Clearing | **By hand**, never by a timer | The repository has already settled it that way for the offline opening notice: "a message that fades on its own gets missed" |
+| The strip's controls | "Refresh" **and** a dismissal | A single action would impose the message on anyone not in a position to refresh |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-014-T01` **Le domaine décide de l'ancienneté** : `FeedFreshness`,
-      `STALE_FEED_THRESHOLD_MILLIS`, `FeedFreshnessRepository`. Jamais ancien
-      sans point de référence ; une horloge qui recule ne rend rien ancien.
-      15 tests, dont l'horodatage restauré depuis le futur et l'acquittement
-      que le temps rouvre
-- [x] `GOAL-014-T02` **L'horodatage est persisté** : `FeedFreshnessStore`,
-      `DataStore`, acquittement en mémoire vive et partagé. 7 tests sur un
-      DataStore réel, dont l'acquittement fait avant tout rafraîchissement
-- [x] `GOAL-014-T03` **Le dépôt enregistre chaque contact serveur réussi**, y
-      compris une page valide mais vide — le serveur a répondu. 8 tests, dont
-      les quatre échecs qui ne doivent rien noter
-- [x] `GOAL-014-T04` **Le mode Liste porte l'avis** : état dérivé, acquittement,
-      et le réveil périodique sans lequel le seuil ne serait jamais franchi à
-      l'écran. La surveillance est écrite une fois, dans
-      `FeedStalenessWatcher`, pour que les deux modes ne divergent pas.
-      11 tests, dont le vieillissement sans aucun événement
-- [x] `GOAL-014-T05` **Le mode Balayage porte le même avis**, acquittement
-      compris — acquitter dans un mode fait taire l'autre. 6 tests, dont
-      celui-là précisément
-- [x] `GOAL-014-T06` **La bandelette est factorisée** (`FeedNotice`) : elle
-      était écrite deux fois, à l'identique, dans les deux écrans. Refactor
-      pur — les tests d'écran passent inchangés et `verifyRoborazziDebug` ne
-      voit aucun pixel bouger. 5 tests propres au composant
-- [x] `GOAL-014-T07` **L'avis s'affiche en mode Liste**, et « Recharger » y
-      emprunte exactement le rechargement existant. 5 tests d'écran, dont
-      celui qui constate qu'une seule bandelette occupe le bas de l'écran
-- [x] `GOAL-014-T08` **L'avis s'affiche en mode Balayage**, sans masquer la
-      commande d'ouverture de l'article — mesuré, et pas seulement supposé.
-      5 tests d'écran, mêmes chaînes qu'en mode Liste
-- [x] `GOAL-014-T09` **Captures Roborazzi** : la bandelette sur une carte et sur
-      une illustration plein écran ne se jugent pas au même endroit. Quatre
-      références, **regardées** : les deux commandes tiennent côte à côte sans
-      replier le message, le contraste passe dans les deux thèmes, et « Ouvrir
-      l'article » n'est pas recouvert
-- [x] `GOAL-014-T10` **Documentation** : SPECS §4.6 et §8 question 9,
-      ARCHITECTURE §5.1 et §9.6, README, TASKS
-- [x] `GOAL-014-T11` **Constaté sur appareil** (Pixel 10 Pro, Android 17,
-      2026-08-08). Protocole : la date écrite par le dépôt a été reculée de 7 h
-      dans le DataStore, et l'adresse du serveur pointée sur `192.0.2.1`
-      (TEST-NET, sans route) — c'est le **seul** montage qui réunit les deux
-      conditions de l'avis, un flux ancien et un appareil qui n'est pas hors
-      ligne.
-      **Ce qui a été vu** : la date du dernier contact serveur est bien écrite
-      par le dépôt au lancement ; la bandelette paraît en Balayage sur du
-      contenu réel, puis en Liste ; « Plus tard » l'éteint ; elle **reste
-      éteinte après une bascule Balayage → Liste**, ce qui est le point que
-      l'acquittement partagé devait garantir ; elle **revient après un
-      redémarrage du processus**, l'acquittement ne vivant qu'en mémoire ; et
-      un contact serveur réussi l'éteint — flux rechargé, date remise à
-      l'instant, plus aucune bandelette.
-      **Deux cas n'ont pas pu être constatés depuis le poste de
-      développement** : l'appui sur « Recharger » — au lancement la page arrive
-      et éteint l'avis avant tout appui — et le hors ligne, le mode avion
-      coupant `adb`, qui passe par le même réseau. Les deux sont couverts en
-      test, et **l'auteur a confirmé leur bon fonctionnement sur son appareil**
-      le 2026-08-08.
-- [x] `GOAL-014-T13` **Régression corrigée : les réglages réémettaient à chaque
-      page.** Trouvée le 2026-08-08 en cherchant pourquoi le flux paraissait se
-      comporter autrement depuis la mise à jour.
-      `GOAL-014-T03` fait écrire la date du contact serveur à **chaque page
-      reçue**, dans le DataStore partagé. Or DataStore émet à chaque écriture du
-      **fichier**, pas de la clé, et `observeReadingSettings` ne filtrait pas :
-      les deux ViewModels du flux reconstruisaient donc leur `ReadDetector` à
-      chaque page, remettant à zéro les chronomètres de visibilité en cours —
-      un article regardé pendant un chargement n'était plus marqué lu
-      (SPECS.md §4.5). Au lancement, où plusieurs pages s'enchaînent, l'effet
-      se répétait.
-      `distinctUntilChanged` sur tous les flux dérivés du DataStore, réglages et
-      session. 3 tests dans `SettingsStoreTest`, dont un qui échoue si on retire
-      le filtre — vérifié dans les deux sens.
-      **La règle est en outre verrouillée là où elle se voit** (5 tests de
-      `DiscoverViewModelTest`), à la demande de l'auteur : la première page du
-      serveur ne réordonne pas ce que le cache affichait, n'en retire rien, et
-      une réémission du cache ne remélange pas le flux. Un flux qui se mélange
-      au lancement est un défaut, jamais un effet de bord acceptable
-      (SPECS.md §4.2, règle 3).
-      Ce que la régression **ne fait pas**, contrairement à ce qu'on pouvait
-      craindre : elle ne recrée pas l'écran et ne déclenche aucune requête. Les
-      flux qui pilotent la navigation et l'aiguillage de session sont des
-      `StateFlow`, qui ne réémettent pas une valeur égale.
-- [x] `GOAL-014-T12` **La bandelette cesse d'être une surimpression.** Le
-      constat sur appareil avait été mal lu : le bouton « Ouvrir l'article »
-      poussé hors de la carte par un extrait long n'est pas un défaut — le
-      contenu défile. Le défaut, c'est que la bandelette **recouvrait la fin de
-      ce défilement**, donc le bouton là où il s'arrête : la seule commande
-      d'ouverture de ce mode (SPECS.md §4.7) devenait inatteignable.
-      Reproduit d'abord par un test — extrait long, `performScrollTo` sur le
-      bouton, mesure du chevauchement — puis corrigé : l'avis prend sa place
-      dans la mise en page, sous le flux, dans les deux modes. Un avis qui
-      dure jusqu'à ce qu'on l'acquitte n'est pas fugace ; seul l'avis
-      d'ouverture refusée reste posé par-dessus, et il ne rencontre jamais
-      l'autre. Captures Balayage réenregistrées et **regardées**.
-      **Reconstaté sur appareil** (Pixel 10 Pro, 2026-08-08) : sur un article
-      d'un millier de caractères, la carte s'arrête au-dessus de la bandelette,
-      et le bouton « Ouvrir l'article » revient **entièrement** à l'écran une
-      fois le contenu défilé. Le défaut est en outre tenu par un test qui
-      échouait avant la correction et passe après.
+- [x] `GOAL-014-T01` **The domain decides on staleness**: `FeedFreshness`,
+      `STALE_FEED_THRESHOLD_MILLIS`, `FeedFreshnessRepository`. Never stale
+      without a reference point; a clock going backwards makes nothing stale.
+      15 tests, including the timestamp restored from the future and the
+      acknowledgement that time reopens
+- [x] `GOAL-014-T02` **The timestamp is persisted**: `FeedFreshnessStore`,
+      `DataStore`, acknowledgement in live memory and shared. 7 tests on a real
+      DataStore, including the acknowledgement made before any refresh
+- [x] `GOAL-014-T03` **The repository records every successful server contact**,
+      including a valid but empty page — the server answered. 8 tests, including
+      the four failures that must record nothing
+- [x] `GOAL-014-T04` **List mode carries the notice**: derived state,
+      acknowledgement, and the periodic wake-up without which the threshold
+      would never be crossed on screen. The watching is written once, in
+      `FeedStalenessWatcher`, so that the two modes do not diverge.
+      11 tests, including ageing with no event at all
+- [x] `GOAL-014-T05` **Swipe mode carries the same notice**, acknowledgement
+      included — acknowledging in one mode silences the other. 6 tests,
+      including that one precisely
+- [x] `GOAL-014-T06` **The strip is factored out** (`FeedNotice`): it was
+      written twice, identically, in the two screens. A pure refactor — the
+      screen tests pass unchanged and `verifyRoborazziDebug` sees no pixel move.
+      5 tests of the component's own
+- [x] `GOAL-014-T07` **The notice is displayed in List mode**, and "Reload"
+      there borrows exactly the existing reload. 5 screen tests, including the
+      one that observes that a single strip occupies the bottom of the screen
+- [x] `GOAL-014-T08` **The notice is displayed in Swipe mode**, without masking
+      the article-opening control — measured, and not merely assumed.
+      5 screen tests, same strings as in List mode
+- [x] `GOAL-014-T09` **Roborazzi screenshots**: the strip on a card and on a
+      full-screen illustration are not judged in the same place. Four
+      references, **looked at**: the two controls sit side by side without
+      wrapping the message, the contrast passes in both themes, and "Open the
+      article" is not covered
+- [x] `GOAL-014-T10` **Documentation**: SPECS §4.6 and §8 question 9,
+      ARCHITECTURE §5.1 and §9.6, README, TASKS
+- [x] `GOAL-014-T11` **Observed on a device** (Pixel 10 Pro, Android 17,
+      2026-08-08). Protocol: the date written by the repository was set back 7 h
+      in the DataStore, and the server address pointed at `192.0.2.1`
+      (TEST-NET, with no route) — that is the **only** setup that brings
+      together the two conditions of the notice, a stale feed and a device that
+      is not offline.
+      **What was seen**: the date of the last server contact is indeed written
+      by the repository at launch; the strip appears in Swipe over real content,
+      then in List; "Later" turns it off; it **stays off after a Swipe → List
+      switch**, which is the point the shared acknowledgement was meant to
+      guarantee; it **comes back after a process restart**, the acknowledgement
+      living only in memory; and a successful server contact turns it off — feed
+      reloaded, date reset to now, no strip any more.
+      **Two cases could not be observed from the development machine**:
+      pressing "Reload" — at launch the page arrives and turns the notice off
+      before any press — and being offline, since aeroplane mode cuts `adb`,
+      which goes over the same network. Both are covered in tests, and **the
+      author confirmed they work correctly on his device** on 2026-08-08.
+- [x] `GOAL-014-T13` **Regression fixed: the settings were re-emitting on every
+      page.** Found on 2026-08-08 while looking for why the feed seemed to
+      behave differently since the update.
+      `GOAL-014-T03` makes the server-contact date be written on **every page
+      received**, in the shared DataStore. But DataStore emits on every write of
+      the **file**, not of the key, and `observeReadingSettings` was not
+      filtering: the two feed ViewModels were therefore rebuilding their
+      `ReadDetector` on every page, resetting the visibility timers in progress
+      — an article looked at during a load was no longer marked read
+      (SPECS.md §4.5). At launch, where several pages follow one another, the
+      effect repeated.
+      `distinctUntilChanged` on every flow derived from the DataStore, settings
+      and session. 3 tests in `SettingsStoreTest`, including one that fails if
+      the filter is removed — checked in both directions.
+      **The rule is furthermore locked in where it shows** (5 tests of
+      `DiscoverViewModelTest`), at the author's request: the server's first page
+      does not reorder what the cache was displaying, removes nothing from it,
+      and a re-emission of the cache does not re-interleave the feed. A feed
+      that re-interleaves at launch is a defect, never an acceptable side effect
+      (SPECS.md §4.2, rule 3).
+      What the regression does **not** do, contrary to what one might have
+      feared: it does not recreate the screen and triggers no request. The flows
+      that drive navigation and session routing are `StateFlow`s, which do not
+      re-emit an equal value.
+- [x] `GOAL-014-T12` **The strip stops being an overlay.** The observation on a
+      device had been misread: the "Open the article" button pushed out of the
+      card by a long excerpt is not a defect — the content scrolls. The defect
+      is that the strip **covered the end of that scroll**, hence the button
+      where it stops: the only opening control of this mode (SPECS.md §4.7)
+      became unreachable.
+      Reproduced first by a test — long excerpt, `performScrollTo` on the
+      button, measurement of the overlap — then fixed: the notice takes its
+      place in the layout, below the feed, in both modes. A notice that lasts
+      until acknowledged is not fleeting; only the refused-opening notice stays
+      laid over, and it never meets the other. Swipe screenshots re-recorded and
+      **looked at**.
+      **Re-observed on a device** (Pixel 10 Pro, 2026-08-08): on an article of
+      about a thousand characters, the card stops above the strip, and the "Open
+      the article" button comes **fully** back on screen once the content is
+      scrolled. The defect is furthermore held by a test that failed before the
+      fix and passes after.
 
 ---
 
-## GOAL-015 — Lancement calme : cache seul, sans reprise de position
+## GOAL-015 — Quiet launch: cache only, no position restore
 
-**Statut : DONE** — validé sur appareil
+**Status: DONE** — validated on a device
 
-Change SPECS.md §4.1, §5.1 et §5.3, tranche §8 questions 10 et 11. Décision d'auteur du
-2026-08-08, prise devant deux défauts constatés sur appareil le même jour : la
-tête du flux différait d'un lancement à l'autre (course entre le disque et le
-réseau, ordre serveur ≠ ordre de publication — corrigé par `GOAL-005-T05`), et
-la position mémorisée se réécrivait toute seule au lancement, l'article en tête
-des premières images écrasant la vraie place. Plutôt que de corriger la
-mémorisation — le correctif était écrit aux deux tiers — l'auteur retire la
-fonctionnalité et le rechargement automatique avec elle : un flux stable qui
-rouvre à l'identique n'a plus besoin qu'on lui garde une place.
+Changes SPECS.md §4.1, §5.1 and §5.3, settles §8 questions 10 and 11. Author's
+decision of 2026-08-08, taken in the face of two defects observed on a device
+the same day: the head of the feed differed from one launch to the next (a race
+between disk and network, server order ≠ publication order — fixed by
+`GOAL-005-T05`), and the remembered position rewrote itself at launch, the
+article at the top of the first frames overwriting the true place. Rather than
+fix the remembering — the fix was two thirds written — the author removes the
+feature and automatic reloading with it: a stable feed that reopens identically
+no longer needs a place kept for it.
 
-### Ce qui a été tranché avant d'écrire
+### What was settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Reprise de lecture (§5.3) | **Supprimée**, code compris | Sa mémoire dérivait ; sur un flux devenu stable, elle ne payait plus sa complexité |
-| Requête au lancement | **Aucune**, sauf cache vide | La course disque/réseau décidait de l'écran ; un cache vide reste amorcé tout seul, une application sans contenu serait morte |
-| Défilement en bas de connu | **Continue de charger** | Défiler est une action ; seul le rechargement de la tête exige le bouton |
-| L'avis d'ancienneté (GOAL-014) | Devient **le** rappel de mise à jour | Sans rechargement automatique, c'est lui qui dit quand le geste vaut la peine |
+| Reading restore (§5.3) | **Removed**, code included | Its memory drifted; on a feed that had become stable, it no longer paid for its complexity |
+| Request at launch | **None**, except on an empty cache | The disk/network race decided the screen; an empty cache still primes itself on its own, an application with no content would be dead |
+| Scrolling to the bottom of the known | **Keeps loading** | Scrolling is an action; only reloading the head requires the button |
+| The staleness notice (GOAL-014) | Becomes **the** update reminder | Without automatic reloading, it is what says when the gesture is worth it |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-015-T01` **La reprise de position disparaît**, du domaine à l'écran :
-      `ReadingPosition`, dépôt, store, ViewModel, effets des deux écrans,
-      liaisons Hilt, `forget()` de la déconnexion, et chaque test qui les
-      éprouvait — sept fichiers supprimés, aucun code mort laissé. Les clés
-      `reading.*` des appareils existants deviennent orphelines dans le
-      DataStore : inoffensives, plus jamais lues
-- [x] `GOAL-015-T02` **Le lancement n'interroge plus le réseau** : les deux
-      ViewModels affichent le cache et s'y tiennent ; un cache vide déclenche
-      seul le premier chargement ; le défilement pagine comme avant.
-      **Constaté sur appareil** : `feed.last_refresh_at` est rigoureusement
-      inchangé après un lancement à froid — plus aucune requête ne part sans
-      geste
-- [x] `GOAL-015-T05` **Le mélange du cache cesse de dépendre des articles lus.**
-      Le mélange choisit chaque position en regardant ses voisins : appliqué
-      **après** le filtrage des lus, chaque article marqué lu quittait
-      l'ensemble et redistribuait tous ses voisins. Le marquage étant automatique
-      et continu (SPECS.md §4.5), le flux se réordonnait à chaque lancement —
-      trois ouvertures consécutives, trois têtes différentes, constaté sur
-      appareil. Le mélange s'applique désormais **avant** le filtrage : l'ordre
-      des non-lus est un sous-ordre stable. 1 test
-- [x] `GOAL-015-T04` ~~La purge peut encore redistribuer l'ordre~~ **Sans objet
-      depuis `T08`** : le mélange porte sur le cache entier, lus compris, et la
-      purge ne retire que des articles lus **et** synchronisés de plus d'une
-      semaine — qui ne sont plus dans la fenêtre affichée. Énoncé initial : Elle retire
-      des articles de l'ensemble sur lequel le mélange se calcule, et elle
-      tourne une fois par démarrage de processus, en **course** avec la première
-      lecture du cache. Elle ne touche que des articles lus depuis plus d'une
-      semaine et déjà synchronisés : une fois le retard résorbé elle ne trouve
-      plus rien, et l'ordre se fige. Le régime transitoire, lui, bouge encore.
-      Le test qui l'établissait a été **retiré plutôt que gardé faux** : il
-      contredisait celui du marquage, et l'arbitrage entre les deux appartient à
-      la spécification, pas au code
-- [x] `GOAL-015-T03` **Documentation** : SPECS §4.1, §4.6, §5.1, §5.3 et §8
-      questions 10 et 11 ; ARCHITECTURE §9.7, qui réunit les quatre mécanismes
-      en un seul principe ; README ; TASKS
-- [x] `GOAL-015-T06` **Les pages du serveur sont ramenées à l'ordre de
-      publication.** Le serveur trie sa `reading-list` par date de
-      **récupération** : un article publié deux jours plus tôt ouvrait la
-      première page. Cet ordre différait de celui du cache, trié par
-      publication, et l'écran du lancement dépendait de qui répondait en
-      premier. Départage à date égale identique au tri SQL du cache. 2 tests,
-      écrits rouges. Tranché dans SPECS §8 question 11
-- [x] `GOAL-015-T07` **La borne du cache s'applique après le filtre, plus
-      avant.** Un cache dont les deux cents articles les plus récents avaient
-      été lus rendait une liste **vide** : l'écran le croyait vide et
-      déclenchait le chargement de secours à chaque ouverture — la requête que
-      `T02` venait de retirer. Constaté sur appareil : 283 articles en cache,
-      69 non lus, zéro affiché
-- [x] `GOAL-015-T08` **Les articles lus restent dans le flux jusqu'au
-      rechargement** (SPECS §4.1). C'est ce qui referme le sujet : le mélange
-      choisit chaque position en regardant ses voisins, donc tout ce qui entre
-      ou sort de l'ensemble redistribue le reste. Les articles lus en sortaient
-      à chaque session — le marquage en consomme — et le flux paraissait se
-      remélanger tout seul. 2 tests, dont celui de l'ordre inchangé après
-      marquage.
-      **Constaté sur appareil** : trois lancements à froid consécutifs, tête
-      identique, `feed.last_refresh_at` inchangé. `GOAL-015-T04` et `T05`
-      tombent avec — l'ordre ne dépend plus ni des lus ni de la purge
-- [x] `GOAL-015-T09` **Test instable réparé, découvert par la CI.** La
-      publication de `v1.4.0` a échoué sur
-      `theStartupPurgeRemovesReadArticlesPastTheThreshold` — vert en local,
-      rouge sur le runner. Cause : en adaptant les tests à `T07`, une lecture
-      **suspendue** par le flux Room avait été remplacée par une requête SQL
-      synchrone, qui peut devancer une purge lancée en tâche de fond. Le flux,
-      lui, attend l'invalidation de Room.
-      Le contournement n'avait d'ailleurs plus lieu d'être : depuis `T08` le
-      flux du cache rend les articles lus. Les trois tests concernés y
-      reviennent, et le code de production perd la requête que seuls les tests
-      appelaient. Rejoué trois fois de suite depuis zéro
+- [x] `GOAL-015-T01` **Position restore disappears**, from the domain to the
+      screen: `ReadingPosition`, repository, store, ViewModel, both screens'
+      effects, Hilt bindings, the sign-out's `forget()`, and every test that
+      proved them — seven files deleted, no dead code left. The `reading.*` keys
+      of existing devices become orphans in the DataStore: harmless, never read
+      again
+- [x] `GOAL-015-T02` **Launch no longer queries the network**: the two
+      ViewModels display the cache and stick to it; only an empty cache triggers
+      the first load; scrolling paginates as before.
+      **Observed on a device**: `feed.last_refresh_at` is strictly unchanged
+      after a cold launch — no request goes out any more without a gesture
+- [x] `GOAL-015-T05` **Cache interleaving stops depending on read articles.**
+      Interleaving chooses each position by looking at its neighbours: applied
+      **after** filtering the read ones, every article marked read left the set
+      and redistributed all its neighbours. Since marking is automatic and
+      continuous (SPECS.md §4.5), the feed reordered itself at every launch —
+      three consecutive openings, three different heads, observed on a device.
+      Interleaving is now applied **before** filtering: the order of the unread
+      is a stable sub-order. 1 test
+- [x] `GOAL-015-T04` ~~The purge can still redistribute the order~~ **Moot
+      since `T08`**: interleaving bears on the whole cache, read ones included,
+      and the purge only removes articles that are read **and** synchronised and
+      more than a week old — which are no longer in the displayed window.
+      Original statement: It removes
+      articles from the set on which the interleaving is computed, and it runs
+      once per process start, in a **race** with the first read of the cache. It
+      only touches articles read more than a week ago and already synchronised:
+      once the backlog is absorbed it finds nothing more, and the order settles.
+      The transient regime, though, still moves.
+      The test that established it was **removed rather than kept false**: it
+      contradicted the marking test, and the trade-off between the two belongs
+      to the specification, not to the code
+- [x] `GOAL-015-T03` **Documentation**: SPECS §4.1, §4.6, §5.1, §5.3 and §8
+      questions 10 and 11; ARCHITECTURE §9.7, which brings the four mechanisms
+      together under a single principle; README; TASKS
+- [x] `GOAL-015-T06` **The server's pages are brought back to publication
+      order.** The server sorts its `reading-list` by **fetch** date: an article
+      published two days earlier opened the first page. That order differed from
+      the cache's, sorted by publication, and the launch screen depended on who
+      answered first. Tie-breaking on equal dates identical to the cache's SQL
+      sort. 2 tests, written red. Settled in SPECS §8 question 11
+- [x] `GOAL-015-T07` **The cache bound applies after the filter, no longer
+      before.** A cache whose two hundred most recent articles had been read
+      returned an **empty** list: the screen believed itself empty and triggered
+      the fallback load on every opening — the very request `T02` had just
+      removed. Observed on a device: 283 articles in cache, 69 unread, zero
+      displayed
+- [x] `GOAL-015-T08` **Read articles stay in the feed until a reload**
+      (SPECS §4.1). This is what closes the subject: interleaving chooses each
+      position by looking at its neighbours, so anything entering or leaving the
+      set redistributes the rest. Read articles left it at every session — the
+      marking consumes them — and the feed seemed to re-interleave on its own.
+      2 tests, including the one for the order left unchanged after marking.
+      **Observed on a device**: three consecutive cold launches, identical head,
+      `feed.last_refresh_at` unchanged. `GOAL-015-T04` and `T05` fall with it —
+      the order no longer depends either on the read ones or on the purge
+- [x] `GOAL-015-T09` **Flaky test repaired, discovered by CI.** The release of
+      `v1.4.0` failed on
+      `theStartupPurgeRemovesReadArticlesPastTheThreshold` — green locally, red
+      on the runner. Cause: while adapting the tests to `T07`, a read
+      **suspended** by the Room flow had been replaced by a synchronous SQL
+      query, which can get ahead of a purge launched in the background. The
+      flow, for its part, waits for Room's invalidation.
+      The workaround had in any case become pointless: since `T08` the cache's
+      flow returns read articles. The three tests concerned go back to it, and
+      the production code loses the query that only the tests called. Replayed
+      three times in a row from scratch
 
 ---
 
-## GOAL-016 — Les petites illustrations cessent d'être étirées
+## GOAL-016 — Small illustrations stop being stretched
 
-**Statut : DONE** — validé sur appareil
+**Status: DONE** — validated on a device
 
-Couvre SPECS.md §4.3, ajouté à la demande de l'auteur. Une illustration plus
-petite que le créneau est aujourd'hui **agrandie** pour le remplir, et le
-résultat est flou ou pixelisé. Le remède demandé est celui de certains réseaux
-sociaux : la même image en fond, floutée et rognée, et l'image à sa taille
-réelle par-dessus.
+Covers SPECS.md §4.3, added at the author's request. An illustration smaller
+than the slot is today **enlarged** to fill it, and the result is blurry or
+pixelated. The remedy asked for is the one used by certain social networks: the
+same image as a background, blurred and cropped, and the image at its real size
+on top.
 
-### Ce que l'analyse établit
+### What the analysis establishes
 
-| Constat | Où |
+| Observation | Where |
 |---|---|
-| Le créneau est fixé à **16/9**, jamais déduit de l'image — sans quoi la liste sursauterait à l'arrivée de chaque image | `ILLUSTRATION_ASPECT_RATIO`, les deux écrans |
-| `ContentScale.Crop` remplit toujours le créneau : une image de 200 px de large sur un écran de 1080 est **agrandie 5 fois** | `ArticleIllustration`, les deux écrans |
-| Le composant est **écrit deux fois**, à l'identique, comme l'était `FeedNotice` avant `GOAL-014-T06` | `DiscoverScreen`, `SwipeScreen` |
-| Coil 3.4.0 donne la taille source dans `AsyncImagePainter.State.Success` : le seuil est mesurable sans requête supplémentaire | — |
-| `Modifier.blur` exige **API 31** ; le projet descend à **26** | `android-minSdk = "26"` |
-| Le chargeur de test rend une image **carrée de 400 px**, franche : de quoi éprouver le cas sans réseau | `FakeIllustrations.kt` |
+| The slot is fixed at **16/9**, never deduced from the image — otherwise the list would jump as each image arrived | `ILLUSTRATION_ASPECT_RATIO`, both screens |
+| `ContentScale.Crop` always fills the slot: an image 200 px wide on a 1080 screen is **enlarged 5 times** | `ArticleIllustration`, both screens |
+| The component is **written twice**, identically, as `FeedNotice` was before `GOAL-014-T06` | `DiscoverScreen`, `SwipeScreen` |
+| Coil 3.4.0 gives the source size in `AsyncImagePainter.State.Success`: the threshold is measurable without an extra request | — |
+| `Modifier.blur` requires **API 31**; the project goes down to **26** | `android-minSdk = "26"` |
+| The test loader returns a **400 px square** image, flat: enough to prove the case without a network | `FakeIllustrations.kt` |
 
-### Ce qui a été tranché avant d'écrire
+### What was settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Quand une image est « trop petite » | **Quand il faudrait l'agrandir** : largeur source < largeur du créneau | C'est la définition exacte du défaut. Un seuil chiffré serait arbitraire et devrait être défendu ; celui-ci se mesure |
-| Le fond | La **même image**, rognée et floutée, sur **tout** le créneau ; l'image nette centrée par-dessus, à sa taille | Le créneau reste plein, sans bande vide ni cadre. C'est le procédé demandé par l'auteur, employé par plusieurs réseaux sociaux |
-| Sous API 31 | **Rien ne change** : l'étirement d'aujourd'hui | `Modifier.blur` n'y fait rien, et un fond net dupliqué serait pire que le défaut qu'on corrige. Un second mécanisme — teinte dominante — coûterait son écriture et ses tests pour une minorité d'appareils |
-| Portée | Les **deux** modes, après avoir réuni le composant | Il est écrit deux fois : corriger sans réunir, c'est corriger deux fois puis diverger une fois |
+| When an image is "too small" | **When it would have to be enlarged**: source width < slot width | That is the exact definition of the defect. A numeric threshold would be arbitrary and would have to be defended; this one is measured |
+| The background | The **same image**, cropped and blurred, over the **whole** slot; the sharp image centred on top, at its size | The slot stays full, with no empty band or frame. It is the process the author asked for, used by several social networks |
+| Below API 31 | **Nothing changes**: today's stretching | `Modifier.blur` does nothing there, and a sharp duplicated background would be worse than the defect being fixed. A second mechanism — dominant tint — would cost its writing and its tests for a minority of devices |
+| Scope | **Both** modes, after bringing the component together | It is written twice: fixing without merging means fixing twice and then diverging once |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-016-T01` **L'illustration devient un seul composant**, dans
-      `presentation/feed` : elle est aujourd'hui écrite à l'identique dans les
-      deux écrans. Refactor pur — captures inchangées, tests d'écran inchangés
-- [x] `GOAL-016-T02` **Le composant sait si l'image serait agrandie** : taille
-      source lue dans l'état de Coil, comparée à la largeur mesurée du créneau.
-      Décision pure, éprouvable sans rendu — 6 tests, dont les trois cas où l'on
-      ne doit rien faire
-- [x] `GOAL-016-T03` **Le fond flouté**, sous l'image à sa taille réelle, et
-      seulement quand l'agrandissement aurait lieu. Sous API 31, l'étirement
-      d'aujourd'hui, sans y toucher.
-      La copie floutée déborde légèrement du créneau : `blur` estompe jusqu'aux
-      bords, et sans ce débordement le cadre qu'on chasse reparaîtrait en
-      périphérie.
-      **`Inside` et non `Fit`**, corrigé après un premier essai sur appareil :
-      `Fit` remplit la plus petite dimension du créneau, donc agrandit encore —
-      l'image de devant restait floue, exactement le défaut qu'on prétendait
-      corriger. `Inside` réduit ce qui déborde mais ne grandit jamais au-delà de
-      la taille native : c'est la seule échelle qui n'invente aucun pixel
-- [x] `GOAL-016-T04` **Captures Roborazzi** : une petite image et une grande,
-      dans les deux modes, clair et sombre. Quatre références, **regardées**.
-      > **Deux pièges du harnais, corrigés plutôt que contournés.** La première
-      > capture employait un aplat uni : flouté ou net, rogné ou ajusté, il rend
-      > exactement les mêmes pixels — elle aurait validé n'importe quoi.
-      > L'illustration minuscule est donc devenue **bicolore**, un disque clair
-      > sur fond sombre, où le sujet net, le fond estompé et le créneau plein se
-      > distinguent.
-      > L'image factice « ordinaire » mesurait par ailleurs 400 px : elle passait
-      > elle aussi sous la largeur d'un créneau, donc sous le fond flouté. Toutes
-      > les captures du dépôt auraient illustré le cas particulier en croyant
-      > montrer le cas général. Portée à 1 600 px, elle redevient le cas
-      > ordinaire — et les références existantes sont **inchangées au pixel**
-- [x] `GOAL-016-T05` **Constaté sur appareil**, sur un article réel à petite
-      illustration — validé par l'auteur. Le premier essai y a d'ailleurs révélé
-      le défaut de `Fit`, qu'aucune capture n'avait montré : l'image factice du
-      harnais est carrée, une vignette réelle ne l'est pas
-- [x] `GOAL-016-T06` **Documentation** : SPECS §4.3 et §8 question 12,
+- [x] `GOAL-016-T01` **The illustration becomes a single component**, in
+      `presentation/feed`: it is today written identically in the two screens.
+      A pure refactor — screenshots unchanged, screen tests unchanged
+- [x] `GOAL-016-T02` **The component knows whether the image would be enlarged**:
+      source size read from Coil's state, compared with the measured width of the
+      slot. A pure decision, provable without rendering — 6 tests, including the
+      three cases where nothing must be done
+- [x] `GOAL-016-T03` **The blurred background**, under the image at its real
+      size, and only when the enlargement would happen. Below API 31, today's
+      stretching, untouched.
+      The blurred copy slightly overflows the slot: `blur` fades all the way to
+      the edges, and without that overflow the frame being chased would reappear
+      at the periphery.
+      **`Inside` and not `Fit`**, fixed after a first trial on a device: `Fit`
+      fills the slot's smallest dimension, hence enlarges again — the foreground
+      image stayed blurry, exactly the defect we claimed to be fixing. `Inside`
+      shrinks what overflows but never grows beyond the native size: it is the
+      only scale that invents no pixel
+- [x] `GOAL-016-T04` **Roborazzi screenshots**: a small image and a large one,
+      in both modes, light and dark. Four references, **looked at**.
+      > **Two harness traps, fixed rather than worked around.** The first
+      > screenshot used a flat solid colour: blurred or sharp, cropped or
+      > fitted, it renders exactly the same pixels — it would have validated
+      > anything.
+      > The tiny illustration has therefore become **two-tone**, a light disc on
+      > a dark background, where the sharp subject, the faded background and the
+      > full slot can be told apart.
+      > The "ordinary" fake image, moreover, measured 400 px: it too fell below
+      > the width of a slot, hence under the blurred background. Every
+      > screenshot in the repository would have illustrated the special case
+      > while believing it showed the general one. Raised to 1,600 px, it becomes
+      > the ordinary case again — and the existing references are **unchanged to
+      > the pixel**
+- [x] `GOAL-016-T05` **Observed on a device**, on a real article with a small
+      illustration — validated by the author. The first trial in fact revealed
+      the `Fit` defect there, which no screenshot had shown: the harness's fake
+      image is square, a real thumbnail is not
+- [x] `GOAL-016-T06` **Documentation**: SPECS §4.3 and §8 question 12,
       ARCHITECTURE §9.8, README, TASKS
-- [x] `GOAL-016-T07` **Audit du code du jour**, demandé par l'auteur. Aucune
-      infraction aux interdits d'AGENTS.md §2 — pas d'import Android dans
-      `:domain`, aucun `Dispatchers.` ni `System.currentTimeMillis()` hors de
-      leur module, aucune chaîne en dur dans un Composable, aucun `TODO`
-      orphelin, aucun code mort.
-      Deux écarts de **convention** corrigés : `needsUpscaling` et
-      `FeedStalenessWatcher` étaient publics alors que le dépôt réserve
-      `public` aux composables partagés et aux points d'entrée, et `internal` à
-      tout le reste.
-      Trois passages d'ARCHITECTURE.md étaient devenus faux avec la suppression
-      de la position de lecture, dont une section entière — voir `GOAL-016-T03`
+- [x] `GOAL-016-T07` **Audit of the day's code**, requested by the author. No
+      breach of the prohibitions of AGENTS.md §2 — no Android import in
+      `:domain`, no `Dispatchers.` nor `System.currentTimeMillis()` outside
+      their module, no hard-coded string in a Composable, no orphan `TODO`, no
+      dead code.
+      Two **convention** deviations fixed: `needsUpscaling` and
+      `FeedStalenessWatcher` were public whereas the repository reserves
+      `public` for shared composables and entry points, and `internal` for
+      everything else.
+      Three passages of ARCHITECTURE.md had become false with the removal of the
+      reading position, including a whole section — see `GOAL-016-T03`
 
 ---
 
-## GOAL-017 — Un article déjà lu se voit
+## GOAL-017 — An already-read article shows it
 
-**Statut : DONE** — validé sur appareil
+**Status: DONE** — validated on a device
 
-Couvre SPECS.md §4.1 et §4.5. **Ce Goal répare une conséquence de
-`GOAL-015-T08`**, trouvée en analysant les dérives depuis la v1.2.0 à la
-demande de l'auteur.
+Covers SPECS.md §4.1 and §4.5. **This Goal repairs a consequence of
+`GOAL-015-T08`**, found while analysing the drifts since v1.2.0 at the author's
+request.
 
-Les articles lus restent désormais affichés jusqu'au rechargement — c'est ce
-qui rend le flux stable au lancement. Mais rien ne les distingue : `isRead`
-existe dans le modèle d'affichage, le ViewModel le tient à jour, et **aucun
-écran ne le rend**. Tant que l'article disparaissait au lancement suivant, sa
-disparition était le signal ; il reste maintenant, indiscernable d'un article
-neuf, et l'on peut relire sans le savoir.
+Read articles now stay displayed until a reload — that is what makes the feed
+stable at launch. But nothing distinguishes them: `isRead` exists in the display
+model, the ViewModel keeps it up to date, and **no screen renders it**. As long
+as the article disappeared at the next launch, its disappearance was the signal;
+it now stays, indistinguishable from a fresh article, and one can reread without
+knowing it.
 
-### Ce qui a été tranché avant d'écrire
+### What was settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| La marque | Un **fanion**, en haut de la carte, par-dessus l'illustration | Choix de l'auteur. Se repère en balayant l'écran, là où une coche dans la ligne de flux demande de lire |
-| Son emplacement | **Toujours le même** : en haut de la carte, que l'article ait une illustration ou non | C'est ce qui évite le second rendu, et le second jeu de captures, qu'un fanion posé dans le coin de l'image aurait imposés |
-| La collision de sens | **Assumée** : le signet dit d'ordinaire « favori » | Signalée à l'auteur, qui tranche. À rouvrir si les articles suivis de FreshRSS sont un jour ajoutés — les deux se disputeraient le symbole |
-| L'opacité de la carte | **Non retenue** | Elle atténuerait aussi le titre, et le contraste AA de SPECS.md §7.1 serait à remesurer sur chaque état |
+| The mark | A **flag**, at the top of the card, over the illustration | The author's choice. It is spotted while scanning the screen, where a tick in the feed line asks to be read |
+| Its position | **Always the same**: at the top of the card, whether the article has an illustration or not | That is what avoids the second rendering, and the second set of screenshots, that a flag placed in the corner of the image would have imposed |
+| The clash of meaning | **Owned**: the bookmark usually says "favourite" | Reported to the author, who decides. To be reopened if FreshRSS's followed articles are one day added — the two would fight over the symbol |
+| Card opacity | **Not retained** | It would also dim the title, and the AA contrast of SPECS.md §7.1 would have to be remeasured on every state |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-017-T01` **Le fanion**, composant partagé dans `presentation/feed` :
-      forme, contraste sur n'importe quelle image, description pour le lecteur
-      d'écran
-- [x] `GOAL-017-T02` **Posé dans les deux modes**, en haut de la carte, avec ou
-      sans illustration. Le conteneur prend toute la largeur : sans cela il se
-      dimensionnait au fanion seul quand l'article n'avait pas d'image, et
-      l'alignement à droite n'avait rien sur quoi s'appuyer — le fanion
-      apparaissait collé à gauche, vu sur capture
-- [x] `GOAL-017-T03` **Captures Roborazzi** : lu et non lu, avec et sans
-      illustration, clair et sombre — deux références, **regardées**, et c'est
-      la première qui a révélé le défaut d'alignement
-- [x] `GOAL-017-T04` **Constaté sur appareil** : capture prise deux secondes
-      après un lancement à froid, les fanions y sont déjà. C'est ce constat qui
-      a révélé le défaut de projection — l'auteur avait signalé « un petit délai
-      avant l'affichage du fanion », et c'était en réalité un état faux
-- [x] `GOAL-017-T07` **Le fanion cesse de décaler la carte, et paraît en
-      fondu.** Signalé par l'auteur : sur un article **sans** illustration, le
-      fanion occupait une hauteur dans le flux vertical et poussait le contenu
-      vers le bas. Il survole désormais toute la carte, hors du flux — et hors
-      du défilement en mode Balayage, où il aurait sinon glissé avec le texte
-      alors qu'il qualifie l'article entier.
-      L'apparition se fait en fondu : l'état lu s'établit en cours de lecture,
-      et un fanion qui surgit sur la carte qu'on lit attire l'œil sur lui alors
-      qu'il ne fait que constater
-- [x] `GOAL-017-T06` **Le fanion est atténué**, à la demande de l'auteur : à
-      pleine opacité il attirait l'œil sur ce qu'il y a de moins intéressant
-      dans le flux. L'opacité porte sur la surface entière, coche comprise —
-      n'atténuer que le fond aurait laissé la coche à pleine intensité, soit
-      l'inverse du résultat cherché
-- [x] `GOAL-017-T05` **Documentation** : SPECS §4.5, ARCHITECTURE §9.9 — qui
-      retient la leçon des tests, non le seul correctif — README, TASKS
+- [x] `GOAL-017-T01` **The flag**, a shared component in `presentation/feed`:
+      shape, contrast over any image, description for the screen reader
+- [x] `GOAL-017-T02` **Placed in both modes**, at the top of the card, with or
+      without an illustration. The container takes the full width: without that
+      it sized itself to the flag alone when the article had no image, and the
+      right alignment had nothing to lean on — the flag appeared stuck to the
+      left, seen on a screenshot
+- [x] `GOAL-017-T03` **Roborazzi screenshots**: read and unread, with and
+      without illustration, light and dark — two references, **looked at**, and
+      it is the first one that revealed the alignment defect
+- [x] `GOAL-017-T04` **Observed on a device**: screenshot taken two seconds
+      after a cold launch, the flags are already there. It is this observation
+      that revealed the projection defect — the author had reported "a small
+      delay before the flag appears", and it was in fact a false state
+- [x] `GOAL-017-T07` **The flag stops shifting the card, and appears with a
+      fade.** Reported by the author: on an article **without** an
+      illustration, the flag took up height in the vertical flow and pushed the
+      content down. It now floats over the whole card, out of the flow — and out
+      of the scroll in Swipe mode, where it would otherwise have slid with the
+      text although it qualifies the whole article.
+      It appears with a fade: the read state establishes itself during reading,
+      and a flag that pops up on the card being read draws the eye to itself
+      when all it does is record a fact
+- [x] `GOAL-017-T06` **The flag is dimmed**, at the author's request: at full
+      opacity it drew the eye to the least interesting thing in the feed. The
+      opacity applies to the whole surface, tick included — dimming only the
+      background would have left the tick at full intensity, that is, the
+      opposite of the result sought
+- [x] `GOAL-017-T05` **Documentation**: SPECS §4.5, ARCHITECTURE §9.9 — which
+      keeps the lesson of the tests, not just the fix — README, TASKS
 
 ---
 
-## GOAL-018 — La CI cesse de tourner sur des actions dépréciées
+## GOAL-018 — CI stops running on deprecated actions
 
-**Statut : IN PROGRESS**
+**Status: IN PROGRESS**
 
-Chaque publication signalait deux avertissements : `setup-java v4 is
-deprecated`, et `Node.js 20 is deprecated` pour `download-artifact` et
-`action-gh-release`. Rien ne cassait, et c'est précisément ce qui rend la chose
-facile à laisser traîner — jusqu'au jour où GitHub retire le moteur Node 20 et
-où la publication s'arrête sans prévenir.
+Every release reported two warnings: `setup-java v4 is deprecated`, and
+`Node.js 20 is deprecated` for `download-artifact` and `action-gh-release`.
+Nothing broke, and that is precisely what makes the thing easy to let drag on —
+until the day GitHub removes the Node 20 engine and the release stops without
+warning.
 
-### Ce que l'analyse établit
+### What the analysis establishes
 
-| Action | Avant | Après | Ce que la majeure apporte |
+| Action | Before | After | What the major version brings |
 |---|---|---|---|
 | `actions/checkout` | v4 | v7 | Node 24 |
-| `actions/setup-java` | v4 | v5 | Node 24 ; c'est l'action explicitement dépréciée |
-| `actions/upload-artifact` | v4 | v7 | Node 24, module ESM |
-| `actions/download-artifact` | v4 | v8 | Node 24 ; l'empreinte du téléchargement devient **bloquante** au lieu d'un simple avertissement |
+| `actions/setup-java` | v4 | v5 | Node 24; it is the explicitly deprecated action |
+| `actions/upload-artifact` | v4 | v7 | Node 24, ESM module |
+| `actions/download-artifact` | v4 | v8 | Node 24; the download digest becomes **blocking** instead of a mere warning |
 | `gradle/actions/setup-gradle` | v4 | v6 | Node 24 |
 | `softprops/action-gh-release` | v2 | v3 | Node 24 |
 
-Aucune rupture ne touche cet usage : les notes de version ont été lues avant de
-changer les numéros. Le seul changement de comportement qui nous concerne —
-l'empreinte vérifiée à l'arrivée — va dans le bon sens pour un artefact signé.
+No breaking change touches this usage: the release notes were read before the
+numbers were changed. The only behaviour change that concerns us — the digest
+verified on arrival — goes in the right direction for a signed artefact.
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-018-T01` **Monter les six actions**, puis constater la CI verte sur
-      une pull request — c'est le seul déclencheur actif (`GOAL-001-T19`).
-      Constaté : run vert, et **plus aucun avertissement d'action dépréciée**
-      dans le journal. Ceux qui subsistent viennent de Gradle, pas de GitHub —
-      voir `GOAL-018-T03`
-- [ ] `GOAL-018-T02` **Constater la publication**, qui ne s'éprouve qu'au
-      prochain tag : elle emploie deux actions que la CI ne traverse pas
-- [ ] `GOAL-018-T03` **Les avertissements Gradle restants.** « Deprecated Gradle
-      features were used in this build, making it incompatible with Gradle 10 »
-      apparaît à chaque tâche. Ils ne viennent pas des actions mais du build
-      lui-même — plugins ou scripts. `--warning-mode all` les nommera. Distinct
-      de `T01`, et de portée différente : celui-ci touche la construction, pas
-      la chaîne d'intégration
+- [x] `GOAL-018-T01` **Raise the six actions**, then observe the CI green on a
+      pull request — it is the only active trigger (`GOAL-001-T19`).
+      Observed: green run, and **no deprecated-action warning left** in the log.
+      The ones remaining come from Gradle, not from GitHub — see
+      `GOAL-018-T03`
+- [ ] `GOAL-018-T02` **Observe the release**, which can only be proven at the
+      next tag: it uses two actions the CI does not go through
+- [ ] `GOAL-018-T03` **The remaining Gradle warnings.** "Deprecated Gradle
+      features were used in this build, making it incompatible with Gradle 10"
+      appears on every task. They come not from the actions but from the build
+      itself — plugins or scripts. `--warning-mode all` will name them. Distinct
+      from `T01`, and of a different scope: this one touches the build, not the
+      integration chain
 
 ---
 
-## GOAL-019 — Le marquage automatique devient optionnel
+## GOAL-019 — Automatic marking becomes optional
 
-**Statut : DONE** — cinq tâches, cinq commits, sur la branche
-`worktree-agent-a1efdfaeef67c4f8e`. Vérification passée et constatée avant
-chaque commit, `:app:verifyRoborazziDebug` compris à `T04`, où les captures des
-réglages ont été réenregistrées **et regardées** en clair et en sombre.
+**Status: DONE** — five tasks, five commits, on the branch
+`worktree-agent-a1efdfaeef67c4f8e`. Verification passed and observed before
+every commit, `:app:verifyRoborazziDebug` included at `T04`, where the settings
+screenshots were re-recorded **and looked at** in light and dark.
 
-Aucun constat sur appareil : le téléphone n'était pas disponible (voir l'avis de
-« Phase courante »). La garantie tient aux tests unitaires, aux tests d'écran et
-aux captures.
+No observation on a device: the phone was not available (see the notice under
+"Current phase"). The guarantee rests on the unit tests, the screen tests and
+the screenshots.
 
-Demandé par l'auteur. SPECS.md §1 pose « lire, c'est faire défiler » comme
-principe, et §4.5 en fait un mécanisme sans échappatoire : qui parcourt son flux
-sans le lire consomme ses articles sans le vouloir, et le rechargement les
-emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
+Requested by the author. SPECS.md §1 lays down "reading is scrolling" as a
+principle, and §4.5 makes it a mechanism with no escape: whoever goes through
+their feed without reading it consumes their articles without meaning to, and
+the reload carries them away. An **On / Off** switch makes the rule optional.
 
-### Ce qui est tranché avant d'écrire
+### What is settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Où vit le réglage | Dans `ReadingSettings`, aux côtés des deux seuils | Même lecteur — le détecteur de lecture — et même moment de lecture. Un flux distinct, comme celui du rappel, ferait observer deux sources à qui n'en applique qu'une |
-| Valeur par défaut | **Actif** | C'est le comportement d'aujourd'hui, et celui que SPECS.md §1 décrit. Une installation existante ne doit rien voir changer |
-| Ce que l'extinction arrête | La détection par visibilité, et **elle seule** | Ouvrir un article le marque toujours lu (SPECS.md §4.7) : c'est un geste délibéré, pas un marquage automatique. Les deux se confondraient si l'interrupteur emportait aussi l'ouverture |
-| Les deux seuils, une fois éteints | **Affichés, grisés** | Les cacher ferait disparaître deux réglages sans dire pourquoi ; les laisser actifs proposerait d'ajuster ce qui ne s'applique plus |
-| La file de marquages en attente | Inchangée | Ce qui est déjà marqué reste à transmettre. Éteindre le marquage n'annule pas les lectures passées |
+| Where the setting lives | In `ReadingSettings`, alongside the two thresholds | Same reader — the read detector — and same moment of reading. A separate flow, like the reminder's, would make anyone applying only one of them observe two sources |
+| Default value | **On** | It is today's behaviour, and the one SPECS.md §1 describes. An existing installation must see nothing change |
+| What switching off stops | Detection by visibility, and **that alone** | Opening an article still marks it read (SPECS.md §4.7): that is a deliberate gesture, not automatic marking. The two would be conflated if the switch also carried opening away |
+| The two thresholds, once switched off | **Displayed, greyed out** | Hiding them would make two settings vanish without saying why; leaving them active would offer to adjust what no longer applies |
+| The pending markings queue | Unchanged | What is already marked remains to be transmitted. Switching marking off does not cancel past readings |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, actif par défaut,
-      et son passage par `coerced` — tests de `:domain`
-- [x] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
-      rend, `SettingsRepository.setAutoMarkAsReadEnabled` — tests du store
-- [x] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
-      détecteur** quand le réglage est éteint, et le reprennent sans redémarrage
-      quand il se rallume. L'ouverture d'un article marque toujours
-- [x] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
-      dessous — tests d'écran et captures Roborazzi **regardées**
-- [x] `GOAL-019-T05` Documentation : SPECS.md §4.5 et §6, TASKS.md
+- [x] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, on by default, and
+      its passage through `coerced` — `:domain` tests
+- [x] `GOAL-019-T02` Persistence: DataStore key, `observeReadingSettings`
+      returning it, `SettingsRepository.setAutoMarkAsReadEnabled` — store tests
+- [x] `GOAL-019-T03` **The two feed ViewModels stop feeding the detector** when
+      the setting is off, and take it up again without a restart when it is
+      switched back on. Opening an article still marks
+- [x] `GOAL-019-T04` Switch in the settings screen, thresholds greyed out
+      underneath — screen tests and Roborazzi screenshots **looked at**
+- [x] `GOAL-019-T05` Documentation: SPECS.md §4.5 and §6, TASKS.md
 
-### Ce que la réalisation a appris
+### What the implementation taught
 
-| Point | Constat |
+| Point | Observation |
 |---|---|
-| Le détecteur éteint | Il devient `null` plutôt que d'être doublé d'un booléen : l'absence de détecteur ne peut pas être oubliée, un drapeau à côté si. Les écrans continuent d'échantillonner la visibilité — sans effet, et c'est ce qui rend le rallumage immédiat |
-| Le chronomètre en cours | L'extinction le jette avec le détecteur. Le laisser aboutir marquerait un article après que l'utilisateur a demandé que cela cesse : un test le constate |
-| `DiscoverViewModelTest` | Ajouter les cas du réglage y faisait dépasser le seuil `LargeClass` de Detekt. Ils vivent dans `DiscoverAutomaticMarkingTest`, qui a son propre état de départ — aucune règle relâchée, aucun test abandonné |
-| Les textes des seuils | Ils s'atténuent avec le curseur (`0.38`, l'opacité que Material 3 n'expose pas). Un chiffre resté vif au-dessus d'une piste grisée se lirait comme un réglage encore appliqué |
+| The detector switched off | It becomes `null` rather than being paired with a boolean: the absence of a detector cannot be forgotten, a flag beside it can. The screens keep sampling visibility — to no effect, and that is what makes switching back on immediate |
+| The timer in progress | Switching off throws it away with the detector. Letting it complete would mark an article after the user asked for that to stop: a test observes it |
+| `DiscoverViewModelTest` | Adding the setting's cases there pushed it past Detekt's `LargeClass` threshold. They live in `DiscoverAutomaticMarkingTest`, which has its own starting state — no rule relaxed, no test given up |
+| The thresholds' texts | They dim along with the slider (`0.38`, the opacity Material 3 does not expose). A figure left bright above a greyed-out track would read as a setting still being applied |
 
-### Restes ouverts
+### Loose ends
 
-- La ligne « Prochaine tâche » de « Phase courante » cite encore
-  `GOAL-019-T01`. Elle n'a pas été retouchée ici : GOAL-020 et GOAL-021 sont
-  menés en parallèle sur d'autres branches, et trois agents réécrivant la même
-  phrase produiraient un conflit à la fusion. À reprendre une fois les trois
-  Goals fusionnés.
-- **ARCHITECTURE.md n'a pas été mise à jour** : elle sortait du périmètre confié
-  à cette branche. Rien d'architectural n'a changé — ni paquet, ni dépendance,
-  ni découpage : un champ s'est ajouté à `ReadingSettings` et une clé au
-  DataStore. §5.1 gagnerait tout de même la mention de
-  `reading.auto_mark_as_read`, à faire lors d'une passe où le fichier est libre.
+- The "Next task" line of "Current phase" still cites `GOAL-019-T01`. It has not
+  been touched here: GOAL-020 and GOAL-021 are being carried out in parallel on
+  other branches, and three agents rewriting the same sentence would produce a
+  merge conflict. To be taken up once the three Goals are merged.
+- **ARCHITECTURE.md has not been updated**: it fell outside the scope entrusted
+  to this branch. Nothing architectural changed — no package, no dependency, no
+  splitting: a field was added to `ReadingSettings` and a key to the DataStore.
+  §5.1 would nonetheless gain from mentioning `reading.auto_mark_as_read`, to be
+  done in a pass where the file is free.
 
 ---
 
-## GOAL-020 — La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui
+## GOAL-020 — The card can be shared, the flag goes, the swipe opens on a tap
 
-**Statut : DONE**
+**Status: DONE**
 
-> ⚠️ **Rien n'a été constaté sur appareil**, aucun n'étant disponible
-> (voir l'avertissement de la Phase courante). Ce que les tests ne peuvent
-> pas dire, et qu'il faudra regarder au premier lancement réel : **la feuille
-> de partage du système** — qu'elle s'ouvre, ce qu'elle propose, et la mine
-> que fait le texte « titre puis lien » une fois collé dans une messagerie.
-> `ArticleShareIntentTest` établit le contenu de l'intention, pas ce
-> qu'Android en fait.
+> ⚠️ **Nothing has been observed on a device**, none being available
+> (see the warning in Current phase). What the tests cannot say, and what will
+> have to be looked at on the first real run: **the system share sheet** —
+> that it opens, what it offers, and the look of the "title then link" text
+> once pasted into a messaging app.
+> `ArticleShareIntentTest` establishes the content of the intent, not what
+> Android does with it.
 
-Trois demandes de l'auteur sur la même surface — la carte d'article — donc un
-seul Goal : elles se croisent dans `DiscoverScreen` et `SwipeScreen`, et les
-traiter séparément reviendrait à corriger deux fois la même mise en page.
+Three requests from the author on the same surface — the article card — hence a
+single Goal: they cross in `DiscoverScreen` and `SwipeScreen`, and handling them
+separately would amount to fixing the same layout twice.
 
-### Ce qui est tranché avant d'écrire
+### What is settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Le fanion des articles lus | **Retiré**, avec son composant, ses tests et ses captures | Demande de l'auteur : GOAL-017 l'avait posé pour que l'on ne relise pas sans le savoir, et l'usage a montré qu'il attire l'œil sur ce qu'il y a de moins intéressant dans le flux. L'atténuation de `GOAL-017-T06` allait déjà dans ce sens ; l'auteur va au bout |
-| Ce que le retrait ne touche pas | `ArticleUiModel.isRead` et sa projection | L'état lu reste ce qui décide du marquage et de la purge (SPECS.md §5.4). Seule sa **représentation** disparaît. Retirer le champ ferait tomber la règle avec le décor |
-| Le partage | Le **sélecteur natif** (`ACTION_SEND` via `createChooser`), sur les deux modes | Ce que l'auteur demande, et la seule forme qui n'engage aucun service tiers (SPECS.md §7.4) : l'application ne choisit pas la destination, elle passe la main au système |
-| Ce qui est partagé | Le titre puis l'URL d'origine | Une URL nue ne dit pas ce qu'on envoie. L'extrait, lui, est écourté par nous : le transmettre partagerait notre troncature pour du contenu |
-| Un article sans lien | Ne se partage pas, et le bouton n'y paraît pas | Même règle que l'ouverture (SPECS.md §4.7). Partager un titre seul enverrait un message sans objet |
-| Le bouton « Ouvrir l'article » en Balayage | **Retiré** : la carte entière ouvre l'article | Demande de l'auteur. Le KDoc d'`OpenAction` défendait l'inverse — un appui pris pour une ouverture pendant un balayage hésitant. Compose distingue le `tap` du `drag` : le geste horizontal n'est pas consommé par le clic, et c'est ce qu'un test doit constater |
-| Un article sans lien en Balayage | La carte n'est pas cliquable, et le dit | Ce que la mention « pas de lien » fait déjà. Elle reste |
-| SPECS.md §2 | Le partage **quitte** le hors-périmètre | Il y figurait sous « partage social, commentaires, annotations ». Un sélecteur système n'est aucun des trois, mais l'exclusion était écrite assez largement pour le couvrir : la lever explicitement vaut mieux que l'interpréter |
+| The read-article flag | **Removed**, with its component, its tests and its screenshots | The author's request: GOAL-017 had put it there so that one would not reread without knowing, and use has shown that it draws the eye to the least interesting thing in the feed. The dimming of `GOAL-017-T06` was already going that way; the author goes all the way |
+| What the removal does not touch | `ArticleUiModel.isRead` and its projection | The read state remains what decides the marking and the purge (SPECS.md §5.4). Only its **representation** disappears. Removing the field would bring the rule down with the decoration |
+| Sharing | The **native chooser** (`ACTION_SEND` via `createChooser`), in both modes | What the author asks for, and the only form that engages no third-party service (SPECS.md §7.4): the application does not choose the destination, it hands over to the system |
+| What is shared | The title then the original URL | A bare URL does not say what is being sent. The excerpt, for its part, is shortened by us: passing it on would share our truncation as content |
+| An article with no link | Cannot be shared, and the button does not appear on it | Same rule as opening (SPECS.md §4.7). Sharing a title alone would send a message with no object |
+| The "Open the article" button in Swipe | **Removed**: the whole card opens the article | The author's request. `OpenAction`'s KDoc argued the opposite — a tap taken for an opening during a hesitant swipe. Compose tells `tap` from `drag`: the horizontal gesture is not consumed by the click, and that is what a test must observe |
+| An article with no link in Swipe | The card is not clickable, and says so | What the "no link" mention already does. It stays |
+| SPECS.md §2 | Sharing **leaves** the out-of-scope list | It figured there under "social sharing, comments, annotations". A system chooser is none of the three, but the exclusion was written broadly enough to cover it: lifting it explicitly is better than interpreting it |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
-      deux écrans, ses tests, ses chaînes et ses deux captures.
-      `FeedTestTags` disparaît avec lui — il ne portait que `READ_FLAG`.
-      SPECS.md §4.5 et ARCHITECTURE.md §9.9 sont traitées **ici** et non en
-      `T06` : elles décrivent le fanion, et les laisser une tâche de plus
-      aurait fait mentir la documentation sur du code déjà supprimé. La leçon
-      de §9.9 — « tester l'écran ne teste pas ce qui l'alimente » — est
-      conservée en ARCHITECTURE.md §8.3, où elle vaut pour tout champ
-      d'`ArticleUiModel` et non pour le seul fanion.
-      `verifyRoborazziDebug` passe sans réenregistrement : aucune capture
-      restante ne portait d'article lu
-- [x] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
-      ce qui se partage, ce qui se tait — éprouvable en JVM, le lancement de
-      l'intention isolé derrière une interface fonctionnelle, comme
+- [x] `GOAL-020-T01` **The flag is removed**: `ReadFlag`, its calls in the two
+      screens, its tests, its strings and its two screenshots.
+      `FeedTestTags` goes with it — it carried nothing but `READ_FLAG`.
+      SPECS.md §4.5 and ARCHITECTURE.md §9.9 are handled **here** and not in
+      `T06`: they describe the flag, and leaving them one task longer would have
+      made the documentation lie about code already deleted. The lesson of §9.9
+      — "testing the screen does not test what feeds it" — is kept in
+      ARCHITECTURE.md §8.3, where it holds for any field of `ArticleUiModel` and
+      not for the flag alone.
+      `verifyRoborazziDebug` passes without re-recording: no remaining
+      screenshot carried a read article
+- [x] `GOAL-020-T02` `ArticleSharer` in `presentation/browser`: the decision —
+      what gets shared, what stays quiet — provable on the JVM, the launching of
+      the intent isolated behind a functional interface, like
       `CustomTabLauncher`.
-      Deux écarts au modèle, tous deux voulus : `ArticleShareOutcome` n'a que
-      deux valeurs — pas d'équivalent de `NoBrowser`, le sélecteur étant
-      fourni par le système et disant lui-même qu'aucune application ne peut
-      recevoir — et `isSupportedWebLink` passe de `private` à `internal`
-      plutôt que d'être recopiée, pour que les deux règles de schémas ne
-      puissent pas diverger. Le gabarit du texte partagé est une ressource,
-      donnée au partageur par `rememberArticleSharer` : la composition reste
-      éprouvable en JVM, la formulation reste traduisible
-- [x] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
-      cible de 48 dp et description pour le lecteur d'écran — tests d'écran.
-      `ArticleShareButton` vit dans `feed/`, comme `RefreshButton` : même
-      action des deux côtés. Posé **sous** les textes de la carte et non sur
-      la ligne du flux et de la date — là-haut, un lecteur d'écran annoncerait
-      la commande avant le titre de l'article qu'elle partage.
-      `onArticleShare` est **sans valeur par défaut** sur les deux écrans :
-      un `{}` implicite laisserait un bouton visible et inerte.
-      Références Roborazzi réenregistrées et **regardées** dans ce même
-      incrément, plutôt que reportées à `T05` : entre les deux, la
-      vérification visuelle aurait été rouge sans que cela signifie rien
-- [x] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
-      bouton disparaît. Un test constate que le balayage passe toujours —
-      `swipingLeftStillWorksWithAClickableCard` : la page change **et**
-      l'ouverture n'est pas déclenchée, ce qui est exactement ce que craignait
-      le KDoc d'`OpenAction`. `swipe_open_article` survit en `onClickLabel` :
-      une surface tactile n'annonce rien d'elle-même. Les deux tests de la
-      bandelette d'ancienneté visent désormais le bouton de partage, devenu la
-      seule commande de ce mode
-- [x] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
-      **regardées**. Le réenregistrement a eu lieu dans `T03` et `T04`, avec le
-      changement qu'il constate ; il restait ici l'état qu'aucune image ne
-      montrait — **un article sans lien en Balayage**,
-      `balayage-article-sans-lien`, où l'on voit qu'il n'y a pas de bouton de
-      partage et que la mention subsiste après le retrait du bouton
-      d'ouverture. Deux captures supprimées par `T01`
-      (`discover-articles-lus`), 26 modifiées, 2 ajoutées : l'icône de partage
-      se détache dans les deux thèmes, sur carte comme sur illustration
-- [x] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
-      ARCHITECTURE.md §9.9 et §9, TASKS.md. Deux morceaux ont été traités plus
-      tôt, là où le code qu'ils décrivaient disparaissait : ARCHITECTURE.md
-      §9.9 en `T01` et le rôle du paquet `browser/` (§9) en `T02`. SPECS.md
-      §4.5 s'y est ajoutée, qui décrivait le fanion et n'était listée nulle
-      part. §7.4 n'a pas bougé et n'avait pas à bouger : un sélecteur système
-      n'ouvre aucune connexion depuis l'application
+      Two departures from the model, both deliberate: `ArticleShareOutcome` has
+      only two values — no equivalent of `NoBrowser`, the chooser being provided
+      by the system and saying itself that no application can receive — and
+      `isSupportedWebLink` goes from `private` to `internal` rather than being
+      copied, so that the two scheme rules cannot diverge. The template of the
+      shared text is a resource,
+      given to the sharer by `rememberArticleSharer`: the composition stays
+      provable on the JVM, the wording stays translatable
+- [x] `GOAL-020-T03` **Share button on the card**, in both modes, a 48 dp target
+      and a description for the screen reader — screen tests.
+      `ArticleShareButton` lives in `feed/`, like `RefreshButton`: the same
+      action on both sides. Placed **below** the card's texts and not on the
+      line with the feed and the date — up there, a screen reader would announce
+      the control before the title of the article it shares.
+      `onArticleShare` has **no default value** on either screen: an implicit
+      `{}` would leave a button visible and inert.
+      Roborazzi references re-recorded and **looked at** in this same
+      increment, rather than deferred to `T05`: in between, the visual
+      verification would have been red without that meaning anything
+- [x] `GOAL-020-T04` **In Swipe, the whole card opens the article** and the
+      button disappears. A test observes that the swipe still works —
+      `swipingLeftStillWorksWithAClickableCard`: the page changes **and** the
+      opening is not triggered, which is exactly what `OpenAction`'s KDoc
+      feared. `swipe_open_article` survives as an `onClickLabel`: a touch
+      surface announces nothing by itself. The two tests of the staleness strip
+      now target the share button, which has become the only control of this
+      mode
+- [x] `GOAL-020-T05` Roborazzi screenshots of both modes, light and dark,
+      **looked at**. The re-recording happened in `T03` and `T04`, along with
+      the change it records; what remained here was the state no image showed —
+      **an article with no link in Swipe**,
+      `balayage-article-sans-lien`, where one can see that there is no share
+      button and that the mention survives the removal of the opening button.
+      Two screenshots deleted by `T01`
+      (`discover-articles-lus`), 26 modified, 2 added: the share icon stands out
+      in both themes, on a card as on an illustration
+- [x] `GOAL-020-T06` Documentation: SPECS.md §2, §4.3, §4.7, §4.8,
+      ARCHITECTURE.md §9.9 and §9, TASKS.md. Two pieces were handled earlier,
+      where the code they described was disappearing: ARCHITECTURE.md §9.9 in
+      `T01` and the role of the `browser/` package (§9) in `T02`. SPECS.md §4.5
+      was added to the list, which described the flag and was listed nowhere.
+      §7.4 has not moved and had no reason to: a system chooser opens no
+      connection from the application
 
 ---
 
-## GOAL-021 — La documentation passe à l'anglais, l'interface devient bilingue
+## GOAL-021 — The documentation switches to English, the interface becomes bilingual
 
-**Statut : TODO**
+**Status: TODO**
 
-Demandé par l'auteur : la documentation du dépôt est **remplacée** par sa
-traduction anglaise — il n'en reste pas deux versions, qui divergeraient au
-premier commit. L'interface, elle, devient **bilingue** : anglais par défaut,
-français conservé.
+Requested by the author: the repository's documentation is **replaced** by its
+English translation — there are not two versions left, which would diverge at
+the first commit. The interface, for its part, becomes **bilingual**: English by
+default, French kept.
 
-### Ce qui est tranché avant d'écrire
+### What is settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| Portée de la traduction | **Tous** les `.md` du dépôt, `docs/` compris | Réponse de l'auteur. Une documentation à moitié traduite oblige à deviner où chercher |
-| Le français est-il conservé ? | **Non** | « Remplacer », littéralement. Deux versions d'AGENTS.md diverge­raient sans que rien ne le signale |
-| PROMPT.md | Traduit, et reste figé | Il conserve l'intention initiale : sa langue change, pas son contenu |
-| L'interface | **Bilingue** : `values/` en anglais, `values-fr/` en français | Réponse de l'auteur. L'anglais par défaut, parce que `values/` est ce que reçoit tout appareil dont la langue n'est pas prévue |
-| Les captures Roborazzi | **Inchangées** | Le harnais fixe déjà `@Config(qualifiers = "fr-rFR…")` : les références restent françaises, et le déplacement des chaînes vers `values-fr/` ne les touche pas. Ce n'est pas un contournement — c'est ce qui rend le changement de langue vérifiable sans réenregistrer 58 images |
-| Comment `values/` est éprouvé | Un test d'écran en `en-rUS` | Sans lui, une chaîne oubliée dans la traduction ne se verrait qu'à l'exécution sur un appareil anglophone. Les captures, elles, ne regardent que le français |
-| KDoc et messages de commit | **Restent en français** | AGENTS.md §9 le demande, et l'auteur n'a demandé que la documentation. À rouvrir s'il le souhaite |
+| Scope of the translation | **All** the `.md` files of the repository, `docs/` included | The author's answer. Half-translated documentation forces you to guess where to look |
+| Is French kept? | **No** | "Replace", literally. Two versions of AGENTS.md would diverge with nothing to signal it |
+| PROMPT.md | Translated, and stays frozen | It preserves the initial intent: its language changes, not its content |
+| The interface | **Bilingual**: `values/` in English, `values-fr/` in French | The author's answer. English by default, because `values/` is what any device whose language is not provided for receives |
+| The Roborazzi screenshots | **Unchanged** | The harness already pins `@Config(qualifiers = "fr-rFR…")`: the references stay French, and moving the strings to `values-fr/` does not touch them. This is not a workaround — it is what makes the language change verifiable without re-recording 58 images |
+| How `values/` is proven | One screen test in `en-rUS` | Without it, a string forgotten in the translation would only show up at run time on an English-speaking device. The screenshots, for their part, only look at French |
+| KDoc and commit messages | **Stay in French** | AGENTS.md §9 requires it, and the author only asked for the documentation. To be reopened if he wishes |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-021-T01` Traduire `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
-      `CLAUDE.md`, `PROMPT.md` et `docs/freshrss-api.md`. Ces six-là ne sont
-      touchés ni par GOAL-019 ni par GOAL-020 : ils se traduisent en parallèle
-- [ ] `GOAL-021-T02` **Interface bilingue** : les six fichiers de chaînes
-      passent en `values-fr/`, `values/` reçoit l'anglais, et un test d'écran en
-      `en-rUS` constate que rien n'y manque
-- [ ] `GOAL-021-T03` Traduire `SPECS.md`, `ARCHITECTURE.md` et `TASKS.md`.
-      **Après** GOAL-019 et GOAL-020, qui les modifient — traduire d'abord
-      obligerait à traduire deux fois
-- [ ] `GOAL-021-T04` SPECS.md §7.3 réécrite : l'interface n'est plus « en
-      français » mais bilingue, l'anglais par défaut
+- [x] `GOAL-021-T01` Translate `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+      `CLAUDE.md`, `PROMPT.md` and `docs/freshrss-api.md`. Those six are touched
+      neither by GOAL-019 nor by GOAL-020: they can be translated in parallel
+- [ ] `GOAL-021-T02` **Bilingual interface**: the six string files move to
+      `values-fr/`, `values/` receives English, and a screen test in `en-rUS`
+      observes that nothing is missing there
+- [ ] `GOAL-021-T03` Translate `SPECS.md`, `ARCHITECTURE.md` and `TASKS.md`.
+      **After** GOAL-019 and GOAL-020, which modify them — translating first
+      would mean translating twice
+- [ ] `GOAL-021-T04` SPECS.md §7.3 rewritten: the interface is no longer "in
+      French" but bilingual, English by default
 
 ---
 
-## GOAL-022 — Une pile de test locale, et les défauts qu'elle a révélés
+## GOAL-022 — A local test stack, and the defects it revealed
 
-**Statut : DONE** — quatre défauts trouvés, la feuille de partage validée
+**Status: DONE** — four defects found, the share sheet validated
 
-Le téléphone n'étant pas disponible (voir « Phase courante »), l'auteur a demandé
-qu'une pile de test soit montée sur la machine : un émulateur Android et une
-instance FreshRSS en conteneur. Elle a été montée, l'application y a été
-installée, et **la connexion a échoué à la première tentative** — sur un défaut
-qu'aucun des tests du dépôt ne pouvait voir.
+The phone not being available (see "Current phase"), the author asked for a test
+stack to be set up on the machine: an Android emulator and a FreshRSS instance
+in a container. It was set up, the application was installed on it, and **the
+login failed on the first attempt** — on a defect that none of the repository's
+tests could see.
 
-### Le défaut
+### The defect
 
 ```
 java.net.UnknownServiceException: CLEARTEXT communication to 10.0.2.2
 not permitted by network security policy
 ```
 
-SPECS.md §3.1 dit que le schéma `http://` **reste accepté**, « les instances
-auto-hébergées sur réseau local sont un cas réel », et l'écran de connexion va
-jusqu'à afficher l'avertissement « cette connexion n'est pas chiffrée ». Le
-manifeste, lui, n'autorise le trafic en clair nulle part : depuis `targetSdk 28`,
-Android le refuse par défaut. **Aucune instance en `http://` n'était joignable**,
-et l'application affichait « le serveur ne répond pas » — un diagnostic faux, qui
-aurait envoyé l'utilisateur chercher la panne chez lui.
+SPECS.md §3.1 says the `http://` scheme **stays accepted**, "self-hosted
+instances on a local network are a real case", and the login screen even goes as
+far as displaying the warning "this connection is not encrypted". The manifest,
+for its part, allows cleartext traffic nowhere: since `targetSdk 28`, Android
+refuses it by default. **No `http://` instance was reachable**, and the
+application displayed "the server is not responding" — a false diagnosis, which
+would have sent the user looking for the fault at their end.
 
-C'est exactement le motif de `GOAL-001-T22` : trois défauts que 487 tests et
-30 captures n'avaient pas vus, et qu'une seule exécution réelle a montrés. La
-promesse était écrite dans SPECS.md, testée nulle part, et fausse.
+That is exactly the pattern of `GOAL-001-T22`: three defects that 487 tests and
+30 screenshots had not seen, and that a single real run showed. The promise was
+written in SPECS.md, tested nowhere, and false.
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-022-T01` **Le trafic en clair est autorisé**, comme SPECS.md §3.1 le
-      promet, et un test le constate.
-      > **Le premier garde-fou écrit ne gardait rien.** La correction est passée
-      > d'abord par un `network_security_config.xml`, et le test qui devait la
-      > tenir lisait `NetworkSecurityPolicy.isCleartextTrafficPermitted`. Il
-      > passait — mais il passait **aussi** après suppression de la
-      > configuration : Robolectric autorise le clair quoi qu'en dise le
-      > manifeste. Vérifié par mutation avant de le croire, exactement ce
-      > qu'AGENTS.md §8 réclame d'un outil qui ne signale jamais rien.
-      > L'autorisation passe donc par `android:usesCleartextTraffic`, dont le
-      > fanion arrive jusqu'à `ApplicationInfo.flags` et **échoue** quand on le
-      > retire. Constat de mutation : retiré → `FAILED`, remis → `SUCCESSFUL`.
-      > Puis constaté sur l'émulateur : connexion réussie contre
-      > `http://10.0.2.2:8088`, flux réel de 134 articles sur 8 sources
-- [x] `GOAL-022-T02` **Dossier `envTest/`**, demandé par l'auteur : le script
-      `test-stack.sh` et la configuration de chaque élément — `config.env`
-      (ports, identifiants, définition de l'AVD) et `feeds.opml` (les flux).
-      Trois commandes : `init` fabrique, `run` relance, **`stop` éteint**.
-      La règle « éteindre à la fin de chaque Goal » est inscrite dans
-      AGENTS.md §5.3, dont elle décale l'ancienne §5.3 en §5.4.
-      > **Le script avait un défaut que seule son exécution a montré.** `init`
-      > faisait tout son travail — AVD, conteneur, utilisateur, flux, API
-      > vérifiée, application installée — puis **ne rendait jamais la main** :
-      > l'émulateur restait enfant du script, qui l'attendait à sa sortie. Le
-      > `&` d'un sous-shell ne suffit pas ; il fallait `setsid` et `disown`.
-      > Le même travers guettait le message de `run` : `actualize-user.php`
-      > annonce « failed! » quand il n'a **rien** eu à rafraîchir, TTL non
-      > écoulé, ce qui est le cas courant de deux `run` rapprochés. Relayé tel
-      > quel, il aurait fait lire une panne à chaque relance.
-      > `init`, `run` et `stop` ont été exécutés, et leur sortie constatée
-- [x] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
-      GOAL-019 et GOAL-020 fusionnés : connexion, flux, partage, carte cliquable
-      en Balayage, interrupteur de marquage.
-      > **Un défaut d'alignement trouvé, et c'est le troisième que cette pile
-      > rapporte.** Sur une carte **sans illustration et au texte court**, le
-      > bouton de partage ne se rangeait pas au bord de la carte mais au bord
-      > du **texte** : la colonne intérieure épousait son contenu, et
-      > l'`align(End)` n'avait que cette largeur-là sur quoi s'appuyer. Avec
-      > une illustration, celle-ci impose la pleine largeur et le défaut
-      > disparaît — ce qui explique qu'aucune des 26 captures refaites par
-      > GOAL-020 ne l'ait montré : leurs articles ont tous soit une image, soit
-      > un texte assez long.
-      > **Le fanion des articles lus s'était fait prendre par la même porte en
-      > `GOAL-017-T02`.** Deux fois le même piège : une capture dédiée
-      > (`discover-article-court`) le garde désormais, et elle a été vérifiée
-      > par mutation — retirer le `fillMaxWidth` la fait échouer.
-      > Corrigé dans les deux modes. `ArticleText` a été extrait de
-      > `ArticlePage`, que le commentaire faisait dépasser sa longueur admise.
-      > **Constaté ensuite, tout au long** : connexion, flux mélangé sur huit
-      > sources, illustrations sur fond flouté, plus aucun fanion, bouton de
-      > partage sur chaque carte, interrupteur de marquage qui grise ses seuils,
-      > bascule en Balayage, balayage qui passe à l'article suivant, et appui
-      > sur la carte qui ouvre bien l'onglet personnalisé.
-      > **Un second défaut du script au passage** : le téléphone de l'auteur est
-      > apparu sur le réseau en pleine validation, et `adb` a répondu « more
-      > than one device » à chaque appel. Le script vise désormais l'émulateur
-      > **nommément** — ce qui ferme aussi la porte la plus grave, celle d'une
-      > construction de test installée sur le téléphone de quelqu'un.
-      > **Puis sur l'appareil de l'auteur** (Pixel 10 Pro, Android 17), à sa
-      > demande, contre son instance FreshRSS réelle : session conservée par la
-      > réinstallation, thème sombre et couleur dynamique, plus aucun fanion,
-      > bouton de partage rangé au bord de chaque carte.
-- [x] `GOAL-022-T04` **La feuille de partage du système**, la seule pièce
-      qu'aucun test ne pouvait atteindre — `ArticleShareIntentTest` établit le
-      contenu de l'intention, pas ce qu'Android en fait. **Validée par l'auteur
-      sur son appareil** le 2026-08-09. Le premier essai avait été interrompu
-      plutôt que mené : il se servait de son téléphone au même moment, et lui
-      disputer l'écran n'aurait rien prouvé
+- [x] `GOAL-022-T01` **Cleartext traffic is allowed**, as SPECS.md §3.1
+      promises, and a test observes it.
+      > **The first safeguard written guarded nothing.** The fix first went
+      > through a `network_security_config.xml`, and the test meant to hold it
+      > read `NetworkSecurityPolicy.isCleartextTrafficPermitted`. It passed —
+      > but it **also** passed after the configuration was deleted: Robolectric
+      > allows cleartext whatever the manifest says. Checked by mutation before
+      > believing it, exactly what AGENTS.md §8 demands of a tool that never
+      > reports anything.
+      > The authorisation therefore goes through `android:usesCleartextTraffic`,
+      > whose flag reaches `ApplicationInfo.flags` and **fails** when it is
+      > removed. Mutation observation: removed → `FAILED`, put back →
+      > `SUCCESSFUL`.
+      > Then observed on the emulator: successful login against
+      > `http://10.0.2.2:8088`, real feed of 134 articles from 8 sources
+- [x] `GOAL-022-T02` **`envTest/` directory**, requested by the author: the
+      `test-stack.sh` script and the configuration of each element — `config.env`
+      (ports, credentials, AVD definition) and `feeds.opml` (the feeds).
+      Three commands: `init` builds, `run` restarts, **`stop` shuts down**.
+      The rule "shut down at the end of every Goal" is recorded in
+      AGENTS.md §5.3, which shifts the old §5.3 to §5.4.
+      > **The script had a defect that only running it showed.** `init` did all
+      > its work — AVD, container, user, feeds, API checked, application
+      > installed — then **never gave the hand back**: the emulator stayed a
+      > child of the script, which waited for it on exit. A subshell's `&` is
+      > not enough; `setsid` and `disown` were needed.
+      > The same pitfall lay in wait for `run`'s message:
+      > `actualize-user.php` announces "failed!" when it had **nothing** to
+      > refresh, the TTL not having elapsed, which is the common case of two
+      > `run`s close together. Relayed as is, it would have had a breakdown read
+      > into every restart.
+      > `init`, `run` and `stop` were executed, and their output observed
+- [x] `GOAL-022-T03` **The whole journey observed on the emulator**, once
+      GOAL-019 and GOAL-020 were merged: login, feed, sharing, clickable card in
+      Swipe, marking switch.
+      > **An alignment defect found, and it is the third one this stack
+      > reports.** On a card **with no illustration and with short text**, the
+      > share button did not sit at the edge of the card but at the edge of the
+      > **text**: the inner column hugged its content, and the `align(End)` had
+      > only that width to lean on. With an illustration, the illustration
+      > imposes the full width and the defect disappears — which explains why
+      > none of the 26 screenshots redone by GOAL-020 showed it: their articles
+      > all have either an image or a long enough text.
+      > **The read-article flag had been caught through the same door in
+      > `GOAL-017-T02`.** Twice the same trap: a dedicated screenshot
+      > (`discover-article-court`) now guards it, and it has been checked by
+      > mutation — removing the `fillMaxWidth` makes it fail.
+      > Fixed in both modes. `ArticleText` was extracted from
+      > `ArticlePage`, which the comment was pushing past its allowed length.
+      > **Observed afterwards, all the way through**: login, feed interleaved
+      > over eight sources, illustrations on a blurred background, no flag left,
+      > share button on every card, marking switch that greys out its
+      > thresholds, switch to Swipe, swipe moving to the next article, and a tap
+      > on the card that does open the custom tab.
+      > **A second defect of the script along the way**: the author's phone
+      > appeared on the network in the middle of the validation, and `adb`
+      > answered "more than one device" on every call. The script now targets
+      > the emulator **by name** — which also closes the most serious door, that
+      > of a test build installed on somebody's phone.
+      > **Then on the author's device** (Pixel 10 Pro, Android 17), at his
+      > request, against his real FreshRSS instance: session kept across the
+      > reinstallation, dark theme and dynamic colour, no flag left, share
+      > button tucked to the edge of every card.
+- [x] `GOAL-022-T04` **The system share sheet**, the one piece no test could
+      reach — `ArticleShareIntentTest` establishes the content of the intent,
+      not what Android does with it. **Validated by the author on his device**
+      on 2026-08-09. The first attempt had been interrupted rather than carried
+      through: he was using his phone at the same moment, and fighting him for
+      the screen would have proved nothing
 
 ---
 
-## GOAL-023 — La carte se resserre : source et date en pied, partage discret
+## GOAL-023 — The card tightens up: source and date in the footer, discreet sharing
 
-**Statut : DONE** — validé sur l'émulateur, pas sur appareil (demande de l'auteur)
+**Status: DONE** — validated on the emulator, not on a device (the author's request)
 
-Demandé par l'auteur après avoir vu `GOAL-020` sur appareil. Deux ajustements
-de la carte du mode Liste, et ils vont ensemble : le bouton de partage occupe
-aujourd'hui **une ligne à lui seul** en bas de carte, pendant que la source et
-la date en occupent une autre en tête. Réunis en un seul pied de carte, ils
-rendent une ligne au contenu.
+Requested by the author after seeing `GOAL-020` on a device. Two adjustments to
+the List mode card, and they go together: the share button today takes up **a
+line of its own** at the bottom of the card, while the source and the date take
+up another at the top. Brought together into a single card footer, they give a
+line back to the content.
 
-### Ce qui est tranché avant d'écrire
+### What is settled before writing
 
-| Point | Décision | Raison |
+| Point | Decision | Reason |
 |---|---|---|
-| La source et la date | Descendent en **pied de carte**, sur la même ligne que le partage | Demande de l'auteur. Le titre devient la première chose lue, ce que la hiérarchie d'une carte veut de toute façon ; la provenance reste présente, elle cesse d'être annoncée avant le sujet |
-| Ce que voit un lecteur d'écran | L'ordre suit la mise en page : titre, extrait, puis provenance et commande | C'est un gain, pas une perte : la commande était déjà en dernier, et la source cesse de précéder le titre |
-| La taille du partage | Le **dessin** de l'icône passe à la taille du texte ; la **cible tactile** reste à 48 dp | C'est le compromis, et il faut le dire : « plus compact » ne peut pas vouloir dire « plus petit à toucher », SPECS.md §7.1 fixe 48 dp. Ce qu'on gagne est la ligne entière que le bouton occupait, pas les pixels de sa surface sensible |
-| Portée | Le pied de carte en mode **Liste** ; l'icône réduite dans les **deux** modes | Le composant de partage est commun (GOAL-020-T03) et le rétrécir d'un seul côté le ferait diverger. Le déplacement, lui, n'a de sens qu'en Liste : en plein écran la carte défile, et une provenance placée sous un extrait de 1 400 caractères serait sous la ligne de flottaison |
+| The source and the date | Move down into the **card footer**, on the same line as sharing | The author's request. The title becomes the first thing read, which a card's hierarchy wants anyway; the provenance stays present, it stops being announced before the subject |
+| What a screen reader sees | The order follows the layout: title, excerpt, then provenance and control | It is a gain, not a loss: the control was already last, and the source stops preceding the title |
+| The size of the sharing | The **drawing** of the icon goes down to the size of the text; the **touch target** stays at 48 dp | That is the compromise, and it has to be said: "more compact" cannot mean "smaller to touch", SPECS.md §7.1 sets 48 dp. What is gained is the whole line the button took up, not the pixels of its sensitive surface |
+| Scope | The card footer in **List** mode; the reduced icon in **both** modes | The share component is shared (GOAL-020-T03) and shrinking it on one side only would make it diverge. The move, for its part, only makes sense in List: full screen the card scrolls, and a provenance placed under a 1,400-character excerpt would be below the fold |
 
-### Tâches
+### Tasks
 
-- [x] `GOAL-023-T01` **L'icône de partage à la taille du texte** — 18 dp, la
-      hauteur d'une capitale de `labelMedium` — la cible tactile restant à
-      48 dp. Les deux mesures sont désormais deux constantes distinctes, parce
-      qu'elles ne mesurent pas la même chose : ce que l'œil voit et ce que le
-      doigt atteint. Les confondre aurait forcé à choisir entre une icône qui
-      écrase le pied de carte et une cible trop petite pour SPECS.md §7.1
-- [x] `GOAL-023-T02` **Source et date en pied de carte**, sur la ligne du
-      partage, en mode Liste. `weight(1f)` sur le texte et non un espaceur :
-      c'est au nom du flux de s'écourter quand il est long, pas à la commande
-      d'être poussée hors de la carte.
-      > **Un détail vu sur la capture, et corrigé.** Le pied d'un article
-      > **sans lien** n'a pas de bouton, donc se réduisait à la hauteur de son
-      > texte pendant que les autres tenaient les 48 dp de la cible tactile.
-      > Dans une liste, cet écart se lit comme un défaut de gabarit plutôt que
-      > comme l'absence d'une commande : `heightIn` donne au pied la même
-      > hauteur partout
-- [x] `GOAL-023-T03` **Captures Roborazzi regardées**, clair et sombre, dans les
-      deux modes — 30 références modifiées. Puis **constaté sur l'émulateur** :
-      le titre ouvre la carte, la provenance et le partage tiennent une seule
-      ligne en pied, et la carte est visiblement plus courte.
-      Pas sur l'appareil de l'auteur, à sa demande
-- [x] `GOAL-023-T04` **La carte se resserre encore**, l'auteur ayant trouvé
-      trop d'air sous l'icône et sous le titre une fois la version précédente
-      installée sur son appareil. Trois retraits :
-      le `heightIn` du pied — **posé la veille** pour donner la même hauteur au
-      pied d'un article sans bouton, et retiré parce que la cible de 48 dp
-      centrée sur une ligne de 16 laissait une bande vide ; entre un gabarit
-      régulier et une carte resserrée, c'est le resserrement qui était demandé.
-      La marge basse de la carte, ramenée de 16 à 4 dp — le bouton apporte déjà
-      son propre vide sous lui. Et l'espacement entre le titre et l'extrait,
-      supprimé : leur interligne les sépare déjà, et le pied reprend cet écart
-      à son compte puisqu'il change de nature, pas de paragraphe
-- [x] `GOAL-023-T05` **L'icône à 16 dp, et en Balayage sur la ligne du titre**,
-      demandés par l'auteur après essai sur son appareil. Le dessin passe donc
-      24 → 18 → 16 dp en trois paliers : il n'est le sujet d'aucune des deux
-      cartes, et chaque palier pesait encore trop.
-      En Balayage il quittait le bas de carte, où il tombait après un extrait
-      pouvant faire 1 400 caractères — donc sous la ligne de flottaison d'un
-      écran sur deux, alors que c'est la seule commande visible de ce mode.
-      `Alignment.Top` et non un centrage : sur un titre de trois lignes, un
-      bouton centré se placerait à une hauteur qui dépend de la longueur du
-      texte
-- [x] `GOAL-023-T06` **Le partage rejoint la ligne de source en Balayage**, et
-      la marge basse du mode Liste tombe à zéro. Deux corrections d'un même
-      aller-retour avec l'auteur.
-      En Balayage, la commande a occupé trois places en trois essais : le bas de
-      carte, la ligne du titre, puis la ligne de source — la même association
-      qu'en mode Liste, à ceci près qu'ici cette ligne ouvre la carte au lieu de
-      la fermer.
-      En Liste, la marge basse passe de 4 dp à **rien** : la cible tactile de
-      48 dp entoure un dessin de 16, donc elle laisse déjà seize points sous le
-      trait, soit exactement la marge des trois autres côtés. **C'est le
-      plancher sans rien céder** — descendre plus bas demanderait de rétrécir la
-      cible sous les 48 dp de SPECS.md §7.1. La carte **sans lien** garde sa
-      marge : sans bouton pour la porter, sa dernière ligne toucherait le bord.
-      `Spacing.none` est ajouté à l'échelle pour que ce zéro se lise comme une
-      décision et non comme un oubli
-
----
-
-## Points bloqués
-
-Un seul, hors de notre main :
-
-- `GOAL-001-T17` — le lint Android ne peut pas analyser les sources de test :
-  AGP 9.3.1 plante sur ses propres composants. Réessayé le 2026-08-08, la trace
-  est inchangée. Se lèvera avec une version d'AGP, pas avec du code d'ici.
-
-`GOAL-012-T07` en est sorti le 2026-08-08 : ce n'était pas un blocage mais un
-arbitrage, tranché et inscrit dans SPECS.md §7.1.
+- [x] `GOAL-023-T01` **The share icon at the size of the text** — 18 dp, the
+      height of a `labelMedium` capital — the touch target staying at 48 dp.
+      The two measurements are now two distinct constants, because they do not
+      measure the same thing: what the eye sees and what the finger reaches.
+      Conflating them would have forced a choice between an icon that crushes
+      the card footer and a target too small for SPECS.md §7.1
+- [x] `GOAL-023-T02` **Source and date in the card footer**, on the sharing
+      line, in List mode. `weight(1f)` on the text and not a spacer: it is up to
+      the feed's name to shorten itself when it is long, not up to the control to
+      be pushed out of the card.
+      > **A detail seen on the screenshot, and fixed.** The footer of an article
+      > **with no link** has no button, so it shrank to the height of its text
+      > while the others held the 48 dp of the touch target.
+      > In a list, that gap reads as a template defect rather than as the
+      > absence of a control: `heightIn` gives the footer the same height
+      > everywhere
+- [x] `GOAL-023-T03` **Roborazzi screenshots looked at**, light and dark, in
+      both modes — 30 references modified. Then **observed on the emulator**:
+      the title opens the card, the provenance and the sharing hold a single
+      line in the footer, and the card is visibly shorter.
+      Not on the author's device, at his request
+- [x] `GOAL-023-T04` **The card tightens up further**, the author having found
+      too much air under the icon and under the title once the previous version
+      was installed on his device. Three removals:
+      the footer's `heightIn` — **laid down the day before** to give the same
+      height to the footer of an article with no button, and removed because the
+      48 dp target centred on a 16-point line left an empty band; between a
+      regular template and a tightened card, it is the tightening that was
+      asked for.
+      The card's bottom margin, brought from 16 down to 4 dp — the button
+      already brings its own emptiness underneath it. And the spacing between
+      the title and the excerpt, removed: their line spacing already separates
+      them, and the footer takes that gap over since it changes in nature, not
+      in paragraph
+- [x] `GOAL-023-T05` **The icon at 16 dp, and in Swipe on the title line**,
+      requested by the author after a trial on his device. The drawing therefore
+      goes 24 → 18 → 16 dp in three steps: it is the subject of neither card,
+      and each step still weighed too much.
+      In Swipe it left the bottom of the card, where it fell after an excerpt
+      that can run to 1,400 characters — hence below the fold on one screen in
+      two, whereas it is the only visible control of this mode.
+      `Alignment.Top` and not a centring: on a three-line title, a centred
+      button would sit at a height that depends on the length of the text
+- [x] `GOAL-023-T06` **Sharing joins the source line in Swipe**, and the bottom
+      margin of List mode falls to zero. Two fixes from one and the same
+      exchange with the author.
+      In Swipe, the control has occupied three places in three attempts: the
+      bottom of the card, the title line, then the source line — the same
+      association as in List mode, except that here that line opens the card
+      instead of closing it.
+      In List, the bottom margin goes from 4 dp to **nothing**: the 48 dp touch
+      target surrounds a 16 dp drawing, so it already leaves sixteen points
+      below the stroke, exactly the margin of the other three sides. **That is
+      the floor without giving anything up** — going lower would mean shrinking
+      the target below the 48 dp of SPECS.md §7.1. The card **with no link**
+      keeps its margin: with no button to carry it, its last line would touch
+      the edge.
+      `Spacing.none` is added to the scale so that this zero reads as a decision
+      and not as an oversight
 
 ---
 
-## Questions ouvertes
+## Blocked points
 
-Les décisions fonctionnelles différées sont listées dans [SPECS.md §8](./SPECS.md).
-Les incertitudes sur l'API distante sont listées dans
-[docs/freshrss-api.md §6](./docs/freshrss-api.md). Chacune est tranchée par le
-Goal qui la rencontre, puis **inscrite** — jamais laissée implicite dans le code.
+Just one, out of our hands:
+
+- `GOAL-001-T17` — Android lint cannot analyse the test sources: AGP 9.3.1
+  crashes on its own components. Retried on 2026-08-08, the trace is unchanged.
+  Will be lifted by an AGP version, not by code from here.
+
+`GOAL-012-T07` left this list on 2026-08-08: it was not a blocker but a
+trade-off, settled and recorded in SPECS.md §7.1.
+
+---
+
+## Open questions
+
+The deferred functional decisions are listed in [SPECS.md §8](./SPECS.md).
+The uncertainties about the remote API are listed in
+[docs/freshrss-api.md §6](./docs/freshrss-api.md). Each one is settled by the
+Goal that meets it, then **recorded** — never left implicit in the code.
