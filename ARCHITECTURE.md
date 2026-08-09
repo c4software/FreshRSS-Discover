@@ -1,740 +1,730 @@
-# ARCHITECTURE.md — Architecture technique
+# ARCHITECTURE.md — Technical architecture
 
-Source de vérité **technique** : comment l'application est conçue.
+The **technical** source of truth: how the application is designed.
 
-Le *quoi* est dans [SPECS.md](./SPECS.md), l'*ordre* dans [TASKS.md](./TASKS.md),
-les *règles de travail* dans [AGENTS.md](./AGENTS.md). La référence de l'API
-distante est dans [docs/freshrss-api.md](./docs/freshrss-api.md).
+The *what* is in [SPECS.md](./SPECS.md), the *order* in [TASKS.md](./TASKS.md),
+the *working rules* in [AGENTS.md](./AGENTS.md). The reference for the remote API
+is in [docs/freshrss-api.md](./docs/freshrss-api.md).
 
-> Ce document décrit l'état **visé**, et signale explicitement ce qui n'existe
-> pas encore. La §9 recense ce qui est réellement dans le dépôt : c'est elle qui
-> doit être mise à jour à chaque étape, et un écart entre les deux est une
-> incohérence à traiter, pas à ignorer.
-
----
-
-## 1. Découpage en modules
-
-```
-:domain   Kotlin/JVM pur — décide
-:app      Android — affiche, stocke, appelle
-```
-
-### 1.1 `:domain` n'a pas le SDK Android sur son classpath
-
-C'est une contrainte de compilation, pas une convention : le module est un
-`kotlin("jvm")`, le SDK Android n'y est pas. Une dépendance Android y devient
-donc une **erreur de compilation**, et non une remarque de revue que l'on peut
-oublier de faire.
-
-Ce que cela garantit :
-
-- le domaine se teste en JVM pure, sans Robolectric ni émulateur — des tests qui
-  se comptent en millisecondes se lancent à chaque sauvegarde ;
-- aucune règle métier ne peut dépendre d'un `Context`, d'un `Cursor` ou d'un
-  `SharedPreferences` ;
-- l'algorithme de mélange (SPECS.md §4.2), qui est le cœur de l'application,
-  reste une fonction pure éprouvable exhaustivement.
-
-`kotlinx-coroutines-core` est la seule dépendance de `:domain`. `Flow` et
-`suspend` font partie du vocabulaire du domaine ; ce n'est pas une dépendance
-Android.
-
-### 1.2 Pourquoi deux modules et pas trois
-
-Un module `:data` séparé serait défendable. Il n'apporterait ici aucune
-contrainte que `:domain` ne porte déjà : c'est `:domain` qui définit les
-interfaces, et le sens des dépendances est donc déjà imposé. Un troisième module
-coûterait un temps de configuration Gradle à chaque construction pour une
-garantie que l'on a déjà.
-
-Ce choix se reconsidère si `:app` devient difficile à naviguer.
+> This document describes the **intended** state, and explicitly flags what does
+> not exist yet. §9 records what is actually in the repository: that is the
+> section to be updated at every step, and a divergence between the two is an
+> inconsistency to be dealt with, not ignored.
 
 ---
 
-## 2. Le flux d'une donnée
+## 1. Module split
+
+```
+:domain   Pure Kotlin/JVM — decides
+:app      Android — displays, stores, calls
+```
+
+### 1.1 `:domain` does not have the Android SDK on its classpath
+
+This is a compilation constraint, not a convention: the module is a
+`kotlin("jvm")`, the Android SDK is not there. An Android dependency therefore
+becomes a **compilation error**, and not a review remark one may forget to make.
+
+What this guarantees:
+
+- the domain is tested in pure JVM, without Robolectric or an emulator — tests
+  measured in milliseconds run on every save;
+- no business rule can depend on a `Context`, a `Cursor` or a
+  `SharedPreferences`;
+- the interleaving algorithm (SPECS.md §4.2), which is the heart of the
+  application, remains a pure function that can be tested exhaustively.
+
+`kotlinx-coroutines-core` is `:domain`'s only dependency. `Flow` and `suspend`
+are part of the domain's vocabulary; that is not an Android dependency.
+
+### 1.2 Why two modules and not three
+
+A separate `:data` module would be defensible. It would bring no constraint here
+that `:domain` does not already carry: it is `:domain` that defines the
+interfaces, and the direction of the dependencies is therefore already imposed.
+A third module would cost Gradle configuration time on every build for a
+guarantee we already have.
+
+This choice is reconsidered if `:app` becomes hard to navigate.
+
+---
+
+## 2. The flow of a piece of data
 
 ```
 UI (Compose)
- ↓ état immuable
+ ↓ immutable state
 ViewModel
- ↓ appel suspendu
+ ↓ suspending call
 Use Case                    :domain
  ↓ interface
 Repository (interface)      :domain
- ↓ implémentation
-Repository (implémentation) :app/data
+ ↓ implementation
+Repository (implementation) :app/data
  ↓
 FreshRssApi  ·  Room  ·  DataStore
  ↓
-HTTP (Ktor)  ·  SQLite  ·  fichier
+HTTP (Ktor)  ·  SQLite  ·  file
 ```
 
-Les dépendances pointent **toutes vers `:domain`**. Aucune classe de `:domain`
-ne connaît Ktor, Room, DataStore ou Compose.
+The dependencies **all point towards `:domain`**. No `:domain` class knows Ktor,
+Room, DataStore or Compose.
 
-> **Un étage de ce schéma est vide, et c'est délibéré.** Le dépôt n'a
-> aujourd'hui **aucune classe de use case** : les ViewModels appellent les
-> interfaces de dépôt directement. Un use case qui se contenterait de relayer un
-> appel serait l'anticipation qu'AGENTS.md §2 interdit. Les décisions qui
-> auraient justifié cet étage vivent déjà dans `:domain` sous forme de fonctions
-> pures — `interleaveBySource`, `ReadDetector`, `ReadTransmissionScheduler` —
-> appelées par qui en a besoin. L'étage reste dans le schéma parce qu'il est la
-> place réservée à la première règle qui coordonnera plusieurs dépôts.
+> **One tier of this diagram is empty, and that is deliberate.** The repository
+> today has **no use case class**: the ViewModels call the repository interfaces
+> directly. A use case that merely relayed a call would be the anticipation that
+> AGENTS.md §2 forbids. The decisions that would have justified that tier already
+> live in `:domain` as pure functions — `interleaveBySource`, `ReadDetector`,
+> `ReadTransmissionScheduler` — called by whoever needs them. The tier stays in
+> the diagram because it is the place reserved for the first rule that will
+> coordinate several repositories.
 
-### 2.1 Ce qui doit rester confiné à la couche FreshRSS
+### 2.1 What must stay confined to the FreshRSS layer
 
-Rien de ce qui suit ne doit fuir au-dessus de `FreshRssApi` et de son
-repository. Un `ViewModel` qui manipulerait un `continuation` serait un défaut
-d'architecture, pas un raccourci.
+None of the following must leak above `FreshRssApi` and its repository. A
+`ViewModel` handling a `continuation` would be an architectural defect, not a
+shortcut.
 
-- `ClientLogin`, le jeton `Auth`, l'en-tête `GoogleLogin` ;
-- le jeton de modification `T` ;
-- les chemins des points d'entrée et le préfixe `/api/greader.php` ;
-- la forme des réponses JSON, y compris `categories` comme porteur de l'état lu ;
-- le jeton `continuation` et son unité (décimale) face aux identifiants d'article
-  (hexadécimaux) ;
-- les trois unités de temps de l'API (secondes, microsecondes, nanosecondes) ;
-- les codes HTTP particuliers (`501` sur `output`, `503` sur API désactivée).
+- `ClientLogin`, the `Auth` token, the `GoogleLogin` header;
+- the `T` modification token;
+- the endpoint paths and the `/api/greader.php` prefix;
+- the shape of the JSON responses, including `categories` as the carrier of the
+  read state;
+- the `continuation` token and its base (decimal) against article identifiers
+  (hexadecimal);
+- the API's three time units (seconds, microseconds, nanoseconds);
+- the peculiar HTTP codes (`501` on `output`, `503` on a disabled API).
 
-Le domaine ne connaît qu'un `Article`, un `Feed`, un `PageCursor` opaque et un
-type d'erreur métier.
+The domain knows only an `Article`, a `Feed`, an opaque `PageCursor` and a
+business error type.
 
 ---
 
-## 3. Injection de dépendances — Hilt
+## 3. Dependency injection — Hilt
 
-Hilt, hérité du template et conservé : le graphe est vérifié à la compilation,
-ce qui est la propriété la plus utile pour un projet mené par étapes autonomes —
-un module oublié ne compile pas, il ne plante pas à l'exécution.
+Hilt, inherited from the template and kept: the graph is checked at compile time,
+which is the most useful property for a project run in autonomous steps — a
+forgotten module does not compile, it does not crash at runtime.
 
-Modules, tous dans `app/src/main/kotlin/…/di/` :
+Modules, all in `app/src/main/kotlin/…/di/`:
 
-| Module | Fournit |
+| Module | Provides |
 |---|---|
-| `DispatcherModule` | Les trois `CoroutineDispatcher` qualifiés |
-| `CoroutineScopeModule` | La portée `@ApplicationScope` |
-| `DataStoreModule` | Le `DataStore<Preferences>` des réglages |
-| `TimeModule` | L'implémentation de `Clock` |
-| `DatabaseModule` | La base Room et ses DAO |
-| `NetworkModule` | Le `HttpClient` Ktor |
-| `SecurityModule` | L'implémentation de `SecretCipher` |
-| `SettingsModule` | L'implémentation de `SettingsRepository` |
-| `RepositoryModule` | Les liaisons interface `:domain` → implémentation `data` |
+| `DispatcherModule` | The three qualified `CoroutineDispatcher`s |
+| `CoroutineScopeModule` | The `@ApplicationScope` scope |
+| `DataStoreModule` | The settings' `DataStore<Preferences>` |
+| `TimeModule` | The `Clock` implementation |
+| `DatabaseModule` | The Room database and its DAOs |
+| `NetworkModule` | The Ktor `HttpClient` |
+| `SecurityModule` | The `SecretCipher` implementation |
+| `SettingsModule` | The `SettingsRepository` implementation |
+| `RepositoryModule` | The `:domain` interface → `data` implementation bindings |
 
-### 3.1 Dispatchers injectés, jamais référencés
+### 3.1 Dispatchers injected, never referenced
 
-`kotlinx.coroutines.Dispatchers` n'est cité qu'à un seul endroit du projet :
-`DispatcherModule`. Partout ailleurs, un `CoroutineDispatcher` qualifié est
-injecté (`@IoDispatcher`, `@DefaultDispatcher`, `@MainDispatcher`).
+`kotlinx.coroutines.Dispatchers` is mentioned in a single place in the project:
+`DispatcherModule`. Everywhere else, a qualified `CoroutineDispatcher` is
+injected (`@IoDispatcher`, `@DefaultDispatcher`, `@MainDispatcher`).
 
-Sans cela, aucun test ne peut contrôler l'ordonnancement ni avancer le temps
-virtuellement — et un test qui attend réellement est un test que l'on finit par
-désactiver.
+Without that, no test can control the scheduling nor advance time virtually —
+and a test that really waits is a test one ends up disabling.
 
-`DispatcherModuleTest` vérifie qu'aucun qualifier n'a été inversé : le
-compilateur ne peut pas le voir, les trois ayant le même type.
+`DispatcherModuleTest` checks that no qualifier has been swapped: the compiler
+cannot see it, all three having the same type.
 
-### 3.2 Une seule source de temps
+### 3.2 A single source of time
 
-`System.currentTimeMillis()` n'est appelé que dans `TimeModule`. Tout le reste
-reçoit un `Clock` (`:domain`). Les tests utilisent `FakeClock`, qui n'avance que
-sur ordre.
+`System.currentTimeMillis()` is only called in `TimeModule`. Everything else
+receives a `Clock` (`:domain`). The tests use `FakeClock`, which only advances on
+command.
 
-C'est ce qui rend éprouvable la durée de visibilité du marquage automatique
-(SPECS.md §4.5) sans attendre une seconde par test.
+That is what makes the visibility duration of automatic marking (SPECS.md §4.5)
+testable without waiting a second per test.
 
 ---
 
-## 4. Accès réseau — Ktor
+## 4. Network access — Ktor
 
-Choix retenu et raisons :
+The choice made, and the reasons:
 
-- **moteur OkHttp** — c'est le client HTTP éprouvé d'Android : gestion des
-  reprises, du pool de connexions et de TLS déjà résolue ;
-- **`kotlinx.serialization`** — sérialisation générée à la compilation, sans
-  réflexion, donc compatible avec R8 sans règles de conservation à maintenir ;
-- **`MockEngine`** (`ktor-client-mock`) — les tests de la couche API décrivent
-  des réponses HTTP littérales, y compris des réponses malformées. C'est la seule
-  façon d'éprouver la lecture d'un JSON réel sans serveur.
+- **OkHttp engine** — it is Android's proven HTTP client: retries, connection
+  pooling and TLS are already solved;
+- **`kotlinx.serialization`** — serialisation generated at compile time, without
+  reflection, therefore compatible with R8 with no keep rules to maintain;
+- **`MockEngine`** (`ktor-client-mock`) — the API layer's tests describe literal
+  HTTP responses, malformed ones included. It is the only way to test the reading
+  of real JSON without a server.
 
-Contraintes propres à FreshRSS, à respecter dans l'implémentation :
+Constraints specific to FreshRSS, to be respected in the implementation:
 
-- **les réponses d'erreur sont en texte brut**, jamais en JSON. Une
-  désérialisation systématique masquerait le code HTTP réel — le
-  `ContentNegotiation` ne doit s'appliquer qu'aux réponses `2xx` ;
-- **`ClientLogin` répond en texte brut**, sous forme de paires `clé=valeur` :
-  ce point d'entrée ne se lit pas comme les autres ;
-- **`output=json` est obligatoire** sur `subscription/list`, `tag/list` et
-  `unread-count` — l'omettre répond `501` ;
-- **les identifiants d'article changent de base** selon le champ : hexadécimal
-  dans `items[].id`, décimal dans `continuation` et dans le paramètre `i`. La
-  conversion appartient à la couche API et à elle seule.
+- **error responses are in plain text**, never JSON. Systematic deserialisation
+  would hide the real HTTP code — `ContentNegotiation` must only apply to `2xx`
+  responses;
+- **`ClientLogin` answers in plain text**, as `key=value` pairs: this endpoint is
+  not read like the others;
+- **`output=json` is mandatory** on `subscription/list`, `tag/list` and
+  `unread-count` — omitting it answers `501`;
+- **article identifiers change base** depending on the field: hexadecimal in
+  `items[].id`, decimal in `continuation` and in the `i` parameter. The
+  conversion belongs to the API layer and to it alone.
 
-### 4.1 Deux sondes avant toute connexion
+### 4.1 Two probes before any connection
 
-`FreshRssApi` expose deux vérifications que rien n'oblige à faire, et qu'il faut
-pourtant faire — chacune évite un diagnostic faux :
+`FreshRssApi` exposes two checks that nothing compels one to make, and that must
+nonetheless be made — each avoids a false diagnosis:
 
-- **`probe()`** cherche le corps `OK` d'un `GET` nu sur le point d'entrée. Sans
-  elle, une faute de frappe dans l'adresse enverrait le mot de passe API à un
-  serveur qui n'est pas celui de l'utilisateur, et produirait un `401` qu'il
-  imputerait à ses identifiants.
-- **`checkAuthorizationForwarding()`** constate que le serveur web transmet bien
-  l'en-tête `Authorization`. Elle n'a de sens qu'**après** l'obtention du jeton :
-  `ClientLogin` n'exige aucun en-tête, et la payer plus tôt coûterait un
-  aller-retour à chaque tentative, y compris à celles vouées à échouer sur les
-  identifiants. La payer plus tard conserverait une session vouée à boucler sur
-  des `401`.
+- **`probe()`** looks for the `OK` body of a bare `GET` on the endpoint. Without
+  it, a typo in the address would send the API password to a server that is not
+  the user's, and would produce a `401` they would blame on their credentials.
+- **`checkAuthorizationForwarding()`** observes that the web server does forward
+  the `Authorization` header. It only makes sense **after** the token has been
+  obtained: `ClientLogin` requires no header, and paying for it earlier would
+  cost a round trip on every attempt, including those doomed to fail on the
+  credentials. Paying for it later would keep a session doomed to loop on `401`s.
 
-Leurs particularités — statut toujours `200`, en-tête factice requis, chaîne de
-requête interdite — sont documentées dans docs/freshrss-api.md §1.
+Their peculiarities — status always `200`, bogus header required, query string
+forbidden — are documented in docs/freshrss-api.md §1.
 
 ### 4.2 Pagination
 
-> ⚠️ **Le piège le plus dangereux de cette API, et il est confirmé par
-> l'expérience.** Un curseur invalide — vide, non numérique — ne produit
-> **aucune erreur** : le serveur le ramène silencieusement au début du flux et
-> renvoie à nouveau la première page, avec le même `continuation`. Une faute de
-> sérialisation du curseur se manifeste donc par une boucle infinie muette.
-> C'est pourquoi le paramètre `c` n'est **jamais** émis avec une valeur vide, et
-> pourquoi `PageCursor` est un type dédié plutôt qu'une `String` nue.
+> ⚠️ **The most dangerous trap of this API, and it is confirmed by experience.**
+> An invalid cursor — empty, non-numeric — produces **no error**: the server
+> silently brings it back to the start of the stream and returns the first page
+> again, with the same `continuation`. An error in serialising the cursor
+> therefore shows up as a silent infinite loop. That is why the `c` parameter is
+> **never** emitted with an empty value, and why `PageCursor` is a dedicated type
+> rather than a bare `String`.
 
 
-Le curseur de FreshRSS est **relatif**, non positionnel : la réponse porte un
-`continuation` égal à l'identifiant du dernier article renvoyé, et la requête
-suivante le repasse en `c`. Voir [docs/freshrss-api.md §3.5](./docs/freshrss-api.md).
+FreshRSS's cursor is **relative**, not positional: the response carries a
+`continuation` equal to the identifier of the last article returned, and the next
+request passes it back as `c`. See
+[docs/freshrss-api.md §3.5](./docs/freshrss-api.md).
 
-Deux conséquences que le code doit refléter :
+Two consequences the code must reflect:
 
-- l'**absence** de `continuation` signifie « fin du flux » — c'est le seul signal
-  de fin, il n'y a pas de compteur total ;
-- un curseur invalide est silencieusement traité comme « début du flux » par le
-  serveur. Une erreur de sérialisation se manifeste donc par une **répétition de
-  la première page**, jamais par une erreur. Un test doit couvrir ce cas.
+- the **absence** of `continuation` means "end of stream" — it is the only end
+  signal, there is no total counter;
+- an invalid cursor is silently treated as "start of stream" by the server. A
+  serialisation error therefore shows up as a **repetition of the first page**,
+  never as an error. A test must cover this case.
 
 ---
 
-## 5. Persistance
+## 5. Persistence
 
-### 5.1 Deux supports, sans recouvrement
+### 5.1 Two stores, without overlap
 
-| Support | Contenu |
+| Store | Contents |
 |---|---|
-| **Room** | Les collections : articles en cache, marquages en attente |
-| **DataStore** | Les scalaires : adresse du serveur, identifiant, jeton, seuils, date du dernier contact serveur |
+| **Room** | The collections: cached articles, pending markings |
+| **DataStore** | The scalars: server address, username, token, thresholds, date of the last server contact |
 
-La règle est stricte : une donnée vit dans l'un **ou** l'autre, jamais dans les
-deux. Un réglage dupliqué finit toujours par diverger.
+The rule is strict: a piece of data lives in one **or** the other, never in both.
+A duplicated setting always ends up diverging.
 
-Un **seul** fichier DataStore, partagé par `SessionStore`, `SettingsStore` et
-`FeedFreshnessStore`, chacun sur ses clés préfixées. Le chiffrement n'y est pas
-global : ce sont les **jetons** qui passent par `SecretCipher` (§5.2), pas
-l'adresse du serveur ni les seuils. Chiffrer ce qui n'est pas un secret coûterait
-le même prix sans rien protéger, et rendrait le stockage illisible au moment
-précis où le lire aide à diagnostiquer.
+A **single** DataStore file, shared by `SessionStore`, `SettingsStore` and
+`FeedFreshnessStore`, each on its prefixed keys. Encryption there is not global:
+it is the **tokens** that go through `SecretCipher` (§5.2), not the server
+address nor the thresholds. Encrypting what is not a secret would cost the same
+price without protecting anything, and would make the storage unreadable at the
+precise moment when reading it helps diagnose.
 
-Une exception assumée, et elle est dans `FeedFreshnessStore` : la **date** du
-dernier contact serveur est persistée, mais l'**acquittement** de l'avis
-d'ancienneté (SPECS.md §4.6) ne l'est pas — il vit dans un flux en mémoire.
-Le persister ajouterait une clé pour une situation qui ne se présente pas : à la
-réouverture, ou bien une requête aboutit et la date se remet à jour, ou bien
-elle échoue et c'est le bandeau hors ligne qui parle. C'est aussi ce qui oblige
-ce store à être `@Singleton` — l'acquittement doit survivre à la bascule entre
-les deux modes de présentation, qui détruit un ViewModel et en construit un
-autre.
+An accepted exception, and it is in `FeedFreshnessStore`: the **date** of the
+last server contact is persisted, but the **acknowledgement** of the staleness
+notice (SPECS.md §4.6) is not — it lives in an in-memory flow. Persisting it
+would add a key for a situation that does not arise: on reopening, either a
+request succeeds and the date is updated, or it fails and it is the offline
+banner that speaks. That is also what forces this store to be `@Singleton` — the
+acknowledgement must survive the switch between the two presentation modes, which
+destroys one ViewModel and builds another.
 
-### 5.2 Le mot de passe API n'est jamais enregistré
+### 5.2 The API password is never recorded
 
-Le jeton FreshRSS n'expirant pas, le conserver suffit à rouvrir l'application
-sans reconnexion. Garder en plus le mot de passe n'apporterait rien et
-doublerait la surface exposée (SPECS.md §3.4).
+Since the FreshRSS token does not expire, keeping it is enough to reopen the
+application without logging in again. Keeping the password as well would bring
+nothing and would double the exposed surface (SPECS.md §3.4).
 
-Le chiffrement passe par **AES/GCM sur `AndroidKeyStore`**, écrit à la main :
-`androidx.security:security-crypto` aurait fait le même travail, mais la
-bibliothèque est dépréciée et AGENTS.md §2 l'interdit.
+Encryption goes through **AES/GCM on `AndroidKeyStore`**, written by hand:
+`androidx.security:security-crypto` would have done the same job, but the library
+is deprecated and AGENTS.md §2 forbids it.
 
-**Deux partages, et ils ne servent pas la même chose.** `SecretCipher` permet
-d'éprouver ce qui entoure le chiffrement — persistance, effacement à la
-déconnexion — sans magasin de clés, que Robolectric ne simule pas.
-`SecretKeySource` permet d'éprouver le chiffrement **lui-même** : le format, le
-vecteur d'initialisation, l'authentification GCM, et la conduite devant un texte
-illisible. Sans ce second partage, tout `KeystoreSecretCipher` restait hors de
-portée pour la seule raison qu'il fabriquait sa clé.
+**Two seams, and they do not serve the same purpose.** `SecretCipher` makes it
+possible to test what surrounds encryption — persistence, wiping on sign-out —
+without a keystore, which Robolectric does not simulate. `SecretKeySource` makes
+it possible to test the encryption **itself**: the format, the initialisation
+vector, GCM authentication, and the behaviour when faced with an unreadable text.
+Without that second seam, any `KeystoreSecretCipher` stayed out of reach for the
+sole reason that it manufactured its own key.
 
-Ce qui demeure non couvert se réduit donc à `AndroidKeyStoreKeySource` — une
-vingtaine de lignes qui n'appellent que la plateforme. Réessayé le 2026-08-08 :
-le fournisseur `AndroidKeyStore` lève toujours `NoSuchAlgorithmException` sous
+What remains uncovered therefore comes down to `AndroidKeyStoreKeySource` — some
+twenty lines that only call the platform. Retried on 2026-08-08: the
+`AndroidKeyStore` provider still throws `NoSuchAlgorithmException` under
 Robolectric.
 
-### 5.3 Jeton refusé et déconnexion sont deux choses différentes
+### 5.3 A refused token and a sign-out are two different things
 
-| Opération | Jetons | Adresse et identifiant |
+| Operation | Tokens | Address and username |
 |---|---|---|
-| `invalidateSession()` — le serveur refuse le jeton | effacés | **conservés** |
-| `signOut()` — geste délibéré de l'utilisateur | effacés | effacés |
+| `invalidateSession()` — the server refuses the token | wiped | **kept** |
+| `signOut()` — a deliberate gesture by the user | wiped | wiped |
 
-Le rappel de saisie (`SignInHint`) ne contient aucun secret : c'est ce qui
-permet de le conserver. L'utilisateur dont le jeton est refusé n'a probablement
-qu'un mot de passe API à renouveler ; lui faire retaper l'adresse de son serveur
-serait gratuit (SPECS.md §3.4).
+The input reminder (`SignInHint`) contains no secret: that is what allows it to
+be kept. A user whose token is refused probably only has an API password to
+renew; making them retype their server address would be gratuitous
+(SPECS.md §3.4).
 
-### 5.4 Room, et ce que le cache ne fait pas reculer
+### 5.4 Room, and what the cache does not make go backwards
 
-Room porte les collections, DataStore les scalaires. Les schémas sont
-versionnés dans `app/schemas/` : c'est ce qui permet à Room de vérifier
-automatiquement les migrations, et à une revue de constater une évolution de
-base dans le diff plutôt que de la déduire du code des entités.
+Room carries the collections, DataStore the scalars. The schemas are versioned in
+`app/schemas/`: that is what allows Room to check migrations automatically, and a
+review to see a database change in the diff rather than deduce it from the
+entities' code.
 
-**L'état lu local ne recule jamais.** Un article enregistré comme lu le reste,
-même si le serveur le décrit encore comme non lu. Ce n'est pas une commodité :
-un marquage parti hors ligne n'est transmis qu'au retour du réseau (SPECS.md
-§5.2), et jusque-là le serveur ignore tout. Écraser l'état local par le sien
-ferait **réapparaître dans le flux ce que l'utilisateur vient de lire** — la
-régression la plus visible qu'un cache puisse produire. Dans l'autre sens, un
-article lu ailleurs arrive lu et le devient ici : « lu » se propage, « non lu »
-non.
+**The local read state never goes backwards.** An article recorded as read stays
+read, even if the server still describes it as unread. This is not a convenience:
+a marking made offline is only transmitted when the network comes back (SPECS.md
+§5.2), and until then the server knows nothing. Overwriting the local state with
+its own would **make what the user has just read reappear in the feed** — the
+most visible regression a cache can produce. In the other direction, an article
+read elsewhere arrives read and becomes read here: "read" propagates, "unread"
+does not.
 
-**La purge s'appuie sur l'ancienneté dans le cache**, jamais sur la date de
-publication. Purger sur la publication ferait disparaître dans la seconde un
-vieil article que l'utilisateur vient d'ouvrir, et qui est encore à l'écran.
+**Purging relies on age in the cache**, never on the publication date. Purging on
+publication would make an old article the user has just opened, and which is
+still on screen, vanish within the second.
 
-`ArticleCache` est la seule frontière entre le modèle de domaine et Room : les
-entités ne la franchissent pas, sinon une annotation de persistance finirait
-par contraindre la forme d'`Article`.
+`ArticleCache` is the only boundary between the domain model and Room: the
+entities do not cross it, otherwise a persistence annotation would end up
+constraining the shape of `Article`.
 
 ---
 
-## 6. Présentation
+## 6. Presentation
 
-### 6.1 Un état immuable par écran
+### 6.1 One immutable state per screen
 
-Chaque écran a une `data class ...UiState` produite par son `ViewModel` et
-consommée par un Composable **sans état**.
+Each screen has a `data class ...UiState` produced by its `ViewModel` and
+consumed by a **stateless** Composable.
 
-- Le Composable **affiche** l'état, il ne le **dérive** pas. Aucun calcul dans
-  un `@Composable`.
-- Chaque écran a une `@Preview` privée qui fonctionne **sans injection** — si
-  une prévisualisation exige un graphe Hilt, l'écran est trop couplé.
-- Un ViewModel qui **observe une source** publie en `WhileSubscribed(5 s)`
-  (`UiStateSharing`) : sans abonné, l'observation s'arrête. Les cinq secondes de
-  grâce couvrent une rotation sans tout réenregistrer. C'est le cas de
-  `SettingsViewModel`, qui suit les réglages et l'état du cache.
-  Un ViewModel qui ne fait qu'**accumuler le résultat de ses propres appels** —
-  `DiscoverViewModel`, `LoginViewModel` — porte un `MutableStateFlow` : il n'y a
-  aucune observation à interrompre, et la politique de partage n'aurait rien à
-  arbitrer. `SessionGate` fait exception dans l'autre sens et démarre en
-  `Eagerly` : l'aiguillage racine est observé pendant toute la vie de
-  l'application, et le laisser retomber sur `Unknown` ferait clignoter l'écran
-  de connexion à chaque retour d'arrière-plan.
+- The Composable **displays** the state, it does not **derive** it. No
+  computation in a `@Composable`.
+- Each screen has a private `@Preview` that works **without injection** — if a
+  preview requires a Hilt graph, the screen is too coupled.
+- A ViewModel that **observes a source** publishes in `WhileSubscribed(5 s)`
+  (`UiStateSharing`): with no subscriber, the observation stops. The five seconds
+  of grace cover a rotation without re-registering everything. That is the case
+  of `SettingsViewModel`, which follows the settings and the state of the cache.
+  A ViewModel that merely **accumulates the result of its own calls** —
+  `DiscoverViewModel`, `LoginViewModel` — carries a `MutableStateFlow`: there is
+  no observation to interrupt, and the sharing policy would have nothing to
+  arbitrate. `SessionGate` is an exception in the other direction and starts
+  `Eagerly`: the root switch is observed for the whole life of the application,
+  and letting it fall back to `Unknown` would make the login screen flicker on
+  every return from the background.
 
 ### 6.2 Navigation
 
-`AppDestination` rassemble route, libellés et icône. La barre de navigation est
-**dérivée de l'énumération** : ajouter une destination consiste à ajouter une
-entrée, et rien d'autre. `AppNavigationBarTest` constate cette dérivation, ce
-qui vaut donc pour toute destination ajoutée ensuite.
+`AppDestination` gathers route, labels and icon. The navigation bar is **derived
+from the enumeration**: adding a destination consists of adding an entry, and
+nothing else. `AppNavigationBarTest` observes this derivation, which therefore
+holds for any destination added later.
 
-### 6.3 Aiguillage racine
+### 6.3 Root switch
 
-`SessionGate` décide entre l'écran de connexion et l'application, à partir de la
-seule présence d'une session. Aucun écran n'a donc à gérer de redirection : un
-jeton refusé fait disparaître la session, et la racine bascule d'elle-même.
+`SessionGate` decides between the login screen and the application, based on the
+mere presence of a session. No screen therefore has to handle a redirection: a
+refused token makes the session disappear, and the root switches by itself.
 
-L'état `Unknown` n'est pas décoratif : la session vit sur disque, et sa première
-lecture n'est pas instantanée. Partir de « déconnecté » ferait apparaître
-l'écran de connexion un instant à chaque lancement, y compris pour un
-utilisateur déjà connecté.
+The `Unknown` state is not decorative: the session lives on disk, and reading it
+the first time is not instantaneous. Starting from "signed out" would make the
+login screen appear for a moment on every launch, including for a user who is
+already signed in.
 
-### 6.4 Le cache n'est jamais habillé en page
+### 6.4 The cache is never dressed up as a page
 
-Question que l'assemblage a posée, et dont la réponse structure tout le reste :
-**comment rendre une page issue du cache sans la faire passer pour une fin de
-flux ?**
+A question the assembly raised, and whose answer structures everything else:
+**how do you render a page coming from the cache without passing it off as the
+end of the feed?**
 
-`ArticlePage.nextCursor == null` signifie « fin du flux », et rien d'autre. Une
-page de cache n'a pas de curseur : la rendre comme une `ArticlePage` ferait donc
-afficher « vous avez tout lu » à un utilisateur simplement privé de réseau.
+`ArticlePage.nextCursor == null` means "end of feed", and nothing else. A cache
+page has no cursor: rendering it as an `ArticlePage` would therefore display
+"you have read everything" to a user who is merely without a network.
 
-Le cache est donc une **source parallèle et permanente** —
-`observeCachedArticles()`, un flux qui réémet à chaque écriture — pendant que
-`loadPage()` continue de rapporter honnêtement `FeedError.NoNetwork`. L'appelant
-dispose ainsi du **contenu** et de la **cause** séparément, ce qui lui permet de
-signaler l'état sans alarmer, et surtout sans mentir.
+The cache is therefore a **parallel and permanent source** —
+`observeCachedArticles()`, a flow that re-emits on every write — while
+`loadPage()` goes on honestly reporting `FeedError.NoNetwork`. The caller thus
+has the **content** and the **cause** separately, which lets it report the state
+without alarming, and above all without lying.
 
-Le même flux sert l'affichage immédiat au lancement (SPECS.md §5.1) et la
-consultation hors ligne (§5.2) : ce sont deux usages d'un seul mécanisme.
+The same flow serves the immediate display at launch (SPECS.md §5.1) and offline
+reading (§5.2): these are two uses of a single mechanism.
 
-### 6.5 Deux décisions du domaine que l'interface se contente d'appliquer
+### 6.5 Two domain decisions that the interface merely applies
 
-Le mélange et la détection de lecture sont des **fonctions pures de `:domain`**.
-Ce n'est pas une élégance : ce sont les deux endroits où une régression serait
-invisible à l'œil, et seuls des tests exhaustifs les tiennent.
+Interleaving and read detection are **pure functions of `:domain`**. This is not
+elegance: these are the two places where a regression would be invisible to the
+eye, and only exhaustive tests hold them.
 
-**`interleaveBySource`** répartit les sources sans mentir sur la fraîcheur. Les
-deux premières règles de SPECS.md §4.2 sont structurellement incompatibles au
-delà d'une certaine amplitude ; l'arbitrage retenu — la récence l'emporte, avec
-une borne de sept positions — est inscrit dans SPECS.md parce qu'il est visible
-par l'utilisateur. La borne est exprimée en **rangs et non en durée** : un seuil
-temporel se comporterait très différemment sur un flux qui publie trois articles
-par jour et sur un qui en publie trois cents.
+**`interleaveBySource`** spreads the sources out without lying about freshness.
+The first two rules of SPECS.md §4.2 are structurally incompatible beyond a
+certain amplitude; the trade-off chosen — recency wins, with a bound of seven
+positions — is recorded in SPECS.md because it is visible to the user. The bound
+is expressed in **ranks and not in duration**: a time threshold would behave very
+differently on a feed publishing three articles a day and on one publishing three
+hundred.
 
-**`ReadDetector`** décide quand un article devient lu, à partir d'un double
-seuil de surface et de durée continue. Il ne mesure rien lui-même et ne possède
-aucune coroutine : il reçoit des observations et répond. Deux conséquences que
-l'appelant doit assumer, et que SPECS.md §4.5 consigne désormais :
+**`ReadDetector`** decides when an article becomes read, from a double threshold
+of surface and continuous duration. It measures nothing itself and owns no
+coroutine: it receives observations and answers. Two consequences the caller must
+own, and which SPECS.md §4.5 now records:
 
-- la fraction est celle de la **part visible de l'écran**, pas de la hauteur
-  propre de l'article — sinon un article plus haut que l'écran ne pourrait
-  jamais être marqué lu ;
-- l'appelant doit **observer même quand rien ne bouge**. La règle porte sur une
-  durée, et la durée ne s'écoule pas toute seule : sans observation périodique,
-  un article immobile dix secondes ne serait jamais marqué lu.
+- the fraction is that of the **visible part of the screen**, not of the
+  article's own height — otherwise an article taller than the screen could never
+  be marked read;
+- the caller must **observe even when nothing moves**. The rule bears on a
+  duration, and duration does not elapse on its own: without periodic
+  observation, an article motionless for ten seconds would never be marked read.
 
-### 6.6 Le flux Discover
+### 6.6 The Discover feed
 
-Contraintes déjà établies par SPECS.md, et qui pèseront sur la conception :
+Constraints already established by SPECS.md, and which will weigh on the design:
 
-- **liste paresseuse** : le flux est potentiellement long, tout composer serait
-  intenable ;
-- **la visibilité de chaque élément doit être mesurable** — proportion affichée
-  et durée continue (SPECS.md §4.5). C'est le point technique le plus délicat de
-  l'application, et il détermine largement la structure de la liste ;
-- **la position de lecture doit survivre à la fermeture de l'application**
-  (SPECS.md §5.3), et c'est un **article** qui est mémorisé, jamais un rang : le
-  flux s'allonge entre deux ouvertures. Les éléments de la liste portent donc une
-  clé stable, qui sert à la fois à retrouver cet article et à ne pas recomposer
-  ce qui n'a pas changé. Le tirer-pour-rafraîchir, lui, ne préserve rien : il
-  remonte en tête, et l'annonce (SPECS.md §4.6) ;
-- **l'ordre doit être déterministe** : le mélange est calculé dans `:domain`, à
-  partir d'une graine reproductible, et non tiré à l'affichage.
+- **lazy list**: the feed is potentially long, composing it all would be
+  untenable;
+- **each item's visibility must be measurable** — displayed proportion and
+  continuous duration (SPECS.md §4.5). This is the trickiest technical point of
+  the application, and it largely determines the structure of the list;
+- **the reading position must survive closing the application** (SPECS.md §5.3),
+  and it is an **article** that is remembered, never a rank: the feed lengthens
+  between two openings. The list's items therefore carry a stable key, which
+  serves both to find that article again and to avoid recomposing what has not
+  changed. Pull-to-refresh, for its part, preserves nothing: it goes back to the
+  top, and says so (SPECS.md §4.6);
+- **the order must be deterministic**: interleaving is computed in `:domain`,
+  from a reproducible seed, and not drawn at display time.
 
 ---
 
-## 7. Erreurs
+## 7. Errors
 
-Une erreur traverse trois formes, et une seule est visible de l'utilisateur :
+An error goes through three forms, and only one is visible to the user:
 
 ```
-Exception technique (Ktor, SQLite)     couche data
-        ↓ traduite
-Erreur de domaine (type scellé)        :domain
-        ↓ traduite
-Message affichable                     :app/presentation
+Technical exception (Ktor, SQLite)     data layer
+        ↓ translated
+Domain error (sealed type)             :domain
+        ↓ translated
+Displayable message                    :app/presentation
 ```
 
-Aucune exception technique ne remonte au-dessus de la couche `data`. Aucune
-chaîne de caractères destinée à l'utilisateur n'est produite en dessous de la
-couche présentation : les messages sont des ressources, ce qui les rend
-traduisibles et vérifiables.
+No technical exception comes up above the `data` layer. No string intended for
+the user is produced below the presentation layer: the messages are resources,
+which makes them translatable and verifiable.
 
-SPECS.md §3.3 impose un message **distinct par cause** d'échec de connexion. Le
-type d'erreur du domaine doit donc distinguer ces cas — un type d'erreur unique
-rendrait la spécification inapplicable.
+SPECS.md §3.3 requires a **distinct message per cause** of login failure. The
+domain's error type must therefore distinguish these cases — a single error type
+would make the specification inapplicable.
 
 ---
 
 ## 8. Tests
 
-| Portée | Outil | Ce qui est éprouvé |
+| Scope | Tool | What is tested |
 |---|---|---|
-| `:domain` | JUnit, JVM pure | Mélange, décisions, transformations |
-| Couche API | Ktor `MockEngine` | Lecture de réponses HTTP littérales |
-| Repositories | Room en mémoire, DataStore temporaire | Persistance et rejeu |
-| ViewModels | `kotlinx-coroutines-test` | Transitions d'état |
-| Écrans | Compose UI Test + Robolectric | Ce qui est **affiché** |
-| Rendu | Roborazzi | Ce à quoi cela **ressemble** |
+| `:domain` | JUnit, pure JVM | Interleaving, decisions, transformations |
+| API layer | Ktor `MockEngine` | Reading literal HTTP responses |
+| Repositories | In-memory Room, temporary DataStore | Persistence and replay |
+| ViewModels | `kotlinx-coroutines-test` | State transitions |
+| Screens | Compose UI Test + Robolectric | What is **displayed** |
+| Rendering | Roborazzi | What it **looks like** |
 
-Les doubles sont des **Fakes versionnés** (`domain/src/testFixtures/`), pas des
-mocks générés : un Fake se lit, se déboguer et documente le contrat mieux qu'une
-suite de `when(...).thenReturn(...)`.
+The doubles are **versioned Fakes** (`domain/src/testFixtures/`), not generated
+mocks: a Fake can be read, debugged, and documents the contract better than a
+string of `when(...).thenReturn(...)`.
 
-### 8.0 Un garde-fou qui était vide
+### 8.0 A safeguard that was empty
 
-`ktlintCheck` ne vérifiait **aucune source Kotlin de `:app`** : le greffon
-ktlint-gradle ne découvre pas les jeux de sources Android d'AGP 9, et n'y
-enregistrait qu'une tâche sur les fichiers `.kts`. La commande de vérification
-d'AGENTS.md §5 était donc partiellement vide depuis l'origine du dépôt.
+`ktlintCheck` was checking **no Kotlin source of `:app`**: the ktlint-gradle
+plugin does not discover AGP 9's Android source sets, and only registered a task
+there for `.kts` files. The verification command of AGENTS.md §5 was therefore
+partly empty from the repository's very beginning.
 
-Les règles de style passent désormais par **`detekt-formatting`**, qui les
-embarque dans Detekt — lequel, lui, voit bien le module. Le jour de sa mise en
-place, il a relevé 22 violations, dont quatre imports morts laissés par un
-refactor antérieur.
+Style rules now go through **`detekt-formatting`**, which embeds them in Detekt —
+which, for its part, does see the module. On the day it was put in place, it
+reported 22 violations, including four dead imports left by an earlier refactor.
 
-La leçon vaut au-delà de ce cas : un outil de vérification qui ne signale jamais
-rien mérite qu'on vérifie **ce qu'il regarde**, pas seulement qu'il passe.
+The lesson goes beyond this case: a verification tool that never reports anything
+deserves to have **what it looks at** checked, not merely that it passes.
 
-### 8.1 Couverture de `:domain`
+### 8.1 Coverage of `:domain`
 
-`koverVerify` impose 98 % sur `:domain`. Le seuil constate un acquis plutôt
-qu'il ne fixe un objectif.
+`koverVerify` requires 98 % on `:domain`. The threshold records something already
+achieved rather than setting a target.
 
-**Levé.** Le garde-fou mesure réellement depuis les premiers modèles
-d'authentification : il a immédiatement échoué à 86,2 %, puis à 94,2 %, avant
-d'être satisfait. Il n'était pas décoratif.
+**Lifted.** The safeguard has really been measuring since the first
+authentication models: it failed straight away at 86.2 %, then at 94.2 %, before
+being satisfied. It was not decorative.
 
-### 8.2 Rendu visuel
+### 8.2 Visual rendering
 
-Les tests d'interface vérifient *ce qui est affiché* ; les captures vérifient
-*à quoi cela ressemble*. Une régression de contraste ou de thème sombre ne casse
-aucune assertion textuelle.
+Interface tests check *what is displayed*; screenshots check *what it looks
+like*. A regression in contrast or in the dark theme breaks no textual assertion.
 
-Chaque écran est capturé en clair **et** en sombre, la couleur dynamique
-désactivée et le format d'écran figé — sans quoi la référence dépendrait du fond
-d'écran de l'utilisateur ou de la configuration par défaut de Robolectric.
+Every screen is captured in light **and** in dark, with dynamic colour disabled
+and the screen format pinned — without which the reference would depend on the
+user's wallpaper or on Robolectric's default configuration.
 
-La base de capture rend le contenu dans un `Surface`, et non un `Box`. Un `Box`
-ne fournit pas `LocalContentColor` : le texte qui ne fixe pas sa couleur
-retombait sur du noir, invisible en thème sombre. La capture montrait donc un
-défaut que l'application, qui rend ses écrans dans un `Scaffold`, n'a pas.
-Constaté en Phase 0.
+The screenshot harness renders the content in a `Surface`, and not a `Box`. A
+`Box` does not provide `LocalContentColor`: text that does not set its colour
+fell back to black, invisible in the dark theme. The screenshot therefore showed
+a defect that the application, which renders its screens in a `Scaffold`, does
+not have. Observed in Phase 0.
 
-### 8.3 Tester l'écran ne teste pas ce qui l'alimente
+### 8.3 Testing the screen does not test what feeds it
 
-Les tests d'écran construisent l'état d'affichage **à la main** : ils prouvent
-que l'écran rend ce qu'on lui donne, jamais qu'on lui donne la bonne chose.
+Screen tests build the display state **by hand**: they prove that the screen
+renders what it is given, never that it is given the right thing.
 
-Le cas qui l'a établi : `Article.toUiModel` omettait de propager `isRead`.
-Quatre tests d'écran couvraient pourtant l'affichage de cet état, et aucun ne
-pouvait attraper le défaut — ils passaient tous `isRead` eux-mêmes, sans jamais
-traverser la projection. Il ne s'est vu que sur appareil, un article lu la
-veille arrivant du cache comme neuf.
+The case that established this: `Article.toUiModel` was failing to propagate
+`isRead`. Four screen tests nonetheless covered the display of that state, and
+none could catch the defect — they all passed `isRead` themselves, without ever
+going through the projection. It was only seen on a device, an article read the
+day before arriving from the cache as new.
 
-La règle vaut pour **tout** champ d'`ArticleUiModel`, et d'autant plus pour ceux
-dont plus rien ne s'affiche : `isRead` n'a plus de représentation depuis
-GOAL-020, mais il décide toujours du marquage et de la purge (SPECS.md §5.4).
-Ce que l'écran ne montre pas, seul un test de projection le garde —
-`ArticleUiModelTest`.
+The rule holds for **every** field of `ArticleUiModel`, and all the more for
+those that no longer display anything: `isRead` has had no representation since
+GOAL-020, but it still decides marking and purging (SPECS.md §5.4). What the
+screen does not show, only a projection test guards — `ArticleUiModelTest`.
 
 ---
 
-## 9. Carte du dépôt
+## 9. Map of the repository
 
-**Des paquets et leur rôle, pas une liste de fichiers.** Une arborescence
-recopiée à la main est fausse dès le commit suivant : celle qui figurait ici
-mentait sur une dizaine de fichiers, et la maintenir coûtait plus qu'elle ne
-rapportait. Ce qui suit ne change qu'avec l'architecture, pas avec chaque
-ajout — et se vérifie d'un `find`.
+**Packages and their role, not a list of files.** A tree copied out by hand is
+wrong by the next commit: the one that used to be here lied about a dozen files,
+and maintaining it cost more than it returned. What follows only changes with the
+architecture, not with every addition — and can be checked with a `find`.
 
 ```
-domain/                       Kotlin/JVM pur — décide, ne connaît ni HTTP ni disque
-├── auth/                     session, identifiants, adresse du serveur, causes d'échec
-├── core/                     Outcome<valeur, erreur>
-├── feed/                     article, page, curseur, contrats de dépôt
-├── read/                     détection de lecture, file de marquages, ordonnancement
-├── reminder/                 heure et contenu du rappel de lecture
-├── settings/                 réglages de lecture, cache
-├── shuffle/                  répartition des sources
+domain/                       Pure Kotlin/JVM — decides, knows neither HTTP nor disk
+├── auth/                     session, credentials, server address, failure causes
+├── core/                     Outcome<value, error>
+├── feed/                     article, page, cursor, repository contracts
+├── read/                     read detection, marking queue, scheduling
+├── reminder/                 time and content of the reading reminder
+├── settings/                 reading settings, cache
+├── shuffle/                  source interleaving
 └── time/                     Clock
 
 app/
 ├── data/
-│   ├── api/                  FreshRSS : client, points d'entrée, DTO, conversions
-│   ├── local/                DataStore (scalaires) et room/ (collections)
-│   ├── network/              connectivité
-│   ├── repository/           implémentations des contrats du domaine
-│   └── security/             chiffrement des secrets au repos
-├── di/                       un module Hilt par famille de dépendances
-├── reminder/                 rappel de lecture : contrats, travailleur, notification
+│   ├── api/                  FreshRSS: client, endpoints, DTOs, conversions
+│   ├── local/                DataStore (scalars) and room/ (collections)
+│   ├── network/              connectivity
+│   ├── repository/           implementations of the domain contracts
+│   └── security/             encryption of secrets at rest
+├── di/                       one Hilt module per family of dependencies
+├── reminder/                 reading reminder: contracts, worker, notification
 └── presentation/
-    ├── browser/              ce qui sort de l'application : ouverture de l'article, partage du lien
-    ├── discover/             flux en liste
-    ├── feed/                 ce que les deux modes partagent (rechargement, bandelette, ancienneté, illustration)
-    ├── lifecycle/            ce qui réagit au passage en arrière-plan
-    ├── login/                connexion
-    ├── navigation/           destinations, graphe, mode de présentation
-    ├── permission/           la permission de notifier, demandée au bon moment
-    ├── settings/             réglages
-    ├── swipe/                flux en pile de cartes, un article par écran
-    └── theme/                couleurs, espacements
+    ├── browser/              what leaves the application: opening the article, sharing the link
+    ├── discover/             feed as a list
+    ├── feed/                 what the two modes share (reloading, notice strip, staleness, illustration)
+    ├── lifecycle/            what reacts to going into the background
+    ├── login/                sign-in
+    ├── navigation/           destinations, graph, presentation mode
+    ├── permission/           the permission to notify, asked for at the right moment
+    ├── settings/             settings
+    ├── swipe/                feed as a card stack, one article per screen
+    └── theme/                colours, spacings
 ```
 
-**Deux paquets pour un même flux, et c'est voulu.** `discover/` et `swipe/`
-présentent les mêmes articles selon SPECS.md §4.8, mais rien de leur mise en
-page n'est commun : une liste paresseuse et un pagineur n'ont ni le même état,
-ni la même mesure de visibilité, ni les mêmes composants. Ce qu'ils partagent
-vraiment — le modèle d'article affiché, les phases du flux, le bouton de
-rechargement, la bandelette d'avis, la surveillance de l'ancienneté du flux, le
-créneau d'illustration — vit dans `discover/` pour les deux premiers, hérités,
-et dans `feed/` pour ce qui est né commun.
+**Two packages for one and the same feed, and it is intentional.** `discover/`
+and `swipe/` present the same articles according to SPECS.md §4.8, but nothing of
+their layout is common: a lazy list and a pager have neither the same state, nor
+the same visibility measurement, nor the same components. What they really share
+— the displayed article model, the feed's phases, the reload button, the notice
+strip, the watching of the feed's staleness, the illustration slot — lives in
+`discover/` for the first two, inherited, and in `feed/` for what was born
+common.
 
-Ce dernier a d'ailleurs une histoire qui se répète : `FeedNotice` puis
-`ArticleIllustration` ont tous deux commencé écrits **deux fois**, à
-l'identique, avant qu'une correction ne doive être appliquée aux deux endroits.
-Ce qui touche les deux modes se réunit avant d'être corrigé, pas après.
+The latter has, moreover, a history that repeats itself: `FeedNotice` and then
+`ArticleIllustration` both started out written **twice**, identically, before a
+fix had to be applied in both places. What touches both modes is brought together
+before being fixed, not after.
 
-Les tests suivent la même structure, plus `startup/` pour ce qui n'appartient à
-aucune couche — construction du graphe, migration de base, démarrage.
+The tests follow the same structure, plus `startup/` for what belongs to no
+layer — building the graph, database migration, startup.
 
-Ce que cette carte **ne dit pas**, délibérément : le nombre de tests, le nombre
-de captures, l'état d'avancement. Ces chiffres vieillissent en un commit, et
-[TASKS.md](./TASKS.md) les porte déjà.
+What this map deliberately **does not say**: the number of tests, the number of
+screenshots, the state of progress. Those figures age within one commit, and
+[TASKS.md](./TASKS.md) already carries them.
 
-### 9.1 Où chaque pièce du domaine est consommée
+### 9.1 Where each piece of the domain is consumed
 
-Cette section a longtemps recensé des pièces **écrites et éprouvées mais pas
-encore branchées**. La distinction avait un sens précis : tant que l'assemblage
-n'est pas fait, ce code est mort au sens d'AGENTS.md §2, quel que soit le nombre
-de tests qui l'entourent.
+This section long recorded pieces **written and tested but not yet wired up**.
+The distinction had a precise meaning: as long as the assembly is not done, that
+code is dead in the sense of AGENTS.md §2, whatever the number of tests
+surrounding it.
 
-**Cet écart est refermé.** Ce qui reste utile, et ce que cette table donne
-désormais, c'est le **point de consommation** de chaque pièce — c'est lui qu'une
-revue doit pouvoir retrouver, et lui qui redeviendrait faux en premier si une
-régression détachait une décision du domaine de son appelant.
+**That divergence is closed.** What remains useful, and what this table now
+gives, is the **point of consumption** of each piece — that is what a review must
+be able to find, and that is what would become wrong first if a regression
+detached a domain decision from its caller.
 
-| Pièce de `:domain` | Consommée par |
+| Piece of `:domain` | Consumed by |
 |---|---|
-| `interleaveBySource` (14 tests) | `DefaultArticleRepository` — page serveur et flux du cache |
-| `ReadDetector` (18 tests) | `DiscoverViewModel`, alimenté par `ArticleVisibility` depuis la liste ; `SwipeViewModel`, alimenté par `pagerVisibility` depuis le pagineur |
-| `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — regroupement des lots |
-| `ReadSyncRepository` | `DiscoverViewModel` et `SwipeViewModel` (marquage, rejeu au démarrage), `ReadFlushOnBackgroundObserver` (passage en arrière-plan) et `DefaultAuthRepository` (déconnexion) |
-| `FeedPresentation` | `FeedPresentationViewModel`, qui aiguille la destination Discover vers l'un des deux modes |
-| `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, que les deux ViewModels du flux construisent sur leur portée |
-| `FeedFreshnessRepository` | `DefaultArticleRepository` en **écriture** (chaque réponse serveur valide) et `FeedStalenessWatcher` en **lecture** |
-| `CacheRepository` | `SettingsViewModel` — état du cache et purge manuelle |
-| `SettingsRepository` | `SettingsViewModel`, les deux ViewModels du flux pour les seuils, et `FeedPresentationViewModel` pour le mode de présentation |
+| `interleaveBySource` (14 tests) | `DefaultArticleRepository` — server page and cache flow |
+| `ReadDetector` (18 tests) | `DiscoverViewModel`, fed by `ArticleVisibility` from the list; `SwipeViewModel`, fed by `pagerVisibility` from the pager |
+| `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — batch grouping |
+| `ReadSyncRepository` | `DiscoverViewModel` and `SwipeViewModel` (marking, replay at startup), `ReadFlushOnBackgroundObserver` (going into the background) and `DefaultAuthRepository` (sign-out) |
+| `FeedPresentation` | `FeedPresentationViewModel`, which routes the Discover destination to one of the two modes |
+| `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, which both feed ViewModels build on their scope |
+| `FeedFreshnessRepository` | `DefaultArticleRepository` in **writing** (every valid server response) and `FeedStalenessWatcher` in **reading** |
+| `CacheRepository` | `SettingsViewModel` — cache state and manual purge |
+| `SettingsRepository` | `SettingsViewModel`, both feed ViewModels for the thresholds, and `FeedPresentationViewModel` for the presentation mode |
 
-Côté `:app`, les mécanismes que la section signalait comme absents sont en place
-et couverts : le cache alimente le premier affichage (SPECS.md §5.1) et le hors
-ligne (§5.2), le rechargement est câblé jusqu'à `ArticleRepository.refresh()`
-depuis les deux modes (§4.6), l'ouverture d'un article le marque lu (§4.7), et
-la purge d'ancienneté est déclenchée une fois par démarrage de processus par
-`CacheMaintenance` (§5.4).
+On the `:app` side, the mechanisms the section used to flag as absent are in
+place and covered: the cache feeds the first display (SPECS.md §5.1) and offline
+use (§5.2), reloading is wired through to `ArticleRepository.refresh()` from both
+modes (§4.6), opening an article marks it read (§4.7), and the age purge is
+triggered once per process start by `CacheMaintenance` (§5.4).
 
-### 9.3 Le rechargement franchit la frontière de l'ossature
+### 9.3 Reloading crosses the shell's boundary
 
-Le bouton de rechargement est posé sur la barre de titre (SPECS.md §4.6), qui
-appartient à `MainActivity` — au-dessus du graphe de navigation. L'action, elle,
-appartient au ViewModel de la destination affichée, que l'ossature n'a aucune
-raison de connaître.
+The reload button sits on the title bar (SPECS.md §4.6), which belongs to
+`MainActivity` — above the navigation graph. The action, for its part, belongs to
+the ViewModel of the displayed destination, which the shell has no reason to
+know.
 
-C'est donc l'**action** qui remonte, sous la forme d'un `FeedRefresh` que la
-destination publie et que la barre consomme. L'inverse — descendre la barre dans
-chaque écran — obligerait chacun à redessiner un titre et une barre de
-navigation, et ferait exister trois barres là où il en faut une.
+It is therefore the **action** that comes up, in the form of a `FeedRefresh` that
+the destination publishes and the bar consumes. The reverse — pushing the bar
+down into each screen — would force each one to redraw a title and a navigation
+bar, and would make three bars exist where one is needed.
 
-La publication se fait par `DisposableEffect`, et le **retrait** y compte autant
-que la pose : sans lui, quitter le flux pour les réglages y laisserait un bouton
-branché sur un ViewModel qu'on ne regarde plus.
+Publishing is done through `DisposableEffect`, and **removal** counts as much as
+placement there: without it, leaving the feed for the settings would leave behind
+a button wired to a ViewModel nobody is looking at any more.
 
-Le travail restant n'est plus de l'assemblage à rattraper : il est décrit tâche
-par tâche dans [TASKS.md](./TASKS.md), qui est le seul document à jour sur ce
+The remaining work is no longer assembly to be caught up on: it is described task
+by task in [TASKS.md](./TASKS.md), which is the only document up to date on this
 point.
 
-### 9.4 Le rappel de lecture ne franchit pas la couche réseau
+### 9.4 The reading reminder does not cross the network layer
 
-Le rappel quotidien (SPECS.md §4.9) lit `ArticleRepository.unreadFromCache`, et
-ce contrat porte l'interdiction dans sa signature même : il ne rend pas de
-`FeedResult`, parce qu'il n'a aucun échec réseau à rapporter.
+The daily reminder (SPECS.md §4.9) reads `ArticleRepository.unreadFromCache`, and
+that contract carries the prohibition in its very signature: it does not return a
+`FeedResult`, because it has no network failure to report.
 
-Ce n'est pas une commodité mais la ligne qui sépare une **notification locale**
-d'une **synchronisation en arrière-plan** — SPECS.md §2 accueille la première et
-exclut toujours la seconde, et §7.4 veut qu'aucune connexion ne parte sans geste
-de l'utilisateur. Une implémentation qui irait chercher une page « pour avoir
-des titres plus frais » ferait basculer l'application d'un côté à l'autre de
-cette ligne sans que rien ne le signale.
+This is not a convenience but the line that separates a **local notification**
+from a **background synchronisation** — SPECS.md §2 welcomes the first and still
+excludes the second, and §7.4 requires that no connection go out without a
+gesture from the user. An implementation that went off to fetch a page "to get
+fresher titles" would tip the application from one side of that line to the other
+with nothing to signal it.
 
-La conséquence est assumée et visible : un article publié depuis la dernière
-ouverture n'est pas dans le cache, et ne sera donc pas annoncé.
+The consequence is accepted and visible: an article published since the last
+opening is not in the cache, and will therefore not be announced.
 
-Trois refus précèdent toute notification, et leur **ordre** compte : pas de
-session — l'utilisateur n'est plus connecté, il n'y a rien à rappeler ; réglage
-éteint ; puis cache vide. Les deux premiers n'arment pas le rappel du lendemain,
-le troisième si — demain il y aura peut-être quelque chose à lire.
+Three refusals precede any notification, and their **order** matters: no session
+— the user is no longer signed in, there is nothing to remind them of; setting
+switched off; then empty cache. The first two do not arm the next day's reminder,
+the third does — tomorrow there may be something to read.
 
-### 9.5 La version ne se saisit pas
+### 9.5 The version is not typed in
 
-`versionName` et `versionCode` sont dérivés de la même étiquette Git, dans
-`app/build.gradle.kts`. Deux sources de vérité pour une même version sont une
-divergence programmée : c'est celle qu'on découvre le jour où l'on publie une
-1.1 portant encore le code de la 1.0.
+`versionName` and `versionCode` are derived from the same Git tag, in
+`app/build.gradle.kts`. Two sources of truth for one and the same version are a
+scheduled divergence: it is the one you discover on the day you publish a 1.1
+still carrying the code of the 1.0.
 
-Le code vaut `major × 1 000 000 + minor × 1 000 + patch`, strictement croissant
-avec la version et borné loin sous le maximum accepté par Google Play. Il est
-plancher à 1, parce qu'Android refuse un code nul et que le repli `0.0.0-…` en
-produisait un.
+The code is `major × 1 000 000 + minor × 1 000 + patch`, strictly increasing with
+the version and bounded far below the maximum Google Play accepts. It has a floor
+of 1, because Android refuses a zero code and the `0.0.0-…` fallback produced
+one.
 
-`providers.exec` plutôt qu'un appel direct à `ProcessBuilder` : le dépôt utilise
-le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
-chaque construction.
+`providers.exec` rather than a direct call to `ProcessBuilder`: the repository
+uses Gradle's configuration cache, which an undeclared call would invalidate on
+every build.
 
-### 9.8 Une image n'est jamais agrandie
+### 9.8 An image is never enlarged
 
-Le créneau d'illustration est fixe (16/9) et l'image le remplit : c'est ce qui
-empêche la liste de sursauter à l'arrivée de chaque image, et c'est aussi ce qui
-étirait les vignettes trop étroites.
+The illustration slot is fixed (16:9) and the image fills it: that is what stops
+the list from jumping as each image arrives, and it is also what was stretching
+thumbnails that were too narrow.
 
-`ArticleIllustration` compare donc la largeur **source**, que Coil rend dans son
-état de succès, à la largeur **mesurée** du créneau. La décision est une
-fonction pure — `needsUpscaling` — plutôt qu'une condition noyée dans un `Box` :
-elle s'éprouve sans rendu, là où une capture serait nécessaire pour vérifier
-l'autre.
+`ArticleIllustration` therefore compares the **source** width, which Coil exposes
+in its success state, with the **measured** width of the slot. The decision is a
+pure function — `needsUpscaling` — rather than a condition buried in a `Box`: it
+can be tested without rendering, where a screenshot would be needed to check the
+other.
 
-Deux choix d'échelle, et le second a coûté un essai sur appareil :
+Two scaling choices, and the second one cost an attempt on a device:
 
-- le fond emploie `Crop` sur une copie **débordant** légèrement du créneau —
-  `blur` estompe jusqu'aux bords, et sans ce débordement le cadre reparaîtrait
-  en périphérie ;
-- l'image de devant emploie `Inside`, et non `Fit`. `Fit` remplit la plus petite
-  dimension, donc agrandit encore : le premier essai livrait une image toujours
-  floue sur un fond correct. `Inside` ne grandit jamais au-delà de la taille
-  native — la seule échelle qui n'invente aucun pixel.
+- the background uses `Crop` on a copy **overflowing** the slot slightly — `blur`
+  fades out all the way to the edges, and without that overflow the frame would
+  reappear around the perimeter;
+- the foreground image uses `Inside`, and not `Fit`. `Fit` fills the smallest
+  dimension, and therefore enlarges again: the first attempt delivered an image
+  that was still blurry over a correct background. `Inside` never grows beyond
+  the native size — the only scale that invents no pixel.
 
-`Modifier.blur` exige l'API 31 quand le projet descend à 26 : en dessous, rien
-ne change (SPECS.md §8, question 12).
+`Modifier.blur` requires API 31 while the project goes down to 26: below that,
+nothing changes (SPECS.md §8, question 12).
 
-### 9.7 Le lancement ne parle à personne, et son ordre ne dépend de rien
+### 9.7 The launch talks to nobody, and its order depends on nothing
 
-Le flux du lancement doit rouvrir **à l'identique** (SPECS.md §5.1). Quatre
-mécanismes le mettaient en défaut, chacun trouvé après le précédent, tous
-constatés sur appareil le 2026-08-08 — ils sont notés ici parce qu'ils forment
-un ensemble, et qu'un seul corrigé ne suffisait pas.
+The feed at launch must reopen **identically** (SPECS.md §5.1). Four mechanisms
+were defeating that, each found after the previous one, all observed on a device
+on 2026-08-08 — they are noted here because they form a whole, and because fixing
+only one was not enough.
 
-| Mécanisme | Ce qu'il produisait |
+| Mechanism | What it produced |
 |---|---|
-| Requête automatique au lancement | Mettait le disque et le réseau en course ; l'issue décidait de l'écran |
-| Ordre du serveur ≠ ordre du cache | Le serveur trie par date de récupération, le cache par publication. Les pages sont désormais ramenées à l'ordre de publication (`DefaultArticleRepository.interleaved`) |
-| Borne du cache appliquée **avant** le filtre des lus | Un cache dont les 200 plus récents étaient lus rendait une liste vide : l'écran le croyait vide et lançait le chargement de secours. 283 articles, 69 non lus, zéro affiché |
-| Articles lus retirés du flux | L'ensemble à mélanger changeait à chaque session, donc l'ordre aussi |
+| Automatic request at launch | Put the disk and the network in a race; the outcome decided the screen |
+| Server order ≠ cache order | The server sorts by fetch date, the cache by publication. Pages are now brought back to publication order (`DefaultArticleRepository.interleaved`) |
+| Cache bound applied **before** the read filter | A cache whose 200 most recent articles were read returned an empty list: the screen thought it was empty and started the fallback load. 283 articles, 69 unread, zero displayed |
+| Read articles removed from the feed | The set to interleave changed on every session, and so did the order |
 
-Le principe qui les réunit : **le mélange doit porter sur un ensemble qui ne
-bouge pas.** `interleaveBySource` choisit chaque position en regardant ses
-voisins ; tout ce qui entre ou sort de l'ensemble redistribue le reste. Le
-cache rend donc ses articles **lus compris**, et seul un rechargement demandé
-renouvelle la liste.
+The principle that unites them: **interleaving must bear on a set that does not
+move.** `interleaveBySource` chooses each position by looking at its neighbours;
+anything entering or leaving the set redistributes the rest. The cache therefore
+returns its articles **read ones included**, and only a requested reload renews
+the list.
 
-Le rappel de lecture est la seule lecture du cache qui filtre encore les lus
-(`unreadFromCache`) : il ne répond pas à la même question.
+The reading reminder is the only reading of the cache that still filters out read
+articles (`unreadFromCache`): it is not answering the same question.
 
-### 9.6 L'ancienneté du flux se mesure là où le serveur répond
+### 9.6 The feed's staleness is measured where the server answers
 
-La date qui sert à dire qu'un flux est ancien (SPECS.md §4.6) est écrite par
-`DefaultArticleRepository`, dans sa branche de succès, à côté de l'écriture du
-cache — et non par les ViewModels qui demandent les pages.
+The date used to say that a feed is stale (SPECS.md §4.6) is written by
+`DefaultArticleRepository`, in its success branch, next to the cache write — and
+not by the ViewModels that ask for the pages.
 
-Deux raisons, et la seconde décide. La couche qui a parlé au serveur est la
-seule à **savoir** qu'il a répondu : un `loadPage` réussi compte autant qu'un
-rechargement explicite, et une page valide mais vide compte aussi. Surtout,
-deux ViewModels demandent des pages : la règle écrite chez eux vivrait deux
-fois, et les deux modes de présentation divergeraient au premier correctif
-appliqué d'un seul côté.
+Two reasons, and the second decides. The layer that talked to the server is the
+only one to **know** that it answered: a successful `loadPage` counts as much as
+an explicit reload, and a valid but empty page counts too. Above all, two
+ViewModels ask for pages: the rule written in them would live twice, and the two
+presentation modes would diverge on the first fix applied on one side only.
 
-Symétriquement, la **décision** — six heures, borne incluse, une horloge qui
-recule ne rend rien ancien — est une fonction pure de `:domain`, à qui l'instant
-courant est transmis. Ce qui reste à la présentation est ce qu'elle seule sait :
-qu'elle est hors ligne, qu'elle rafraîchit déjà, qu'elle n'a rien à montrer.
+Symmetrically, the **decision** — six hours, bound included, a clock going
+backwards makes nothing stale — is a pure function of `:domain`, to which the
+current instant is passed. What remains with the presentation is what it alone
+knows: that it is offline, that it is already refreshing, that it has nothing to
+show.
 
-### 9.2 Ce qui est hérité du template, délibérément
+### 9.2 What is inherited from the template, deliberately
 
-Le dépôt provient de `c4software/tailscale-auto-rules`, dont la logique métier a
-été retirée.
+The repository comes from `c4software/tailscale-auto-rules`, whose business logic
+has been removed.
 
-`MainDispatcherRule` a trouvé son usage avec le premier ViewModel.
-`UiStateCollector` a longtemps été la seule exception assumée à l'interdit « pas
-de code mort » (AGENTS.md §2) : il sert aux ViewModels publiant en
-`WhileSubscribed`, ce qu'aucun ne faisait alors. **L'exception est levée** — son
-`keepCollecting` est employé par `SettingsViewModelTest`, dont l'état resterait
-figé sur sa valeur initiale sans abonné.
+`MainDispatcherRule` found its use with the first ViewModel. `UiStateCollector`
+was for a long time the only accepted exception to the "no dead code"
+prohibition (AGENTS.md §2): it serves ViewModels publishing in
+`WhileSubscribed`, which none did at the time. **The exception is lifted** — its
+`keepCollecting` is used by `SettingsViewModelTest`, whose state would stay frozen
+on its initial value with no subscriber.
 
-Le dépôt n'a donc plus de dérogation à cet interdit, et n'en rouvrira une qu'en
-l'inscrivant ici.
+The repository therefore no longer has a waiver against this prohibition, and
+will only reopen one by recording it here.
