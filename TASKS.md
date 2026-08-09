@@ -1617,6 +1617,17 @@ rendent une ligne au contenu.
       le titre ouvre la carte, la provenance et le partage tiennent une seule
       ligne en pied, et la carte est visiblement plus courte.
       Pas sur l'appareil de l'auteur, à sa demande
+- [x] `GOAL-023-T04` **La carte se resserre encore**, l'auteur ayant trouvé
+      trop d'air sous l'icône et sous le titre une fois la version précédente
+      installée sur son appareil. Trois retraits :
+      le `heightIn` du pied — **posé la veille** pour donner la même hauteur au
+      pied d'un article sans bouton, et retiré parce que la cible de 48 dp
+      centrée sur une ligne de 16 laissait une bande vide ; entre un gabarit
+      régulier et une carte resserrée, c'est le resserrement qui était demandé.
+      La marge basse de la carte, ramenée de 16 à 4 dp — le bouton apporte déjà
+      son propre vide sous lui. Et l'espacement entre le titre et l'extrait,
+      supprimé : leur interligne les sépare déjà, et le pied reprend cet écart
+      à son compte puisqu'il change de nature, pas de paragraphe
 
 ---
 

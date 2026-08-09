@@ -469,11 +469,26 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
          * exactement le travers qu'avait rencontré le fanion en GOAL-017-T02,
          * et il est revenu par la même porte.
          */
+        /*
+         * **Le bas est plus serré que les trois autres côtés**, et ce n'est pas
+         * un oubli de symétrie : le bouton de partage du pied porte une cible
+         * tactile de 48 dp autour d'un dessin de 18, donc il apporte déjà une
+         * quinzaine de points de vide sous lui. Une marge de 16 par-dessus
+         * faisait une bande que l'auteur a vue sur appareil. La carte sans
+         * bouton perd un peu d'air en échange, ce qui reste préférable à la
+         * respiration excessive de toutes les autres.
+         */
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md, bottom = Spacing.xs),
+            /*
+             * **Aucun espacement entre le titre et l'extrait** : l'interligne
+             * propre des deux styles les sépare déjà, et les 4 dp qui s'y
+             * ajoutaient faisaient une respiration que l'auteur a trouvée
+             * excessive sur appareil. Le pied, lui, reprend cet écart à son
+             * compte — il change de nature, pas de paragraphe.
+             */
         ) {
             ArticleCardTexts(article)
             ArticleCardFooter(article = article, onShare = onShare)
@@ -506,16 +521,18 @@ private fun ArticleCardFooter(
     modifier: Modifier = Modifier,
 ) {
     /*
-     * `heightIn` donne au pied la **même hauteur sur toutes les cartes**, avec
-     * ou sans bouton. Sans lui, le pied d'un article sans lien se réduit à la
-     * hauteur de son texte pendant que les autres tiennent les 48 dp de la
-     * cible tactile : dans une liste, cet écart se lit comme un défaut de
-     * gabarit plutôt que comme l'absence d'une commande.
+     * **Pas de `heightIn` ici**, et c'est un retour en arrière assumé. Il avait
+     * été posé pour que le pied d'un article sans lien — donc sans bouton —
+     * tienne la même hauteur que les autres. Le prix était visible sur
+     * appareil : la cible de 48 dp du bouton, centrée sur une ligne de texte de
+     * 16, laissait sous elle une bande vide que l'auteur a signalée. Entre un
+     * gabarit régulier et une carte resserrée, c'est le resserrement qui a été
+     * demandé.
      */
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MinTouchTarget),
+            .padding(top = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
