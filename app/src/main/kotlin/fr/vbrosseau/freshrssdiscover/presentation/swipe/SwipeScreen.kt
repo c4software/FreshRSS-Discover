@@ -444,38 +444,34 @@ private fun ArticleText(
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(
-            text = stringResource(
-                R.string.swipe_article_meta,
-                article.feedTitle,
-                article.publishedAt.label(),
-            ),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
         /*
-         * **Le partage sur la ligne du titre**, demandé par l'auteur. En bas de
-         * carte il tombait après un extrait qui peut faire 1 400 caractères,
-         * donc sous la ligne de flottaison d'un écran sur deux : il fallait
-         * faire défiler pour atteindre la seule commande visible du mode.
+         * **Le partage sur la ligne de source**, demandé par l'auteur — la même
+         * association qu'en mode Liste, où la commande côtoie déjà la
+         * provenance, à ceci près qu'ici cette ligne ouvre la carte au lieu de
+         * la fermer.
          *
-         * `Alignment.Top` et non un centrage : un titre de trois lignes
-         * emmènerait sinon le bouton en son milieu, à une hauteur qui dépend de
-         * la longueur du texte. En haut, il est toujours au même endroit.
+         * Il a d'abord quitté le bas de carte, où il tombait après un extrait
+         * pouvant faire 1 400 caractères — donc sous la ligne de flottaison
+         * alors que c'est la seule commande visible de ce mode — puis la ligne
+         * du titre, qui le faisait descendre avec lui.
          *
-         * `weight(1f)` sur le titre, comme en mode Liste : c'est à lui de se
-         * replier, jamais à la commande d'être poussée hors de la carte.
+         * `weight(1f)` sur le texte, comme en mode Liste : c'est au nom du flux
+         * de s'écourter, jamais à la commande d'être poussée hors de la carte.
          */
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = article.title,
-                style = MaterialTheme.typography.headlineSmall,
+                text = stringResource(
+                    R.string.swipe_article_meta,
+                    article.feedTitle,
+                    article.publishedAt.label(),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
 
@@ -486,6 +482,8 @@ private fun ArticleText(
                 )
             }
         }
+
+        Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
 
         if (article.excerpt.isNotBlank()) {
             Text(

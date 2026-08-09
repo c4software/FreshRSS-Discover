@@ -470,18 +470,24 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
          * et il est revenu par la même porte.
          */
         /*
-         * **Le bas est plus serré que les trois autres côtés**, et ce n'est pas
-         * un oubli de symétrie : le bouton de partage du pied porte une cible
-         * tactile de 48 dp autour d'un dessin de 18, donc il apporte déjà une
-         * quinzaine de points de vide sous lui. Une marge de 16 par-dessus
-         * faisait une bande que l'auteur a vue sur appareil. La carte sans
-         * bouton perd un peu d'air en échange, ce qui reste préférable à la
-         * respiration excessive de toutes les autres.
+         * **Le bas ne porte aucune marge quand le pied a son bouton**, et c'est
+         * lui qui la fournit : la cible tactile de 48 dp entoure un dessin de
+         * 16, donc elle laisse déjà 16 points sous le trait — exactement la
+         * marge des trois autres côtés. En ajouter faisait la bande que
+         * l'auteur a signalée deux fois.
+         *
+         * C'est le plancher **sans rien céder** : descendre plus bas
+         * demanderait de rétrécir la cible sous les 48 dp de SPECS.md §7.1.
+         *
+         * La carte sans lien, elle, garde sa marge : sans bouton pour la
+         * porter, sa dernière ligne toucherait le bord.
          */
+        val bottomPadding = if (article.isOpenable) Spacing.none else Spacing.md
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md, bottom = Spacing.xs),
+                .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md, bottom = bottomPadding),
             /*
              * **Aucun espacement entre le titre et l'extrait** : l'interligne
              * propre des deux styles les sépare déjà, et les 4 dp qui s'y

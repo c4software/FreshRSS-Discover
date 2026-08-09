@@ -1638,6 +1638,21 @@ rendent une ligne au contenu.
       `Alignment.Top` et non un centrage : sur un titre de trois lignes, un
       bouton centré se placerait à une hauteur qui dépend de la longueur du
       texte
+- [x] `GOAL-023-T06` **Le partage rejoint la ligne de source en Balayage**, et
+      la marge basse du mode Liste tombe à zéro. Deux corrections d'un même
+      aller-retour avec l'auteur.
+      En Balayage, la commande a occupé trois places en trois essais : le bas de
+      carte, la ligne du titre, puis la ligne de source — la même association
+      qu'en mode Liste, à ceci près qu'ici cette ligne ouvre la carte au lieu de
+      la fermer.
+      En Liste, la marge basse passe de 4 dp à **rien** : la cible tactile de
+      48 dp entoure un dessin de 16, donc elle laisse déjà seize points sous le
+      trait, soit exactement la marge des trois autres côtés. **C'est le
+      plancher sans rien céder** — descendre plus bas demanderait de rétrécir la
+      cible sous les 48 dp de SPECS.md §7.1. La carte **sans lien** garde sa
+      marge : sans bouton pour la porter, sa dernière ligne toucherait le bord.
+      `Spacing.none` est ajouté à l'échelle pour que ce zéro se lise comme une
+      décision et non comme un oubli
 
 ---
 
