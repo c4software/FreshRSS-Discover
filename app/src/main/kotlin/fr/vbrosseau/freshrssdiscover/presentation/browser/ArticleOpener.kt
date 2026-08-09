@@ -91,8 +91,12 @@ internal class ArticleOpener(private val launcher: CustomTabLauncher) {
  * L'autorité est exigée en plus du schéma : `https:` seul est une URL valide au
  * sens de la syntaxe, mais ne désigne aucune page. La comparaison est
  * insensible à la casse, un schéma l'étant par définition (RFC 3986 §3.1).
+ *
+ * `internal` et non `private` : [ArticleSharer] applique **la même** règle, et
+ * la dupliquer laisserait les deux copies diverger. Un lien qu'on refuse
+ * d'ouvrir est aussi un lien qu'on refuse d'envoyer à une autre application.
  */
-private fun String.isSupportedWebLink(): Boolean {
+internal fun String.isSupportedWebLink(): Boolean {
     val separator = indexOf(SCHEME_SEPARATOR)
     val scheme = if (separator > 0) take(separator).lowercase() else ""
 

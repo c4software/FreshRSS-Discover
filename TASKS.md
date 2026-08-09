@@ -1347,10 +1347,18 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
       d'`ArticleUiModel` et non pour le seul fanion.
       `verifyRoborazziDebug` passe sans réenregistrement : aucune capture
       restante ne portait d'article lu
-- [ ] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
+- [x] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
       ce qui se partage, ce qui se tait — éprouvable en JVM, le lancement de
       l'intention isolé derrière une interface fonctionnelle, comme
-      `CustomTabLauncher`
+      `CustomTabLauncher`.
+      Deux écarts au modèle, tous deux voulus : `ArticleShareOutcome` n'a que
+      deux valeurs — pas d'équivalent de `NoBrowser`, le sélecteur étant
+      fourni par le système et disant lui-même qu'aucune application ne peut
+      recevoir — et `isSupportedWebLink` passe de `private` à `internal`
+      plutôt que d'être recopiée, pour que les deux règles de schémas ne
+      puissent pas diverger. Le gabarit du texte partagé est une ressource,
+      donnée au partageur par `rememberArticleSharer` : la composition reste
+      éprouvable en JVM, la formulation reste traduisible
 - [ ] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
       cible de 48 dp et description pour le lecteur d'écran — tests d'écran
 - [ ] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le

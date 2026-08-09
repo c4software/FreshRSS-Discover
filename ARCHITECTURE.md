@@ -537,7 +537,7 @@ app/
 ├── di/                       un module Hilt par famille de dépendances
 ├── reminder/                 rappel de lecture : contrats, travailleur, notification
 └── presentation/
-    ├── browser/              ouverture de l'article d'origine
+    ├── browser/              ce qui sort de l'application : ouverture de l'article, partage du lien
     ├── discover/             flux en liste
     ├── feed/                 ce que les deux modes partagent (rechargement, bandelette, ancienneté, illustration)
     ├── lifecycle/            ce qui réagit au passage en arrière-plan

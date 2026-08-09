@@ -17,4 +17,19 @@
     <string name="feed_stale_refresh">Recharger</string>
     <!-- Faire taire l'invitation sans recharger, pour qui ne le peut pas maintenant. -->
     <string name="feed_stale_dismiss">Plus tard</string>
+
+    <!--
+        Ce qui part dans le partage : le titre, puis le lien d'origine
+        (SPECS.md §4.3). Deux lignes, parce que les messageries qui détectent
+        les liens s'arrêtent au retour à la ligne — accolé au titre, le lien
+        cesserait souvent d'être cliquable. L'extrait n'y figure pas : il est
+        écourté par nous, et le transmettre partagerait notre troncature.
+    -->
+    <string name="feed_article_share_text">%1$s\n%2$s</string>
+
+    <!--
+        Titre du sélecteur de partage. Affiché par Android jusqu'à la
+        version 9 ; au-delà, sa feuille de partage impose le sien.
+    -->
+    <string name="feed_article_share_chooser">Partager l\'article</string>
 </resources>
