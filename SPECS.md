@@ -348,10 +348,14 @@ gesture in List mode, where nothing replaced it.
 
 - What is displayed is replaced, not added to. What was there disappears —
   **and it disappears from the cache too**, so that killing the application does
-  not bring it back (§5.1). What has been read goes; what is unread stays, as
-  does anything whose marking has not reached the server yet. The owned
-  consequence: after a reload you can no longer scroll back to an article read
-  before it.
+  not bring it back (§5.1). **What the server returned is what remains**: the
+  criterion is belonging to the page just served, not the local read state,
+  which knows nothing of what was read elsewhere. The one exception is anything
+  whose marking has not reached the server yet — that is a truth the server
+  cannot know, so it cannot return it.
+- The owned consequence: after a reload you can no longer scroll back to what
+  came before it, and the offline reserve falls back to the head page until
+  scrolling refills it.
 - The reading position is **not** preserved: reloading brings you back to the
   beginning, and that is what it announces.
 - Pagination starts again from the beginning: the previous cursor is abandoned.
@@ -585,6 +589,11 @@ no place to find again and a request leaves (§5.1).
 
 The cache is bounded. Articles **read and synchronised** are deleted beyond an
 age threshold (§8, question 3); unread articles are never purged.
+
+This concerns the purge by age, and it alone. A **reload** renews the cache on
+another criterion entirely — what the server just returned (§4.6) — and it does
+carry away articles that are unread locally, since the server no longer offering
+them is the only sign the application ever gets that they were read elsewhere.
 
 "**And synchronised**" reads literally: an article whose marking is still
 waiting to be transmitted is **never** deleted, even past the threshold. This is

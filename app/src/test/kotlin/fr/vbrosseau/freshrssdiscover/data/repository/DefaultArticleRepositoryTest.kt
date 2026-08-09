@@ -575,18 +575,54 @@ class DefaultArticleRepositoryTest {
         assertEquals(listOf(2L), cached, "l'article lu doit disparaître du cache, pas seulement de l'écran")
     }
 
+    /**
+     * **Le cas mesuré sur l'appareil de l'auteur**, et celui que GOAL-026 ne
+     * savait pas voir : un article que le serveur ne renvoie plus s'en va, même
+     * s'il est **non lu localement**. Il l'a été ailleurs — interface web, autre
+     * client — et son absence de la page rendue est le seul signe que
+     * l'application en reçoive jamais.
+     *
+     * Constat : après un rechargement affichant « rien à lire », 31 lignes non
+     * lues subsistaient en base, et le lancement suivant les remontait.
+     */
     @Test
-    fun aReloadKeepsWhatIsStillUnread() = runTest {
-        // Un non lu que le serveur ne renvoie pas — trop ancien pour la page de
-        // tête — reste consultable : SPECS.md §5.4 ne purge jamais du non-lu.
-        cache.save(listOf(article(id = 7L, title = "Non lu")))
+    fun aReloadDropsAnUnreadArticleTheServerNoLongerReturns() = runTest {
+        cache.save(listOf(article(id = 7L, title = "Lu ailleurs")))
         val repository = repository(MockEngineResponse.Body(page(2L to "feed/1")))
         signedIn()
 
         repository.refresh()
 
         val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
-        assertEquals(setOf(2L, 7L), cached.toSet())
+        assertEquals(listOf(2L), cached, "le critère est la page rendue, pas l'état lu local")
+    }
+
+    /** Le cas exact du signalement : plus rien à lire, donc plus rien en base. */
+    @Test
+    fun aReloadThatReturnsNothingEmptiesTheCache() = runTest {
+        cache.save(listOf(article(id = 7L), article(id = 8L, isRead = true)))
+        val repository = repository(MockEngineResponse.Body("""{"items":[]}"""))
+        signedIn()
+
+        repository.refresh()
+
+        assertTrue(
+            repository.observeCachedArticles(CACHE_LIMIT).first().isEmpty(),
+            "un flux vidé doit le rester après avoir tué l'application",
+        )
+    }
+
+    @Test
+    fun aReloadKeepsEverythingItReturned() = runTest {
+        // Le garde-fou de la règle précédente : renouveler n'est pas effacer.
+        cache.save(listOf(article(id = 1L)))
+        val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/2")))
+        signedIn()
+
+        repository.refresh()
+
+        val cached = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
+        assertEquals(setOf(1L, 2L), cached.toSet())
     }
 
     /**

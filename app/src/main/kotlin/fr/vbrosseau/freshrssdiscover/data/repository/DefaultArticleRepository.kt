@@ -139,38 +139,42 @@ internal class DefaultArticleRepository @Inject constructor(
     }
 
     /**
-     * Le rechargement renouvelle le cache : ce qui est lu s'en va (GOAL-026).
+     * Le rechargement renouvelle le cache : **la réponse du serveur devient son
+     * contenu** (SPECS.md §4.6, GOAL-027).
      *
-     * **Le défaut, signalé par l'auteur.** Le rechargement vidait l'affichage et
-     * laissait la base intacte : tout lire, recharger — l'écran annonçait qu'il
-     * n'y avait plus rien — puis tuer l'application et la relancer ressuscitait
-     * les quarante articles lus. Le cache répondait, et rien ne demandait plus
-     * au serveur puisqu'il y avait quelque chose à montrer. Depuis GOAL-020 il
-     * n'y a plus de fanion de lecture : ces revenants étaient **indiscernables**
-     * de vrais non lus.
+     * **Le défaut, signalé deux fois par l'auteur.** Le rechargement vidait
+     * l'affichage et laissait la base intacte : tout lire, recharger — l'écran
+     * annonçait qu'il n'y avait plus rien — puis tuer l'application et la
+     * relancer ressuscitait le jeu précédent. Depuis GOAL-020 il n'y a plus de
+     * fanion de lecture : ces revenants étaient **indiscernables** de vrais non
+     * lus.
      *
-     * Ce n'était pas une règle manquante mais une règle non tenue : la
-     * documentation d'[observeCachedArticles] promet depuis GOAL-015 que la
-     * liste tient « jusqu'au prochain rechargement demandé, qui seul la
-     * renouvelle ». Le cache ne l'avait jamais fait.
+     * GOAL-026 avait purgé ce qui était **lu localement**, et ne suffisait pas.
+     * Mesuré sur l'appareil de l'auteur, base à l'appui : après un rechargement
+     * qui affichait « rien à lire », le cache gardait 31 lignes **non lues
+     * localement** que le serveur ne renvoyait plus. Il les avait lues ailleurs
+     * — interface web, autre client — et `upsertPreservingLocalReadState` ne
+     * propage l'état lu que pour les articles que le serveur **renvoie** :
+     * l'absence, elle, ne disait rien. C'est pourtant le seul signe que
+     * l'application reçoive jamais d'une lecture faite ailleurs.
      *
-     * **`purgeAllRead` plutôt qu'un effacement.** Sa requête épargne les deux
-     * choses qui ne doivent jamais disparaître (SPECS.md §5.4) : ce qui est non
-     * lu, qui est le contenu même de l'application, et ce dont le marquage
-     * **attend encore d'être transmis** — ces lignes portent la mémoire locale
-     * du « déjà lu », et les effacer ferait revenir comme neuf ce que
-     * l'utilisateur vient de lire (`ArticleDao.deleteReadCachedBefore`).
+     * Le critère est donc l'appartenance à la page rendue, jamais l'état lu
+     * local. Sont épargnées les lignes dont le marquage **attend encore de
+     * partir** : elles portent une vérité que le serveur ignore, il ne peut donc
+     * pas la renvoyer, et les effacer ferait revenir comme neuf ce que
+     * l'utilisateur vient de lire.
      *
      * **Après l'enregistrement, jamais avant** : `upsertPreservingLocalReadState`
-     * lit l'état lu dans ces mêmes lignes, et purger d'abord ferait revenir non
-     * lu un article que le serveur vient de rendre.
+     * lit l'état lu dans ces mêmes lignes.
      *
-     * **La pagination ne purge rien** : ce serait effacer le flux sous les yeux
-     * de qui le parcourt. Seul un rechargement demandé renouvelle, comme
-     * SPECS.md §4.6 le dit.
+     * **La pagination ne renouvelle rien** : ce serait effacer le flux sous les
+     * yeux de qui le parcourt, puisqu'une page suivante ne contient jamais ce
+     * qui précède. Seul un rechargement demandé renouvelle, comme SPECS.md §4.6
+     * le dit — et le prix, assumé, est que la réserve hors ligne retombe alors à
+     * la page de tête.
      */
-    private suspend fun renewCache() {
-        cache.purgeAllRead()
+    private suspend fun renewCache(returned: List<Article>) {
+        cache.retainOnly(returned.map(Article::id))
     }
 
     /**
@@ -235,7 +239,7 @@ internal class DefaultArticleRepository @Inject constructor(
         is ApiOutcome.Success -> {
             val page = value.toArticlePage()
             cache.save(page.articles)
-            if (renewsCache) renewCache()
+            if (renewsCache) renewCache(page.articles)
             freshness.recordRefresh()
             Outcome.Success(page.interleaved(continuesPagination))
         }

@@ -94,6 +94,40 @@ internal interface ArticleDao {
     suspend fun markAsRead(articleIds: List<Long>)
 
     /**
+     * Ne garde que [keptIds], et ce dont le marquage attend encore de partir.
+     *
+     * C'est le renouvellement du rechargement (SPECS.md §4.6, GOAL-027) : la
+     * réponse du serveur devient le contenu du cache. Le critère est
+     * l'**absence de la page rendue**, et non l'état lu local — lequel ignore
+     * tout de ce qui a été lu ailleurs. Un article lu depuis l'interface web
+     * cesse d'être renvoyé, et c'est le seul signe que l'application en reçoive
+     * jamais : mesuré sur l'appareil de l'auteur, 31 articles « non lus »
+     * localement alors que le serveur n'en avait plus aucun.
+     *
+     * La sous-requête sur `pending_marks` est la même garantie qu'en purge, et
+     * elle pèse plus lourd ici : ces lignes portent une vérité que le serveur
+     * **ne connaît pas encore**, et il ne les renvoie donc pas comme lues. Les
+     * effacer perdrait la mémoire locale du « déjà lu », et l'article
+     * reviendrait comme neuf.
+     */
+    @Query(
+        "DELETE FROM articles WHERE id NOT IN (:keptIds) " +
+            "AND id NOT IN (SELECT article_id FROM pending_marks)",
+    )
+    suspend fun deleteExcept(keptIds: List<Long>): Int
+
+    /**
+     * Le même renouvellement quand la page rendue est **vide**.
+     *
+     * Une requête distincte parce que `NOT IN ()` n'est pas du SQL valide :
+     * Room n'insère aucun paramètre pour une liste vide, et la requête
+     * échouerait à l'exécution — précisément dans le cas le plus courant, celui
+     * du lecteur qui a tout lu.
+     */
+    @Query("DELETE FROM articles WHERE id NOT IN (SELECT article_id FROM pending_marks)")
+    suspend fun deleteAllExceptPendingMarks(): Int
+
+    /**
      * Supprime les articles lus **et synchronisés** entrés dans le cache avant
      * [thresholdEpochMillis].
      *

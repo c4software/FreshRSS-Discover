@@ -20,6 +20,16 @@ complexity:
     # ViewModel en deux ferait deux moitiés d'un même état pour satisfaire un
     # compteur. Douze, et pas plus : au-delà, la question redeviendra légitime.
     thresholdInClasses: 12
+    # Un DAO Room est une **liste de requêtes** : chacune est une ligne de SQL,
+    # et deux d'entre elles existent séparément parce que `NOT IN ()` n'est pas
+    # du SQL valide (GOAL-027), pas parce qu'on aurait mal découpé. Le scinder
+    # en deux interfaces obligerait à répartir des requêtes qui portent sur la
+    # même table.
+    #
+    # 13 et non 12 : le seuil est la valeur **à laquelle** Detekt signale, pas
+    # celle qu'il tolère. Douze requêtes passent, la treizième rouvrira la
+    # question.
+    thresholdInInterfaces: 13
 
 naming:
   FunctionNaming:

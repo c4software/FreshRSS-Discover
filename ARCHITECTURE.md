@@ -695,13 +695,23 @@ the list.
 
 That last clause was, for a long time, a promise the cache did not keep: nothing
 deleted anything on a reload, so emptying the feed then killing the application
-brought the read set straight back (GOAL-026). A successful reload now purges
-what is read **and** synchronised — `ArticleCache.purgeAllRead`, whose query
-spares unread articles and rows whose mark has not left yet, those two being
-exactly what §5.4 protects. It runs **after** the save, since
-`upsertPreservingLocalReadState` reads the previous read state from the very
-rows being purged. Pagination purges nothing: that would erase the feed under
-the reader.
+brought the previous set straight back (GOAL-026). A successful reload now makes
+the cache **equal to what the server returned** — `ArticleCache.retainOnly` —
+sparing only rows whose mark has not left yet.
+
+**The criterion is the returned page, not the local read state**, and GOAL-026
+got that wrong before GOAL-027 corrected it. Measured on the author's device,
+database in hand: after a reload displaying "nothing to read", 31 rows were
+still there, **unread locally**, which the server no longer returned. They had
+been read from the web interface, and `upsertPreservingLocalReadState` only
+propagates "read" for articles the server *returns* — absence said nothing. Yet
+absence is the only sign this application ever receives that something was read
+elsewhere.
+
+It runs **after** the save, since `upsertPreservingLocalReadState` reads the
+previous read state from the very rows concerned. Pagination renews nothing: a
+following page never contains what precedes it, so the rule would erase the feed
+under the reader.
 
 The reading reminder is the only reading of the cache that still filters out read
 articles (`unreadFromCache`): it is not answering the same question.

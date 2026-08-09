@@ -33,9 +33,9 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 2 — Discover feed** ✅ assembled and delivered
 
 **Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
-(GOAL-019 to GOAL-026)
+(GOAL-019 to GOAL-027)
 
-**The twenty-six Goals are done.** One point remains blocked, out of our hands:
+**The twenty-seven Goals are done.** One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
@@ -97,6 +97,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
 | GOAL-025 | An empty feed stops being a dead end | `[x]` |
 | GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
+| GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1883,6 +1884,12 @@ The owned price: after a reload, one can no longer scroll back to something read
 before it. That is what SPECS.md §4.6 has always said — the reload replaces what
 is displayed — but it is not what the application did.
 
+> **This Goal fixed a real half and stopped too early.** Keying the purge on the
+> local `is_read` leaves behind everything read *elsewhere*, which the flag
+> knows nothing about. The author reported the symptom again, and the database
+> settled it — see `GOAL-027`, which subsumes this rule rather than adding to
+> it.
+
 **Loading the next page purges nothing.** Tying the purge to pagination would
 erase the feed under the reader as they scroll; a case guards that.
 
@@ -1907,6 +1914,82 @@ The third one matters beyond this Goal: it is the first case in the repository
 to hold that sub-query in place, and it only holds because the queue and the
 cache share **one** database in the test — two would have made the condition
 vacuously true.
+
+---
+
+## GOAL-027 — The reload keeps what the server returned, not what looks unread
+
+**Status: DONE**
+
+`GOAL-026` shipped, and the author reported the same symptom again: empty the
+feed, kill the application, and the old articles are back.
+
+### What the measurement established
+
+The database was read off the device, before and after a reload driven over adb.
+
+| | Before | After |
+|---|---|---|
+| Rows | 36 | **31** |
+| Read | 5 | **0** — GOAL-026's purge did run, and did its job |
+| Unread | 31 | **31** — untouched |
+| Pending marks | 0 | 0 |
+
+The 31 survivors all carry the same cache timestamp, hours older than the
+reload: the server did not return them. They are published five days back, and
+locally they are **unread**. On screen at that same moment: "Nothing to read
+right now".
+
+So the local read flag had drifted from the server — those articles had been
+read from the web interface, or another client. And `upsertPreservingLocalReadState`
+only propagates "read" for the articles the server **returns**; the ones it
+stops returning stay unread here forever. GOAL-026's purge keys on that very
+flag, so it could not see them.
+
+**The application only ever learns that an article was read elsewhere by its
+absence from a reload.** Until now that absence meant nothing.
+
+### The decision
+
+A successful reload makes the cache **equal to the page it returned**. The
+criterion is belonging to that page; the local read state no longer decides
+anything. Rows whose marking has not left yet are spared — that truth is not
+yet the server's, so it cannot be in its answer.
+
+This replaces GOAL-026's rule instead of adding to it: an article read locally
+and transmitted is, by construction, no longer returned.
+
+The owned price, wider than GOAL-026's: after a reload the offline reserve falls
+back to the head page — forty articles — instead of everything pagination had
+accumulated. Scrolling refills it; with no network, it does not.
+
+### Tasks
+
+- [x] `GOAL-027-T01` **The reload renews the cache against the server's answer**
+      (`ArticleCache.retainOnly`), with its cases: an unread article the server
+      no longer returns goes, an empty page empties the cache, what was returned
+      stays, a pending mark is spared, pagination renews nothing
+- [x] `GOAL-027-T02` **Recorded**: SPECS.md §4.6 (what the server returned is
+      what remains) and §5.4 (the age purge and the reload do not share a
+      criterion), ARCHITECTURE.md §9.7, and GOAL-026 above, whose text claimed a
+      rule the code no longer follows
+
+### What the mutations established
+
+| Mutation | Case that went red |
+|---|---|
+| The empty-page branch does nothing | `aReloadThatReturnsNothingEmptiesTheCache` |
+| `AND id NOT IN (SELECT article_id FROM pending_marks)` removed | `aReloadSparesAReadArticleWhoseMarkHasNotLeftYet` |
+
+The empty-page branch is not a style precaution: Room emits no parameter for an
+empty list, `NOT IN ()` is not valid SQL, and the empty case is the commonest of
+the two — the reader who has read everything.
+
+`TooManyFunctions` also gained `thresholdInInterfaces: 13`. A Room DAO is a list
+of queries; two of them exist separately because of that same `NOT IN ()`. And
+13 rather than 12 because the threshold is the value **at** which Detekt
+reports, not the one it tolerates — the earlier bump to 12 for classes was one
+notch too low for a twelve-query interface.
 
 ---
 

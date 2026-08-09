@@ -71,6 +71,24 @@ internal class ArticleCache @Inject constructor(
         dao.markAsRead(ids.map(ArticleId::value))
     }
 
+    /**
+     * Ne garde que [ids] — la réponse du rechargement — et ce dont le marquage
+     * n'est pas encore parti (SPECS.md §4.6, GOAL-027).
+     *
+     * Renvoie le nombre de lignes supprimées.
+     *
+     * L'aiguillage sur la liste vide n'est pas une précaution de style : Room
+     * n'engendre aucun paramètre pour une liste vide, `NOT IN ()` n'est pas du
+     * SQL valide, et le cas vide est justement celui du lecteur qui a tout lu —
+     * le plus fréquent des deux.
+     */
+    suspend fun retainOnly(ids: Collection<ArticleId>): Int =
+        if (ids.isEmpty()) {
+            dao.deleteAllExceptPendingMarks()
+        } else {
+            dao.deleteExcept(ids.map(ArticleId::value))
+        }
+
     /** Vide le cache. Appelé à la déconnexion (SPECS.md §3.5). */
     suspend fun clear() {
         dao.deleteAll()
