@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -475,44 +476,74 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             ArticleCardTexts(article)
+            ArticleCardFooter(article = article, onShare = onShare)
+        }
+    }
+}
 
-            /*
-             * **Sous les textes et rangé à droite**, plutôt que posé sur la
-             * ligne du flux et de la date : là-haut, un lecteur d'écran
-             * annoncerait la commande avant le titre de l'article qu'elle
-             * partage. En bas de carte, l'ordre de lecture reste celui du
-             * contenu, et c'est aussi la place que Material donne aux actions
-             * d'une carte.
-             *
-             * Le clic ne remonte pas à la carte : un `IconButton` consomme le
-             * sien, et l'ouverture de l'article n'est donc pas déclenchée par
-             * un appui sur le partage.
-             */
-            if (article.isOpenable) {
-                ArticleShareButton(
-                    onShare = onShare,
-                    testTag = DiscoverTestTags.share(article.id),
-                    modifier = Modifier.align(Alignment.End),
-                )
-            }
+/**
+ * Le pied de carte : provenance à gauche, partage à droite (GOAL-023).
+ *
+ * **Les deux tenaient chacun une ligne**, la source et la date en tête de
+ * carte, le bouton seul en bas. Réunis, ils en rendent une au contenu — c'est
+ * tout l'objet du resserrement demandé par l'auteur.
+ *
+ * Le titre devient du même coup la première chose lue, ce qu'un lecteur d'écran
+ * gagne autant que l'œil : la provenance ne s'annonce plus avant le sujet.
+ *
+ * `weight(1f)` sur le texte, et non un espaceur : c'est lui qui doit céder
+ * quand le nom du flux est long, en s'écourtant d'une ellipse, plutôt que de
+ * pousser la commande hors de la carte.
+ *
+ * Le clic du bouton ne remonte pas à la carte : un `IconButton` consomme le
+ * sien, et l'ouverture de l'article n'est donc pas déclenchée par un appui sur
+ * le partage.
+ */
+@Composable
+private fun ArticleCardFooter(
+    article: ArticleUiModel,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    /*
+     * `heightIn` donne au pied la **même hauteur sur toutes les cartes**, avec
+     * ou sans bouton. Sans lui, le pied d'un article sans lien se réduit à la
+     * hauteur de son texte pendant que les autres tiennent les 48 dp de la
+     * cible tactile : dans une liste, cet écart se lit comme un défaut de
+     * gabarit plutôt que comme l'absence d'une commande.
+     */
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(
+                R.string.discover_article_meta,
+                article.feedTitle,
+                article.publishedAt.label(),
+            ),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+
+        if (article.isOpenable) {
+            ArticleShareButton(
+                onShare = onShare,
+                testTag = DiscoverTestTags.share(article.id),
+            )
         }
     }
 }
 
 @Composable
 private fun ColumnScope.ArticleCardTexts(article: ArticleUiModel) {
-    Text(
-        text = stringResource(
-            R.string.discover_article_meta,
-            article.feedTitle,
-            article.publishedAt.label(),
-        ),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-
+    // La source et la date ne sont plus ici mais en pied de carte
+    // (`ArticleCardFooter`, GOAL-023) : le titre ouvre la carte.
     Text(
         text = article.title,
         style = MaterialTheme.typography.titleMedium,
