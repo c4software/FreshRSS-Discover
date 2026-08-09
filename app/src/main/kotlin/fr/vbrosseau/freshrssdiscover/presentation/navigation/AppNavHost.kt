@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -82,6 +83,8 @@ private fun DiscoverRoute(
      */
     val articleSharer = rememberArticleSharer()
 
+    AskTheServerWhenShownEmpty(viewModel::onScreenShown)
+
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
@@ -124,6 +127,8 @@ private fun SwipeRoute(
     val articleOpener = rememberArticleOpener()
     val articleSharer = rememberArticleSharer()
 
+    AskTheServerWhenShownEmpty(viewModel::onScreenShown)
+
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
@@ -150,6 +155,31 @@ private fun SwipeRoute(
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
+}
+
+/**
+ * Prévient le ViewModel que son écran vient au premier plan (GOAL-025).
+ *
+ * C'est ici, et non dans le ViewModel, que ce fait est connu : le cycle de vie
+ * est une affaire de présentation, et un ViewModel qui l'observerait tiendrait
+ * une référence à quelque chose qui lui survit mal.
+ *
+ * `LifecycleResumeEffect` et non `LaunchedEffect` : ce dernier ne se déclenche
+ * qu'à l'entrée en composition, et une application revenue de veille ou de
+ * l'arrière-plan ne recompose pas — le cas le plus courant serait précisément
+ * celui qu'on manquerait. `RESUMED` plutôt que `STARTED`, comme
+ * l'échantillonnage de visibilité : c'est le seul état où l'écran est vraiment
+ * devant l'utilisateur, et non derrière une boîte de dialogue.
+ *
+ * Ce que le rappel décide, lui, appartient au ViewModel : l'écran dit ce qui
+ * arrive, jamais ce qu'il faut en faire.
+ */
+@Composable
+private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
+    LifecycleResumeEffect(onScreenShown) {
+        onScreenShown()
+        onPauseOrDispose { }
+    }
 }
 
 /**

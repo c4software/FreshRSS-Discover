@@ -181,6 +181,40 @@ class DiscoverViewModel @Inject constructor(
     private var hasDecidedBootstrap = false
 
     /**
+     * L'écran vient au premier plan (SPECS.md §5.1, GOAL-025).
+     *
+     * **Un écran sans article interroge le serveur.** SPECS.md §5.1 dit qu'aucune
+     * requête ne part tant qu'il y a quelque chose à montrer ; sa réciproque
+     * n'était appliquée qu'une fois, au premier échantillon du cache
+     * ([hasDecidedBootstrap]). Tout lire puis revenir laissait donc un écran
+     * vide et muet, dont on ne sortait qu'en trouvant le bouton de la barre de
+     * titre.
+     *
+     * **Accroché à la venue au premier plan, jamais à l'état de vide.** Un
+     * serveur qui n'a rien à rendre laisse l'écran vide : réagir à cet état le
+     * ferait redemander sans fin. Ici, arriver sur le flux, revenir des
+     * réglages, sortir de veille valent chacun **une** tentative.
+     *
+     * [refresh] et non [load] : le curseur d'une fin de flux ne mène nulle part,
+     * et le rechargement est le seul chemin qui transmette les marquages en
+     * attente avant d'interroger (GOAL-024) — ce qui est exactement la
+     * situation, puisqu'on arrive sur un écran vide en venant de tout lire.
+     *
+     * Les phases écartées le sont chacune pour sa raison : un premier
+     * chargement est déjà en vol — c'est le cas du démarrage à cache vide, où
+     * doubler la requête serait le défaut le plus facile à commettre ici — un
+     * échec porte déjà sa reprise et la relancer à chaque retour martèlerait un
+     * réseau absent, et une session terminée est sur le point de rendre l'écran.
+     */
+    fun onScreenShown() {
+        val state = _uiState.value
+        if (state.articles.isNotEmpty() || state.isRefreshing) return
+        if (state.phase != DiscoverPhase.Idle && state.phase != DiscoverPhase.EndOfFeed) return
+
+        refresh()
+    }
+
+    /**
      * Demande la page suivante.
      *
      * Idempotente et sans effet hors du cas utile : la fin de flux, un

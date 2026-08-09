@@ -86,6 +86,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-022 | A local test stack, and the defects it revealed | `[x]` |
 | GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
 | GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
+| GOAL-025 | An empty feed stops being a dead end | `[ ]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1732,6 +1733,54 @@ enough in this repository (ARCHITECTURE.md §9.6).
       nothing — the queue keeps what it holds, and the refresh happens anyway
 - [x] `GOAL-024-T02` **Two cases that fail without the fix**, mutation-checked:
       remove the `flush()` and both go red, put it back and both go green
+
+---
+
+## GOAL-025 — An empty feed stops being a dead end
+
+**Status: IN PROGRESS**
+
+Reported by the author, in two sentences that describe the same corner: *"if no
+article is in focus, then fetch the server"*, and *"allow pull to refresh even
+with no article"*.
+
+### What the screen does today, and why it is a dead end
+
+A feed with nothing in it offers **no way out**. The pull is armed on the list
+alone (`ArticleList`), so a screen with no list has no gesture; the refresh
+button on the title row is still there, which is why this is a discomfort and
+not a lockup. And nothing asks the server again by itself: the "empty cache"
+exception of SPECS.md §5.1 is evaluated **once**, on the first sample of the
+cache (`hasDecidedBootstrap`), and never again. Read everything, come back —
+and the screen says "you are up to date" until you find the button.
+
+### The two decisions this Goal takes
+
+**A request leaves when the screen is shown with nothing on it.** SPECS.md §5.1
+already carries the rule — *no request leaves as long as there is something to
+show* — and its converse was only ever applied at launch. It is now applied
+every time the feed comes to the foreground.
+
+It is attached to a **discrete fact**, the screen coming to the foreground, and
+not to the state of being empty: a server with nothing to give leaves the screen
+empty, which would ask again, and again. Arriving on the feed, coming back from
+Settings, waking from sleep — each is worth one attempt, never two.
+
+`refresh()` and not `load()`: the cursor of a finished feed leads nowhere, and
+`refresh()` alone transmits the pending marks before querying (GOAL-024) —
+which is precisely the situation, since one gets to an empty screen by having
+just read everything.
+
+### Tasks
+
+- [x] `GOAL-025-T01` **An empty screen asks the server when it is shown**, in
+      both modes: the two ViewModels gain the entry point, the routes call it
+      from the lifecycle. Guarded on the phase — a load already in flight, a
+      failure with its own "Retry", a refresh under way ask nothing more
+- [-] `GOAL-025-T02` **The pull works on a screen with no article** (List mode).
+      The gesture needs something that scrolls to be detected: the states with
+      no article become scrollable expressly so the pull exists there
+- [ ] `GOAL-025-T03` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9
 
 ---
 

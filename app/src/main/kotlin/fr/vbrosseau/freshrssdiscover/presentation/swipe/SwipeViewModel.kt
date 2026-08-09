@@ -145,6 +145,29 @@ class SwipeViewModel @Inject constructor(
     private var hasDecidedBootstrap = false
 
     /**
+     * L'écran vient au premier plan (SPECS.md §5.1, GOAL-025).
+     *
+     * La règle du mode Liste, mot pour mot : un écran sans article interroge le
+     * serveur, une fois par venue au premier plan, et par le rechargement plutôt
+     * que par la page suivante. Le mode Balayage y arrive **plus vite** — un
+     * article y occupe tout l'écran, et la pile se vide au rythme du balayage —
+     * et une pile vide y est plus nue encore qu'une liste vide : il n'y a même
+     * plus de carte à toucher.
+     *
+     * Portée dans les deux ViewModels et non dans un objet commun : c'est quatre
+     * lignes de garde, et les mutualiser demanderait de leur donner un état
+     * partagé qu'ils n'ont pas. Les deux cas de test veillent à ce qu'elles ne
+     * divergent pas (ARCHITECTURE.md §9.6).
+     */
+    fun onScreenShown() {
+        val state = _uiState.value
+        if (state.articles.isNotEmpty() || state.isRefreshing) return
+        if (state.phase != DiscoverPhase.Idle && state.phase != DiscoverPhase.EndOfFeed) return
+
+        refresh()
+    }
+
+    /**
      * Demande la page suivante (SPECS.md §4.4, GOAL-012-T02).
      *
      * Idempotente et sans effet hors du cas utile : c'est ce qui permet à
