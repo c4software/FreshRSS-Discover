@@ -1370,8 +1370,14 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
       Références Roborazzi réenregistrées et **regardées** dans ce même
       incrément, plutôt que reportées à `T05` : entre les deux, la
       vérification visuelle aurait été rouge sans que cela signifie rien
-- [ ] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
-      bouton disparaît. Un test constate que le balayage passe toujours
+- [x] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
+      bouton disparaît. Un test constate que le balayage passe toujours —
+      `swipingLeftStillWorksWithAClickableCard` : la page change **et**
+      l'ouverture n'est pas déclenchée, ce qui est exactement ce que craignait
+      le KDoc d'`OpenAction`. `swipe_open_article` survit en `onClickLabel` :
+      une surface tactile n'annonce rien d'elle-même. Les deux tests de la
+      bandelette d'ancienneté visent désormais le bouton de partage, devenu la
+      seule commande de ce mode
 - [ ] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
       **regardées**
 - [ ] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,

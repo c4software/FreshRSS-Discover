@@ -1,9 +1,9 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,7 +14,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -150,8 +149,9 @@ fun SwipeScreen(
              * **Sous le flux et non par-dessus.** L'avis d'ancienneté dure
              * jusqu'à ce qu'on l'acquitte ou qu'on recharge : posé en
              * surimpression, il recouvrait la fin du contenu défilable de la
-             * carte, c'est-à-dire le bouton d'ouverture de l'article — la
-             * seule commande de ce mode (SPECS.md §4.7), et elle devenait
+             * carte — à l'époque le bouton d'ouverture, aujourd'hui le bouton
+             * de partage, qui est la seule commande de ce mode depuis que la
+             * carte entière ouvre l'article (SPECS.md §4.7). Elle devenait
              * inatteignable sur un article long. Un avis qui s'installe prend
              * sa place dans la mise en page ; seul un avis fugace se superpose.
              */
@@ -377,6 +377,16 @@ private fun SwipeCard(
  * demande que l'application reste utilisable à taille de police augmentée, et
  * un extrait de 900 caractères dépasse alors l'écran. Sans ce défilement, la
  * fin du texte serait inaccessible — coupée, sans que rien ne le dise.
+ *
+ * **La carte entière ouvre l'article** (SPECS.md §4.7), comme en mode Liste.
+ * Le bouton explicite qui l'a précédée craignait qu'un appui pris pendant un
+ * balayage hésitant ne fasse partir dans le navigateur : Compose distingue le
+ * `tap` du `drag`, le geste horizontal n'est pas consommé par le clic, et
+ * `swipingLeftStillWorksWithAClickableCard` le constate.
+ *
+ * `onClickLabel` plutôt qu'un libellé visible : la surface tactile n'annonce
+ * rien d'elle-même, et un lecteur d'écran a besoin de savoir ce que l'appui
+ * fera.
  */
 @Composable
 private fun ArticlePage(
@@ -385,9 +395,18 @@ private fun ArticlePage(
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val openLabel = stringResource(R.string.swipe_open_article)
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .then(
+                if (article.isOpenable) {
+                    Modifier.clickable(onClickLabel = openLabel, onClick = onOpen)
+                } else {
+                    Modifier
+                },
+            )
             .verticalScroll(rememberScrollState())
             .testTag(SwipeTestTags.page(article.id)),
     ) {
@@ -422,57 +441,26 @@ private fun ArticlePage(
             }
 
             /*
-             * Les deux commandes sur une même ligne, l'ouverture à gauche et
-             * le partage à droite : empilées, elles auraient occupé deux fois
-             * la hauteur d'une cible tactile au bas d'un contenu qui défile
-             * déjà (SPECS.md §7.1, taille de police augmentée).
+             * L'article sans lien **le donne à voir**, comme en mode Liste : la
+             * carte n'est pas cliquable, et rien d'autre ne le dirait — une
+             * surface muette ne se distingue pas d'une surface qui ne répond
+             * plus (SPECS.md §4.7).
              */
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OpenAction(article = article, onOpen = onOpen)
-
-                if (article.isOpenable) {
-                    ArticleShareButton(onShare = onShare, testTag = SwipeTestTags.share(article.id))
-                }
+            if (article.isOpenable) {
+                ArticleShareButton(
+                    onShare = onShare,
+                    testTag = SwipeTestTags.share(article.id),
+                    modifier = Modifier.align(Alignment.End),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.swipe_article_no_link),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(SwipeTestTags.NO_LINK),
+                )
             }
         }
-    }
-}
-
-/**
- * Ce qui ouvre l'article d'origine (SPECS.md §4.7).
- *
- * Un bouton explicite plutôt qu'un écran entièrement cliquable : en plein écran
- * la surface tactile est aussi celle du balayage, et un appui interprété comme
- * une ouverture ferait partir dans le navigateur au moindre geste hésitant. Un
- * article sans lien exploitable le **donne à voir**, comme en mode Liste.
- */
-@Composable
-private fun OpenAction(
-    article: ArticleUiModel,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (!article.isOpenable) {
-        Text(
-            text = stringResource(R.string.swipe_article_no_link),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier.testTag(SwipeTestTags.NO_LINK),
-        )
-        return
-    }
-
-    Button(
-        onClick = onOpen,
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .testTag(SwipeTestTags.OPEN),
-    ) {
-        Text(stringResource(R.string.swipe_open_article))
     }
 }
 
