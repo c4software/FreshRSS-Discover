@@ -1,0 +1,56 @@
+<resources>
+    <!--
+      Swipe view: one article, full screen (SPECS.md §4.8). A file of its own
+      rather than part of `strings.xml`: Android merges the resources of a
+      single folder, and keeping this batch separate avoids making several
+      pieces of work converge on one file.
+    -->
+
+    <!--
+      Source line. Same shape as in List mode — the feed name, then the age —
+      because SPECS.md §4.3 imposes it, not the presentation: without the
+      source, interleaving the feeds would be disorienting.
+    -->
+    <string name="swipe_article_meta">%1$s · %2$s</string>
+
+    <!--
+      What tapping the card does (SPECS.md §4.7): open the article in a custom
+      tab. No longer displayed now that the whole card is the command — it
+      serves as `onClickLabel`, and that is the only way a screen reader has of
+      knowing what the tap triggers.
+    -->
+    <string name="swipe_open_article">Open the article</string>
+
+    <!--
+      Article with no usable link (SPECS.md §4.7): it cannot be opened, and that
+      is **shown** rather than expressed as a button with no effect.
+    -->
+    <string name="swipe_article_no_link">This article provides no link to open.</string>
+
+    <!--
+      End of the feed (SPECS.md §4.4, GOAL-012-T03). It is stated explicitly: a
+      swipe that stops responding is indistinguishable from a breakdown.
+    -->
+    <string name="swipe_end_of_feed_title">You have read everything</string>
+    <string name="swipe_end_of_feed_body">There is nothing left to discover for now.</string>
+
+    <string name="swipe_retry">Retry</string>
+
+    <!--
+      Alternative to the gesture (GOAL-012-T07, SPECS.md §7.1). Short, explicit
+      labels: they are read out as they are by the screen reader, and the
+      context — one article on screen — is enough to know what they refer to.
+    -->
+
+    <!-- A feed with no article at all: “you have read everything” would explain nothing. -->
+    <string name="swipe_empty_title">Nothing to discover</string>
+    <string name="swipe_empty_body">All your subscriptions are up to date. Come back later.</string>
+
+    <!--
+      Offline mode (SPECS.md §5.2). Neither “error” nor “failure”: what the user
+      has in front of them works — these are their articles.
+    -->
+    <string name="swipe_offline_banner">Offline · you are reading the articles already saved</string>
+    <string name="swipe_offline_open_blocked">Without a connection, this article cannot be opened. It stays in your feed.</string>
+    <string name="swipe_offline_notice_dismiss">Dismiss</string>
+</resources>

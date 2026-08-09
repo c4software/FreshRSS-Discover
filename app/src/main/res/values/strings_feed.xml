@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Description of the refresh button, read out by screen readers.
+        A verb rather than a noun: it announces what the tap will do.
+    -->
+    <string name="feed_refresh">Refresh the feed</string>
+
+    <!--
+        Invitation to refresh a feed that has aged (SPECS.md §4.6).
+
+        “Several hours” rather than a figure: the threshold is an
+        implementation decision, and announcing it would invite counting.
+        Shared by both presentation modes, hence its place here.
+    -->
+    <string name="feed_stale_notice">This feed is several hours old.</string>
+    <string name="feed_stale_refresh">Refresh</string>
+    <!-- Silence the invitation without refreshing, for whoever cannot right now. -->
+    <string name="feed_stale_dismiss">Later</string>
+
+    <!--
+        Description of the share button, read out by screen readers.
+        A verb rather than a noun, like `feed_refresh`: it announces what the
+        tap will do.
+    -->
+    <string name="feed_article_share">Share the article</string>
+
+    <!--
+        What the share sends: the title, then the original link (SPECS.md §4.3).
+        Two lines, because messaging apps that detect links stop at the line
+        break — glued to the title, the link would often stop being clickable.
+        The excerpt is not included: we shorten it ourselves, and sending it
+        would share our truncation.
+    -->
+    <string name="feed_article_share_text">%1$s\n%2$s</string>
+
+    <!--
+        Title of the share chooser. Displayed by Android up to version 9;
+        beyond that, its share sheet imposes its own.
+    -->
+    <string name="feed_article_share_chooser">Share the article</string>
+</resources>

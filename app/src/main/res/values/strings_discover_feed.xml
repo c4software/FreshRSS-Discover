@@ -1,0 +1,25 @@
+<resources>
+    <!--
+      Network behaviour of the Discover feed (SPECS.md §5.1 and §5.2). A file of
+      its own rather than part of `strings.xml`: Android merges the resources of
+      a single folder, and keeping this batch separate avoids making several
+      pieces of work converge on one file.
+    -->
+
+    <!--
+      Offline banner. Neither “error” nor “failure”: SPECS.md §5.2 asks for the
+      state to be signalled “without being alarming”, and what the user has in
+      front of them works — these are their articles, simply not the most recent
+      ones. The message therefore says what they are reading, not what is
+      missing.
+    -->
+    <string name="discover_offline_banner">Offline · you are reading the articles already saved</string>
+
+    <!--
+      Opening refused for lack of network (SPECS.md §5.2). Explicit about the
+      cause **and** about what was done: opening the custom tab would only have
+      shown the browser's error page, without saying why.
+    -->
+    <string name="discover_offline_open_blocked">Without a connection, this article cannot be opened. It stays in your feed.</string>
+    <string name="discover_offline_notice_dismiss">Dismiss</string>
+</resources>

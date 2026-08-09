@@ -1,0 +1,105 @@
+<resources>
+    <!--
+      Settings screen (SPECS.md §6). A file of its own rather than part of
+      `strings.xml`: Android merges the resource files of a single folder, and
+      keeping the screen in its own avoids making several pieces of work
+      converge on one file.
+    -->
+
+    <!-- Connected account, read-only: it comes from the observed session. -->
+    <string name="settings_section_account">Account</string>
+    <string name="settings_server_label">Server address</string>
+    <string name="settings_username_label">Username</string>
+    <string name="settings_no_session">No session open.</string>
+
+    <!--
+      Feed presentation mode (SPECS.md §4.8, §6).
+
+      The labels say what the mode changes for the reader — how many articles
+      they see and which gesture they make — and never how it is built: “List”
+      and “Swipe” name two ways of reading, not two components. The sentence
+      below the control describes the **chosen** mode, because two words are not
+      enough to guess that a swipe shows one article at a time, full screen.
+    -->
+    <string name="settings_section_presentation">Feed display</string>
+    <string name="settings_presentation_help">Both modes show exactly the same articles, in the same order. Only the way you go through them changes.</string>
+    <string name="settings_presentation_label">How to go through the feed</string>
+    <string name="settings_presentation_list">List</string>
+    <string name="settings_presentation_swipe">Swipe</string>
+    <string name="settings_presentation_list_description">Several articles on screen, which you scroll down through.</string>
+    <string name="settings_presentation_swipe_description">One article at a time, full screen, which you slide sideways to move on.</string>
+
+    <!--
+      Automatic marking (SPECS.md §4.5): the switch, then its thresholds.
+
+      The switch's help text says what turning it off does **not** cut: opening
+      an article still marks it read (SPECS.md §4.7). Without it, the user would
+      believe all marking suspended, and would take the disappearance of an
+      article they just opened for a defect.
+    -->
+    <string name="settings_section_reading">Automatic marking</string>
+    <string name="settings_reading_help">An article becomes read once it has stayed visible on screen for long enough. Both conditions must be met at the same time.</string>
+    <string name="settings_auto_mark_as_read_label">Mark while scrolling</string>
+    <string name="settings_auto_mark_as_read_help">Without this, scrolling the feed no longer marks anything: the thresholds below stop applying. Opening an article still marks it as read.</string>
+    <string name="settings_visible_fraction_label">Visible proportion</string>
+    <string name="settings_visible_fraction_value">at least %1$d %%</string>
+    <string name="settings_continuous_visibility_label">Continuous duration</string>
+    <string name="settings_continuous_visibility_value">at least %1$d s</string>
+
+    <!--
+      Reading reminder (SPECS.md §4.9, §6).
+
+      The sentence says **when** the reminder goes out, and that is the one
+      point the switch cannot show: an hour the application infers from usage
+      would otherwise look arbitrary, and a reminder whose timing is unknown
+      gets turned off. It also says what will not happen — nothing to read,
+      nothing announced — because that is what distinguishes this reminder from
+      an advertising nudge.
+    -->
+    <string name="settings_section_reminder">Reading reminder</string>
+    <string name="settings_reminder_help">A daily notification recalls what is left to read, quoting a few titles. It goes out at the time you opened the application the day before, and nothing is sent if there is nothing left to read.</string>
+    <string name="settings_reminder_label">Daily notification</string>
+
+    <!--
+      Local cache (SPECS.md §5.1 and §5.3). The size is a number of articles and
+      not a weight in bytes: SQLite does not return its pages to the system
+      after a deletion, so megabytes would stay identical after a purge.
+    -->
+    <string name="settings_section_cache">Local cache</string>
+    <string name="settings_cache_size_label">Cache size</string>
+    <!--
+      The thousands separator (the `,` format flag) is not cosmetic:
+      “1240 articles” reads like an identifier, “1,240 articles” like a
+      quantity. Observed on the reference screenshot.
+    -->
+    <plurals name="settings_cache_article_count">
+        <item quantity="one">%1$,d article</item>
+        <item quantity="other">%1$,d articles</item>
+    </plurals>
+    <!-- Says what the purge would take away, the only question the button raises. -->
+    <plurals name="settings_cache_purgeable">
+        <item quantity="one">including %1$d already read and sent to the server</item>
+        <item quantity="other">including %1$d already read and sent to the server</item>
+    </plurals>
+    <string name="settings_cache_nothing_to_purge">No read article to delete for now.</string>
+    <string name="settings_purge_cache">Purge the cache</string>
+    <!-- Report after the fact: the purge asks for no confirmation beforehand. -->
+    <plurals name="settings_cache_purged">
+        <item quantity="one">%1$d article deleted.</item>
+        <item quantity="other">%1$d articles deleted.</item>
+    </plurals>
+
+    <!-- Signing out (SPECS.md §3.5): destructive, therefore confirmed. -->
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_sign_out_dialog_title">Sign out?</string>
+    <string name="settings_sign_out_dialog_message">The token, the username and the local cache will be erased. You will have to sign in again to get your feed back.</string>
+    <string name="settings_sign_out_confirm">Sign out</string>
+    <string name="settings_sign_out_cancel">Cancel</string>
+
+    <!-- About. -->
+    <string name="settings_section_about">About</string>
+    <string name="settings_version_label">Version</string>
+    <string name="settings_license_label">Licence</string>
+    <!-- Matches the LICENSE file at the root of the repository. -->
+    <string name="settings_license_value">MIT Licence</string>
+</resources>

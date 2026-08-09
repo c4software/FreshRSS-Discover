@@ -1,0 +1,59 @@
+<resources>
+    <!--
+      Reading reminder (SPECS.md §4.9). A file of its own rather than part of
+      `strings.xml`: Android merges the resources of a single folder, and
+      keeping this batch separate avoids making several pieces of work converge
+      on one file.
+    -->
+
+    <!--
+      The channel is visible in the Android settings, next to those of every
+      other application: its name must stand on its own, without the context of
+      the application. The description says when the reminder goes out and under
+      what condition, because that is what one is looking for at the moment one
+      came to turn it off.
+    -->
+    <string name="reminder_channel_name">Reading reminder</string>
+    <string name="reminder_channel_description">One notification a day, at the time you usually open the application, when there are articles left to read.</string>
+
+    <!--
+      One title per wording (ReminderTone). The four are not four variants of
+      the same sentence: an observation, a question, an announcement, a direct
+      address. That is the point of the feature — an identical daily message
+      stops being read after three days, the eye learning its shape before its
+      meaning. Four different shapes are not learnt as fast.
+
+      None of them contains a number or an article title: they must fit on the
+      single line the shade shows when the notification is collapsed.
+    -->
+    <string name="reminder_title_waiting">Articles are waiting for you</string>
+    <string name="reminder_title_invitation">A moment to read?</string>
+    <string name="reminder_title_fresh">Here is what has arrived since yesterday</string>
+    <string name="reminder_title_pile">Your pile is waiting</string>
+
+    <!--
+      The quoted titles are content: they come from the articles, are not
+      translated, and are not touched up. The quotation marks detach them from
+      the rest of the body — without them, a title ending in an ellipsis would
+      blend into the count that follows.
+
+      One resource per number of titles rather than a join done in Kotlin:
+      “and” is not a separator but a conjunction, and nothing guarantees another
+      language places it in the same spot.
+    -->
+    <string name="reminder_titles_one">“%1$s”</string>
+    <string name="reminder_titles_two">“%1$s” and “%2$s”</string>
+
+    <!-- The remaining count (SPECS.md §4.9): two titles alone do not say whether ten are left. -->
+    <plurals name="reminder_remaining">
+        <item quantity="one">%1$d unread article</item>
+        <item quantity="other">%1$d unread articles</item>
+    </plurals>
+
+    <!--
+      The assembled body. The line break lives here, in the resource, and not in
+      the code: it is a decision about laying out the text, which another
+      language might want to take differently.
+    -->
+    <string name="reminder_body">%1$s\n%2$s</string>
+</resources>

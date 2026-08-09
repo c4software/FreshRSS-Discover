@@ -23,11 +23,26 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/*
+ * Langue figée au français, comme le harnais de capture (ARCHITECTURE.md §8.2).
+ *
+ * Ces cas affirment des libellés **littéraux**, et l'interface est bilingue
+ * depuis GOAL-021-T02 : le français vit dans `values-fr/`, l'anglais dans
+ * `values/`. Sans ce fanion, Robolectric rend la langue par défaut — l'anglais
+ * — et chaque assertion tombe. Ce n'est pas une commodité de test : c'est la
+ * même décision que pour les captures, dont les références sont françaises.
+ *
+ * Ce que `values/` contient est éprouvé ailleurs, par un cas dédié en `en-rUS`
+ * (`EnglishStringsTest`) : sans lui, une chaîne oubliée à la traduction ne se
+ * verrait que sur un appareil anglophone.
+ */
 @RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "fr-rFR")
 class DiscoverScreenTest {
     @get:Rule
     val composeRule = createComposeRule()

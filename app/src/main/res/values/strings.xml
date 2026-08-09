@@ -1,0 +1,95 @@
+<resources>
+    <string name="app_name">FreshRSS Discover</string>
+
+    <!-- Navigation -->
+    <string name="destination_discover">Discover</string>
+    <string name="destination_settings">Settings</string>
+
+    <!--
+      Short navigation bar labels: it only has room for one line. The screen
+      title keeps the full label.
+    -->
+    <string name="destination_short_discover">Discover</string>
+    <string name="destination_short_settings">Settings</string>
+
+    <!-- Sign-in -->
+    <string name="login_title">Sign in to FreshRSS</string>
+    <string name="login_intro">Enter your FreshRSS server address and your credentials.</string>
+
+    <string name="login_server_label">Server address</string>
+    <string name="login_server_placeholder">rss.example.org</string>
+    <string name="login_server_help">Your instance address, exactly as you reach it from a browser.</string>
+
+    <string name="login_username_label">Username</string>
+
+    <string name="login_password_label">API password</string>
+    <!--
+      The API password is the leading cause of sign-in failure, and its very
+      existence is not obvious: the screen explains it up front rather than
+      waiting for a failure to mention it (SPECS.md §3.2).
+    -->
+    <string name="login_password_help">This is not your login password. Create it in FreshRSS: Profile → API password.</string>
+    <string name="login_password_show">Show password</string>
+    <string name="login_password_hide">Hide password</string>
+
+    <string name="login_submit">Sign in</string>
+    <string name="login_submitting">Signing in…</string>
+
+    <string name="login_insecure_warning">This connection is not encrypted (http). Your credentials will travel over the network in the clear.</string>
+
+    <!--
+      One message per cause (SPECS.md §3.3): each calls for a different fix, and
+      a generic message would send the user looking in the wrong place.
+    -->
+    <string name="login_error_address_blank">Enter your server address.</string>
+    <string name="login_error_address_malformed">This address cannot be used. Example: rss.example.org</string>
+    <string name="login_error_address_scheme">“%1$s://” addresses are not supported. Use https:// or http://</string>
+
+    <string name="login_error_no_network">No network connection.</string>
+    <string name="login_error_server_unreachable">The server is not responding. Check the address, and that the server is reachable.</string>
+    <string name="login_error_not_freshrss">This address does not look like a FreshRSS server.</string>
+    <string name="login_error_api_disabled">The API is disabled on this server. Enable it in FreshRSS: Administration → Authentication → Allow API access.</string>
+    <string name="login_error_invalid_credentials">Username or API password refused. Make sure this is the API password, not your login password.</string>
+    <string name="login_error_header_not_forwarded">Your credentials are correct, but the web server does not forward the authorization header to FreshRSS. Fix your reverse proxy configuration.</string>
+    <string name="login_error_unexpected">Signing in failed for an unexpected reason.</string>
+
+    <!-- Discover feed -->
+
+    <!--
+      Source and age on a single line: in an interleaved feed the source is what
+      makes an article intelligible (SPECS.md §4.3), and giving it a line of its
+      own would eat into the title on every card.
+    -->
+    <string name="discover_article_meta">%1$s · %2$s</string>
+
+    <!--
+      Abbreviated units: they share their line with the feed name. Years keep
+      their long form, “2 y ago” not being readable.
+    -->
+    <string name="discover_time_just_now">just now</string>
+    <string name="discover_time_minutes">%1$d min ago</string>
+    <string name="discover_time_hours">%1$d h ago</string>
+    <string name="discover_time_days">%1$d d ago</string>
+    <string name="discover_time_months">%1$d mo ago</string>
+    <plurals name="discover_time_years">
+        <item quantity="one">%1$d year ago</item>
+        <item quantity="other">%1$d years ago</item>
+    </plurals>
+
+    <!-- SPECS.md §4.7: an article with no link is not clickable, and says so. -->
+    <string name="discover_article_no_link">No link available</string>
+
+    <!--
+      The end of the feed is stated explicitly: a list that simply stops growing
+      is indistinguishable from a breakdown (SPECS.md §4.4).
+    -->
+    <string name="discover_end_of_feed">You are up to date. Nothing left to read.</string>
+
+    <string name="discover_empty_title">Nothing to read right now</string>
+    <string name="discover_empty_body">Every article in your feeds has been read. Come back later.</string>
+
+    <string name="discover_error_no_network">No network connection.</string>
+    <string name="discover_error_server_unreachable">The server is not responding.</string>
+    <string name="discover_error_unexpected">Loading failed for an unexpected reason.</string>
+    <string name="discover_retry">Retry</string>
+</resources>
