@@ -77,7 +77,7 @@ par trois agents à la demande de l'auteur — GOAL-020 est terminé.
 | GOAL-019 | Le marquage automatique devient optionnel | `[x]` |
 | GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
-| GOAL-022 | Une pile de test locale, et le défaut qu'elle a révélé | `[-]` |
+| GOAL-022 | Une pile de test locale, et les défauts qu'elle a révélés | `[-]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1472,9 +1472,9 @@ français conservé.
 
 ---
 
-## GOAL-022 — Une pile de test locale, et le défaut qu'elle a révélé
+## GOAL-022 — Une pile de test locale, et les défauts qu'elle a révélés
 
-**Statut : IN PROGRESS**
+**Statut : IN PROGRESS** — reste `T04`, un appui sur l'appareil
 
 Le téléphone n'étant pas disponible (voir « Phase courante »), l'auteur a demandé
 qu'une pile de test soit montée sur la machine : un émulateur Android et une
@@ -1533,7 +1533,7 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > écoulé, ce qui est le cas courant de deux `run` rapprochés. Relayé tel
       > quel, il aurait fait lire une panne à chaque relance.
       > `init`, `run` et `stop` ont été exécutés, et leur sortie constatée
-- [-] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
+- [x] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
       GOAL-019 et GOAL-020 fusionnés : connexion, flux, partage, carte cliquable
       en Balayage, interrupteur de marquage.
       > **Un défaut d'alignement trouvé, et c'est le troisième que cette pile
@@ -1560,7 +1560,17 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > apparu sur le réseau en pleine validation, et `adb` a répondu « more
       > than one device » à chaque appel. Le script vise désormais l'émulateur
       > **nommément** — ce qui ferme aussi la porte la plus grave, celle d'une
-      > construction de test installée sur le téléphone de quelqu'un
+      > construction de test installée sur le téléphone de quelqu'un.
+      > **Puis sur l'appareil de l'auteur** (Pixel 10 Pro, Android 17), à sa
+      > demande, contre son instance FreshRSS réelle : session conservée par la
+      > réinstallation, thème sombre et couleur dynamique, plus aucun fanion,
+      > bouton de partage rangé au bord de chaque carte.
+- [ ] `GOAL-022-T04` **La feuille de partage du système**, seule pièce que rien
+      n'a encore constatée. `ArticleShareIntentTest` établit le contenu de
+      l'intention ; ce qu'Android en fait, et l'allure du texte « titre + lien »
+      une fois collé dans une messagerie, demandent un appui sur l'appareil.
+      L'essai a été interrompu plutôt que mené : l'auteur se servait de son
+      téléphone au même moment, et lui disputer l'écran n'aurait rien prouvé
 
 ---
 
