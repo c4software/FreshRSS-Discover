@@ -22,3 +22,6 @@ keystore.properties
 
 # Worktrees des agents (éphémères, jamais versionnés)
 .claude/worktrees/
+
+# Journal de l'émulateur de la pile de test (éphémère)
+envTest/.emulator.log
