@@ -1,660 +1,655 @@
-# SPECS.md — Spécification fonctionnelle
+# SPECS.md — Functional specification
 
-Source de vérité **fonctionnelle** : ce que l'application doit faire.
+The **functional** source of truth: what the application must do.
 
-Le *comment* est dans [ARCHITECTURE.md](./ARCHITECTURE.md), l'*ordre* dans
-[TASKS.md](./TASKS.md), les *règles de travail* dans [AGENTS.md](./AGENTS.md).
+The *how* is in [ARCHITECTURE.md](./ARCHITECTURE.md), the *order* in
+[TASKS.md](./TASKS.md), the *working rules* in [AGENTS.md](./AGENTS.md).
 
 ---
 
-## 1. Intention
+## 1. Intent
 
-**FreshRSS Discover** est un client Android pour un serveur
-[FreshRSS](https://freshrss.org/) personnel.
+**FreshRSS Discover** is an Android client for a personal
+[FreshRSS](https://freshrss.org/) server.
 
-Il ne cherche pas à reproduire un lecteur RSS classique — liste de flux, boîte
-de réception, compteurs de non-lus à faire descendre à zéro. Il propose l'usage
-inverse, celui de **Google Discover** : un flux vertical unique, mélangé, sans
-fin apparente, que l'on parcourt sans avoir à décider par quel flux commencer.
+It does not set out to reproduce a classic RSS reader — a list of feeds, an
+inbox, unread counters to bring down to zero. It offers the opposite usage, that
+of **Google Discover**: a single vertical feed, interleaved, with no visible
+end, which you go through without having to decide which feed to start with.
 
 ```
 FreshRSS
    ↓
-Articles des différents flux
+Articles from the various feeds
    ↓
-Mélange des sources
+Source interleaving
    ↓
-Flux vertical continu
+Continuous vertical feed
    ↓
-L'utilisateur fait défiler
+The user scrolls
    ↓
-Les articles suffisamment visibles deviennent lus
+Articles visible long enough become read
    ↓
-De nouveaux articles sont chargés
+New articles are loaded
 ```
 
-Ce que cela implique, et qui structure toute la suite :
+What that implies, and what structures everything that follows:
 
-- **Aucune organisation imposée à l'utilisateur.** Pas de navigation par flux ni
-  par dossier dans le parcours principal.
-- **Aucun geste pour marquer comme lu.** Lire, c'est faire défiler.
-- **Aucune fin.** Le flux se prolonge tant qu'il reste des articles.
-- **Aucun compteur culpabilisant.** Le nombre de non-lus n'est pas mis en avant.
+- **No organisation imposed on the user.** No navigation by feed or by folder in
+  the main journey.
+- **No gesture to mark as read.** Reading is scrolling.
+- **No end.** The feed goes on as long as articles remain.
+- **No guilt-inducing counter.** The number of unread articles is not put
+  forward.
 
-## 2. Hors périmètre
+## 2. Out of scope
 
-Explicitement exclus, afin qu'aucun Goal ne les introduise par glissement :
+Explicitly excluded, so that no Goal introduces them by drift:
 
-- gestion des abonnements (ajout, suppression, classement) — cela se fait dans
-  FreshRSS ;
-- lecture hors ligne du contenu intégral des articles ;
-- comptes multiples ;
-- widgets, tuiles rapides ;
-- commentaires, annotations ;
-- **synchronisation en arrière-plan** — l'application ne va chercher des
-  articles que lorsqu'elle est ouverte, et aucune connexion ne part sans geste
-  de l'utilisateur (§7.4).
+- subscription management (adding, removing, sorting) — that is done in
+  FreshRSS;
+- offline reading of the full content of articles;
+- multiple accounts;
+- widgets, quick tiles;
+- comments, annotations;
+- **background synchronisation** — the application only fetches articles while
+  it is open, and no connection leaves without a user gesture (§7.4).
 
-Ces points ne sont pas refusés pour toujours ; ils ne font pas partie de la
-première version, et les introduire demanderait de mettre à jour ce document.
+These points are not refused forever; they are not part of the first version,
+and introducing them would require updating this document.
 
-> **Les notifications ont quitté cette liste**, à la demande de l'auteur : voir
-> §4.9. Elles n'entament pas l'exclusion voisine — le rappel lit le **cache
-> local** et ne se connecte à rien. C'est ce qui distingue une notification
-> locale d'une synchronisation de fond, et ce qui fait qu'une seule des deux est
-> ici.
+> **Notifications have left this list**, at the author's request: see §4.9. They
+> do not eat into the neighbouring exclusion — the reminder reads the **local
+> cache** and connects to nothing. That is what distinguishes a local
+> notification from a background synchronisation, and what makes only one of the
+> two present here.
 >
-> **Le partage aussi**, à la demande de l'auteur : voir §4.3. Il figurait sous
-> « partage social, commentaires, annotations », et n'est aucun des trois — mais
-> l'exclusion était écrite assez largement pour le couvrir, et la lever
-> explicitement vaut mieux que l'interpréter. Ce qui est ajouté est le
-> **sélecteur du système** : l'application n'a aucune destination, elle passe la
-> main. Aucun service tiers n'est engagé, aucune connexion ne part de nous —
-> §7.4 reste vraie mot pour mot. Les commentaires et les annotations, eux,
-> restent exclus : ils demanderaient un compte, un stockage et une modération.
+> **Sharing too**, at the author's request: see §4.3. It appeared under "social
+> sharing, comments, annotations", and is none of the three — but the exclusion
+> was written broadly enough to cover it, and lifting it explicitly is better
+> than interpreting it. What is added is the **system picker**: the application
+> has no destination of its own, it hands over. No third-party service is
+> engaged, no connection leaves from us — §7.4 remains true word for word.
+> Comments and annotations, for their part, remain excluded: they would call for
+> an account, storage and moderation.
 
 ---
 
-## 3. Connexion au serveur
+## 3. Connecting to the server
 
-### 3.1 Ce que l'utilisateur saisit
+### 3.1 What the user enters
 
-| Champ | Contenu |
+| Field | Contents |
 |---|---|
-| Adresse du serveur | URL de l'instance FreshRSS |
-| Identifiant | Nom d'utilisateur FreshRSS |
-| Mot de passe API | **Distinct** du mot de passe de connexion |
+| Server address | URL of the FreshRSS instance |
+| Login | FreshRSS user name |
+| API password | **Distinct** from the login password |
 
-L'adresse est saisie sous sa forme naturelle (`https://rss.exemple.org`).
-L'application en dérive elle-même le point d'entrée
-(`…/api/greader.php`) : demander à l'utilisateur de connaître ce chemin serait
-lui faire porter un détail d'implémentation.
+The address is entered in its natural form (`https://rss.example.org`). The
+application derives the endpoint (`…/api/greader.php`) itself: asking the user to
+know that path would be making them carry an implementation detail.
 
-Une adresse sans schéma est complétée en `https://`. Le schéma `http://` reste
-accepté — les instances auto-hébergées sur réseau local sont un cas réel — mais
-l'application indique alors que la connexion n'est pas chiffrée.
+An address with no scheme is completed to `https://`. The `http://` scheme
+remains accepted — self-hosted instances on a local network are a real case —
+but the application then states that the connection is not encrypted.
 
-### 3.2 Ce que l'application doit expliquer
+### 3.2 What the application must explain
 
-Le mot de passe API est la principale cause d'échec de connexion, et son
-existence n'est pas évidente. L'écran de connexion doit donc indiquer où le
-trouver dans FreshRSS (*Profil → Mot de passe API*), et non se contenter de
-signaler un échec.
+The API password is the main cause of failed connections, and its existence is
+not obvious. The login screen must therefore state where to find it in FreshRSS
+(*Profile → API password*), and not merely report a failure.
 
-### 3.3 Diagnostic des échecs
+### 3.3 Diagnosing failures
 
-Chaque cause a son message. Un « échec de connexion » générique est un défaut.
+Each cause has its own message. A generic "connection failed" is a defect.
 
-| Cause | Ce que l'utilisateur doit lire |
+| Cause | What the user must read |
 |---|---|
-| Adresse injoignable | Le serveur ne répond pas |
-| Adresse joignable, mais pas une instance FreshRSS | Cette adresse ne semble pas être un serveur FreshRSS |
-| API désactivée sur le serveur | L'API est désactivée : l'activer dans l'administration FreshRSS |
-| Identifiant ou mot de passe API refusé | Vérifier l'identifiant et le **mot de passe API** |
-| Absence de réseau | Aucune connexion réseau |
-| En-tête `Authorization` non transmis par le serveur web | Les identifiants sont bons, mais le serveur ne transmet pas l'autorisation : corriger la configuration du reverse-proxy |
+| Address unreachable | The server is not responding |
+| Address reachable, but not a FreshRSS instance | This address does not appear to be a FreshRSS server |
+| API disabled on the server | The API is disabled: enable it in the FreshRSS administration |
+| Login or API password refused | Check the login and the **API password** |
+| No network | No network connection |
+| `Authorization` header not passed on by the web server | The credentials are right, but the server does not pass the authorisation on: fix the reverse-proxy configuration |
 
-Le dernier cas mérite son message propre, même s'il est rare. Sans lui, la
-connexion réussirait puis **tout** échouerait ensuite en « identifiants
-refusés » : l'utilisateur changerait son mot de passe en vain, alors que la
-correction est dans la configuration de son serveur.
+The last case deserves its own message, rare though it is. Without it, the
+connection would succeed and then **everything** afterwards would fail with
+"credentials refused": the user would change their password in vain, when the
+fix lies in their server's configuration.
 
-L'application ne peut pas distinguer « identifiant inconnu » de « mot de passe
-incorrect » : FreshRSS répond la même chose aux deux, et c'est délibéré — les
-distinguer permettrait d'énumérer les comptes. Le message couvre donc les deux
-hypothèses.
+The application cannot distinguish "unknown login" from "incorrect password":
+FreshRSS answers the same thing to both, and that is deliberate —
+distinguishing them would allow accounts to be enumerated. The message therefore
+covers both hypotheses.
 
-### 3.4 Persistance de la session
+### 3.4 Session persistence
 
-La session est conservée entre deux lancements : l'utilisateur ne se connecte
-qu'une fois.
+The session is kept between two launches: the user logs in only once.
 
-**Le mot de passe API n'est jamais enregistré.** Le jeton délivré par FreshRSS
-n'expire pas : le conserver suffit à rouvrir l'application sans reconnexion.
-Garder en plus le mot de passe n'apporterait rien et doublerait la surface
-exposée.
+**The API password is never stored.** The token issued by FreshRSS does not
+expire: keeping it is enough to reopen the application without logging in again.
+Keeping the password as well would bring nothing and would double the exposed
+surface.
 
-Le jeton est un secret : il est stocké **chiffré**, adossé au *keystore* de
-l'appareil, jamais journalisé, jamais inclus dans un rapport d'erreur.
-L'adresse du serveur et l'identifiant, qui n'en sont pas, restent lisibles —
-les masquer compliquerait le diagnostic sans rien protéger.
+The token is a secret: it is stored **encrypted**, backed by the device's
+*keystore*, never logged, never included in an error report. The server address
+and the login, which are not secrets, remain readable — masking them would
+complicate diagnosis without protecting anything.
 
-Si le secret devient illisible — la clé du *keystore* est perdue lorsque
-l'utilisateur change son verrouillage d'écran ou restaure une sauvegarde sur un
-autre appareil — l'application se comporte comme s'il n'y avait pas de session,
-et ramène à l'écran de connexion. Elle ne plante pas.
+If the secret becomes unreadable — the *keystore* key is lost when the user
+changes their screen lock or restores a backup onto another device — the
+application behaves as if there were no session, and takes the user back to the
+login screen. It does not crash.
 
-Si le serveur refuse le jeton — cas réel lorsque l'utilisateur change son mot de
-passe API — l'application revient à l'écran de connexion en expliquant pourquoi,
-sans perdre l'adresse ni l'identifiant déjà saisis.
+If the server refuses the token — a real case when the user changes their API
+password — the application returns to the login screen explaining why, without
+losing the address or the login already entered.
 
-### 3.5 Déconnexion
+### 3.5 Logging out
 
-Une action de déconnexion efface le jeton, les identifiants et le cache local.
-Elle est confirmée, car elle est destructrice.
+A log-out action erases the token, the credentials and the local cache. It is
+confirmed, because it is destructive.
 
 ---
 
-## 4. Le flux Discover
+## 4. The Discover feed
 
-### 4.1 Contenu
+### 4.1 Contents
 
-Le flux présente les articles **non lus** de tous les abonnements, toutes
-catégories confondues. C'est ce que le serveur rend à chaque rechargement.
+The feed presents the **unread** articles of every subscription, all categories
+together. That is what the server returns on each reload.
 
-**Ce qui a été lu ne disparaît pas pour autant sous les yeux.** Un article
-marqué lu reste à sa place — pendant la session (§4.5), et aussi d'une
-ouverture à l'autre, puisque le lancement réaffiche le cache tel quel (§5.1).
-Il ne quitte la liste qu'au **rechargement demandé** (§4.6), qui la renouvelle.
+**What has been read does not thereby vanish from sight.** An article marked as
+read stays in its place — during the session (§4.5), and also from one opening
+to the next, since launching redisplays the cache as it stands (§5.1). It only
+leaves the list on a **requested reload** (§4.6), which renews it.
 
-Ce n'est pas une tolérance mais la condition de la stabilité du flux. Le
-mélange (§4.2) choisit chaque position en regardant les voisins : retirer les
-articles lus entre deux lancements changerait l'ensemble à mélanger — le
-marquage en consomme à chaque lecture — et rendrait un ordre différent. Le flux
-paraissait alors se remélanger tout seul, sans qu'aucune requête ne soit
-partie. Constaté sur appareil le 2026-08-08, trois lancements consécutifs,
-trois têtes différentes.
+This is not a tolerance but the condition of the feed's stability. Interleaving
+(§4.2) chooses each position by looking at the neighbours: removing read
+articles between two launches would change the set to be interleaved — marking
+consumes some of it on every read — and would return a different order. The feed
+then appeared to reinterleave itself, without any request having left. Observed
+on device on 2026-08-08, three consecutive launches, three different tops.
 
-### 4.2 Mélange des sources
+### 4.2 Source interleaving
 
-C'est le cœur de l'application, et sa seule règle réellement subtile.
+This is the heart of the application, and its only genuinely subtle rule.
 
-Un tri par date seule ne suffit pas : un flux très prolifique occuperait des
-écrans entiers d'affilée, et les flux peu actifs deviendraient invisibles. Le
-mélange doit donc **répartir les sources**, sans pour autant présenter comme
-récent un article ancien.
+Sorting by date alone is not enough: a very prolific feed would occupy whole
+screens in a row, and the less active feeds would become invisible. Interleaving
+must therefore **spread the sources out**, without presenting an old article as
+recent.
 
-Règles, par ordre de priorité :
+Rules, in order of priority:
 
-1. **Pas de monotonie de source.** Deux articles consécutifs du même flux sont
-   évités tant qu'une autre source est disponible.
-2. **Récence respectée.** L'ordre global reste globalement chronologique
-   inverse : le mélange réordonne localement, il ne remonte pas un article vieux
-   d'un mois au-dessus d'un article du jour.
-3. **Déterminisme.** Deux affichages successifs du même ensemble d'articles
-   produisent le même ordre. Un flux qui se réordonne au retour sur l'écran
-   donne le sentiment d'avoir perdu quelque chose.
-4. **Continuité entre les pages.** La règle 1 s'applique aussi à la jonction
-   entre une page et la suivante.
+1. **No source monotony.** Two consecutive articles from the same feed are
+   avoided as long as another source is available.
+2. **Recency respected.** The overall order stays broadly reverse
+   chronological: interleaving reorders locally, it does not lift a month-old
+   article above an article from today.
+3. **Determinism.** Two successive displays of the same set of articles produce
+   the same order. A feed that reorders itself when you come back to the screen
+   gives the feeling of having lost something.
+4. **Continuity between pages.** Rule 1 also applies at the junction between one
+   page and the next.
 
-**Arbitrage entre les règles 1 et 2.** Elles sont structurellement
-incompatibles au-delà d'une certaine amplitude : répartir parfaitement les
-sources exigerait parfois de remonter un article ancien très haut. **La récence
-l'emporte.** Concrètement, un article n'est jamais présenté plus de sept
-positions avant son rang chronologique ; passé cette borne, la monotonie de
-source est acceptée plutôt que de mentir sur la fraîcheur.
+**Trade-off between rules 1 and 2.** They are structurally incompatible beyond a
+certain amplitude: spreading the sources out perfectly would sometimes require
+lifting an old article very high. **Recency wins.** Concretely, an article is
+never presented more than seven positions before its chronological rank; past
+that bound, source monotony is accepted rather than lying about freshness.
 
-Cette borne est exprimée en **positions**, non en durée. Un seuil temporel se
-comporterait très différemment sur un flux qui publie trois articles par jour
-et sur un flux qui en publie trois cents — la borne en positions est la même
-partout, et c'est elle que l'utilisateur perçoit en faisant défiler.
+That bound is expressed in **positions**, not in duration. A time threshold
+would behave very differently on a feed publishing three articles a day and on
+one publishing three hundred — the bound in positions is the same everywhere,
+and it is the one the user perceives while scrolling.
 
-C'est le seul arbitrage de cette section visible par l'utilisateur : un mélange
-plus agressif se règle en desserrant cette borne.
+It is the only trade-off in this section visible to the user: a more aggressive
+interleaving is obtained by loosening that bound.
 
-### 4.3 Présentation d'un article
+### 4.3 Presenting an article
 
-Chaque article expose :
+Each article exposes:
 
-- son **titre** ;
-- le **nom de son flux d'origine**, sans lequel le mélange serait déroutant ;
-- sa **date de publication**, en forme relative (« il y a 2 h ») ;
-- son **image d'illustration**, lorsqu'elle existe ;
-- un **extrait** de son contenu, écourté par l'application : le serveur envoie
-  le résumé complet, qui atteint plusieurs dizaines de milliers de caractères sur
-  certains flux (§8, question 7).
+- its **title**;
+- the **name of its source feed**, without which interleaving would be
+  disconcerting;
+- its **publication date**, in relative form ("2 h ago");
+- its **illustration image**, where one exists;
+- an **excerpt** of its content, shortened by the application: the server sends
+  the full summary, which reaches several tens of thousands of characters on
+  some feeds (§8, question 7).
 
-Un article sans image reste lisible : l'absence d'illustration ne doit pas
-produire un espace vide, ni une image de remplacement générique.
+An article without an image stays readable: the absence of an illustration must
+not produce an empty space, nor a generic placeholder image.
 
-**Chaque article se partage**, dans les deux modes de présentation (§4.8). Une
-commande sur la carte ouvre le **sélecteur du système** : c'est lui qui propose
-les destinations, et l'application n'en connaît aucune. Ce qui part est le
-**titre puis le lien d'origine** — une URL nue ne dit pas ce qu'on envoie, et
-l'extrait, écourté par nous (§8, question 7), transmettrait notre troncature
-pour du contenu.
+**Every article can be shared**, in both presentation modes (§4.8). A control on
+the card opens the **system picker**: it is the picker that offers the
+destinations, and the application knows none of them. What leaves is the
+**title then the original link** — a bare URL does not say what you are sending,
+and the excerpt, shortened by us (§8, question 7), would pass our truncation off
+as content.
 
-Un article sans lien exploitable **ne se partage pas**, et la commande n'y
-figure pas : même règle qu'à l'ouverture (§4.7), parce qu'envoyer un titre seul
-serait un message sans objet.
+An article with no usable link **cannot be shared**, and the control is not
+there: the same rule as for opening (§4.7), because sending a title on its own
+would be a message with no object.
 
-**Une illustration n'est jamais agrandie.** Beaucoup de flux publient des
-vignettes plus étroites que le créneau ; les étirer les rend floues, et une
-image floue dessert l'article qu'elle illustre. Elle s'affiche donc à sa taille,
-centrée sur une copie d'elle-même rognée et **floutée** qui remplit le reste du
-créneau. Le fond vient de l'image, donc s'accorde toujours à elle ; le créneau
-reste plein, sans bande vide ni cadre.
+**An illustration is never enlarged.** Many feeds publish thumbnails narrower
+than the slot; stretching them makes them fuzzy, and a fuzzy image does a
+disservice to the article it illustrates. It is therefore displayed at its own
+size, centred over a cropped and **blurred** copy of itself which fills the rest
+of the slot. The background comes from the image, so it always matches it; the
+slot stays full, with no empty band and no frame.
 
-Le procédé ne s'applique **que** dans ce cas : une image assez large est rognée
-comme avant, sans fond ni traitement. Et il exige Android 12, faute de quoi
-l'étirement demeure — une dégradation franche, préférée à un fond net et
-dupliqué qui serait pire que le défaut (§8, question 12).
+The process applies **only** in that case: an image wide enough is cropped as
+before, with no background and no treatment. And it requires Android 12, failing
+which the stretching remains — a plain degradation, preferred over a sharp,
+duplicated background that would be worse than the defect (§8, question 12).
 
-### 4.4 Défilement infini
+### 4.4 Infinite scrolling
 
-Une nouvelle page est demandée **avant** que l'utilisateur n'atteigne le bas, de
-sorte que le défilement ne s'interrompe pas.
+A new page is requested **before** the user reaches the bottom, so that
+scrolling is not interrupted.
 
-- Le chargement en cours est visible en bas du flux.
-- Un échec de chargement affiche un message et une action « Réessayer », **sans
-  vider ce qui est déjà affiché**.
-- Lorsqu'il n'y a plus d'article, le flux se termine par un message explicite.
-  Un flux qui cesse simplement de s'allonger est indistinguable d'une panne.
+- The loading in progress is visible at the bottom of the feed.
+- A loading failure displays a message and a "Retry" action, **without emptying
+  what is already displayed**.
+- When there are no articles left, the feed ends with an explicit message. A
+  feed that simply stops getting longer is indistinguishable from a breakdown.
 
-### 4.5 Marquage automatique comme lu
+### 4.5 Automatic marking as read
 
-Un article est considéré comme lu lorsqu'il a été **suffisamment visible** :
-au moins **60 % de sa hauteur** affichée pendant au moins **1 seconde continue**.
+An article is considered read once it has been **visible enough**: at least
+**60 % of its height** displayed for at least **1 continuous second**.
 
-Ce mécanisme est **facultatif**. Un interrupteur des réglages (§6) l'éteint et
-le rallume, et il est **actif par défaut** — c'est le principe de §1, « lire,
-c'est faire défiler », et une installation existante ne doit rien voir changer.
-Trois précisions, parce qu'elles décident du reste :
+This mechanism is **optional**. A switch in the settings (§6) turns it off and
+back on, and it is **on by default** — that is the principle of §1, "reading is
+scrolling", and an existing installation must see nothing change. Three
+clarifications, because they decide the rest:
 
-- **L'extinction n'arrête que la détection par visibilité.** Ouvrir un article
-  le marque toujours comme lu (§4.7) : c'est un geste délibéré, pas un effet du
-  défilement, et les confondre laisserait le mode Balayage incapable de
-  consommer quoi que ce soit.
-- **Les deux seuils restent affichés, grisés.** Les cacher ferait disparaître
-  deux réglages sans dire pourquoi ; les laisser actifs proposerait d'ajuster ce
-  qui ne s'applique plus. Ils sont conservés tels quels pour le rallumage.
-- **Ce qui est déjà marqué le reste.** La file de marquages en attente n'est pas
-  vidée : éteindre le marquage n'annule pas les lectures passées.
+- **Turning it off only stops visibility-based detection.** Opening an article
+  still marks it as read (§4.7): that is a deliberate gesture, not an effect of
+  scrolling, and conflating them would leave Swipe mode unable to consume
+  anything at all.
+- **Both thresholds stay displayed, greyed out.** Hiding them would make two
+  settings disappear without saying why; leaving them active would offer to
+  adjust what no longer applies. They are kept as they are for switching back
+  on.
+- **What is already marked stays marked.** The queue of pending markings is not
+  emptied: turning marking off does not undo past reads.
 
-Le rallumage s'applique **sans redémarrage**, comme le mode de présentation
-(§4.8) : le flux affiché recommence à marquer dès l'instant du basculement.
+Switching back on applies **without a restart**, like the presentation mode
+(§4.8): the displayed feed starts marking again from the instant of the switch.
 
-Ce double seuil est délibéré : la surface seule marquerait comme lus les
-articles traversés par un défilement rapide ; la durée seule marquerait un
-article à peine effleuré en bord d'écran.
+This double threshold is deliberate: surface alone would mark as read the
+articles crossed by a fast scroll; duration alone would mark an article barely
+brushed at the edge of the screen.
 
-Ces deux valeurs sont des **paramètres nommés**, pas des constantes dispersées :
-elles seront ajustées à l'usage. Les deux seuils sont **inclusifs** — « au
-moins » se lit littéralement. Ce n'est pas un détail : 0,6 n'est pas
-représentable exactement en binaire, et un seuil exclusif rendrait la règle
-dépendante de l'arrondi du calcul fait par l'interface.
+Those two values are **named parameters**, not constants scattered about: they
+will be adjusted with use. Both thresholds are **inclusive** — "at least" reads
+literally. This is not a detail: 0.6 is not exactly representable in binary, and
+an exclusive threshold would make the rule depend on the rounding of the
+computation done by the interface.
 
-Deux précisions que l'implémentation a rendues nécessaires :
+Two clarifications that the implementation made necessary:
 
-- **« 60 % de sa hauteur » se mesure sur la part visible de l'écran, pas sur la
-  hauteur propre de l'article.** Pris au pied de la lettre, un article plus haut
-  que l'écran ne pourrait jamais atteindre 60 % de lui-même, et ne deviendrait
-  donc **jamais** lu. C'est l'appelant qui borne la fraction en conséquence.
-- **La visibilité doit être observée même quand rien ne bouge.** La règle porte
-  sur une durée, et la durée ne s'écoule pas toute seule : sans observation
-  périodique pendant que la liste est immobile, un article resté dix secondes à
-  l'écran ne serait jamais marqué lu. C'est le piège d'intégration le plus
-  probable de cette fonctionnalité.
+- **"60 % of its height" is measured on the visible portion of the screen, not
+  on the article's own height.** Taken literally, an article taller than the
+  screen could never reach 60 % of itself, and would therefore **never** become
+  read. It is the caller that bounds the fraction accordingly.
+- **Visibility must be observed even when nothing moves.** The rule bears on a
+  duration, and duration does not elapse by itself: without periodic observation
+  while the list is still, an article left ten seconds on screen would never be
+  marked as read. That is this feature's most likely integration trap.
 
-Comportement associé :
+Associated behaviour:
 
-- Un article marqué lu **ne se distingue pas à l'écran**. Un fanion l'a signalé
-  un temps, à la demande de l'auteur, puis a été retiré à sa demande également :
-  l'usage a montré qu'il attirait l'œil sur ce qu'il y a de moins intéressant
-  dans le flux. L'état lu n'en reste pas moins **tenu** — c'est lui qui décide
-  du marquage envoyé au serveur et de la purge (§5.4) ; seule sa représentation
-  a disparu.
-- Un article marqué lu **reste affiché** et à sa place. Le faire disparaître
-  sous le doigt déplacerait le contenu en cours de lecture.
-- Le marquage est **envoyé au serveur par lots**, pas un appel par article : les
-  marquages sont regroupés pendant quelques secondes avant d'être transmis
-  (§8, question 4). Rien n'est perdu pendant ce délai — la file survit à la
-  fermeture — mais la lecture n'est alors connue que de l'appareil.
-- Le marquage est **optimiste** : l'état local change immédiatement, la
-  synchronisation suit. Un échec réseau ne doit pas se voir pendant la lecture.
-- Un marquage non transmis est **conservé** et rejoué à la prochaine occasion,
-  y compris après redémarrage de l'application.
+- An article marked as read **is not distinguished on screen**. A flag signalled
+  it for a while, at the author's request, then was removed at their request as
+  well: use showed that it drew the eye to the least interesting thing in the
+  feed. The read state is nonetheless still **held** — it is what decides the
+  marking sent to the server and the purge (§5.4); only its representation has
+  gone.
+- An article marked as read **stays displayed** and in its place. Making it
+  disappear under the finger would shift the content being read.
+- Marking is **sent to the server in batches**, not one call per article:
+  markings are grouped for a few seconds before being transmitted (§8,
+  question 4). Nothing is lost during that delay — the queue survives closing —
+  but the read is then known only to the device.
+- Marking is **optimistic**: the local state changes immediately, the
+  synchronisation follows. A network failure must not be visible while reading.
+- An untransmitted marking is **kept** and replayed at the next opportunity,
+  including after the application is restarted.
 
-### 4.6 Rafraîchissement
+### 4.6 Refreshing
 
-Recharger repart de zéro : cela **vide ce qui est affiché**, recharge le début
-du flux, et **revient automatiquement au premier article**.
+Reloading starts from scratch: it **empties what is displayed**, reloads the
+beginning of the feed, and **automatically returns to the first article**.
 
-Deux commandes le déclenchent, et elles font exactement la même chose :
+Two commands trigger it, and they do exactly the same thing:
 
-| Commande | Disponible en | Pourquoi |
+| Command | Available in | Why |
 |---|---|---|
-| **Tirer-pour-rafraîchir** | mode Liste | La convention du geste sur un flux vertical |
-| **Bouton, sur la ligne du titre** | les deux modes | En plein écran il n'y a pas de liste à tirer ; et un tirage n'est pas praticable par tout le monde (§7.1) |
+| **Pull to refresh** | List mode | The conventional gesture on a vertical feed |
+| **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
 
-Le bouton n'est donc pas un doublon du geste : il est **la seule** commande du
-mode Balayage — y superposer un tirage vertical donnerait deux gestes
-concurrents sur la même surface — et il est l'alternative au geste en mode
-Liste, où rien ne le remplaçait.
+The button is therefore not a duplicate of the gesture: it is the **only**
+command of Swipe mode — superimposing a vertical pull on it would give two
+competing gestures on the same surface — and it is the alternative to the
+gesture in List mode, where nothing replaced it.
 
-- Ce qui est affiché est remplacé, pas complété. Ce qui était là disparaît.
-- La position de lecture n'est **pas** préservée : le rechargement ramène au
-  début, et c'est ce qu'il annonce.
-- La pagination repart du début : le curseur précédent est abandonné.
-- Pendant l'attente, la commande **montre qu'elle travaille** plutôt que de se
-  griser ou de disparaître : grisée elle dirait « indisponible » et non « en
-  cours » ; disparue, l'appui semblerait perdu.
+- What is displayed is replaced, not added to. What was there disappears.
+- The reading position is **not** preserved: reloading brings you back to the
+  beginning, and that is what it announces.
+- Pagination starts again from the beginning: the previous cursor is abandoned.
+- While waiting, the command **shows that it is working** rather than greying
+  out or disappearing: greyed out it would say "unavailable" and not "in
+  progress"; gone, the press would seem lost.
 
-**Ce choix a été fait contre l'option inverse**, et il vaut d'être expliqué.
-Insérer les nouveaux articles en tête sans bouger l'utilisateur préserve sa
-lecture, mais laisse le flux s'allonger indéfiniment et rend le geste presque
-invisible — on tire, et rien ne semble se passer. Le rechargement complet donne
-au geste un effet immédiat et lisible, au prix de la position de défilement ;
-c'est la convention des applications où le flux est le contenu principal, et
-c'est celle-ci qui a été retenue.
+**This choice was made against the opposite option**, and it is worth
+explaining. Inserting the new articles at the top without moving the user
+preserves their reading, but lets the feed grow indefinitely and makes the
+gesture almost invisible — you pull, and nothing seems to happen. A full reload
+gives the gesture an immediate, legible effect, at the cost of the scroll
+position; that is the convention of applications where the feed is the main
+content, and it is the one that was retained.
 
-Conséquence assumée : un utilisateur qui recharge par réflexe perd l'endroit où
-il lisait. Le geste doit donc rester délibéré — il n'est déclenché que par un
-tirage franc, jamais par un simple défilement vers le haut.
+An owned consequence: a user who reloads by reflex loses the place where they
+were reading. The gesture must therefore stay deliberate — it is only triggered
+by a decisive pull, never by a mere upward scroll.
 
-**Cela ne vaut que pour un rechargement demandé.** Une fermeture, elle, n'est
-pas une demande : le lancement suivant rouvre le même flux, inchangé (§5.3).
+**This only holds for a requested reload.** Closing the application is not a
+request: the next launch reopens the same feed, unchanged (§5.3).
 
-#### Quand le flux affiché date
+#### When the displayed feed is stale
 
-Rien ne se synchronise en arrière-plan (§2) et le cache s'affiche dès le
-lancement (§5.1) : l'écran d'un flux vieux de dix heures serait, sans cela,
-indiscernable de celui d'un flux frais.
+Nothing synchronises in the background (§2) and the cache is displayed as soon
+as the application launches (§5.1): the screen of a ten-hour-old feed would
+otherwise be indistinguishable from that of a fresh one.
 
-Au-delà de **six heures** sans réponse du serveur (§8, question 9), une
-bandelette le dit et propose de recharger. Elle porte deux commandes —
-**recharger**, qui n'est rien d'autre que le rechargement décrit ci-dessus, et
-**plus tard**, pour qui n'est pas en état de le faire maintenant.
+Beyond **six hours** without a response from the server (§8, question 9), a
+strip says so and offers to reload. It carries two commands — **reload**, which
+is nothing other than the reload described above, and **later**, for anyone not
+in a position to do it now.
 
-- Elle s'efface **à la main**, jamais par minuteur : un message qui s'efface
-  tout seul se rate, et celui-ci explique quelque chose qu'on n'a pas vu venir.
-- Elle paraît dans les **deux modes** (§4.8), et l'y faire taire vaut pour les
-  deux : c'est le même flux.
-- Elle **ne paraît pas hors ligne** : le bandeau de §5.2 dit déjà pourquoi le
-  flux est ancien, et proposer de recharger ouvrirait une porte qui ne mène
-  nulle part.
-- Elle ne paraît pas non plus pendant un rechargement, ni sur un écran sans
-  article — il n'y a alors pas de flux ancien, mais un écran vide, qui a son
-  propre message.
-- **L'avoir fait taire ne vaut que pour l'état du moment.** Un rechargement
-  réussi, puis six heures de plus, et l'invitation revient.
+- It is dismissed **by hand**, never by a timer: a message that clears itself
+  gets missed, and this one explains something you did not see coming.
+- It appears in **both modes** (§4.8), and silencing it there holds for both:
+  it is the same feed.
+- It **does not appear offline**: the banner of §5.2 already says why the feed is
+  old, and offering to reload would open a door leading nowhere.
+- Nor does it appear during a reload, or on a screen with no article — there is
+  then no old feed, but an empty screen, which has its own message.
+- **Having silenced it only holds for the state of the moment.** A successful
+  reload, then six more hours, and the invitation comes back.
 
-### 4.7 Ouverture d'un article
+### 4.7 Opening an article
 
-Toucher un article ouvre le **lien d'origine** dans le navigateur, via un onglet
-personnalisé (*Custom Tab*) : l'utilisateur garde le contexte de l'application
-et retrouve sa session et ses réglages de navigateur.
+Touching an article opens the **original link** in the browser, through a custom
+tab (*Custom Tab*): the user keeps the application's context and finds their
+browser session and settings again.
 
-Ouvrir un article le marque comme lu, quelle que soit sa visibilité passée.
+Opening an article marks it as read, whatever its past visibility.
 
-Un article sans lien exploitable n'est pas cliquable, et le donne à voir.
+An article with no usable link is not clickable, and shows it.
 
-**C'est la carte entière qui ouvre, dans les deux modes.** En Balayage, un
-bouton explicite l'a fait un temps, par crainte qu'un appui pris pendant un
-balayage hésitant ne fasse partir dans le navigateur. La crainte n'était pas
-fondée : la plateforme distingue l'appui du glissement, le geste horizontal
-n'est pas consommé par le clic, et un test le constate. Le bouton coûtait une
-ligne de commande au bas d'un contenu déjà défilable, pour une garantie que le
-système donnait déjà.
+**It is the whole card that opens, in both modes.** In Swipe mode, an explicit
+button did it for a while, out of fear that a press caught during a hesitant
+swipe would send the user off into the browser. The fear was unfounded: the
+platform distinguishes a press from a drag, the horizontal gesture is not
+consumed by the click, and a test observes it. The button cost a command row at
+the bottom of already scrollable content, for a guarantee the system was giving
+already.
 
-### 4.8 Deux modes de présentation
+### 4.8 Two presentation modes
 
-Le flux se parcourt de deux façons, au choix de l'utilisateur. **Le contenu est
-le même** : mêmes articles, même mélange, mêmes règles de lecture et de
-chargement. Seule la présentation change.
+The feed can be gone through in two ways, at the user's choice. **The content is
+the same**: same articles, same interleaving, same reading and loading rules.
+Only the presentation changes.
 
-| Mode | Geste | Ce qu'il montre |
+| Mode | Gesture | What it shows |
 |---|---|---|
-| **Liste** (par défaut) | défilement vertical | plusieurs articles à l'écran, en cartes |
-| **Balayage** | balayage horizontal | **un** article à la fois, en plein écran |
+| **List** (default) | vertical scrolling | several articles on screen, as cards |
+| **Swipe** | horizontal swipe | **one** article at a time, full screen |
 
-Le mode Balayage reprend le geste des réseaux sociaux : on passe à l'article
-suivant d'un balayage de gauche à droite, et on revient au précédent en sens
-inverse. Ce n'est **pas** une navigation entre flux ou entre catégories — §1 et
-§2 les excluent, et cela reste vrai ici. C'est le même flux mélangé, présenté
-article par article.
+Swipe mode takes up the gesture of social networks: you move to the next article
+with a swipe from left to right, and come back to the previous one the other way
+round. This is **not** navigation between feeds or between categories — §1 and
+§2 exclude those, and that stays true here. It is the same interleaved feed,
+presented article by article.
 
-Ce que ce mode implique, et qui n'est pas neutre :
+What this mode implies, and which is not neutral:
 
-- **Un article plein écran est intégralement visible.** La règle de §4.5
-  s'applique telle quelle : il devient lu après la durée continue requise. Le
-  seuil de surface, lui, est satisfait d'emblée — c'est donc la durée seule qui
-  décide, et elle prend ici tout son sens.
-- **Le retour en arrière ne « délit » pas.** Revenir sur un article déjà lu ne
-  le remet pas en non-lu : le marquage n'est pas réversible par un geste de
-  navigation.
-- **Le chargement anticipé demeure** (§4.4) : la page suivante est demandée
-  avant d'atteindre le dernier article chargé, et la fin du flux se dit
-  explicitement plutôt que de bloquer le balayage.
-- **L'extrait laisse place au contenu.** Le plein écran permet d'en montrer
-  davantage que les trois lignes d'une carte ; la limite de §8 question 7 est
-  propre au mode Liste.
-- **Une seule commande demeure sur la carte** : le partage. L'ouverture est
-  passée à la carte entière (§4.7), et le mode retrouve ainsi ce qui fait son
-  intérêt — un article, et presque rien autour.
-- **Le mode est un réglage persistant** (§6) : l'application rouvre dans le
-  mode que l'utilisateur a quitté.
-- **Le geste est animé en pile de cartes.** L'article qui s'en va s'incline et
-  s'efface en suivant le doigt ; le suivant attend derrière, centré et
-  légèrement réduit, et grandit à mesure qu'il se découvre. C'est ce qui
-  distingue une pile d'objets d'un défilement de plus, et c'est ce que le geste
-  promet — mettre une carte de côté.
-- **Il n'y a pas d'alternative au geste**, et c'est une lacune connue plutôt
-  qu'un choix : §7.1 exige que l'application reste utilisable sans lui. Voir la
-  tâche `GOAL-012-T07` de TASKS.md.
+- **A full-screen article is entirely visible.** The rule of §4.5 applies as it
+  stands: it becomes read after the required continuous duration. The surface
+  threshold, for its part, is satisfied straight away — so it is duration alone
+  that decides, and here it takes on its full meaning.
+- **Going back does not "unread".** Returning to an already-read article does not
+  set it back to unread: marking is not reversible by a navigation gesture.
+- **Anticipated loading remains** (§4.4): the next page is requested before
+  reaching the last loaded article, and the end of the feed states itself
+  explicitly rather than blocking the swipe.
+- **The excerpt gives way to the content.** Full screen allows more to be shown
+  than a card's three lines; the limit of §8 question 7 is specific to List mode.
+- **A single command remains on the card**: sharing. Opening has passed to the
+  whole card (§4.7), and the mode thereby recovers what makes it interesting —
+  an article, and almost nothing around it.
+- **The mode is a persistent setting** (§6): the application reopens in the mode
+  the user left.
+- **The gesture is animated as a stack of cards.** The article leaving tilts and
+  fades away following the finger; the next one waits behind, centred and
+  slightly reduced, and grows as it is uncovered. That is what distinguishes a
+  stack of objects from yet another scroll, and it is what the gesture promises
+  — setting a card aside.
+- **There is no alternative to the gesture**, and that is a known gap rather
+  than a choice: §7.1 requires the application to stay usable without it. See
+  task `GOAL-012-T07` in TASKS.md.
 
-Le choix du mode ne modifie **jamais** l'ordre des articles : un utilisateur qui
-bascule de l'un à l'autre retrouve le flux au même endroit, dans le même ordre
-(règle de déterminisme de §4.2).
+The choice of mode **never** changes the order of the articles: a user who
+switches from one to the other finds the feed at the same place, in the same
+order (determinism rule of §4.2).
 
-### 4.9 Rappel de lecture
+### 4.9 Reading reminder
 
-Une notification quotidienne rappelle qu'il reste des articles à lire.
+A daily notification recalls that articles are left to read.
 
-**Elle part à l'heure d'ouverture de la veille.** Pas à une heure choisie par le
-développeur : une notification à 9 h chez quelqu'un qui lit le soir est une
-interruption, pas un rappel. L'application retient le moment de sa **première**
-ouverture du jour — celui où l'utilisateur tend la main vers elle — et c'est à
-ce moment-là que le rappel tombe le lendemain.
+**It goes out at the previous day's opening time.** Not at a time chosen by the
+developer: a notification at 9 a.m. for someone who reads in the evening is an
+interruption, not a reminder. The application remembers the moment of its
+**first** opening of the day — the one where the user reaches for it — and that
+is when the reminder falls the next day.
 
-**Elle ne part pas s'il n'y a rien à lire.** Un rappel annonçant que la pile est
-vide est une interruption sans contrepartie, et c'est ce qui fait couper les
-notifications d'une application.
+**It does not go out if there is nothing to read.** A reminder announcing that
+the pile is empty is an interruption with nothing in return, and that is what
+makes people turn an application's notifications off.
 
-**Elle cite des titres réels**, pris dans le flux, et annonce le nombre
-d'articles restants. Un rappel qui ne dit pas ce qui attend ne se distingue pas
-d'une publicité pour l'application elle-même.
+**It quotes real titles**, taken from the feed, and announces the number of
+remaining articles. A reminder that does not say what is waiting is
+indistinguishable from an advert for the application itself.
 
-**Sa formulation change d'un jour à l'autre.** Un message quotidien identique
-cesse d'être lu au bout de trois jours : l'œil en apprend la forme et le balaie
-sans le voir. La variation est **déterministe** — deux exécutions du même jour,
-après un échec ou un redémarrage, donnent le même message.
+**Its wording changes from one day to the next.** An identical daily message
+stops being read after three days: the eye learns its shape and sweeps past it
+without seeing it. The variation is **deterministic** — two runs on the same
+day, after a failure or a restart, give the same message.
 
-**Ce qu'elle ne fait pas :** aucune requête réseau. Elle lit le cache local
-(§5.4), et rien d'autre. Un article publié depuis la dernière ouverture n'y est
-donc pas et ne sera pas annoncé ; c'est le prix assumé de §2, qui exclut
-toujours la synchronisation en arrière-plan.
+**What it does not do:** no network request. It reads the local cache (§5.4),
+and nothing else. An article published since the last opening is therefore not
+in it and will not be announced; that is the owned price of §2, which still
+excludes background synchronisation.
 
-**Il n'y en a jamais deux.** Un nouveau rappel **remplace** le précédent au lieu
-de s'empiler à côté : une pile de rappels quotidiens ne dit rien de plus qu'un
-seul, et se balaie d'un geste sans être lue.
+**There are never two of them.** A new reminder **replaces** the previous one
+instead of stacking up beside it: a stack of daily reminders says nothing more
+than a single one, and gets swept away with one gesture without being read.
 
-**Ouvrir l'application l'efface.** Le rappel a rempli son office au moment où
-l'utilisateur arrive ; le laisser dans le volet en ferait un reliquat.
+**Opening the application clears it.** The reminder has done its job by the time
+the user arrives; leaving it in the shade would make it a leftover.
 
-**Elle se désactive** depuis les réglages (§6). Sous Android 13, il n'y a aucune
-permission de notification à retirer, et un rappel qu'on ne peut pas éteindre
-est un défaut.
+**It can be turned off** from the settings (§6). Under Android 13, there is no
+notification permission to withdraw, and a reminder you cannot turn off is a
+defect.
 
 ---
 
-## 5. Comportement réseau
+## 5. Network behaviour
 
-### 5.1 Cache local
+### 5.1 Local cache
 
-Les articles récupérés sont conservés localement. Au lancement, le flux affiche
-**immédiatement** le contenu du cache — articles lus compris (§4.1), donc
-exactement ce qui était à l'écran la fois précédente — et s'y arrête : **aucune requête ne part
-tant qu'il y a quelque chose à montrer** (§8, question 10). Le flux du lancement
-est celui qu'on a laissé, stable et identique d'une ouverture à l'autre ; sa
-mise à jour est un geste — le rechargement de §4.6, que l'avis d'ancienneté
-(§4.6, « quand le flux affiché date ») vient rappeler au bon moment. Le
-défilement, lui, reste un geste comme un autre : atteindre le bas du connu
-charge la suite (§4.4).
+Retrieved articles are kept locally. On launch, the feed displays the contents
+of the cache **immediately** — read articles included (§4.1), so exactly what
+was on screen the previous time — and stops there: **no request leaves as long
+as there is something to show** (§8, question 10). The launch feed is the one
+you left, stable and identical from one opening to the next; updating it is a
+gesture — the reload of §4.6, which the staleness notice (§4.6, "when the
+displayed feed is stale") comes to recall at the right moment. Scrolling, for
+its part, remains a gesture like any other: reaching the bottom of the known
+loads what follows (§4.4).
 
-Un cache **vide** est l'unique exception : première ouverture, retour après
-déconnexion — il n'y a rien à montrer, le premier chargement part de lui-même.
-Un écran vide pendant une requête réseau donnerait l'impression d'une
-application sans contenu ; un écran vide sans requête serait pire, une
-application morte.
+An **empty** cache is the sole exception: first opening, return after logging
+out — there is nothing to show, and the first load leaves on its own. An empty
+screen during a network request would give the impression of an application with
+no content; an empty screen with no request would be worse, a dead application.
 
-### 5.2 Hors ligne
+### 5.2 Offline
 
-Sans réseau :
+With no network:
 
-- le flux reste consultable à partir du cache ;
-- l'état est signalé sans être alarmant ;
-- les marquages comme lus sont enregistrés localement et transmis au retour du
-  réseau ;
-- l'ouverture d'un article échoue avec un message explicite.
+- the feed remains consultable from the cache;
+- the state is signalled without being alarming;
+- markings as read are recorded locally and transmitted when the network comes
+  back;
+- opening an article fails with an explicit message.
 
-### 5.3 Le lancement rouvre en tête d'un flux stable
+### 5.3 Launching reopens at the top of a stable feed
 
-**La position de lecture n'est pas conservée.** Rouvrir l'application ramène en
-haut du flux — le même flux, dans le même ordre, que celui qu'on a quitté
+**The reading position is not kept.** Reopening the application brings you back
+to the top of the feed — the same feed, in the same order, as the one you left
 (§5.1).
 
-Cette section a longtemps spécifié l'inverse : une reprise « au plus proche »,
-mémorisée à la fermeture. Elle a été **retirée par décision d'auteur** le
-2026-08-08, et il faut dire pourquoi, parce que la raison n'est pas « c'était
-trop dur ». La mémoire de position se réécrivait à chaque lancement — l'article
-en tête d'écran pendant les premières images écrasait la vraie place — et
-chaque ouverture restaurait ce que le hasard de la précédente avait laissé.
-Constaté sur appareil : un lancement sans un seul geste déplaçait la position
-mémorisée. Le correctif existait, mais l'arbitrage est ailleurs : la reprise
-protégeait contre un flux qui bougeait sous les pieds, et ce flux ne bouge
-plus — le lancement n'interroge plus le réseau (§5.1). Sur un flux stable qui
-rouvre à l'identique, retrouver sa place se fait en défilant ce qu'on
-reconnaît ; la mécanique de mémorisation ne payait plus sa complexité.
+This section long specified the opposite: a "nearest" resumption, remembered on
+closing. It was **withdrawn by an author's decision** on 2026-08-08, and it must
+be said why, because the reason is not "it was too hard". The position memory
+rewrote itself on every launch — the article at the top of the screen during the
+first frames overwrote the real place — and every opening restored what the
+happenstance of the previous one had left. Observed on device: a launch without
+a single gesture shifted the remembered position. The fix existed, but the
+trade-off lies elsewhere: resumption protected against a feed that moved under
+your feet, and that feed no longer moves — launching no longer queries the
+network (§5.1). On a stable feed that reopens identically, finding your place
+again is done by scrolling through what you recognise; the remembering machinery
+no longer paid for its complexity.
 
-Ce qui reste garanti, et qui compte davantage : le haut du flux au lancement
-est **exactement** celui de la fermeture, nouveaux articles exclus puisqu'il
-n'y en a pas sans geste.
+What remains guaranteed, and matters more: the top of the feed at launch is
+**exactly** that of the closing, new articles excluded since there are none
+without a gesture.
 
 ### 5.4 Purge
 
-Le cache est borné. Les articles **lus et synchronisés** sont supprimés au-delà
-d'un seuil d'ancienneté (§8, question 3) ; les articles non lus ne sont jamais
-purgés.
+The cache is bounded. Articles **read and synchronised** are deleted beyond an
+age threshold (§8, question 3); unread articles are never purged.
 
-« **Et synchronisés** » se lit littéralement : un article dont le marquage attend
-encore d'être transmis n'est **jamais** supprimé, même passé le seuil. Ce n'est
-pas une précaution abstraite. La mémoire locale du « déjà lu » vit dans le cache
-et nulle part ailleurs : effacer la ligne avant que le serveur ne connaisse le
-marquage ferait redécrire l'article comme non lu au rafraîchissement suivant, et
-il **réapparaîtrait dans le flux comme jamais lu**. Le cas se produit dès qu'un
-appareil reste hors ligne plus longtemps que le seuil.
+"**And synchronised**" reads literally: an article whose marking is still
+waiting to be transmitted is **never** deleted, even past the threshold. This is
+not an abstract precaution. The local memory of "already read" lives in the
+cache and nowhere else: erasing the row before the server knows about the
+marking would have the article described as unread again on the next refresh,
+and it **would reappear in the feed as never read**. The case occurs as soon as
+a device stays offline longer than the threshold.
 
-La purge manuelle, elle, ne demande **pas** de confirmation : elle n'emporte que
-ce qui est à la fois lu, transmis et retéléchargeable. La déconnexion en demande
-une parce qu'elle efface le jeton, les articles non lus et les marquages en
-attente — rien n'en revient sans réseau ni mot de passe. Confirmer les deux
-nivellerait la différence, et apprendrait à congédier la boîte de dialogue qui
-compte.
-
----
-
-## 6. Réglages
-
-L'écran de réglages reste minimal :
-
-- adresse du serveur et identifiant connectés (en lecture seule) ;
-- **mode de présentation du flux** : Liste ou Balayage (§4.8) ;
-- **rappel de lecture** : activé ou non (§4.9) ;
-- **marquage automatique** : actif ou non, puis ses deux seuils (§4.5) — les
-  seuils restent affichés, grisés, quand il est éteint ;
-- taille du cache et action de purge manuelle ;
-- déconnexion ;
-- version de l'application et licence.
+The manual purge, for its part, does **not** ask for confirmation: it carries
+away only what is at once read, transmitted and re-downloadable. Logging out
+asks for one because it erases the token, the unread articles and the pending
+markings — none of that comes back without a network and a password. Confirming
+both would level the difference, and would teach the user to dismiss the dialogue
+that matters.
 
 ---
 
-## 7. Exigences transversales
+## 6. Settings
 
-### 7.1 Accessibilité
+The settings screen stays minimal:
 
-- Toute image porte une description, ou est explicitement décorative.
-- Les cibles tactiles font au moins 48 dp.
-- L'application reste utilisable avec une taille de police système augmentée.
-- Le contraste respecte le niveau **AA** en thème clair **et** sombre.
-- **Aucune fonction ne dépend d'un seul geste.** Un lecteur d'écran se réserve
-  le balayage horizontal pour sa propre exploration, et tout le monde n'a pas la
-  précision ou la mobilité qu'un tirage demande. Le rechargement satisfait cette
-  règle depuis §4.6.
-- **La règle porte sur l'application, pas sur chacun de ses modes.** Avancer
-  d'un article en mode Balayage demande un geste horizontal, et rien ne le
-  remplace : les deux boutons qui l'avaient fait un temps encombraient l'écran
-  pour un mode dont l'intérêt est justement de n'en avoir aucun. Ce n'est pas un
-  écart, parce que le mode **Liste** — celui par défaut (§4.8) — donne accès au
-  même flux, dans le même ordre, entièrement au défilement vertical et aux
-  cibles ordinaires. Choisir le Balayage est une préférence, jamais un passage
-  obligé, et le réglage qui en sort est lui-même atteignable sans ce geste.
-  Conséquence assumée : qui emploie un lecteur d'écran et se retrouve en mode
-  Balayage doit passer par les réglages pour revenir à la Liste.
+- connected server address and login (read only);
+- **feed presentation mode**: List or Swipe (§4.8);
+- **reading reminder**: on or off (§4.9);
+- **automatic marking**: on or off, then its two thresholds (§4.5) — the
+  thresholds stay displayed, greyed out, when it is off;
+- cache size and manual purge action;
+- logging out;
+- application version and licence.
+
+---
+
+## 7. Cross-cutting requirements
+
+### 7.1 Accessibility
+
+- Every image carries a description, or is explicitly decorative.
+- Touch targets are at least 48 dp.
+- The application stays usable with an increased system font size.
+- Contrast meets level **AA** in light **and** dark theme.
+- **No function depends on a single gesture.** A screen reader reserves the
+  horizontal swipe for its own exploration, and not everyone has the precision or
+  the mobility a pull demands. Reloading satisfies this rule as of §4.6.
+- **The rule bears on the application, not on each of its modes.** Moving on one
+  article in Swipe mode requires a horizontal gesture, and nothing replaces it:
+  the two buttons that did so for a while cluttered the screen for a mode whose
+  very point is to have none. This is not a deviation, because **List** mode —
+  the default one (§4.8) — gives access to the same feed, in the same order,
+  entirely through vertical scrolling and ordinary targets. Choosing Swipe is a
+  preference, never a compulsory route, and the setting that leads out of it is
+  itself reachable without that gesture. An owned consequence: anyone using a
+  screen reader who ends up in Swipe mode has to go through the settings to
+  return to List.
 
 ### 7.2 Interface
 
-- Material 3, couleur dynamique lorsque la plateforme la fournit.
-- Thème clair et thème sombre, tous deux vérifiés par capture (AGENTS.md §4).
-- Bord à bord, sans contenu masqué par les barres système.
+- Material 3, dynamic colour where the platform provides it.
+- Light theme and dark theme, both verified by screenshot (AGENTS.md §4).
+- Edge to edge, with no content hidden by the system bars.
 
-### 7.3 Langue
+### 7.3 Language
 
-Interface en **français**. Les contenus d'articles sont affichés tels que
-publiés.
+The interface is **bilingual**: **English by default** (`values/`), with
+**French** kept (`values-fr/`). English is the default because `values/` is what
+any device whose language is not provided for receives. Article contents are
+displayed as published.
 
-### 7.4 Vie privée
+A non-obvious consequence: the Roborazzi screenshots are pinned to `fr-rFR`
+(`@Config(qualifiers)`), so they verify the **French**. A separate screen test
+in `en-rUS` is what keeps `values/` complete.
 
-L'application ne communique **qu'avec le serveur FreshRSS de l'utilisateur**.
-Aucune télémétrie, aucun service tiers, aucune publicité. Les seules autres
-connexions sortantes sont le chargement des images d'articles et l'ouverture
-d'un lien dans le navigateur, l'une et l'autre à l'initiative de l'utilisateur.
+### 7.4 Privacy
+
+The application communicates **only with the user's FreshRSS server**. No
+telemetry, no third-party service, no advertising. The only other outgoing
+connections are the loading of article images and the opening of a link in the
+browser, both at the user's initiative.
 
 ---
 
-## 8. Ce qui reste à trancher
+## 8. What is left to settle
 
-Décisions volontairement différées. Chacune doit être arbitrée par le Goal qui
-la rencontre, puis **inscrite ici** — pas laissée implicite dans le code.
+Deliberately deferred decisions. Each one must be settled by the Goal that meets
+it, then **written down here** — not left implicit in the code.
 
-### Tranchées
+### Settled
 
-| # | Question | Réponse, et ce qui l'a décidée |
+| # | Question | Answer, and what decided it |
 |---|---|---|
-| 1 | Taille de page de l'API (`n`) | **40 articles.** Mesuré sur un flux réel : résumé médian de 1 324 caractères, 90ᵉ centile à 4 379. Une page de 40 pèse donc environ 55 ko, ce qui reste raisonnable sur réseau mobile tout en laissant assez d'avance pour que le défilement ne s'interrompe pas (§4.4). Le serveur accepte des valeurs bien supérieures — `n=100000` a renvoyé 4 645 articles sans broncher — mais tout demander d'un coup ne servirait qu'à retarder le premier affichage. |
-| 2 | Formulation exacte de l'algorithme de mélange | **La récence l'emporte sur la répartition des sources**, avec une borne dure de sept positions, exprimée en rangs et non en durée (§4.2). Les deux règles sont structurellement incompatibles au-delà d'une certaine amplitude, et il fallait dire laquelle gagne. |
-| 3 | Seuil d'ancienneté de purge du cache | **7 jours.** Au-delà, un article lu n'a plus de lecteur ; en deçà, il en a deux. Le **défilement arrière** d'abord : le flux est continu et sans repère, y remonter est le seul moyen de retrouver ce qu'on a survolé la veille — à 24 h le passé disparaîtrait entre deux lancements. Une semaine couvre le rythme réel : on revient le lundi, on retrouve son flux de vendredi. La **mémoire du « déjà lu »** ensuite, portée par le cache lui-même. 30 jours quadrupleraient le cache pour du contenu déjà consommé. |
-| 4 | Taille de lot et délai de regroupement des marquages | **100 articles, fenêtre de 5 secondes à échéance fixe.** Le plancher du délai est la seconde de visibilité continue de §4.5 : au rythme maximal il n'apparaît qu'un article lu par seconde, donc une fenêtre plus courte se refermerait sur un **seul** article — la requête par article que §4.5 écarte. Le plafond est le geste de quitter l'application : pendant la fenêtre, la lecture n'est connue que de l'appareil. À 5 s cela reste l'exception ; à 30 s ce serait le cas courant. Fenêtre **fixe et non glissante** : un défilement continu produisant un lot toutes les 200 ms, une fenêtre relançable ne se refermerait jamais tant que l'utilisateur lit. |
-| 6 | Origine de l'image d'illustration | **`enclosure` d'abord, première balise `<img>` du contenu ensuite.** L'ordre est celui de la fiabilité : une `enclosure` est une illustration déclarée, une `<img>` peut être un pixel de suivi ou un logo. Mais s'en tenir aux `enclosure` couvrirait **33 %** des articles, contre **73 %** avec le repli — mesuré sur 60 articles réels. Priver les deux tiers du flux d'illustration appauvrirait exactement ce qui fait un flux Discover. |
-| 7 | Longueur de l'extrait affiché | **240 caractères, coupés sur une frontière de mot.** Trois lignes de `bodyMedium` sur 411 dp tiennent environ 180 caractères, 210 à la plus petite taille de police système ; 240 laisse la marge pour que la coupure visible soit l'ellipse et non un texte qui s'arrête net. Un mot tranché se lit comme un défaut, d'où la coupure sur l'espace précédente. Sans cela, chaque carte ferait mesurer jusqu'à 34 777 caractères à chaque recomposition. |
-| 12 | Que faire d'une illustration plus petite que son créneau ? | **Elle n'est pas agrandie** : affichée à sa taille, sur un fond flouté tiré d'elle-même (§4.3). Le seuil n'est pas chiffré mais **mesuré** — on ne traite que ce qui devrait être agrandi, ce qui reste juste sur n'importe quelle densité d'écran. Sous Android 12, où le flou du système n'existe pas, l'étirement demeure : un second mécanisme aurait coûté son écriture et ses tests pour une minorité d'appareils, et un fond net et dupliqué aurait été pire que le défaut. |
-| 11 | L'ordre du flux vient-il du serveur ? | **Non : il est recalculé sur la date de publication.** Le serveur trie sa `reading-list` par date de **récupération** — constaté sur une instance réelle, un article publié deux jours plus tôt ouvrait la première page. Cet ordre-là diffère de celui du cache, trié par publication : l'écran du lancement dépendait alors de qui, du disque ou du réseau, répondait en premier. Chaque page est donc ramenée à l'ordre de publication avant le mélange, qui l'attend de toute façon (§4.2, règle 2). |
-| 10 | Le lancement recharge-t-il le flux ? | **Non.** Décision d'auteur (2026-08-08) : le lancement montre le cache, stable, et aucune requête ne part sans geste — hors cache vide, où il n'y a rien à montrer. La requête automatique du lancement créait une course entre le disque et le réseau, dont l'issue décidait de l'écran ; et un flux qui bouge à l'ouverture se lit comme un flux qui se mélange. Le rechargement est un geste (§4.6), rappelé par l'avis d'ancienneté au-delà de six heures. |
-| 9 | Seuil au-delà duquel le flux affiché est « ancien » (§4.6) | **6 heures.** Rien ne se synchronise en arrière-plan (§2), donc l'écran montre le cache jusqu'à ce que l'utilisateur demande autre chose : sans repère, un flux de la veille est indiscernable d'un flux frais. Un seuil court — une ou deux heures — transformerait l'invitation en réflexe quotidien, et une invitation qu'on apprend à ignorer ne dit plus rien. Six heures séparent nettement la session reprise dans l'heure, où le flux est encore celui qu'on a laissé, de la réouverture du lendemain matin. |
+| 1 | API page size (`n`) | **40 articles.** Measured on a real feed: median summary of 1,324 characters, 90th percentile at 4,379. A page of 40 therefore weighs about 55 kB, which stays reasonable on a mobile network while leaving enough lead for scrolling not to be interrupted (§4.4). The server accepts far higher values — `n=100000` returned 4,645 articles without flinching — but asking for everything at once would only serve to delay the first display. |
+| 2 | Exact formulation of the interleaving algorithm | **Recency wins over spreading the sources out**, with a hard bound of seven positions, expressed in ranks and not in duration (§4.2). The two rules are structurally incompatible beyond a certain amplitude, and it had to be said which one wins. |
+| 3 | Age threshold for purging the cache | **7 days.** Beyond that, a read article no longer has a reader; below it, it has two. **Scrolling back** first: the feed is continuous and without landmarks, going back up it is the only way to find again what you skimmed over the day before — at 24 h the past would vanish between two launches. A week covers the real rhythm: you come back on Monday, you find your Friday feed again. The **memory of "already read"** next, carried by the cache itself. 30 days would quadruple the cache for content already consumed. |
+| 4 | Batch size and grouping delay for markings | **100 articles, 5-second window at fixed expiry.** The floor of the delay is the continuous second of visibility of §4.5: at the maximum rate only one read article appears per second, so a shorter window would close on a **single** article — the per-article request that §4.5 rules out. The ceiling is the gesture of leaving the application: during the window, the read is known only to the device. At 5 s that remains the exception; at 30 s it would be the common case. A **fixed and not sliding** window: with a continuous scroll producing a batch every 200 ms, a restartable window would never close as long as the user is reading. |
+| 6 | Origin of the illustration image | **`enclosure` first, then the first `<img>` tag in the content.** The order is that of reliability: an `enclosure` is a declared illustration, an `<img>` may be a tracking pixel or a logo. But sticking to `enclosure` would cover **33 %** of articles, against **73 %** with the fallback — measured on 60 real articles. Depriving two thirds of the feed of an illustration would impoverish exactly what makes a Discover feed. |
+| 7 | Length of the displayed excerpt | **240 characters, cut on a word boundary.** Three lines of `bodyMedium` over 411 dp hold about 180 characters, 210 at the smallest system font size; 240 leaves the margin for the visible cut to be the ellipsis and not text stopping dead. A word cut in half reads as a defect, hence the cut at the preceding space. Without that, each card would have up to 34,777 characters measured on every recomposition. |
+| 12 | What to do with an illustration smaller than its slot? | **It is not enlarged**: displayed at its own size, over a blurred background drawn from itself (§4.3). The threshold is not a figure but **measured** — only what would have to be enlarged is treated, which stays right at any screen density. Under Android 12, where the system blur does not exist, the stretching remains: a second mechanism would have cost its writing and its tests for a minority of devices, and a sharp, duplicated background would have been worse than the defect. |
+| 11 | Does the feed order come from the server? | **No: it is recomputed on the publication date.** The server sorts its `reading-list` by **retrieval** date — observed on a real instance, an article published two days earlier opened the first page. That order differs from the cache's, sorted by publication: the launch screen then depended on which of the disk or the network answered first. Each page is therefore brought back to publication order before interleaving, which expects it anyway (§4.2, rule 2). |
+| 10 | Does launching reload the feed? | **No.** Author's decision (2026-08-08): launching shows the cache, stable, and no request leaves without a gesture — apart from an empty cache, where there is nothing to show. The automatic request on launch created a race between the disk and the network, whose outcome decided the screen; and a feed that moves when you open it reads as a feed that reinterleaves itself. Reloading is a gesture (§4.6), recalled by the staleness notice beyond six hours. |
+| 9 | Threshold beyond which the displayed feed is "old" (§4.6) | **6 hours.** Nothing synchronises in the background (§2), so the screen shows the cache until the user asks for something else: with no landmark, yesterday's feed is indistinguishable from a fresh one. A short threshold — one or two hours — would turn the invitation into a daily reflex, and an invitation you learn to ignore no longer says anything. Six hours clearly separates the session resumed within the hour, where the feed is still the one you left, from the reopening the next morning. |
 
-### Encore ouvertes
+### Still open
 
-| # | Question | Quand la trancher |
+| # | Question | When to settle it |
 |---|---|---|
-| 5 | Comportement si un flux ne contient que des articles lus | Au Goal du flux |
-| 8 | Longueur de l'extrait en mode Balayage (§4.8) | Au Goal de la vue Balayage. Le plein écran permet bien plus que les 240 caractères d'une carte |
+| 5 | Behaviour if a feed contains only read articles | At the feed Goal |
+| 8 | Excerpt length in Swipe mode (§4.8) | At the Swipe view Goal. Full screen allows far more than a card's 240 characters |
