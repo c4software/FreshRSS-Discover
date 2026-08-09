@@ -696,6 +696,35 @@ the list.
 The reading reminder is the only reading of the cache that still filters out read
 articles (`unreadFromCache`): it is not answering the same question.
 
+### 9.9 An empty screen is a state nothing was watching
+
+Symmetrically to §9.7, where the launch had to stop talking: a feed with nothing
+in it had to start again. Two mechanisms held it silent, and only fixing both
+made the screen escapable (GOAL-025).
+
+| Mechanism | What it produced |
+|---|---|
+| The "empty cache" exception read **once** | `hasDecidedBootstrap` settles it on the first sample of the cache. Everything read, one reload, and the emptied screen never asked again |
+| The pull armed on the list alone | A screen with no list had no gesture. Only the title-row button was left, and one had to know it |
+
+The request is now triggered by `onScreenShown()`, called by the routes from a
+`LifecycleResumeEffect`. **A discrete fact, never a state**: a server with
+nothing to give leaves the screen empty, and a rule reacting to emptiness would
+loop on it. The lifecycle stays in the presentation layer — a ViewModel that
+observed it would hold onto something that outlives it badly — and the ViewModel
+keeps the decision: the screen says what happens, never what to do about it.
+
+The rule is written **twice**, once per ViewModel, and this is the exception
+that §9.6 argues against. It is four lines of guard; sharing them would mean
+giving the two ViewModels a common state they do not have. What keeps them from
+diverging is that each has its case in
+`EmptyFeedAsksServerWhenShownTest`.
+
+The pull needed one more thing to exist on a screen with no article: something
+that dispatches scroll. `PullableMessage` is a `LazyColumn` of a single item
+sized with `fillParentMaxSize` — a plain `Box` emits no nested scroll, so the
+gesture would have been inert, which is worse than absent.
+
 ### 9.6 The feed's staleness is measured where the server answers
 
 The date used to say that a feed is stale (SPECS.md §4.6) is written by

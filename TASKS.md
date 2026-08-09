@@ -33,9 +33,9 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 2 — Discover feed** ✅ assembled and delivered
 
 **Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
-(GOAL-019 to GOAL-024)
+(GOAL-019 to GOAL-025)
 
-**The twenty-four Goals are done.** One point remains blocked, out of our hands:
+**The twenty-five Goals are done.** One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
@@ -52,6 +52,11 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 > (`GOAL-022-T02`), too much air under the card, and the double refresh
 > (`GOAL-024`). The lesson of `GOAL-001-T22` held: what lives below the
 > transport layer, or in the ordering of two calls, is only seen by executing.
+>
+> **GOAL-025 came from the same place**, without an emulator this time: read
+> everything, reload, and the screen emptied itself into a dead end — no pull,
+> nothing asking the server again. Reported in two sentences by the author. It
+> is the seventh defect of this phase found by using the application.
 >
 > Hence the rule now in AGENTS.md §5.3 — **shut the stack down at the end of
 > every Goal**, since stopping destroys nothing.
@@ -86,7 +91,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-022 | A local test stack, and the defects it revealed | `[x]` |
 | GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
 | GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
-| GOAL-025 | An empty feed stops being a dead end | `[ ]` |
+| GOAL-025 | An empty feed stops being a dead end | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1245,7 +1250,7 @@ knowing it.
 
 ## GOAL-018 — CI stops running on deprecated actions
 
-**Status: IN PROGRESS**
+**Status: DONE**
 
 Every release reported two warnings: `setup-java v4 is deprecated`, and
 `Node.js 20 is deprecated` for `download-artifact` and `action-gh-release`.
@@ -1738,7 +1743,7 @@ enough in this repository (ARCHITECTURE.md §9.6).
 
 ## GOAL-025 — An empty feed stops being a dead end
 
-**Status: IN PROGRESS**
+**Status: DONE**
 
 Reported by the author, in two sentences that describe the same corner: *"if no
 article is in focus, then fetch the server"*, and *"allow pull to refresh even
@@ -1746,7 +1751,9 @@ with no article"*.
 
 ### What the screen does today, and why it is a dead end
 
-A feed with nothing in it offers **no way out**. The pull is armed on the list
+One reaches an empty screen by reloading once everything has been read: the
+reload replaces what is displayed (SPECS.md §4.6) and the server has no unread
+article left to give. From there, the feed offers **no way out**. The pull is armed on the list
 alone (`ArticleList`), so a screen with no list has no gesture; the refresh
 button on the title row is still there, which is why this is a discomfort and
 not a lockup. And nothing asks the server again by itself: the "empty cache"
@@ -1778,9 +1785,32 @@ just read everything.
       from the lifecycle. Guarded on the phase — a load already in flight, a
       failure with its own "Retry", a refresh under way ask nothing more
 - [x] `GOAL-025-T02` **The pull works on a screen with no article** (List mode).
-      The gesture needs something that scrolls to be detected: the states with
-      no article become scrollable expressly so the pull exists there
-- [-] `GOAL-025-T03` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9
+      The gesture needs something that dispatches scroll to be detected: a
+      `LazyColumn` of a single item sized with `fillParentMaxSize`, since a
+      plain `Box` would have made the gesture **inert** — worse than absent.
+      `fillParentMaxSize` also keeps the centring, so the 58 captures did not
+      move
+- [x] `GOAL-025-T03` **Recorded**: SPECS.md §4.6 (the pull no longer stops with
+      the list), §5.1 (the exception is read at every foregrounding, not only at
+      launch) and §5.3 (a feed left empty has no place to find again);
+      ARCHITECTURE.md §9.9
+
+### What the mutations established
+
+Each guard was removed and put back, since a guard that cannot fail is
+decoration (AGENTS.md §8):
+
+| Mutation | Cases that went red |
+|---|---|
+| Guards removed from `onScreenShown` | the three refusals — something to show, first load in flight, failure with its own "Retry" |
+| `refresh()` removed from `onScreenShown` | list mode, and the "one attempt per foregrounding" case |
+| Same, Swipe side | swipe mode alone — which is the point of having both |
+| `PullToRefreshBox` removed from `PullableMessage` | the two pull cases, the tagged node still being there |
+
+The Detekt threshold `TooManyFunctions` went from 11 to 12 along the way, with
+its reason in `config/detekt/detekt.yml`: a screen's ViewModel is a **collector
+of gestures**, its method count tracks the commands the screen offers, and
+splitting it in two to satisfy a counter would make two halves of one state.
 
 ---
 

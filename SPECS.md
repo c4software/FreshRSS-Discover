@@ -330,8 +330,16 @@ Two commands trigger it, and they do exactly the same thing:
 
 | Command | Available in | Why |
 |---|---|---|
-| **Pull to refresh** | List mode | The conventional gesture on a vertical feed |
+| **Pull to refresh** | List mode, **with or without articles** | The conventional gesture on a vertical feed |
 | **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
+
+The gesture long stopped where the list stopped: a screen with no article had
+no list, therefore no pull. The reasoning was that those screens already had
+their way out — "Retry" — and that a scroll gesture is not discovered where
+nothing scrolls. The first half was wrong. A reader who has read everything has
+no error to retry, only an empty screen, and the pull is the first thing they
+try on it. So it is armed there too; the button and "Retry" stay where they
+were.
 
 The button is therefore not a duplicate of the gesture: it is the **only**
 command of Swipe mode — superimposing a vertical pull on it would give two
@@ -509,6 +517,26 @@ out — there is nothing to show, and the first load leaves on its own. An empty
 screen during a network request would give the impression of an application with
 no content; an empty screen with no request would be worse, a dead application.
 
+That exception is not read only at launch. **Every time the feed comes to the
+foreground with nothing on it, a request leaves**: arriving on the feed, coming
+back from Settings, waking from sleep. One gets to an empty screen by reloading
+once everything has been read — the reload replaces what is displayed (§4.6),
+and the server has no unread article left to give. That screen then asked
+nothing more, and one got out of it only by finding the button on the title row.
+
+It is attached to a discrete fact — the screen coming to the foreground — and
+never to the state of being empty. A server with nothing to give leaves the
+screen empty, and a rule that reacted to emptiness would ask again, and again.
+Each foregrounding is worth **one** attempt. A first load already in flight, a
+failure carrying its own "Retry", and a reload under way ask nothing more: the
+first would double the request of every launch, and the second would hammer a
+missing network at each return.
+
+What leaves is the **reload** of §4.6, not the next page: the cursor of a
+finished feed leads nowhere, and the reload is the only path that tells the
+server what has just been read before questioning it — which is precisely the
+situation, since one arrives at an empty screen by having just read everything.
+
 ### 5.2 Offline
 
 With no network:
@@ -540,7 +568,8 @@ no longer paid for its complexity.
 
 What remains guaranteed, and matters more: the top of the feed at launch is
 **exactly** that of the closing, new articles excluded since there are none
-without a gesture.
+without a gesture — unless the feed you left was empty, in which case there is
+no place to find again and a request leaves (§5.1).
 
 ### 5.4 Purge
 
