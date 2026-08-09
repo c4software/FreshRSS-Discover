@@ -78,6 +78,7 @@ par trois agents à la demande de l'auteur — GOAL-020 est terminé.
 | GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
 | GOAL-022 | Une pile de test locale, et les défauts qu'elle a révélés | `[-]` |
+| GOAL-023 | La carte se resserre : source et date en pied, partage discret | `[x]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1571,6 +1572,51 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       une fois collé dans une messagerie, demandent un appui sur l'appareil.
       L'essai a été interrompu plutôt que mené : l'auteur se servait de son
       téléphone au même moment, et lui disputer l'écran n'aurait rien prouvé
+
+---
+
+## GOAL-023 — La carte se resserre : source et date en pied, partage discret
+
+**Statut : DONE** — validé sur l'émulateur, pas sur appareil (demande de l'auteur)
+
+Demandé par l'auteur après avoir vu `GOAL-020` sur appareil. Deux ajustements
+de la carte du mode Liste, et ils vont ensemble : le bouton de partage occupe
+aujourd'hui **une ligne à lui seul** en bas de carte, pendant que la source et
+la date en occupent une autre en tête. Réunis en un seul pied de carte, ils
+rendent une ligne au contenu.
+
+### Ce qui est tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| La source et la date | Descendent en **pied de carte**, sur la même ligne que le partage | Demande de l'auteur. Le titre devient la première chose lue, ce que la hiérarchie d'une carte veut de toute façon ; la provenance reste présente, elle cesse d'être annoncée avant le sujet |
+| Ce que voit un lecteur d'écran | L'ordre suit la mise en page : titre, extrait, puis provenance et commande | C'est un gain, pas une perte : la commande était déjà en dernier, et la source cesse de précéder le titre |
+| La taille du partage | Le **dessin** de l'icône passe à la taille du texte ; la **cible tactile** reste à 48 dp | C'est le compromis, et il faut le dire : « plus compact » ne peut pas vouloir dire « plus petit à toucher », SPECS.md §7.1 fixe 48 dp. Ce qu'on gagne est la ligne entière que le bouton occupait, pas les pixels de sa surface sensible |
+| Portée | Le pied de carte en mode **Liste** ; l'icône réduite dans les **deux** modes | Le composant de partage est commun (GOAL-020-T03) et le rétrécir d'un seul côté le ferait diverger. Le déplacement, lui, n'a de sens qu'en Liste : en plein écran la carte défile, et une provenance placée sous un extrait de 1 400 caractères serait sous la ligne de flottaison |
+
+### Tâches
+
+- [x] `GOAL-023-T01` **L'icône de partage à la taille du texte** — 18 dp, la
+      hauteur d'une capitale de `labelMedium` — la cible tactile restant à
+      48 dp. Les deux mesures sont désormais deux constantes distinctes, parce
+      qu'elles ne mesurent pas la même chose : ce que l'œil voit et ce que le
+      doigt atteint. Les confondre aurait forcé à choisir entre une icône qui
+      écrase le pied de carte et une cible trop petite pour SPECS.md §7.1
+- [x] `GOAL-023-T02` **Source et date en pied de carte**, sur la ligne du
+      partage, en mode Liste. `weight(1f)` sur le texte et non un espaceur :
+      c'est au nom du flux de s'écourter quand il est long, pas à la commande
+      d'être poussée hors de la carte.
+      > **Un détail vu sur la capture, et corrigé.** Le pied d'un article
+      > **sans lien** n'a pas de bouton, donc se réduisait à la hauteur de son
+      > texte pendant que les autres tenaient les 48 dp de la cible tactile.
+      > Dans une liste, cet écart se lit comme un défaut de gabarit plutôt que
+      > comme l'absence d'une commande : `heightIn` donne au pied la même
+      > hauteur partout
+- [x] `GOAL-023-T03` **Captures Roborazzi regardées**, clair et sombre, dans les
+      deux modes — 30 références modifiées. Puis **constaté sur l'émulateur** :
+      le titre ouvre la carte, la provenance et le partage tiennent une seule
+      ligne en pied, et la carte est visiblement plus courte.
+      Pas sur l'appareil de l'auteur, à sa demande
 
 ---
 
