@@ -82,6 +82,10 @@ internal class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.ContinuousVisibilityMillis] = value }
     }
 
+    override suspend fun setAutoMarkAsReadEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.AutoMarkAsReadEnabled] = value }
+    }
+
     /**
      * Le mode de présentation, relu à chaque changement du fichier.
      *
@@ -114,6 +118,13 @@ internal class SettingsStore @Inject constructor(
         visibleFraction = preferences[Keys.VisibleFraction] ?: ReadingSettings.Default.visibleFraction,
         continuousVisibilityMillis = preferences[Keys.ContinuousVisibilityMillis]
             ?: ReadingSettings.Default.continuousVisibilityMillis,
+        /*
+         * L'absence de clé vaut « actif » : c'est le cas de toute installation
+         * antérieure au réglage, et changer son comportement à la mise à jour
+         * ferait passer le marquage pour en panne.
+         */
+        autoMarkAsReadEnabled = preferences[Keys.AutoMarkAsReadEnabled]
+            ?: ReadingSettings.Default.autoMarkAsReadEnabled,
     )
 
     /**
@@ -129,6 +140,12 @@ internal class SettingsStore @Inject constructor(
     private object Keys {
         val VisibleFraction = floatPreferencesKey("reading.visible_fraction")
         val ContinuousVisibilityMillis = longPreferencesKey("reading.continuous_visibility_millis")
+
+        /**
+         * `reading.` comme les deux seuils : il dit, comme eux, ce qui rend un
+         * article lu — et il se lit dans la même émission.
+         */
+        val AutoMarkAsReadEnabled = booleanPreferencesKey("reading.auto_mark_as_read")
 
         /**
          * Une chaîne et non un entier : voir `FeedPresentation.storedName`, qui

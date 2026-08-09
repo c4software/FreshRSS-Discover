@@ -252,6 +252,45 @@ class SwipeViewModelTest {
         assertTrue(state.articles.first { it.id == 1L }.isRead)
     }
 
+    // ----- Marquage automatique éteint (SPECS.md §4.5) ------------------------
+
+    @Test
+    fun withAutomaticMarkingOffWatchingAnArticleLeavesItUnread() {
+        settingsRepository.setAutomaticMarking(enabled = false)
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        watch(id = 1L)
+
+        assertTrue(reportedBatches.isEmpty())
+        assertFalse(state.articles.single().isRead)
+    }
+
+    @Test
+    fun withAutomaticMarkingOffOpeningAnArticleStillMarksItRead() {
+        // Le piège de ce réglage : en plein écran, la seule autre façon de
+        // marquer est l'ouverture (SPECS.md §4.7). La perdre rendrait le mode
+        // Balayage incapable de consommer quoi que ce soit.
+        settingsRepository.setAutomaticMarking(enabled = false)
+        repository.enqueuePage(listOf(article(id = 1L)))
+
+        assertTrue(viewModel.onArticleOpened(1L))
+
+        assertEquals(listOf(setOf(ArticleId(1L))), reportedBatches)
+        assertTrue(state.articles.single().isRead)
+    }
+
+    @Test
+    fun turningAutomaticMarkingBackOnResumesWithoutARestart() {
+        settingsRepository.setAutomaticMarking(enabled = false)
+        repository.enqueuePage(listOf(article(id = 1L)))
+        watch(id = 1L)
+
+        settingsRepository.setAutomaticMarking(enabled = true)
+        watch(id = 1L)
+
+        assertEquals(listOf(setOf(ArticleId(1L))), reportedBatches)
+    }
+
     // ----- Ouverture ----------------------------------------------------------
 
     @Test

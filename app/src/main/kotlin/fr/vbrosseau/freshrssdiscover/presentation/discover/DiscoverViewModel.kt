@@ -88,9 +88,15 @@ class DiscoverViewModel @Inject constructor(
      * chronomètres à zéro. C'est voulu : un seuil modifié en cours de lecture ne
      * doit pas s'appliquer à un chronomètre démarré sous l'ancien. Les articles
      * déjà signalés sont oubliés du même coup, mais sans conséquence — ils sont
-     * déjà `isRead` localement, et [reportRead] les écarte avant transmission.
+     * déjà `isRead` localement, et [markRead] les écarte avant transmission.
+     *
+     * **`null` quand le marquage automatique est éteint** (SPECS.md §4.5) :
+     * l'absence de détecteur dit mieux qu'un booléen à côté qu'il n'y a rien à
+     * alimenter — on ne peut pas oublier de le consulter. L'écran continue
+     * d'échantillonner la visibilité, et c'est sans effet : la reprise se fait
+     * alors sans redémarrage, à la seule émission des réglages.
      */
-    private var readDetector = ReadDetector(clock)
+    private var readDetector: ReadDetector? = ReadDetector(clock)
 
     /** Articles déjà transmis au dépôt de synchronisation, sur la vie de l'écran. */
     private val alreadyReported = mutableSetOf<ArticleId>()
@@ -100,14 +106,23 @@ class DiscoverViewModel @Inject constructor(
          * Les seuils viennent des réglages, pas de constantes compilées : une
          * modification s'applique **sans redémarrage**, ce pour quoi le dépôt
          * expose un flux plutôt qu'une lecture ponctuelle (SPECS.md §6).
+         *
+         * L'interrupteur du marquage automatique emprunte le **même** chemin :
+         * ouvrir un second flux ferait observer deux sources à qui n'applique
+         * qu'une règle, et l'extinction n'arriverait pas forcément au même
+         * moment que le seuil.
          */
         settingsRepository.observeReadingSettings()
             .onEach { settings ->
-                readDetector = ReadDetector(
-                    clock = clock,
-                    visibleFractionThreshold = settings.visibleFraction,
-                    continuousVisibilityMillis = settings.continuousVisibilityMillis,
-                )
+                readDetector = if (settings.autoMarkAsReadEnabled) {
+                    ReadDetector(
+                        clock = clock,
+                        visibleFractionThreshold = settings.visibleFraction,
+                        continuousVisibilityMillis = settings.continuousVisibilityMillis,
+                    )
+                } else {
+                    null
+                }
             }
             .launchIn(viewModelScope)
 
@@ -223,10 +238,14 @@ class DiscoverViewModel @Inject constructor(
      * Appelée périodiquement par l'écran, y compris quand rien ne bouge : la
      * règle de SPECS.md §4.5 porte sur une **durée continue**, et le détecteur
      * étant pur, cette durée ne s'écoule que d'une observation à l'autre.
+     *
+     * **Sans effet quand le marquage automatique est éteint** : il n'y a alors
+     * pas de détecteur à alimenter. L'ouverture d'un article, elle, continue de
+     * le marquer lu (SPECS.md §4.7) — voir [onArticleOpened].
      */
 
     fun onVisibilityChanged(visibility: Map<ArticleId, Float>) {
-        val justRead = readDetector.onVisibilityChanged(visibility)
+        val justRead = readDetector?.onVisibilityChanged(visibility).orEmpty()
         if (justRead.isEmpty()) return
 
         markRead(justRead)
@@ -240,6 +259,10 @@ class DiscoverViewModel @Inject constructor(
      * article est un acte de lecture plus net que n'importe quelle durée
      * d'affichage, et attendre le double seuil ferait revenir dans le flux
      * l'article que l'utilisateur vient précisément d'ouvrir.
+     *
+     * **Y compris marquage automatique éteint** : l'interrupteur de SPECS.md
+     * §4.5 n'arrête que la détection par visibilité. Le faire porter aussi sur
+     * l'ouverture confondrait un geste délibéré avec un effet du défilement.
      *
      * **Faux hors ligne** (SPECS.md §5.2) : l'onglet personnalisé n'afficherait
      * que la page d'erreur du navigateur, sans dire pourquoi, et l'article

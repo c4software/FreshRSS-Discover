@@ -29,6 +29,18 @@ interface SettingsRepository {
     suspend fun setContinuousVisibilityMillis(value: Long)
 
     /**
+     * Allume ou éteint le marquage par visibilité (SPECS.md §4.5, §6).
+     *
+     * Un écrivain de plus, et non un `save(ReadingSettings)`, pour la raison
+     * déjà écrite plus haut : l'écran ne touche jamais deux réglages à la fois.
+     *
+     * Sans bornes à vérifier — un booléen n'en a pas — et **sans effet sur les
+     * deux seuils** : ils restent enregistrés pendant l'extinction, puisqu'ils
+     * redeviendront applicables au rallumage.
+     */
+    suspend fun setAutoMarkAsReadEnabled(value: Boolean)
+
+    /**
      * Le mode de présentation du flux (SPECS.md §4.8, §6).
      *
      * Un [Flow] distinct de [observeReadingSettings] : les deux réglages n'ont

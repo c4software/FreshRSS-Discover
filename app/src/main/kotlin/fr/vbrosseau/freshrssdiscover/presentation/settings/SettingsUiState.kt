@@ -47,6 +47,19 @@ data class SettingsUiState(
      * n'a que deux valeurs.
      */
     val presentation: FeedPresentation = FeedPresentation.Default,
+    /**
+     * Le marquage par visibilité a-t-il lieu (SPECS.md §4.5, §6) ?
+     *
+     * Il commande l'état actif des deux curseurs, qui restent **affichés et
+     * grisés** quand il est éteint : les cacher ferait disparaître deux
+     * réglages sans dire pourquoi, les laisser actifs proposerait d'ajuster ce
+     * qui ne s'applique plus.
+     *
+     * Sa valeur par défaut suit celle du dépôt — **actif** — pour que l'écran
+     * ne montre pas brièvement des curseurs grisés pendant la première lecture
+     * du disque.
+     */
+    val isAutoMarkAsReadEnabled: Boolean = true,
     /** Part de hauteur affichée exigée par SPECS.md §4.5, en pourcentage entier. */
     val visibleFraction: SettingsThreshold = visibleFractionThresholdOf(ReadingSettings.Default),
     /** Durée d'affichage continu exigée par SPECS.md §4.5, en secondes. */

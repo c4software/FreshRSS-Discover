@@ -30,6 +30,18 @@ class FakeSettingsRepository(
     val currentPresentation: FeedPresentation
         get() = presentation.value
 
+    /**
+     * Allume ou éteint le marquage automatique **sans passer par une écriture**.
+     *
+     * Une fonction ordinaire et non [setAutoMarkAsReadEnabled] : les tests de
+     * ViewModel ne sont pas des `runTest`, et surtout ce n'est pas un geste de
+     * l'utilisateur qu'ils mettent en scène mais un état de départ — d'où
+     * l'absence d'incrément de [writeCount].
+     */
+    fun setAutomaticMarking(enabled: Boolean) {
+        settings.value = settings.value.copy(autoMarkAsReadEnabled = enabled)
+    }
+
     override fun observeReadingSettings(): StateFlow<ReadingSettings> = settings
 
     override fun observeFeedPresentation(): StateFlow<FeedPresentation> = presentation
@@ -56,5 +68,10 @@ class FakeSettingsRepository(
     override suspend fun setContinuousVisibilityMillis(value: Long) {
         writeCount++
         settings.value = settings.value.copy(continuousVisibilityMillis = value)
+    }
+
+    override suspend fun setAutoMarkAsReadEnabled(value: Boolean) {
+        writeCount++
+        settings.value = settings.value.copy(autoMarkAsReadEnabled = value)
     }
 }

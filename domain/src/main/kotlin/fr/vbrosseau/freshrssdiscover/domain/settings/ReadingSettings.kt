@@ -24,6 +24,23 @@ package fr.vbrosseau.freshrssdiscover.domain.settings
 data class ReadingSettings(
     val visibleFraction: Float,
     val continuousVisibilityMillis: Long,
+    /**
+     * Le marquage par visibilité a-t-il lieu (SPECS.md §4.5) ?
+     *
+     * Éteint, il n'arrête que la **détection par visibilité** : ouvrir un
+     * article continue de le marquer lu (SPECS.md §4.7), parce que c'est un
+     * geste délibéré et non un effet du défilement. Confondre les deux ferait
+     * revenir dans le flux l'article qu'on vient de lire ailleurs.
+     *
+     * Il vit ici plutôt que dans un flux à lui : il a le même lecteur que les
+     * deux seuils — le détecteur de lecture — et se lit au même moment. Deux
+     * sources obligeraient qui n'en applique qu'une à observer les deux.
+     *
+     * Sans borne à vérifier, contrairement aux seuils : un booléen n'a pas de
+     * valeur aberrante. Il traverse tout de même [coerced], qui est le chemin
+     * unique de relecture du disque.
+     */
+    val autoMarkAsReadEnabled: Boolean = true,
 ) {
     init {
         require(visibleFraction in VisibleFractionRange) {
@@ -79,6 +96,12 @@ data class ReadingSettings(
             ReadingSettings(
                 visibleFraction = 0.6f,
                 continuousVisibilityMillis = 1_000L,
+                /*
+                 * Actif : c'est le comportement d'aujourd'hui, celui que
+                 * SPECS.md §1 décrit — « lire, c'est faire défiler ». Une
+                 * installation existante ne doit rien voir changer.
+                 */
+                autoMarkAsReadEnabled = true,
             )
 
         /**
@@ -92,10 +115,17 @@ data class ReadingSettings(
          * rien, donc `coerceIn` le laisserait passer tel quel, et un seuil `NaN`
          * rendrait toute comparaison fausse — aucun article ne serait plus
          * jamais marqué lu.
+         *
+         * [autoMarkAsReadEnabled] la traverse sans être corrigé — un booléen
+         * n'a pas de valeur hors bornes — mais elle reste le point de passage
+         * unique de la relecture du disque : le lui faire contourner
+         * demanderait à chaque appelant de savoir lequel des trois réglages se
+         * corrige, et lequel non.
          */
         fun coerced(
             visibleFraction: Float,
             continuousVisibilityMillis: Long,
+            autoMarkAsReadEnabled: Boolean = Default.autoMarkAsReadEnabled,
         ): ReadingSettings =
             ReadingSettings(
                 visibleFraction =
@@ -109,6 +139,7 @@ data class ReadingSettings(
                         ContinuousVisibilityRange.first,
                         ContinuousVisibilityRange.last,
                     ),
+                autoMarkAsReadEnabled = autoMarkAsReadEnabled,
             )
     }
 }

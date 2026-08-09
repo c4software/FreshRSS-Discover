@@ -76,8 +76,14 @@ class SwipeViewModel @Inject constructor(
      * C'est **lui** qui rend le retour en arrière inoffensif (GOAL-012-T04) :
      * un article déjà signalé ne l'est jamais deux fois, quel que soit le
      * nombre de fois qu'on repasse dessus.
+     *
+     * **`null` quand le marquage automatique est éteint** (SPECS.md §4.5),
+     * comme en mode Liste : l'absence de détecteur dit qu'il n'y a rien à
+     * alimenter, plutôt qu'un booléen qu'on peut oublier de consulter. En plein
+     * écran, l'extinction pèse plus lourd qu'ailleurs — le seuil de surface y
+     * est satisfait d'emblée, et seule la durée décide.
      */
-    private var readDetector = ReadDetector(clock)
+    private var readDetector: ReadDetector? = ReadDetector(clock)
 
     /** Articles déjà transmis au dépôt de synchronisation, sur la vie de l'écran. */
     private val alreadyReported = mutableSetOf<ArticleId>()
@@ -85,13 +91,19 @@ class SwipeViewModel @Inject constructor(
     init {
         // Les seuils viennent des réglages (SPECS.md §6) : une modification
         // s'applique sans redémarrage, d'où un flux plutôt qu'une lecture.
+        // L'interrupteur du marquage automatique emprunte le même chemin,
+        // plutôt qu'un second flux à observer.
         settingsRepository.observeReadingSettings()
             .onEach { settings ->
-                readDetector = ReadDetector(
-                    clock = clock,
-                    visibleFractionThreshold = settings.visibleFraction,
-                    continuousVisibilityMillis = settings.continuousVisibilityMillis,
-                )
+                readDetector = if (settings.autoMarkAsReadEnabled) {
+                    ReadDetector(
+                        clock = clock,
+                        visibleFractionThreshold = settings.visibleFraction,
+                        continuousVisibilityMillis = settings.continuousVisibilityMillis,
+                    )
+                } else {
+                    null
+                }
             }
             .launchIn(viewModelScope)
 
@@ -195,9 +207,13 @@ class SwipeViewModel @Inject constructor(
      * de SPECS.md §4.5 porte sur une durée. C'est le piège d'intégration
      * principal de ce mode — un article regardé dix secondes ne serait jamais
      * signalé, faute d'une seconde observation.
+     *
+     * **Sans effet quand le marquage automatique est éteint** : il n'y a alors
+     * pas de détecteur à alimenter, et seule l'ouverture d'un article marque
+     * encore (SPECS.md §4.7).
      */
     fun onVisibilityChanged(visibility: Map<ArticleId, Float>) {
-        val justRead = readDetector.onVisibilityChanged(visibility)
+        val justRead = readDetector?.onVisibilityChanged(visibility).orEmpty()
         if (justRead.isEmpty()) return
 
         markRead(justRead)
@@ -209,7 +225,9 @@ class SwipeViewModel @Inject constructor(
      *
      * Mêmes règles qu'en mode Liste (SPECS.md §4.7 et §5.2) : lu quelle que
      * soit sa visibilité passée, refusé hors ligne où l'onglet personnalisé
-     * n'afficherait que la page d'erreur du navigateur.
+     * n'afficherait que la page d'erreur du navigateur. Marquage automatique
+     * éteint compris : l'interrupteur de SPECS.md §4.5 n'arrête que la
+     * détection par visibilité.
      *
      * @return vrai si l'appelant doit ouvrir le lien.
      */
