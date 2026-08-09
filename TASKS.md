@@ -1304,7 +1304,7 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
       et son passage par `coerced` — tests de `:domain`
 - [x] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
       rend, `SettingsRepository.setAutoMarkAsReadEnabled` — tests du store
-- [ ] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
+- [x] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
       détecteur** quand le réglage est éteint, et le reprennent sans redémarrage
       quand il se rallume. L'ouverture d'un article marque toujours
 - [ ] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
