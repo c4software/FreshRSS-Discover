@@ -33,9 +33,9 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 2 — Discover feed** ✅ assembled and delivered
 
 **Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
-(GOAL-019 to GOAL-027)
+(GOAL-019 to GOAL-028)
 
-**The twenty-seven Goals are done.** One point remains blocked, out of our hands:
+**The twenty-eight Goals are done.** One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
@@ -98,7 +98,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-025 | An empty feed stops being a dead end | `[x]` |
 | GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
 | GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
-| GOAL-028 | A page in flight no longer survives the reload that disowned it | `[ ]` |
+| GOAL-028 | A page in flight no longer survives the reload that disowned it | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1996,7 +1996,7 @@ notch too low for a twelve-query interface.
 
 ## GOAL-028 — A page in flight no longer survives the reload that disowned it
 
-**Status: IN PROGRESS**
+**Status: DONE**
 
 Found by analysis, at the author's request, after GOAL-027: not observed on a
 device, but the window is real and GOAL-027 widened what it can corrupt.
@@ -2036,7 +2036,21 @@ and "Retry" is the road back.
 - [x] `GOAL-028-T02` **Swipe mode stops starting pages during a reload** —
       `loadMore` gains the `isRefreshing` guard List mode already had
       (ARCHITECTURE.md §9.6, the divergence rule)
-- [ ] `GOAL-028-T03` **Record it**: ARCHITECTURE.md §9
+- [x] `GOAL-028-T03` **Recorded**: ARCHITECTURE.md §9.10
+
+### What the mutations established
+
+| Mutation | Case that went red |
+|---|---|
+| Generation no longer compared (List) | the two List cases |
+| Generation no longer compared (Swipe) | `swipeModeDropsThePageThatWasInFlightWhenTheReloadArrived` |
+| The reload no longer increments | the two List cases |
+| Swipe's `loadMore` ignores `isRefreshing` again | `swipeModeStartsNoPageDuringAReload` |
+
+The cursor is asserted through `requestedCursors`, not the displayed list: the
+reload replaces the list either way, so the display alone would mask the cursor
+overwrite — the defect only shows at the *next* page, served from the wrong end
+of the feed.
 
 ---
 

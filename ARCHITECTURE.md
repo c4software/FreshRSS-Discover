@@ -745,6 +745,34 @@ that dispatches scroll. `PullableMessage` is a `LazyColumn` of a single item
 sized with `fillParentMaxSize` — a plain `Box` emits no nested scroll, so the
 gesture would have been inert, which is worse than absent.
 
+### 9.10 A reload disowns the pages still in flight
+
+`refresh()` never looks at the loading lock — by design, a reload must not
+queue behind a slow page — so a page requested before the pull can land after
+it. Until GOAL-028 it was then applied as if nothing had happened: appended
+under the refreshed list, and its cursor **overwrote the reload's**, silently
+resuming the abandoned course. GOAL-027 widened the blast radius: its cache
+write re-inserted rows `retainOnly` had just removed. Found by analysis at the
+author's request, not observed on a device — the trigger is merely a slow
+network and the title-row button pressed during a `LoadingMore`.
+
+The fix is a **generation counter**, one per ViewModel: the reload increments
+it, and a page returning from an earlier generation is dropped on arrival —
+state, cursor and phase untouched, failure included, since reporting the
+failure of a disowned request would paint as broken a feed that was just
+replaced. A lock or an await on `isLoading` was rejected: it would make the
+gesture wait, which is the opposite of what it promises.
+
+Swipe mode had a second door to the same race: its `loadMore` did not check
+`isRefreshing` — List mode's did — so the pager could *start* a page during
+the reload. That is the §9.6 divergence pattern, once more; the guard is now
+on both sides, with a case each.
+
+The staging of this race in tests required splitting the fake's lock in two —
+`pendingLoad` gates `loadPage`, `pendingRefresh` gates `refresh` — because a
+single deferred suspending both calls makes the arrival order, which is the
+whole point, unobservable.
+
 ### 9.6 The feed's staleness is measured where the server answers
 
 The date used to say that a feed is stale (SPECS.md §4.6) is written by
