@@ -57,4 +57,9 @@ class FakeSettingsRepository(
         writeCount++
         settings.value = settings.value.copy(continuousVisibilityMillis = value)
     }
+
+    override suspend fun setAutoMarkAsReadEnabled(value: Boolean) {
+        writeCount++
+        settings.value = settings.value.copy(autoMarkAsReadEnabled = value)
+    }
 }

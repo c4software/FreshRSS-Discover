@@ -1302,7 +1302,7 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 
 - [x] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, actif par défaut,
       et son passage par `coerced` — tests de `:domain`
-- [ ] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
+- [x] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
       rend, `SettingsRepository.setAutoMarkAsReadEnabled` — tests du store
 - [ ] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
       détecteur** quand le réglage est éteint, et le reprennent sans redémarrage

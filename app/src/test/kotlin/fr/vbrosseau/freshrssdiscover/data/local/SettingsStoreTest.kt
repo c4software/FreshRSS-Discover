@@ -24,6 +24,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsStoreTest {
@@ -145,6 +147,71 @@ class SettingsStoreTest {
 
         val keys = dataStore.data.first().asMap().keys.map { it.name }
         assertEquals(listOf("reading.visible_fraction"), keys)
+    }
+
+    @Test
+    fun withoutAnythingStoredTheAutomaticMarkingIsOn() = runTest {
+        // Le cas d'une installation antérieure au réglage : la clé manque, et
+        // le marquage doit rester celui que SPECS.md §1 décrit.
+        assertTrue(store().observeReadingSettings().first().autoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun theAutomaticMarkingCanBeTurnedOffAndReadBack() = runTest {
+        val store = store()
+
+        store.setAutoMarkAsReadEnabled(false)
+
+        assertFalse(store.observeReadingSettings().first().autoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun theAutomaticMarkingSwitchSurvivesAFreshStoreOnTheSameFile() = runTest {
+        // Un réglage qu'il faut rééteindre à chaque lancement n'en est pas un.
+        val store = store()
+        store.setAutoMarkAsReadEnabled(false)
+
+        assertFalse(SettingsStore(dataStore).observeReadingSettings().first().autoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingOffLeavesTheThresholdsStored() = runTest {
+        // Les seuils sont grisés, pas oubliés : ils doivent se retrouver tels
+        // quels au rallumage.
+        val store = store()
+        store.setVisibleFraction(0.8f)
+        store.setContinuousVisibilityMillis(3_000L)
+
+        store.setAutoMarkAsReadEnabled(false)
+
+        val settings = store.observeReadingSettings().first()
+        assertEquals(0.8f, settings.visibleFraction)
+        assertEquals(3_000L, settings.continuousVisibilityMillis)
+    }
+
+    @Test
+    fun theAutomaticMarkingKeyDoesNotCollideWithTheOtherOnes() = runTest {
+        val store = store()
+        store.setAutoMarkAsReadEnabled(false)
+
+        val keys = dataStore.data.first().asMap().keys.map { it.name }
+        assertEquals(listOf("reading.auto_mark_as_read"), keys)
+    }
+
+    @Test
+    fun switchingTheAutomaticMarkingComesThroughAsANewEmission() = runTest {
+        // `distinctUntilChanged` porte sur l'ensemble des réglages : le
+        // troisième champ doit y participer, faute de quoi l'extinction
+        // n'atteindrait jamais les ViewModels du flux.
+        val store = store()
+        val seen = mutableListOf<ReadingSettings>()
+        val job = scope.launch { store.observeReadingSettings().toList(seen) }
+
+        store.setAutoMarkAsReadEnabled(false)
+        job.cancel()
+
+        assertEquals(2, seen.size)
+        assertFalse(seen.last().autoMarkAsReadEnabled)
     }
 
     @Test
