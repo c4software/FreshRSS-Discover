@@ -51,7 +51,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
-import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -371,54 +370,44 @@ private fun ArticlePage(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    /*
-     * Le fanion **survole** la carte, hors du flux vertical et hors du
-     * défilement : posé dedans, il décalait le contenu des articles sans
-     * illustration, et il aurait défilé avec le texte — alors qu'il qualifie
-     * l'article entier, pas son sommet.
-     */
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .testTag(SwipeTestTags.page(article.id)),
-        ) {
-            if (article.hasIllustration) {
-                ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
-            }
-
-            Column(
-                modifier = Modifier.padding(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.swipe_article_meta,
-                        article.feedTitle,
-                        article.publishedAt.label(),
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
-
-                if (article.excerpt.isNotBlank()) {
-                    Text(
-                        text = article.excerpt,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                OpenAction(article = article, onOpen = onOpen)
-            }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .testTag(SwipeTestTags.page(article.id)),
+    ) {
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
         }
 
-        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.swipe_article_meta,
+                    article.feedTitle,
+                    article.publishedAt.label(),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
+
+            if (article.excerpt.isNotBlank()) {
+                Text(
+                    text = article.excerpt,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            OpenAction(article = article, onOpen = onOpen)
+        }
     }
 }
 

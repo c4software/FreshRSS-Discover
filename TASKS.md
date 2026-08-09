@@ -1315,7 +1315,7 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 
 ## GOAL-020 — La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui
 
-**Statut : TODO**
+**Statut : IN PROGRESS**
 
 Trois demandes de l'auteur sur la même surface — la carte d'article — donc un
 seul Goal : elles se croisent dans `DiscoverScreen` et `SwipeScreen`, et les
@@ -1336,8 +1336,17 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
 
 ### Tâches
 
-- [ ] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
-      deux écrans, ses tests, ses chaînes et ses deux captures
+- [x] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
+      deux écrans, ses tests, ses chaînes et ses deux captures.
+      `FeedTestTags` disparaît avec lui — il ne portait que `READ_FLAG`.
+      SPECS.md §4.5 et ARCHITECTURE.md §9.9 sont traitées **ici** et non en
+      `T06` : elles décrivent le fanion, et les laisser une tâche de plus
+      aurait fait mentir la documentation sur du code déjà supprimé. La leçon
+      de §9.9 — « tester l'écran ne teste pas ce qui l'alimente » — est
+      conservée en ARCHITECTURE.md §8.3, où elle vaut pour tout champ
+      d'`ArticleUiModel` et non pour le seul fanion.
+      `verifyRoborazziDebug` passe sans réenregistrement : aucune capture
+      restante ne portait d'article lu
 - [ ] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
       ce qui se partage, ce qui se tait — éprouvable en JVM, le lancement de
       l'intention isolé derrière une interface fonctionnelle, comme

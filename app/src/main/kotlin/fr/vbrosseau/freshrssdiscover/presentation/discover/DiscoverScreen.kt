@@ -45,7 +45,6 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
-import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -440,28 +439,17 @@ private fun ArticleCard(
 
 @Composable
 private fun ArticleCardContent(article: ArticleUiModel) {
-    /*
-     * Le fanion **survole** la carte et n'entre pas dans son flux vertical
-     * (SPECS.md §4.5). Posé dans le flux, il occupait une hauteur : les
-     * articles sans illustration voyaient leur contenu décalé vers le bas,
-     * constaté sur appareil. Le `Box` englobe donc toute la carte, et le
-     * fanion s'aligne sur son coin haut.
-     */
-    Box {
-        Column {
-            if (article.hasIllustration) {
-                ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
-            }
-
-            Column(
-                modifier = Modifier.padding(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                ArticleCardTexts(article)
-            }
+    Column {
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
         }
 
-        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            ArticleCardTexts(article)
+        }
     }
 }
 

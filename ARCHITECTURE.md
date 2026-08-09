@@ -489,6 +489,23 @@ retombait sur du noir, invisible en thème sombre. La capture montrait donc un
 défaut que l'application, qui rend ses écrans dans un `Scaffold`, n'a pas.
 Constaté en Phase 0.
 
+### 8.3 Tester l'écran ne teste pas ce qui l'alimente
+
+Les tests d'écran construisent l'état d'affichage **à la main** : ils prouvent
+que l'écran rend ce qu'on lui donne, jamais qu'on lui donne la bonne chose.
+
+Le cas qui l'a établi : `Article.toUiModel` omettait de propager `isRead`.
+Quatre tests d'écran couvraient pourtant l'affichage de cet état, et aucun ne
+pouvait attraper le défaut — ils passaient tous `isRead` eux-mêmes, sans jamais
+traverser la projection. Il ne s'est vu que sur appareil, un article lu la
+veille arrivant du cache comme neuf.
+
+La règle vaut pour **tout** champ d'`ArticleUiModel`, et d'autant plus pour ceux
+dont plus rien ne s'affiche : `isRead` n'a plus de représentation depuis
+GOAL-020, mais il décide toujours du marquage et de la purge (SPECS.md §5.4).
+Ce que l'écran ne montre pas, seul un test de projection le garde —
+`ArticleUiModelTest`.
+
 ---
 
 ## 9. Carte du dépôt
@@ -640,19 +657,6 @@ produisait un.
 `providers.exec` plutôt qu'un appel direct à `ProcessBuilder` : le dépôt utilise
 le cache de configuration de Gradle, qu'un appel non déclaré invaliderait à
 chaque construction.
-
-### 9.9 L'état lu doit traverser la projection
-
-`ReadFlag` marque les articles déjà lus (SPECS.md §4.5). Le piège n'est pas dans
-le rendu mais dans ce qui l'alimente : `Article.toUiModel` a d'abord omis de
-propager `isRead`, et le défaut s'est vu à l'écran — un article lu la veille
-arrivait du cache comme neuf, son fanion n'apparaissant qu'après une seconde de
-visibilité, le temps que le marquage de la session le rétablisse.
-
-Quatre tests d'écran couvraient pourtant le fanion. Aucun ne pouvait attraper
-cela : ils construisent l'état d'affichage à la main, `isRead` compris, sans
-jamais passer par la projection. **Tester l'écran ne teste pas ce qui
-l'alimente** — la règle vaut pour tout champ ajouté à `ArticleUiModel`.
 
 ### 9.8 Une image n'est jamais agrandie
 
