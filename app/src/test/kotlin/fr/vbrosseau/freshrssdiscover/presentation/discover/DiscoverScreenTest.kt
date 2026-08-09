@@ -564,6 +564,52 @@ class DiscoverScreenTest {
         assertEquals(1, refreshed)
     }
 
+    /**
+     * Le cul-de-sac de GOAL-025 : un lecteur qui a tout lu n'a pas d'erreur à
+     * reprendre, seulement un écran vide, et c'est le tirage qu'il y tente
+     * d'abord. Signalé par l'auteur.
+     */
+    @Test
+    fun anEmptyFeedCanBePulledDownToo() {
+        var refreshed = 0
+        show(DiscoverUiState(phase = DiscoverPhase.EndOfFeed), onRefresh = { refreshed++ })
+
+        composeRule.onNodeWithTag(DiscoverTestTags.PULLABLE_MESSAGE).performTouchInput {
+            swipeDown(startY = centerY, endY = bottom)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(1, refreshed)
+    }
+
+    /** L'échec sans article aussi : « Réessayer » demeure, le geste s'y ajoute. */
+    @Test
+    fun aFailureWithNoArticleCanBePulledDown() {
+        var refreshed = 0
+        show(
+            DiscoverUiState(phase = DiscoverPhase.Failed(DiscoverFailure.ServerUnreachable)),
+            onRefresh = { refreshed++ },
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.PULLABLE_MESSAGE).performTouchInput {
+            swipeDown(startY = centerY, endY = bottom)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(1, refreshed)
+    }
+
+    /**
+     * Le premier chargement n'est pas tirable : sa requête est déjà en vol, et
+     * un second départ ne rendrait rien de plus tôt.
+     */
+    @Test
+    fun theFirstLoadOffersNoPull() {
+        show(DiscoverUiState(phase = DiscoverPhase.InitialLoading))
+
+        composeRule.onNodeWithTag(DiscoverTestTags.PULLABLE_MESSAGE).assertDoesNotExist()
+    }
+
     @Test
     fun aRefreshInProgressLeavesTheArticlesInPlace() {
         // Le rafraîchissement se fait **par-dessus** le flux : il ne le

@@ -207,20 +207,95 @@ private fun FeedBody(
         phase == DiscoverPhase.InitialLoading ||
             phase == DiscoverPhase.SessionEnded -> Centered(modifier) { LoadingIndicator() }
 
-        phase is DiscoverPhase.Failed -> Centered(modifier) {
+        phase is DiscoverPhase.Failed -> PullableMessage(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier,
+        ) {
             FailureBlock(failure = phase.failure, onRetry = onRetry)
         }
 
-        else -> Centered(modifier) { EmptyFeedMessage() }
+        else -> PullableMessage(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier,
+        ) {
+            EmptyFeedMessage()
+        }
+    }
+}
+
+/**
+ * Un écran sans article, tirable quand même (GOAL-025-T02).
+ *
+ * **Le tirage n'était armé que sur la liste**, au motif que les états sans
+ * article avaient déjà leur reprise et qu'un geste de défilement ne se découvre
+ * pas là où rien ne défile. L'usage a démenti la première moitié : le lecteur
+ * qui a tout lu n'a pas d'erreur à reprendre, seulement un écran vide, et c'est
+ * le tirage qu'il tente en premier — signalé par l'auteur. La seconde moitié
+ * reste vraie, et c'est pourquoi le geste **s'ajoute** aux commandes existantes
+ * plutôt que de les remplacer : le bouton de la barre de titre demeure, et
+ * l'écran d'échec garde son « Réessayer ».
+ *
+ * **Une `LazyColumn` d'un seul élément**, là où un `Box` suffirait à
+ * l'affichage : le tirage se détecte par le défilement imbriqué, et un cadre
+ * qui ne défile pas n'en émet aucun — le geste serait inerte, ce qui est pire
+ * que son absence. Une liste, elle, dispatche même lorsqu'elle n'a rien à
+ * faire défiler. `fillParentMaxSize` rend au contenu exactement la hauteur du
+ * cadre, donc le même centrage qu'avant : les captures ne bougent pas.
+ *
+ * Le premier chargement et la fin de session n'y passent pas : l'un a déjà sa
+ * requête en vol, l'autre est sur le point de rendre l'écran.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PullableMessage(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val refreshState = rememberPullToRefreshState()
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+        state = refreshState,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = refreshState,
+                isRefreshing = isRefreshing,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(DiscoverTestTags.PULLABLE_MESSAGE),
+        ) {
+            item(key = MESSAGE_KEY) {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center,
+                    content = { content() },
+                )
+            }
+        }
     }
 }
 
 /**
  * Le flux et son geste de rafraîchissement (SPECS.md §4.6).
  *
- * Le tirage n'est armé qu'ici, sur la liste : les états sans article ont déjà
- * leur reprise — « Réessayer » — et un geste de défilement sur un écran qui
- * n'en propose pas ne se découvre pas.
+ * Le tirage y est armé, et l'était longtemps **ici seulement** : les états sans
+ * article avaient leur reprise, et un geste de défilement sur un écran qui n'en
+ * propose pas se découvre mal. Un écran vide n'a pourtant rien à reprendre, et
+ * le tirage est ce qu'on y tente d'abord — il est désormais armé là aussi, par
+ * [PullableMessage] (GOAL-025-T02).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -715,6 +790,9 @@ private fun Centered(modifier: Modifier = Modifier, content: @Composable () -> U
 
 /** Clé du pied de liste, distincte de tout identifiant d'article. */
 private const val FOOTER_KEY = "discover:footer"
+
+/** Clé de l'unique élément d'un écran sans article. */
+private const val MESSAGE_KEY = "discover:message"
 
 @Preview(showBackground = true)
 @Composable

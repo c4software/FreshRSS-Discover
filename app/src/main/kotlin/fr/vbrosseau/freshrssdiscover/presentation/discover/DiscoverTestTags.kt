@@ -5,6 +5,10 @@ object DiscoverTestTags {
     const val LIST = "discover:list"
     const val EMPTY = "discover:empty"
     const val END_OF_FEED = "discover:end"
+
+    /** Le cadre tirable des écrans sans article (GOAL-025-T02). */
+    const val PULLABLE_MESSAGE = "discover:pullable"
+
     const val FAILURE = "discover:failure"
     const val RETRY = "discover:retry"
     const val ILLUSTRATION = "discover:illustration"

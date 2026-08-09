@@ -1777,10 +1777,10 @@ just read everything.
       both modes: the two ViewModels gain the entry point, the routes call it
       from the lifecycle. Guarded on the phase — a load already in flight, a
       failure with its own "Retry", a refresh under way ask nothing more
-- [-] `GOAL-025-T02` **The pull works on a screen with no article** (List mode).
+- [x] `GOAL-025-T02` **The pull works on a screen with no article** (List mode).
       The gesture needs something that scrolls to be detected: the states with
       no article become scrollable expressly so the pull exists there
-- [ ] `GOAL-025-T03` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9
+- [-] `GOAL-025-T03` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9
 
 ---
 
