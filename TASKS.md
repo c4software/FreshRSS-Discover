@@ -32,23 +32,29 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 1 — FreshRSS API** ✅ finished (GOAL-002, GOAL-003)
 **Phase 2 — Discover feed** ✅ assembled and delivered
 
-**Phase 3 — Tuning the marking, sharing, English documentation** 🚧 in progress
-(GOAL-019, GOAL-020, GOAL-021)
+**Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
+(GOAL-019 to GOAL-024)
 
-One point remains blocked, out of our hands: `GOAL-001-T17` — AGP 9.3.1 still
-crashes on `lintAnalyzeDebugUnitTest`, retried on 2026-08-08. It will be lifted
-by an AGP version, not by code from here.
+**The twenty-four Goals are done.** One point remains blocked, out of our hands:
+`GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
+on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: `GOAL-019-T01` and `GOAL-021-T01`, carried out in parallel by
-three agents at the author's request — GOAL-020 is finished.
+**Next task**: none is due.
 
-> ⚠️ **No validation on a device is possible during this phase**, as the author
-> reported on 2026-08-09: the phone is not available. The guarantee therefore
-> rests entirely on the unit tests, the screen tests and the Roborazzi
-> screenshots **actually looked at**. Each of the previous Goals had its
-> "observed on a device" task, and three defects out of three were only seen
-> that way (`GOAL-001-T22`): that net is missing, and it is better to say so
-> than to let anyone believe the cover is equivalent.
+> **The device came back, and it changed what this phase could prove.** It was
+> opened on the statement that no device was available, and it was closed with a
+> local test stack — an emulator and a real FreshRSS instance
+> ([envTest/](./envTest/README.md)) — then on the author's own Pixel 10 Pro.
+> That was not a formality. **Six defects were found by running the thing**, and
+> not one of them by a test: cleartext refused while SPECS.md §3.1 promised it
+> (`GOAL-022-T01`), the share button not reaching the card edge
+> (`GOAL-022-T03`), `init` never returning and `adb install` failing in silence
+> (`GOAL-022-T02`), too much air under the card, and the double refresh
+> (`GOAL-024`). The lesson of `GOAL-001-T22` held: what lives below the
+> transport layer, or in the ordering of two calls, is only seen by executing.
+>
+> Hence the rule now in AGENTS.md §5.3 — **shut the stack down at the end of
+> every Goal**, since stopping destroys nothing.
 
 ---
 
