@@ -1795,6 +1795,24 @@ just read everything.
       launch) and §5.3 (a feed left empty has no place to find again);
       ARCHITECTURE.md §9.9
 
+### What was observed on the emulator
+
+The route wiring is the one thing **no case covers**: a `LifecycleResumeEffect`
+connected to nothing would leave all six green. It was therefore run against the
+local stack ([envTest/](./envTest/README.md)), on a real FreshRSS instance whose
+204 articles were marked read through the API.
+
+| Step | What the screen did |
+|---|---|
+| Reload on a fully-read feed | The display empties: "Nothing to read right now" |
+| 6 articles made unread server-side, then Settings and back | The feed comes back with them — **the foregrounding fetched** |
+| Same again, then a pull on the empty screen, with no foregrounding | The articles appear — **the gesture alone did it** |
+
+The second and third steps isolate each mechanism: nothing else could have
+triggered the request. Swipe mode was not run through the same course — it goes
+through the *same* helper, `AskTheServerWhenShownEmpty`, and its own case
+guards the ViewModel side.
+
 ### What the mutations established
 
 Each guard was removed and put back, since a guard that cannot fail is
