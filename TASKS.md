@@ -1300,7 +1300,7 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 
 ### Tâches
 
-- [ ] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, actif par défaut,
+- [x] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, actif par défaut,
       et son passage par `coerced` — tests de `:domain`
 - [ ] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
       rend, `SettingsRepository.setAutoMarkAsReadEnabled` — tests du store

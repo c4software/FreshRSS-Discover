@@ -6,6 +6,7 @@ import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -121,6 +122,13 @@ class ReadingSettingsTest {
     }
 
     @Test
+    fun automaticMarkingIsOnUntilSomeoneTurnsItOff() {
+        // SPECS.md §1 : « lire, c'est faire défiler ». Une installation
+        // existante ne doit rien voir changer à la mise à jour.
+        assertTrue(ReadingSettings.Default.autoMarkAsReadEnabled)
+    }
+
+    @Test
     fun coercingLeavesValuesAlreadyInRangeUntouched() {
         assertEquals(ReadingSettings.Default, ReadingSettings.coerced(0.6f, 1_000L))
     }
@@ -146,6 +154,32 @@ class ReadingSettingsTest {
         // `coerceIn` laisserait passer `NaN` : aucune de ses comparaisons n'est
         // vraie, et la valeur ressortirait telle quelle.
         assertEquals(0.6f, ReadingSettings.coerced(Float.NaN, 1_000L).visibleFraction)
+    }
+
+    @Test
+    fun coercingCarriesTheAutomaticMarkingSwitchThrough() {
+        // Le réglage n'a pas de bornes, mais il emprunte le même chemin de
+        // relecture du disque : s'il n'y passait pas, une extinction
+        // enregistrée reviendrait allumée au lancement suivant.
+        assertFalse(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = false).autoMarkAsReadEnabled)
+        assertTrue(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = true).autoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun coercingAssumesAutomaticMarkingWhenNothingSaysOtherwise() {
+        // Le cas du fichier de préférences écrit avant que le réglage
+        // n'existe : l'absence de valeur vaut « actif ».
+        assertTrue(ReadingSettings.coerced(0.6f, 1_000L).autoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun turningAutomaticMarkingOffLeavesTheThresholdsUntouched() {
+        // Les seuils restent enregistrés pendant l'extinction : ils sont
+        // affichés grisés, pas oubliés, et se retrouvent au rallumage.
+        val off = ReadingSettings.Default.copy(autoMarkAsReadEnabled = false)
+
+        assertEquals(ReadingSettings.Default.visibleFraction, off.visibleFraction)
+        assertEquals(ReadingSettings.Default.continuousVisibilityMillis, off.continuousVisibilityMillis)
     }
 
     private fun settings(
