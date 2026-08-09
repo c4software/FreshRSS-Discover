@@ -39,8 +39,8 @@ Un point reste bloqué, hors de notre main : `GOAL-001-T17` — AGP 9.3.1 plante
 toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera
 avec une version d'AGP, pas avec du code d'ici.
 
-**Prochaine tâche** : `GOAL-019-T01`, `GOAL-020-T01` et `GOAL-021-T01`, menées
-en parallèle par trois agents à la demande de l'auteur.
+**Prochaine tâche** : `GOAL-019-T01` et `GOAL-021-T01`, menées en parallèle
+par trois agents à la demande de l'auteur — GOAL-020 est terminé.
 
 > ⚠️ **Aucune validation sur appareil n'est possible sur cette phase**, l'auteur
 > l'a signalé le 2026-08-09 : le téléphone n'est pas disponible. La garantie
@@ -75,7 +75,7 @@ en parallèle par trois agents à la demande de l'auteur.
 | GOAL-017 | Un article déjà lu se voit | `[x]` |
 | GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
 | GOAL-019 | Le marquage automatique devient optionnel | `[x]` |
-| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[ ]` |
+| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[x]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
 | GOAL-022 | Une pile de test locale, et le défaut qu'elle a révélé | `[-]` |
 
@@ -1345,7 +1345,15 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 
 ## GOAL-020 — La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui
 
-**Statut : TODO**
+**Statut : DONE**
+
+> ⚠️ **Rien n'a été constaté sur appareil**, aucun n'étant disponible
+> (voir l'avertissement de la Phase courante). Ce que les tests ne peuvent
+> pas dire, et qu'il faudra regarder au premier lancement réel : **la feuille
+> de partage du système** — qu'elle s'ouvre, ce qu'elle propose, et la mine
+> que fait le texte « titre puis lien » une fois collé dans une messagerie.
+> `ArticleShareIntentTest` établit le contenu de l'intention, pas ce
+> qu'Android en fait.
 
 Trois demandes de l'auteur sur la même surface — la carte d'article — donc un
 seul Goal : elles se croisent dans `DiscoverScreen` et `SwipeScreen`, et les
@@ -1366,20 +1374,64 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
 
 ### Tâches
 
-- [ ] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
-      deux écrans, ses tests, ses chaînes et ses deux captures
-- [ ] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
+- [x] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
+      deux écrans, ses tests, ses chaînes et ses deux captures.
+      `FeedTestTags` disparaît avec lui — il ne portait que `READ_FLAG`.
+      SPECS.md §4.5 et ARCHITECTURE.md §9.9 sont traitées **ici** et non en
+      `T06` : elles décrivent le fanion, et les laisser une tâche de plus
+      aurait fait mentir la documentation sur du code déjà supprimé. La leçon
+      de §9.9 — « tester l'écran ne teste pas ce qui l'alimente » — est
+      conservée en ARCHITECTURE.md §8.3, où elle vaut pour tout champ
+      d'`ArticleUiModel` et non pour le seul fanion.
+      `verifyRoborazziDebug` passe sans réenregistrement : aucune capture
+      restante ne portait d'article lu
+- [x] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
       ce qui se partage, ce qui se tait — éprouvable en JVM, le lancement de
       l'intention isolé derrière une interface fonctionnelle, comme
-      `CustomTabLauncher`
-- [ ] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
-      cible de 48 dp et description pour le lecteur d'écran — tests d'écran
-- [ ] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
-      bouton disparaît. Un test constate que le balayage passe toujours
-- [ ] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
-      **regardées**
-- [ ] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
-      ARCHITECTURE.md §9.9 et §9, TASKS.md
+      `CustomTabLauncher`.
+      Deux écarts au modèle, tous deux voulus : `ArticleShareOutcome` n'a que
+      deux valeurs — pas d'équivalent de `NoBrowser`, le sélecteur étant
+      fourni par le système et disant lui-même qu'aucune application ne peut
+      recevoir — et `isSupportedWebLink` passe de `private` à `internal`
+      plutôt que d'être recopiée, pour que les deux règles de schémas ne
+      puissent pas diverger. Le gabarit du texte partagé est une ressource,
+      donnée au partageur par `rememberArticleSharer` : la composition reste
+      éprouvable en JVM, la formulation reste traduisible
+- [x] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
+      cible de 48 dp et description pour le lecteur d'écran — tests d'écran.
+      `ArticleShareButton` vit dans `feed/`, comme `RefreshButton` : même
+      action des deux côtés. Posé **sous** les textes de la carte et non sur
+      la ligne du flux et de la date — là-haut, un lecteur d'écran annoncerait
+      la commande avant le titre de l'article qu'elle partage.
+      `onArticleShare` est **sans valeur par défaut** sur les deux écrans :
+      un `{}` implicite laisserait un bouton visible et inerte.
+      Références Roborazzi réenregistrées et **regardées** dans ce même
+      incrément, plutôt que reportées à `T05` : entre les deux, la
+      vérification visuelle aurait été rouge sans que cela signifie rien
+- [x] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
+      bouton disparaît. Un test constate que le balayage passe toujours —
+      `swipingLeftStillWorksWithAClickableCard` : la page change **et**
+      l'ouverture n'est pas déclenchée, ce qui est exactement ce que craignait
+      le KDoc d'`OpenAction`. `swipe_open_article` survit en `onClickLabel` :
+      une surface tactile n'annonce rien d'elle-même. Les deux tests de la
+      bandelette d'ancienneté visent désormais le bouton de partage, devenu la
+      seule commande de ce mode
+- [x] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
+      **regardées**. Le réenregistrement a eu lieu dans `T03` et `T04`, avec le
+      changement qu'il constate ; il restait ici l'état qu'aucune image ne
+      montrait — **un article sans lien en Balayage**,
+      `balayage-article-sans-lien`, où l'on voit qu'il n'y a pas de bouton de
+      partage et que la mention subsiste après le retrait du bouton
+      d'ouverture. Deux captures supprimées par `T01`
+      (`discover-articles-lus`), 26 modifiées, 2 ajoutées : l'icône de partage
+      se détache dans les deux thèmes, sur carte comme sur illustration
+- [x] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
+      ARCHITECTURE.md §9.9 et §9, TASKS.md. Deux morceaux ont été traités plus
+      tôt, là où le code qu'ils décrivaient disparaissait : ARCHITECTURE.md
+      §9.9 en `T01` et le rôle du paquet `browser/` (§9) en `T02`. SPECS.md
+      §4.5 s'y est ajoutée, qui décrivait le fanion et n'était listée nulle
+      part. §7.4 n'a pas bougé et n'avait pas à bouger : un sélecteur système
+      n'ouvre aucune connexion depuis l'application
 
 ---
 

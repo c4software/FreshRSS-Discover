@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +14,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,8 +50,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
-import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -103,6 +103,9 @@ private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 
  * prévisualisable et testable sans graphe d'injection. Le seul état qu'il tient
  * est la position du balayage, qui n'appartient qu'à lui.
  *
+ * @param onArticleShare **sans valeur par défaut**, comme en mode Liste : un
+ *   `{}` implicite laisserait un bouton visible et inerte, et rien ne le
+ *   signalerait.
  * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
  *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
  *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
@@ -115,6 +118,7 @@ fun SwipeScreen(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOfflineNoticeDismiss: () -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -135,6 +139,7 @@ fun SwipeScreen(
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
                 modifier = Modifier.weight(1f),
                 pagerState = pagerState,
                 onVisibilityChanged = onVisibilityChanged,
@@ -144,8 +149,9 @@ fun SwipeScreen(
              * **Sous le flux et non par-dessus.** L'avis d'ancienneté dure
              * jusqu'à ce qu'on l'acquitte ou qu'on recharge : posé en
              * surimpression, il recouvrait la fin du contenu défilable de la
-             * carte, c'est-à-dire le bouton d'ouverture de l'article — la
-             * seule commande de ce mode (SPECS.md §4.7), et elle devenait
+             * carte — à l'époque le bouton d'ouverture, aujourd'hui le bouton
+             * de partage, qui est la seule commande de ce mode depuis que la
+             * carte entière ouvre l'article (SPECS.md §4.7). Elle devenait
              * inatteignable sur un article long. Un avis qui s'installe prend
              * sa place dans la mise en page ; seul un avis fugace se superpose.
              */
@@ -220,6 +226,7 @@ private fun SwipeBody(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -232,6 +239,7 @@ private fun SwipeBody(
             onLoadMore = onLoadMore,
             onRetry = onRetry,
             onArticleClick = onArticleClick,
+            onArticleShare = onArticleShare,
             modifier = modifier,
             pagerState = pagerState,
             onVisibilityChanged = onVisibilityChanged,
@@ -267,6 +275,7 @@ private fun ArticlePager(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -298,7 +307,11 @@ private fun ArticlePager(
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
-                ArticlePage(article = article, onOpen = { onArticleClick(article.id) })
+                ArticlePage(
+                    article = article,
+                    onOpen = { onArticleClick(article.id) },
+                    onShare = { onArticleShare(article.id) },
+                )
             }
         }
     }
@@ -364,95 +377,90 @@ private fun SwipeCard(
  * demande que l'application reste utilisable à taille de police augmentée, et
  * un extrait de 900 caractères dépasse alors l'écran. Sans ce défilement, la
  * fin du texte serait inaccessible — coupée, sans que rien ne le dise.
+ *
+ * **La carte entière ouvre l'article** (SPECS.md §4.7), comme en mode Liste.
+ * Le bouton explicite qui l'a précédée craignait qu'un appui pris pendant un
+ * balayage hésitant ne fasse partir dans le navigateur : Compose distingue le
+ * `tap` du `drag`, le geste horizontal n'est pas consommé par le clic, et
+ * `swipingLeftStillWorksWithAClickableCard` le constate.
+ *
+ * `onClickLabel` plutôt qu'un libellé visible : la surface tactile n'annonce
+ * rien d'elle-même, et un lecteur d'écran a besoin de savoir ce que l'appui
+ * fera.
  */
 @Composable
 private fun ArticlePage(
     article: ArticleUiModel,
     onOpen: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    /*
-     * Le fanion **survole** la carte, hors du flux vertical et hors du
-     * défilement : posé dedans, il décalait le contenu des articles sans
-     * illustration, et il aurait défilé avec le texte — alors qu'il qualifie
-     * l'article entier, pas son sommet.
-     */
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .testTag(SwipeTestTags.page(article.id)),
-        ) {
-            if (article.hasIllustration) {
-                ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
-            }
+    val openLabel = stringResource(R.string.swipe_open_article)
 
-            Column(
-                modifier = Modifier.padding(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.swipe_article_meta,
-                        article.feedTitle,
-                        article.publishedAt.label(),
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
-
-                if (article.excerpt.isNotBlank()) {
-                    Text(
-                        text = article.excerpt,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                OpenAction(article = article, onOpen = onOpen)
-            }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .then(
+                if (article.isOpenable) {
+                    Modifier.clickable(onClickLabel = openLabel, onClick = onOpen)
+                } else {
+                    Modifier
+                },
+            )
+            .verticalScroll(rememberScrollState())
+            .testTag(SwipeTestTags.page(article.id)),
+    ) {
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
         }
 
-        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
-    }
-}
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.swipe_article_meta,
+                    article.feedTitle,
+                    article.publishedAt.label(),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
-/**
- * Ce qui ouvre l'article d'origine (SPECS.md §4.7).
- *
- * Un bouton explicite plutôt qu'un écran entièrement cliquable : en plein écran
- * la surface tactile est aussi celle du balayage, et un appui interprété comme
- * une ouverture ferait partir dans le navigateur au moindre geste hésitant. Un
- * article sans lien exploitable le **donne à voir**, comme en mode Liste.
- */
-@Composable
-private fun OpenAction(
-    article: ArticleUiModel,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (!article.isOpenable) {
-        Text(
-            text = stringResource(R.string.swipe_article_no_link),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier.testTag(SwipeTestTags.NO_LINK),
-        )
-        return
-    }
+            Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
 
-    Button(
-        onClick = onOpen,
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .testTag(SwipeTestTags.OPEN),
-    ) {
-        Text(stringResource(R.string.swipe_open_article))
+            if (article.excerpt.isNotBlank()) {
+                Text(
+                    text = article.excerpt,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            /*
+             * L'article sans lien **le donne à voir**, comme en mode Liste : la
+             * carte n'est pas cliquable, et rien d'autre ne le dirait — une
+             * surface muette ne se distingue pas d'une surface qui ne répond
+             * plus (SPECS.md §4.7).
+             */
+            if (article.isOpenable) {
+                ArticleShareButton(
+                    onShare = onShare,
+                    testTag = SwipeTestTags.share(article.id),
+                    modifier = Modifier.align(Alignment.End),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.swipe_article_no_link),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(SwipeTestTags.NO_LINK),
+                )
+            }
+        }
     }
 }
 
@@ -710,6 +718,7 @@ private fun SwipeScreenPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }
@@ -723,6 +732,7 @@ private fun SwipeScreenEmptyPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }

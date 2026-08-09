@@ -13,10 +13,10 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
-import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedTestTags
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -53,6 +53,7 @@ class DiscoverScreenTest {
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onArticleShare = {},
                 onRefresh = onRefresh,
                 onOfflineNoticeDismiss = onOfflineNoticeDismiss,
                 onStaleNoticeDismiss = onStaleNoticeDismiss,
@@ -196,6 +197,78 @@ class DiscoverScreenTest {
         composeRule.onNodeWithTag(DiscoverTestTags.card(7L)).performClick()
 
         assertTrue(clicked.isEmpty())
+    }
+
+    // ----- Partage de la carte (SPECS.md §4.3) --------------------------------
+
+    /**
+     * Point d'entrée propre au partage plutôt qu'un [show] élargi : lui seul a
+     * besoin des **deux** commandes de la carte à la fois, et les ajouter à
+     * `show` en aurait fait une fonction à huit paramètres.
+     */
+    private fun showArticle(
+        article: ArticleUiModel,
+        onArticleClick: (Long) -> Unit = {},
+        onArticleShare: (Long) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            DiscoverScreen(
+                uiState = DiscoverUiState(articles = listOf(article), phase = DiscoverPhase.EndOfFeed),
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
+            )
+        }
+    }
+
+    @Test
+    fun anArticleWithALinkCanBeShared() {
+        val shared = mutableListOf<Long>()
+        showArticle(uiArticle(id = 7L), onArticleShare = { shared += it })
+
+        composeRule.onNodeWithTag(DiscoverTestTags.share(7L)).performClick()
+
+        assertEquals(listOf(7L), shared)
+    }
+
+    @Test
+    fun anArticleWithoutLinkCarriesNoShareButton() {
+        // Partager un titre seul enverrait un message sans objet : même règle
+        // que l'ouverture (SPECS.md §4.7).
+        showArticle(uiArticle(id = 7L, isOpenable = false))
+
+        composeRule.onNodeWithTag(DiscoverTestTags.share(7L)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theShareButtonDoesNotOpenTheArticle() {
+        // Les deux commandes vivent sur la même carte, et la carte entière est
+        // cliquable : sans cette garde, partager ouvrirait aussi le navigateur.
+        val clicked = mutableListOf<Long>()
+        val shared = mutableListOf<Long>()
+        showArticle(
+            uiArticle(id = 7L),
+            onArticleClick = { clicked += it },
+            onArticleShare = { shared += it },
+        )
+
+        composeRule.onNodeWithTag(DiscoverTestTags.share(7L)).performClick()
+
+        assertEquals(listOf(7L), shared)
+        assertTrue(clicked.isEmpty())
+    }
+
+    @Test
+    fun theShareButtonAnnouncesItselfAndIsLargeEnoughToTouch() {
+        showArticle(uiArticle(id = 7L))
+
+        composeRule.onNodeWithContentDescription("Partager l'article").assertExists()
+
+        val bounds = composeRule.onNodeWithTag(DiscoverTestTags.share(7L)).getBoundsInRoot()
+
+        assertTrue(bounds.width >= MIN_TOUCH_TARGET, "largeur ${bounds.width}")
+        assertTrue(bounds.height >= MIN_TOUCH_TARGET, "hauteur ${bounds.height}")
     }
 
     // ----- États du flux ------------------------------------------------------
@@ -354,45 +427,6 @@ class DiscoverScreenTest {
         show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
 
         composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
-    }
-
-    // ----- Un article lu se voit (SPECS.md §4.5) ------------------------------
-
-    @Test
-    fun aReadArticleCarriesItsFlag() {
-        // Les articles lus restent affichés jusqu'au rechargement (SPECS.md
-        // §4.1) : sans marque, on les relit sans le savoir.
-        show(DiscoverUiState(articles = listOf(uiArticle(isRead = true)), phase = DiscoverPhase.Idle))
-
-        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun anUnreadArticleCarriesNothing() {
-        show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
-
-        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertDoesNotExist()
-    }
-
-    @Test
-    fun theFlagIsThereWithoutAnyIllustration() {
-        // Sa place ne dépend pas de l'image : c'est ce qui évite un second
-        // emplacement, et le second rendu qui va avec.
-        show(
-            DiscoverUiState(
-                articles = listOf(uiArticle(isRead = true, hasIllustration = false)),
-                phase = DiscoverPhase.Idle,
-            ),
-        )
-
-        composeRule.onNodeWithTag(FeedTestTags.READ_FLAG, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun theFlagAnnouncesItselfToScreenReaders() {
-        show(DiscoverUiState(articles = listOf(uiArticle(isRead = true)), phase = DiscoverPhase.Idle))
-
-        composeRule.onNodeWithContentDescription("Déjà lu").assertExists()
     }
 
     // ----- Le lancement ne demande rien (SPECS.md §5.1) -----------------------
@@ -566,12 +600,14 @@ class DiscoverScreenTest {
 /** Écart toléré sur un rapport d'aspect mesuré en dp arrondis au pixel. */
 private const val RATIO_TOLERANCE = 0.05f
 
+/** Cible tactile minimale exigée par SPECS.md §7.1. */
+private val MIN_TOUCH_TARGET = 48.dp
+
 private fun uiArticle(
     id: Long = 1L,
     imageUrl: String? = null,
     hasIllustration: Boolean = imageUrl != null,
     isOpenable: Boolean = true,
-    isRead: Boolean = false,
 ): ArticleUiModel = ArticleUiModel(
     id = id,
     title = "Un titre",
@@ -581,5 +617,4 @@ private fun uiArticle(
     imageUrl = imageUrl,
     hasIllustration = hasIllustration,
     isOpenable = isOpenable,
-    isRead = isRead,
 )

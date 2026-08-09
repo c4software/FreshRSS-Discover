@@ -17,4 +17,6 @@ object DiscoverTestTags {
     const val STALE_NOTICE_DISMISS = "discover:stale-notice-dismiss"
 
     fun card(id: Long) = "discover:card:$id"
+
+    fun share(id: Long) = "discover:share:$id"
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,6 +12,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
@@ -28,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Assez d'articles pour que le chargement anticipé ne soit pas vrai d'emblée. */
@@ -38,6 +43,9 @@ private const val PREFETCH_TRIGGER_PAGE = 7
 
 /** Cadence des relevés de visibilité, reprise de `sampleVisibility`. */
 private const val SAMPLING_PERIOD_MILLIS = 200L
+
+/** Cible tactile minimale exigée par SPECS.md §7.1. */
+private val MIN_TOUCH_TARGET = 48.dp
 
 @RunWith(RobolectricTestRunner::class)
 class SwipeScreenTest {
@@ -56,6 +64,7 @@ class SwipeScreenTest {
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
         onArticleClick: (Long) -> Unit = {},
+        onArticleShare: (Long) -> Unit = {},
         onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     ) {
         composeRule.setContent {
@@ -64,6 +73,7 @@ class SwipeScreenTest {
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
                 pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
                 onVisibilityChanged = onVisibilityChanged,
             )
@@ -263,21 +273,75 @@ class SwipeScreenTest {
     // ----- Ouverture et illustration ------------------------------------------
 
     @Test
-    fun openingAnArticleReportsTheArticleShown() {
+    fun tappingTheCardOpensTheArticleShown() {
         var opened: Long? = null
         show(feedOf(uiArticle(id = 42L)), onArticleClick = { opened = it })
 
-        composeRule.onNodeWithTag(SwipeTestTags.OPEN).performClick()
+        composeRule.onNodeWithTag(SwipeTestTags.page(42L)).performClick()
 
         assertEquals(42L, opened)
     }
 
     @Test
-    fun anArticleWithoutAnyLinkSaysSoRatherThanOfferingADeadButton() {
-        show(feedOf(uiArticle(id = 1L, isOpenable = false)))
+    fun anArticleWithoutAnyLinkSaysSoAndStaysInert() {
+        var opened: Long? = null
+        show(feedOf(uiArticle(id = 1L, isOpenable = false)), onArticleClick = { opened = it })
 
         composeRule.onNodeWithTag(SwipeTestTags.NO_LINK).assertIsDisplayed()
-        composeRule.onNodeWithTag(SwipeTestTags.OPEN).assertDoesNotExist()
+        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).performClick()
+
+        assertNull(opened)
+    }
+
+    /**
+     * Ce que craignait le bouton d'ouverture qu'on vient de retirer : un appui
+     * pris pour une ouverture pendant un balayage hésitant. Compose distingue
+     * le `tap` du `drag` — encore faut-il que quelqu'un le constate, sur la
+     * carte réellement rendue cliquable.
+     */
+    @Test
+    fun swipingLeftStillWorksWithAClickableCard() {
+        var opened: Long? = null
+        show(
+            feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")),
+            onArticleClick = { opened = it },
+        )
+
+        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeLeft() }
+
+        composeRule.onNodeWithText("Second").assertIsDisplayed()
+        assertNull(opened, "le balayage a été pris pour une ouverture")
+    }
+
+    // ----- Partage de la carte (SPECS.md §4.3) --------------------------------
+
+    @Test
+    fun anArticleWithALinkCanBeShared() {
+        val shared = mutableListOf<Long>()
+        show(feedOf(uiArticle(id = 42L)), onArticleShare = { shared += it })
+
+        composeRule.onNodeWithTag(SwipeTestTags.share(42L)).performClick()
+
+        assertEquals(listOf(42L), shared)
+    }
+
+    @Test
+    fun anArticleWithoutLinkCarriesNoShareButton() {
+        show(feedOf(uiArticle(id = 1L, isOpenable = false)))
+
+        composeRule.onNodeWithTag(SwipeTestTags.share(1L)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theShareButtonAnnouncesItselfAndIsLargeEnoughToTouch() {
+        show(feedOf(uiArticle(id = 1L)))
+
+        composeRule.onNodeWithContentDescription("Partager l'article").assertExists()
+
+        val bounds = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
+
+        assertTrue(bounds.width >= MIN_TOUCH_TARGET, "largeur ${bounds.width}")
+        assertTrue(bounds.height >= MIN_TOUCH_TARGET, "hauteur ${bounds.height}")
     }
 
     @Test
@@ -343,36 +407,36 @@ class SwipeScreenTest {
     }
 
     @Test
-    fun theInvitationDoesNotCoverTheOpenAction() {
+    fun theInvitationDoesNotCoverTheShareAction() {
         // En plein écran la bandelette se pose sur la carte : elle ne doit pas
-        // recouvrir la seule commande d'ouverture de l'article (SPECS.md §4.7).
+        // recouvrir la seule commande de ce mode depuis que la carte entière
+        // ouvre l'article (SPECS.md §4.7).
         showStale()
 
         val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
-        val open = composeRule.onNodeWithTag(SwipeTestTags.OPEN).getBoundsInRoot()
+        val share = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
 
         assertTrue(
-            open.bottom <= notice.top,
-            "la commande d\'ouverture est recouverte par la bandelette",
+            share.bottom <= notice.top,
+            "la commande de partage est recouverte par la bandelette",
         )
     }
 
     @Test
-    fun theInvitationLeavesTheOpenActionReachableOnALongArticle() {
-        // Le contenu de la carte défile : sur un extrait long, le bouton
-        // d'ouverture n'est pas à l'écran au repos, mais il doit pouvoir y
-        // venir entièrement. Une bandelette posée par-dessus la carte le
-        // recouvrirait là où le défilement s'arrête — et c'est la seule
-        // commande d'ouverture de ce mode (SPECS.md §4.7).
+    fun theInvitationLeavesTheShareActionReachableOnALongArticle() {
+        // Le contenu de la carte défile : sur un extrait long, le bouton de
+        // partage n'est pas à l'écran au repos, mais il doit pouvoir y venir
+        // entièrement. Une bandelette posée par-dessus la carte le
+        // recouvrirait là où le défilement s'arrête.
         showStale(excerpt = "Un paragraphe interminable. ".repeat(60))
 
-        composeRule.onNodeWithTag(SwipeTestTags.OPEN).performScrollTo()
+        composeRule.onNodeWithTag(SwipeTestTags.share(1L)).performScrollTo()
 
         val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
-        val open = composeRule.onNodeWithTag(SwipeTestTags.OPEN).getBoundsInRoot()
+        val share = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
         assertTrue(
-            open.bottom <= notice.top,
-            "la commande d\'ouverture reste sous la bandelette même défilée à fond",
+            share.bottom <= notice.top,
+            "la commande de partage reste sous la bandelette même défilée à fond",
         )
     }
 
@@ -397,6 +461,7 @@ class SwipeScreenTest {
                 onLoadMore = {},
                 onRetry = {},
                 onArticleClick = {},
+                onArticleShare = {},
                 onRefresh = onRefresh,
                 onStaleNoticeDismiss = onStaleNoticeDismiss,
             )

@@ -109,6 +109,7 @@ class DiscoverFeedScreenshotTest : ScreenshotTest() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 

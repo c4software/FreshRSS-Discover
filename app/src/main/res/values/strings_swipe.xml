@@ -13,7 +13,12 @@
     -->
     <string name="swipe_article_meta">%1$s · %2$s</string>
 
-    <!-- SPECS.md §4.7 : l'article s'ouvre dans un onglet personnalisé. -->
+    <!--
+      Ce que fait un appui sur la carte (SPECS.md §4.7) : ouvrir l'article dans
+      un onglet personnalisé. N'est plus affichée depuis que la carte entière
+      est la commande — elle sert d'`onClickLabel`, et c'est la seule façon
+      qu'un lecteur d'écran a de savoir ce que l'appui déclenche.
+    -->
     <string name="swipe_open_article">Ouvrir l\'article</string>
 
     <!--

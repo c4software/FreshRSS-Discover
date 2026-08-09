@@ -111,8 +111,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
      * Deux situations et pas une : en mode Liste la bandelette repose sur un
      * fond de liste, ici sur une **illustration**. Le contraste ne se juge donc
      * pas au même endroit, et ce dépôt a déjà livré un indicateur invisible sur
-     * un fond mal choisi. On y regarde aussi qu'elle ne recouvre pas la
-     * commande d'ouverture de l'article.
+     * un fond mal choisi. On y regarde aussi qu'elle ne recouvre pas le bouton
+     * de partage — seule commande de ce mode depuis que la carte entière ouvre
+     * l'article.
      */
     @Test
     fun anOldFeedInvitingToReload() {
@@ -128,6 +129,32 @@ class SwipeScreenshotTest : ScreenshotTest() {
                     ),
                     phase = DiscoverPhase.Idle,
                     isStaleNoticeAvailable = true,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Un article sans lien exploitable (SPECS.md §4.7).
+     *
+     * La seule capture où l'on voit ce que le mode Balayage devient quand il
+     * n'y a **rien à faire** : pas de bouton de partage, et la mention qui
+     * remplace toute commande. Sans elle, rien n'attesterait par l'image que le
+     * retrait du bouton d'ouverture n'a pas emporté cette explication avec lui.
+     */
+    @Test
+    fun anArticleWithoutAnyLinkFullScreen() {
+        capture("balayage-article-sans-lien") {
+            swipe(
+                SwipeUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Une brève dont le flux n'a fourni aucun lien",
+                            isOpenable = false,
+                        ),
+                    ),
+                    phase = DiscoverPhase.EndOfFeed,
                 ),
             )
         }
@@ -162,6 +189,7 @@ class SwipeScreenshotTest : ScreenshotTest() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
             pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
         )
     }
@@ -193,6 +221,7 @@ private fun sampleArticle(
     title: String,
     imageUrl: String? = null,
     excerpt: String = "Un extrait de l'article, écourté par l'application avant l'affichage.",
+    isOpenable: Boolean = true,
 ): ArticleUiModel = ArticleUiModel(
     id = id,
     title = title,
@@ -200,5 +229,5 @@ private fun sampleArticle(
     publishedAt = RelativeTime.Hours(2),
     excerpt = excerpt,
     imageUrl = imageUrl,
-    isOpenable = true,
+    isOpenable = isOpenable,
 )

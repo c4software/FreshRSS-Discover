@@ -152,6 +152,7 @@ class ScreensScreenshotTest : ScreenshotTest() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Trois nœuds reliés, tracé Material Symbols « share ».
+
+    Dessinée ici plutôt que tirée de `material-icons-extended`, pour la raison
+    donnée dans `ic_refresh` : cette dépendance pèse plusieurs milliers de
+    vecteurs que R8 ne peut pas élaguer.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="960"
+  android:viewportHeight="960">
+  <path
+    android:fillColor="@android:color/white"
+    android:pathData="M720,880Q670,880 635,845Q600,810 600,760Q600,753 601.5,742.5Q603,732 606,724L322,559Q306,573 286,581.5Q266,590 240,590Q190,590 155,555Q120,520 120,470Q120,420 155,385Q190,350 240,350Q266,350 286,358.5Q306,367 322,381L606,216Q603,208 601.5,197.5Q600,187 600,180Q600,130 635,95Q670,60 720,60Q770,60 805,95Q840,130 840,180Q840,230 805,265Q770,300 720,300Q694,300 674,291.5Q654,283 638,269L354,434Q357,442 358.5,452.5Q360,463 360,470Q360,477 358.5,487.5Q357,498 354,506L638,671Q654,657 674,648.5Q694,640 720,640Q770,640 805,675Q840,710 840,760Q840,810 805,845Q770,880 720,880Z" />
+</vector>

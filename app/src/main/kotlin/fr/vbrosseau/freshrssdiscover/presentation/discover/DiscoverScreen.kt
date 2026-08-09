@@ -44,8 +44,8 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
-import fr.vbrosseau.freshrssdiscover.presentation.feed.ReadFlag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
@@ -69,6 +69,10 @@ private val MinTouchTarget = 48.dp
  * prévisualisable et testable sans graphe d'injection (AGENTS.md §9). Le seul
  * état qu'il tient est la position de défilement, qui n'appartient qu'à lui.
  *
+ * @param onArticleShare **sans valeur par défaut**, contrairement aux avis et
+ *   au rechargement : un `{}` implicite laisserait un bouton visible et inerte
+ *   sur chaque carte, et rien ne le signalerait. L'oubli doit être une erreur
+ *   de compilation.
  * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
  *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
  *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
@@ -83,6 +87,7 @@ fun DiscoverScreen(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit = {},
     onOfflineNoticeDismiss: () -> Unit = {},
@@ -104,6 +109,7 @@ fun DiscoverScreen(
                 onRetry = onRetry,
                 onRefresh = onRefresh,
                 onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
                 modifier = Modifier.weight(1f),
                 listState = listState,
                 onVisibilityChanged = onVisibilityChanged,
@@ -170,6 +176,7 @@ private fun FeedBody(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -183,6 +190,7 @@ private fun FeedBody(
             onRetry = onRetry,
             onRefresh = onRefresh,
             onArticleClick = onArticleClick,
+            onArticleShare = onArticleShare,
             modifier = modifier,
             listState = listState,
             onVisibilityChanged = onVisibilityChanged,
@@ -221,6 +229,7 @@ private fun ArticleList(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -273,7 +282,11 @@ private fun ArticleList(
             // visible sur sa **clé** et non sur son rang : les articles insérés
             // au-dessus ne poussent donc pas la lecture vers le bas.
             items(items = uiState.articles, key = ArticleUiModel::id) { article ->
-                ArticleCard(article = article, onClick = { onArticleClick(article.id) })
+                ArticleCard(
+                    article = article,
+                    onClick = { onArticleClick(article.id) },
+                    onShare = { onArticleShare(article.id) },
+                )
             }
 
             item(key = FOOTER_KEY) {
@@ -424,6 +437,7 @@ private fun ObserveArticleVisibility(
 private fun ArticleCard(
     article: ArticleUiModel,
     onClick: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cardModifier = modifier
@@ -432,36 +446,45 @@ private fun ArticleCard(
         .testTag(DiscoverTestTags.card(article.id))
 
     if (article.isOpenable) {
-        Card(onClick = onClick, modifier = cardModifier) { ArticleCardContent(article) }
+        Card(onClick = onClick, modifier = cardModifier) { ArticleCardContent(article, onShare) }
     } else {
-        Card(modifier = cardModifier) { ArticleCardContent(article) }
+        Card(modifier = cardModifier) { ArticleCardContent(article, onShare) }
     }
 }
 
 @Composable
-private fun ArticleCardContent(article: ArticleUiModel) {
-    /*
-     * Le fanion **survole** la carte et n'entre pas dans son flux vertical
-     * (SPECS.md §4.5). Posé dans le flux, il occupait une hauteur : les
-     * articles sans illustration voyaient leur contenu décalé vers le bas,
-     * constaté sur appareil. Le `Box` englobe donc toute la carte, et le
-     * fanion s'aligne sur son coin haut.
-     */
-    Box {
-        Column {
-            if (article.hasIllustration) {
-                ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
-            }
-
-            Column(
-                modifier = Modifier.padding(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                ArticleCardTexts(article)
-            }
+private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
+    Column {
+        if (article.hasIllustration) {
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
         }
 
-        ReadFlag(visible = article.isRead, modifier = Modifier.align(Alignment.TopEnd))
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            ArticleCardTexts(article)
+
+            /*
+             * **Sous les textes et rangé à droite**, plutôt que posé sur la
+             * ligne du flux et de la date : là-haut, un lecteur d'écran
+             * annoncerait la commande avant le titre de l'article qu'elle
+             * partage. En bas de carte, l'ordre de lecture reste celui du
+             * contenu, et c'est aussi la place que Material donne aux actions
+             * d'une carte.
+             *
+             * Le clic ne remonte pas à la carte : un `IconButton` consomme le
+             * sien, et l'ouverture de l'article n'est donc pas déclenchée par
+             * un appui sur le partage.
+             */
+            if (article.isOpenable) {
+                ArticleShareButton(
+                    onShare = onShare,
+                    testTag = DiscoverTestTags.share(article.id),
+                    modifier = Modifier.align(Alignment.End),
+                )
+            }
+        }
     }
 }
 
@@ -658,6 +681,7 @@ private fun DiscoverScreenPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }
@@ -686,6 +710,7 @@ private fun DiscoverScreenOfflinePreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }
@@ -699,6 +724,7 @@ private fun DiscoverScreenEmptyPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }
