@@ -459,8 +459,19 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
             ArticleIllustration(imageUrl = article.imageUrl, testTag = DiscoverTestTags.ILLUSTRATION)
         }
 
+        /*
+         * `fillMaxWidth` n'est pas décoratif : sans lui, cette colonne épouse
+         * son contenu, et l'`align(End)` du bouton de partage se range sur la
+         * **largeur du texte** au lieu de celle de la carte. Le défaut ne se
+         * voit que sur un article **sans illustration** et au texte court —
+         * avec une illustration, celle-ci impose déjà la pleine largeur. C'est
+         * exactement le travers qu'avait rencontré le fanion en GOAL-017-T02,
+         * et il est revenu par la même porte.
+         */
         Column(
-            modifier = Modifier.padding(Spacing.md),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             ArticleCardTexts(article)

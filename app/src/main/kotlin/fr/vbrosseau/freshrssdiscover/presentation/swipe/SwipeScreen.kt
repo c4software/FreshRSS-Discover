@@ -414,52 +414,76 @@ private fun ArticlePage(
             ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
         }
 
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
+        ArticleText(article = article, onShare = onShare)
+    }
+}
+
+/**
+ * Le texte de l'article et sa commande de partage.
+ *
+ * Extrait d'[ArticlePage], qui dépassait sa longueur admise : le découpage suit
+ * la seule césure qui a un sens ici — au-dessus l'illustration et la surface
+ * cliquable, en dessous ce qui se lit.
+ *
+ * `fillMaxWidth` n'est pas décoratif, et c'est la raison d'être du commentaire :
+ * sans lui la colonne épouse son texte, et l'`align(End)` du partage se range
+ * sur la largeur du contenu au lieu de celle de la carte. Le mode Liste porte
+ * le même correctif, et le fanion des articles lus s'était fait prendre de la
+ * même façon en `GOAL-017-T02`.
+ */
+@Composable
+private fun ArticleText(
+    article: ArticleUiModel,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            text = stringResource(
+                R.string.swipe_article_meta,
+                article.feedTitle,
+                article.publishedAt.label(),
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
+
+        if (article.excerpt.isNotBlank()) {
             Text(
-                text = stringResource(
-                    R.string.swipe_article_meta,
-                    article.feedTitle,
-                    article.publishedAt.label(),
-                ),
+                text = article.excerpt,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        /*
+         * L'article sans lien **le donne à voir**, comme en mode Liste : la
+         * carte n'est pas cliquable, et rien d'autre ne le dirait — une surface
+         * muette ne se distingue pas d'une surface qui ne répond plus
+         * (SPECS.md §4.7).
+         */
+        if (article.isOpenable) {
+            ArticleShareButton(
+                onShare = onShare,
+                testTag = SwipeTestTags.share(article.id),
+                modifier = Modifier.align(Alignment.End),
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.swipe_article_no_link),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(SwipeTestTags.NO_LINK),
             )
-
-            Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
-
-            if (article.excerpt.isNotBlank()) {
-                Text(
-                    text = article.excerpt,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            /*
-             * L'article sans lien **le donne à voir**, comme en mode Liste : la
-             * carte n'est pas cliquable, et rien d'autre ne le dirait — une
-             * surface muette ne se distingue pas d'une surface qui ne répond
-             * plus (SPECS.md §4.7).
-             */
-            if (article.isOpenable) {
-                ArticleShareButton(
-                    onShare = onShare,
-                    testTag = SwipeTestTags.share(article.id),
-                    modifier = Modifier.align(Alignment.End),
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.swipe_article_no_link),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag(SwipeTestTags.NO_LINK),
-                )
-            }
         }
     }
 }

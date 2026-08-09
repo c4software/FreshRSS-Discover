@@ -113,6 +113,43 @@ class DiscoverFeedScreenshotTest : ScreenshotTest() {
         )
     }
 
+    /**
+     * Un article court, **sans illustration** : le seul cas où l'alignement du
+     * bouton de partage se voit.
+     *
+     * Il ne s'agit pas d'un état de plus mais d'un garde-fou. La colonne
+     * intérieure de la carte épousait son contenu, et l'`align(End)` du partage
+     * se rangeait donc sur la **largeur du texte** plutôt que sur celle de la
+     * carte. Aucune des captures existantes ne pouvait le montrer : leurs
+     * articles ont tous soit une illustration, qui impose la pleine largeur,
+     * soit un texte assez long pour l'atteindre. Constaté sur l'émulateur
+     * (GOAL-022-T03), sur une brève de Hacker News dont l'extrait tenait en un
+     * mot.
+     *
+     * Le fanion des articles lus s'était fait prendre exactement de la même
+     * façon en `GOAL-017-T02`. Deux fois par la même porte : la capture reste.
+     */
+    @Test
+    fun theShareButtonHugsTheCardEdgeOnAShortArticle() {
+        capture("discover-article-court") {
+            discover(
+                DiscoverUiState(
+                    articles = listOf(
+                        ArticleUiModel(
+                            id = 42L,
+                            title = "Une brève",
+                            feedTitle = "Hacker News",
+                            publishedAt = RelativeTime.Hours(1),
+                            excerpt = "Commentaires",
+                            isOpenable = true,
+                        ),
+                    ),
+                    phase = DiscoverPhase.Idle,
+                ),
+            )
+        }
+    }
+
     private fun sampleArticles(): List<ArticleUiModel> = listOf(
         ArticleUiModel(
             id = 1L,

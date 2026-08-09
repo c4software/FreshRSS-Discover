@@ -1533,9 +1533,24 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > écoulé, ce qui est le cas courant de deux `run` rapprochés. Relayé tel
       > quel, il aurait fait lire une panne à chaque relance.
       > `init`, `run` et `stop` ont été exécutés, et leur sortie constatée
-- [ ] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
+- [-] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
       GOAL-019 et GOAL-020 fusionnés : connexion, flux, partage, carte cliquable
-      en Balayage, interrupteur de marquage
+      en Balayage, interrupteur de marquage.
+      > **Un défaut d'alignement trouvé, et c'est le troisième que cette pile
+      > rapporte.** Sur une carte **sans illustration et au texte court**, le
+      > bouton de partage ne se rangeait pas au bord de la carte mais au bord
+      > du **texte** : la colonne intérieure épousait son contenu, et
+      > l'`align(End)` n'avait que cette largeur-là sur quoi s'appuyer. Avec
+      > une illustration, celle-ci impose la pleine largeur et le défaut
+      > disparaît — ce qui explique qu'aucune des 26 captures refaites par
+      > GOAL-020 ne l'ait montré : leurs articles ont tous soit une image, soit
+      > un texte assez long.
+      > **Le fanion des articles lus s'était fait prendre par la même porte en
+      > `GOAL-017-T02`.** Deux fois le même piège : une capture dédiée
+      > (`discover-article-court`) le garde désormais, et elle a été vérifiée
+      > par mutation — retirer le `fillMaxWidth` la fait échouer.
+      > Corrigé dans les deux modes. `ArticleText` a été extrait de
+      > `ArticlePage`, que le commentaire faisait dépasser sa longueur admise
 
 ---
 
