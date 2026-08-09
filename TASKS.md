@@ -32,12 +32,23 @@ Rappel (AGENTS.md §1.1) : `code écrit ≠ tâche terminée`.
 **Phase 1 — API FreshRSS** ✅ terminée (GOAL-002, GOAL-003)
 **Phase 2 — Flux Discover** ✅ assemblée et livrée
 
-**Les quatorze Goals sont terminés.** Ne reste qu'un point bloqué, hors de notre
-main : `GOAL-001-T17` — AGP 9.3.1 plante toujours sur
-`lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera avec une
-version d'AGP, pas avec du code d'ici.
+**Phase 3 — Réglage du marquage, partage, documentation anglaise** 🚧 en cours
+(GOAL-019, GOAL-020, GOAL-021)
 
-**Prochaine tâche** : aucune n'est due.
+Un point reste bloqué, hors de notre main : `GOAL-001-T17` — AGP 9.3.1 plante
+toujours sur `lintAnalyzeDebugUnitTest`, réessayé le 2026-08-08. Il se lèvera
+avec une version d'AGP, pas avec du code d'ici.
+
+**Prochaine tâche** : `GOAL-019-T01`, `GOAL-020-T01` et `GOAL-021-T01`, menées
+en parallèle par trois agents à la demande de l'auteur.
+
+> ⚠️ **Aucune validation sur appareil n'est possible sur cette phase**, l'auteur
+> l'a signalé le 2026-08-09 : le téléphone n'est pas disponible. La garantie
+> repose donc entièrement sur les tests unitaires, les tests d'écran et les
+> captures Roborazzi **regardées**. Les Goals précédents avaient chacun leur
+> tâche « constaté sur appareil », et trois défauts sur trois n'y avaient été
+> vus qu'ainsi (`GOAL-001-T22`) : ce filet-là manque, et il faut le dire plutôt
+> que de laisser croire à une couverture équivalente.
 
 ---
 
@@ -63,6 +74,9 @@ version d'AGP, pas avec du code d'ici.
 | GOAL-016 | Les petites illustrations cessent d'être étirées | `[x]` |
 | GOAL-017 | Un article déjà lu se voit | `[x]` |
 | GOAL-018 | La CI cesse de tourner sur des actions dépréciées | `[-]` |
+| GOAL-019 | Le marquage automatique devient optionnel | `[ ]` |
+| GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[ ]` |
+| GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1262,6 +1276,117 @@ l'empreinte vérifiée à l'arrivée — va dans le bon sens pour un artefact si
       lui-même — plugins ou scripts. `--warning-mode all` les nommera. Distinct
       de `T01`, et de portée différente : celui-ci touche la construction, pas
       la chaîne d'intégration
+
+---
+
+## GOAL-019 — Le marquage automatique devient optionnel
+
+**Statut : TODO**
+
+Demandé par l'auteur. SPECS.md §1 pose « lire, c'est faire défiler » comme
+principe, et §4.5 en fait un mécanisme sans échappatoire : qui parcourt son flux
+sans le lire consomme ses articles sans le vouloir, et le rechargement les
+emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
+
+### Ce qui est tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| Où vit le réglage | Dans `ReadingSettings`, aux côtés des deux seuils | Même lecteur — le détecteur de lecture — et même moment de lecture. Un flux distinct, comme celui du rappel, ferait observer deux sources à qui n'en applique qu'une |
+| Valeur par défaut | **Actif** | C'est le comportement d'aujourd'hui, et celui que SPECS.md §1 décrit. Une installation existante ne doit rien voir changer |
+| Ce que l'extinction arrête | La détection par visibilité, et **elle seule** | Ouvrir un article le marque toujours lu (SPECS.md §4.7) : c'est un geste délibéré, pas un marquage automatique. Les deux se confondraient si l'interrupteur emportait aussi l'ouverture |
+| Les deux seuils, une fois éteints | **Affichés, grisés** | Les cacher ferait disparaître deux réglages sans dire pourquoi ; les laisser actifs proposerait d'ajuster ce qui ne s'applique plus |
+| La file de marquages en attente | Inchangée | Ce qui est déjà marqué reste à transmettre. Éteindre le marquage n'annule pas les lectures passées |
+
+### Tâches
+
+- [ ] `GOAL-019-T01` `ReadingSettings.autoMarkAsReadEnabled`, actif par défaut,
+      et son passage par `coerced` — tests de `:domain`
+- [ ] `GOAL-019-T02` Persistance : clé DataStore, `observeReadingSettings` qui la
+      rend, `SettingsRepository.setAutoMarkAsReadEnabled` — tests du store
+- [ ] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
+      détecteur** quand le réglage est éteint, et le reprennent sans redémarrage
+      quand il se rallume. L'ouverture d'un article marque toujours
+- [ ] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
+      dessous — tests d'écran et captures Roborazzi **regardées**
+- [ ] `GOAL-019-T05` Documentation : SPECS.md §4.5 et §6, TASKS.md
+
+---
+
+## GOAL-020 — La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui
+
+**Statut : TODO**
+
+Trois demandes de l'auteur sur la même surface — la carte d'article — donc un
+seul Goal : elles se croisent dans `DiscoverScreen` et `SwipeScreen`, et les
+traiter séparément reviendrait à corriger deux fois la même mise en page.
+
+### Ce qui est tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| Le fanion des articles lus | **Retiré**, avec son composant, ses tests et ses captures | Demande de l'auteur : GOAL-017 l'avait posé pour que l'on ne relise pas sans le savoir, et l'usage a montré qu'il attire l'œil sur ce qu'il y a de moins intéressant dans le flux. L'atténuation de `GOAL-017-T06` allait déjà dans ce sens ; l'auteur va au bout |
+| Ce que le retrait ne touche pas | `ArticleUiModel.isRead` et sa projection | L'état lu reste ce qui décide du marquage et de la purge (SPECS.md §5.4). Seule sa **représentation** disparaît. Retirer le champ ferait tomber la règle avec le décor |
+| Le partage | Le **sélecteur natif** (`ACTION_SEND` via `createChooser`), sur les deux modes | Ce que l'auteur demande, et la seule forme qui n'engage aucun service tiers (SPECS.md §7.4) : l'application ne choisit pas la destination, elle passe la main au système |
+| Ce qui est partagé | Le titre puis l'URL d'origine | Une URL nue ne dit pas ce qu'on envoie. L'extrait, lui, est écourté par nous : le transmettre partagerait notre troncature pour du contenu |
+| Un article sans lien | Ne se partage pas, et le bouton n'y paraît pas | Même règle que l'ouverture (SPECS.md §4.7). Partager un titre seul enverrait un message sans objet |
+| Le bouton « Ouvrir l'article » en Balayage | **Retiré** : la carte entière ouvre l'article | Demande de l'auteur. Le KDoc d'`OpenAction` défendait l'inverse — un appui pris pour une ouverture pendant un balayage hésitant. Compose distingue le `tap` du `drag` : le geste horizontal n'est pas consommé par le clic, et c'est ce qu'un test doit constater |
+| Un article sans lien en Balayage | La carte n'est pas cliquable, et le dit | Ce que la mention « pas de lien » fait déjà. Elle reste |
+| SPECS.md §2 | Le partage **quitte** le hors-périmètre | Il y figurait sous « partage social, commentaires, annotations ». Un sélecteur système n'est aucun des trois, mais l'exclusion était écrite assez largement pour le couvrir : la lever explicitement vaut mieux que l'interpréter |
+
+### Tâches
+
+- [ ] `GOAL-020-T01` **Le fanion est retiré** : `ReadFlag`, ses appels dans les
+      deux écrans, ses tests, ses chaînes et ses deux captures
+- [ ] `GOAL-020-T02` `ArticleSharer` dans `presentation/browser` : la décision —
+      ce qui se partage, ce qui se tait — éprouvable en JVM, le lancement de
+      l'intention isolé derrière une interface fonctionnelle, comme
+      `CustomTabLauncher`
+- [ ] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
+      cible de 48 dp et description pour le lecteur d'écran — tests d'écran
+- [ ] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
+      bouton disparaît. Un test constate que le balayage passe toujours
+- [ ] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
+      **regardées**
+- [ ] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
+      ARCHITECTURE.md §9.9 et §9, TASKS.md
+
+---
+
+## GOAL-021 — La documentation passe à l'anglais, l'interface devient bilingue
+
+**Statut : TODO**
+
+Demandé par l'auteur : la documentation du dépôt est **remplacée** par sa
+traduction anglaise — il n'en reste pas deux versions, qui divergeraient au
+premier commit. L'interface, elle, devient **bilingue** : anglais par défaut,
+français conservé.
+
+### Ce qui est tranché avant d'écrire
+
+| Point | Décision | Raison |
+|---|---|---|
+| Portée de la traduction | **Tous** les `.md` du dépôt, `docs/` compris | Réponse de l'auteur. Une documentation à moitié traduite oblige à deviner où chercher |
+| Le français est-il conservé ? | **Non** | « Remplacer », littéralement. Deux versions d'AGENTS.md diverge­raient sans que rien ne le signale |
+| PROMPT.md | Traduit, et reste figé | Il conserve l'intention initiale : sa langue change, pas son contenu |
+| L'interface | **Bilingue** : `values/` en anglais, `values-fr/` en français | Réponse de l'auteur. L'anglais par défaut, parce que `values/` est ce que reçoit tout appareil dont la langue n'est pas prévue |
+| Les captures Roborazzi | **Inchangées** | Le harnais fixe déjà `@Config(qualifiers = "fr-rFR…")` : les références restent françaises, et le déplacement des chaînes vers `values-fr/` ne les touche pas. Ce n'est pas un contournement — c'est ce qui rend le changement de langue vérifiable sans réenregistrer 58 images |
+| Comment `values/` est éprouvé | Un test d'écran en `en-rUS` | Sans lui, une chaîne oubliée dans la traduction ne se verrait qu'à l'exécution sur un appareil anglophone. Les captures, elles, ne regardent que le français |
+| KDoc et messages de commit | **Restent en français** | AGENTS.md §9 le demande, et l'auteur n'a demandé que la documentation. À rouvrir s'il le souhaite |
+
+### Tâches
+
+- [ ] `GOAL-021-T01` Traduire `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+      `CLAUDE.md`, `PROMPT.md` et `docs/freshrss-api.md`. Ces six-là ne sont
+      touchés ni par GOAL-019 ni par GOAL-020 : ils se traduisent en parallèle
+- [ ] `GOAL-021-T02` **Interface bilingue** : les six fichiers de chaînes
+      passent en `values-fr/`, `values/` reçoit l'anglais, et un test d'écran en
+      `en-rUS` constate que rien n'y manque
+- [ ] `GOAL-021-T03` Traduire `SPECS.md`, `ARCHITECTURE.md` et `TASKS.md`.
+      **Après** GOAL-019 et GOAL-020, qui les modifient — traduire d'abord
+      obligerait à traduire deux fois
+- [ ] `GOAL-021-T04` SPECS.md §7.3 réécrite : l'interface n'est plus « en
+      français » mais bilingue, l'anglais par défaut
 
 ---
 
