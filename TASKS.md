@@ -1378,8 +1378,15 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
       une surface tactile n'annonce rien d'elle-même. Les deux tests de la
       bandelette d'ancienneté visent désormais le bouton de partage, devenu la
       seule commande de ce mode
-- [ ] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
-      **regardées**
+- [x] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,
+      **regardées**. Le réenregistrement a eu lieu dans `T03` et `T04`, avec le
+      changement qu'il constate ; il restait ici l'état qu'aucune image ne
+      montrait — **un article sans lien en Balayage**,
+      `balayage-article-sans-lien`, où l'on voit qu'il n'y a pas de bouton de
+      partage et que la mention subsiste après le retrait du bouton
+      d'ouverture. Deux captures supprimées par `T01`
+      (`discover-articles-lus`), 26 modifiées, 2 ajoutées : l'icône de partage
+      se détache dans les deux thèmes, sur carte comme sur illustration
 - [ ] `GOAL-020-T06` Documentation : SPECS.md §2, §4.3, §4.7, §4.8,
       ARCHITECTURE.md §9.9 et §9, TASKS.md
 
