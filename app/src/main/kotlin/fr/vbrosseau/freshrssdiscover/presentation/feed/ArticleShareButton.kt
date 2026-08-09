@@ -15,6 +15,21 @@ import fr.vbrosseau.freshrssdiscover.R
 private val MinTouchTarget = 48.dp
 
 /**
+ * Taille du **dessin**, distincte de celle de la cible.
+ *
+ * 18 dp est la hauteur d'une capitale de `labelMedium`, le style de la ligne de
+ * source et de date que le bouton côtoie désormais : à 24 dp, l'icône dominait
+ * un pied de carte dont elle n'est pas le sujet.
+ *
+ * **La cible tactile ne suit pas.** SPECS.md §7.1 fixe 48 dp, et « plus
+ * compact » ne peut pas vouloir dire « plus difficile à toucher » : ce que le
+ * resserrement gagne est la ligne entière que le bouton occupait, pas les
+ * pixels de sa surface sensible. Les deux mesures sont donc séparées, et c'est
+ * exactement ce que `IconButton` permet — il centre son contenu dans sa cible.
+ */
+private val GlyphSize = 18.dp
+
+/**
  * Partager le lien de l'article (SPECS.md §4.3).
  *
  * Un seul composant pour les deux modes, comme [RefreshButton] et pour la même
@@ -29,8 +44,12 @@ private val MinTouchTarget = 48.dp
  * **Une icône seule, avec sa description.** Le libellé serait redondant sur une
  * carte qui n'a qu'une commande, et en mode Liste il prendrait la place d'une
  * ligne de texte sur chaque article. La description est ce qui rend la commande
- * annonçable (SPECS.md §7.1) ; `size` la porte à 48 dp, Material s'arrêtant à
- * 40.
+ * annonçable (SPECS.md §7.1).
+ *
+ * **Deux tailles, et elles ne mesurent pas la même chose** : [MinTouchTarget]
+ * pour ce que le doigt atteint, [GlyphSize] pour ce que l'œil voit. Les
+ * confondre ferait choisir entre une icône qui écrase le pied de carte et une
+ * cible trop petite ; séparées, le bouton se fait discret sans rien céder.
  *
  * @param testTag propre à l'article, comme pour [ArticleIllustration] : en mode
  *   Liste il y a autant de boutons que de cartes affichées, et un repère
@@ -51,6 +70,7 @@ fun ArticleShareButton(
         Icon(
             painter = painterResource(R.drawable.ic_share),
             contentDescription = stringResource(R.string.feed_article_share),
+            modifier = Modifier.size(GlyphSize),
         )
     }
 }
