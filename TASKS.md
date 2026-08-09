@@ -33,9 +33,9 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 2 — Discover feed** ✅ assembled and delivered
 
 **Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
-(GOAL-019 to GOAL-025)
+(GOAL-019 to GOAL-026)
 
-**The twenty-five Goals are done.** One point remains blocked, out of our hands:
+**The twenty-six Goals are done.** One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
@@ -56,7 +56,11 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 > **GOAL-025 came from the same place**, without an emulator this time: read
 > everything, reload, and the screen emptied itself into a dead end — no pull,
 > nothing asking the server again. Reported in two sentences by the author. It
-> is the seventh defect of this phase found by using the application.
+> is the seventh defect of this phase found by using the application — and it
+> uncovered an eighth straight away, `GOAL-026`: the reload emptied the screen
+> but not the cache, so killing the application resurrected the feed one had
+> just exhausted. Neither would have been found by a test; both were found by
+> the author, using it.
 >
 > Hence the rule now in AGENTS.md §5.3 — **shut the stack down at the end of
 > every Goal**, since stopping destroys nothing.
@@ -92,7 +96,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-023 | The card tightens up: source and date in the footer, discreet sharing | `[x]` |
 | GOAL-024 | Refreshing twice was needed to see new articles | `[x]` |
 | GOAL-025 | An empty feed stops being a dead end | `[x]` |
-| GOAL-026 | Killing the app resurrected the feed one had just emptied | `[ ]` |
+| GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1835,7 +1839,7 @@ splitting it in two to satisfy a counter would make two halves of one state.
 
 ## GOAL-026 — Killing the app resurrected the feed one had just emptied
 
-**Status: IN PROGRESS**
+**Status: DONE**
 
 Reported by the author immediately after GOAL-025, and revealed by it: *"if I
 empty the feed I get the no-more-articles message, but if I kill and relaunch I
@@ -1887,7 +1891,22 @@ erase the feed under the reader as they scroll; a case guards that.
 - [x] `GOAL-026-T01` **A successful reload renews the cache**, with its cases:
       what is read goes, what is unread stays, a pending mark is spared, and
       pagination purges nothing
-- [-] `GOAL-026-T02` **Record it**: SPECS.md §4.6 and §5.1, ARCHITECTURE.md §9.7
+- [x] `GOAL-026-T02` **Recorded**: SPECS.md §4.6 (what disappears from the
+      screen disappears from the cache, with the owned consequence), §5.1 (what
+      the cache holds is what the last reload left there), ARCHITECTURE.md §9.7
+
+### What the mutations established
+
+| Mutation | Case that went red |
+|---|---|
+| The purge never runs | `aReloadDropsFromTheCacheWhatHasAlreadyBeenRead` |
+| The purge always runs, pagination included | `loadingTheNextPagePurgesNothing` |
+| `AND id NOT IN (SELECT article_id FROM pending_marks)` removed from the query | `aReloadSparesAReadArticleWhoseMarkHasNotLeftYet` |
+
+The third one matters beyond this Goal: it is the first case in the repository
+to hold that sub-query in place, and it only holds because the queue and the
+cache share **one** database in the test — two would have made the condition
+vacuously true.
 
 ---
 

@@ -346,7 +346,12 @@ command of Swipe mode — superimposing a vertical pull on it would give two
 competing gestures on the same surface — and it is the alternative to the
 gesture in List mode, where nothing replaced it.
 
-- What is displayed is replaced, not added to. What was there disappears.
+- What is displayed is replaced, not added to. What was there disappears —
+  **and it disappears from the cache too**, so that killing the application does
+  not bring it back (§5.1). What has been read goes; what is unread stays, as
+  does anything whose marking has not reached the server yet. The owned
+  consequence: after a reload you can no longer scroll back to an article read
+  before it.
 - The reading position is **not** preserved: reloading brings you back to the
   beginning, and that is what it announces.
 - Pagination starts again from the beginning: the previous cursor is abandoned.
@@ -516,6 +521,11 @@ An **empty** cache is the sole exception: first opening, return after logging
 out — there is nothing to show, and the first load leaves on its own. An empty
 screen during a network request would give the impression of an application with
 no content; an empty screen with no request would be worse, a dead application.
+
+What the cache holds is what the last reload left there (§4.6): a feed emptied
+on purpose stays empty across a kill and a relaunch, instead of coming back to
+life with articles one has already read — which, nothing marking them out on
+screen any more, would be indistinguishable from new ones.
 
 That exception is not read only at launch. **Every time the feed comes to the
 foreground with nothing on it, a request leaves**: arriving on the feed, coming

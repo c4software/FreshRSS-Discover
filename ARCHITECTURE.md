@@ -693,6 +693,16 @@ anything entering or leaving the set redistributes the rest. The cache therefore
 returns its articles **read ones included**, and only a requested reload renews
 the list.
 
+That last clause was, for a long time, a promise the cache did not keep: nothing
+deleted anything on a reload, so emptying the feed then killing the application
+brought the read set straight back (GOAL-026). A successful reload now purges
+what is read **and** synchronised — `ArticleCache.purgeAllRead`, whose query
+spares unread articles and rows whose mark has not left yet, those two being
+exactly what §5.4 protects. It runs **after** the save, since
+`upsertPreservingLocalReadState` reads the previous read state from the very
+rows being purged. Pagination purges nothing: that would erase the feed under
+the reader.
+
 The reading reminder is the only reading of the cache that still filters out read
 articles (`unreadFromCache`): it is not answering the same question.
 
