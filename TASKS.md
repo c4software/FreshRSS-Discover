@@ -1550,7 +1550,17 @@ promesse était écrite dans SPECS.md, testée nulle part, et fausse.
       > (`discover-article-court`) le garde désormais, et elle a été vérifiée
       > par mutation — retirer le `fillMaxWidth` la fait échouer.
       > Corrigé dans les deux modes. `ArticleText` a été extrait de
-      > `ArticlePage`, que le commentaire faisait dépasser sa longueur admise
+      > `ArticlePage`, que le commentaire faisait dépasser sa longueur admise.
+      > **Constaté ensuite, tout au long** : connexion, flux mélangé sur huit
+      > sources, illustrations sur fond flouté, plus aucun fanion, bouton de
+      > partage sur chaque carte, interrupteur de marquage qui grise ses seuils,
+      > bascule en Balayage, balayage qui passe à l'article suivant, et appui
+      > sur la carte qui ouvre bien l'onglet personnalisé.
+      > **Un second défaut du script au passage** : le téléphone de l'auteur est
+      > apparu sur le réseau en pleine validation, et `adb` a répondu « more
+      > than one device » à chaque appel. Le script vise désormais l'émulateur
+      > **nommément** — ce qui ferme aussi la porte la plus grave, celle d'une
+      > construction de test installée sur le téléphone de quelqu'un
 
 ---
 

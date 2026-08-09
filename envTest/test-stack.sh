@@ -22,7 +22,27 @@ say()  { printf '\n\033[1m▸ %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  %s\033[0m\n' "$*"; }
 die()  { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
-adb() { "$ANDROID_HOME/platform-tools/adb" "$@"; }
+# Toujours viser l'émulateur **nommément**, jamais « l'appareil connecté ».
+#
+# Un téléphone réel branché en USB ou joignable par le réseau — c'est arrivé en
+# pleine validation — fait répondre « more than one device/emulator » à chaque
+# appel, et le script s'arrête sans rien avoir touché. Pire s'il n'y en avait
+# qu'un : le script installerait la construction de test sur le téléphone de
+# quelqu'un. Le sélecteur ferme les deux portes.
+emulator_serial() {
+    "$ANDROID_HOME/platform-tools/adb" devices |
+        awk '/^emulator-[0-9]+\tdevice$/ { print $1; exit }'
+}
+
+adb() {
+    local serial
+    serial=$(emulator_serial)
+    if [ -n "$serial" ]; then
+        "$ANDROID_HOME/platform-tools/adb" -s "$serial" "$@"
+    else
+        "$ANDROID_HOME/platform-tools/adb" "$@"
+    fi
+}
 
 # ─── Vérifications préalables ─────────────────────────────────────────────────
 #
