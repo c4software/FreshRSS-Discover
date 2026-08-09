@@ -77,6 +77,7 @@ en parallèle par trois agents à la demande de l'auteur.
 | GOAL-019 | Le marquage automatique devient optionnel | `[ ]` |
 | GOAL-020 | La carte se partage, le fanion disparaît, le balayage s'ouvre d'un appui | `[ ]` |
 | GOAL-021 | La documentation passe à l'anglais, l'interface devient bilingue | `[ ]` |
+| GOAL-022 | Une pile de test locale, et le défaut qu'elle a révélé | `[-]` |
 
 L'état porté ici est celui de la section du Goal, qui fait foi. Les Goals sont
 découpés en tâches par `/goal` au moment de les entreprendre : les découper
@@ -1387,6 +1388,60 @@ français conservé.
       obligerait à traduire deux fois
 - [ ] `GOAL-021-T04` SPECS.md §7.3 réécrite : l'interface n'est plus « en
       français » mais bilingue, l'anglais par défaut
+
+---
+
+## GOAL-022 — Une pile de test locale, et le défaut qu'elle a révélé
+
+**Statut : IN PROGRESS**
+
+Le téléphone n'étant pas disponible (voir « Phase courante »), l'auteur a demandé
+qu'une pile de test soit montée sur la machine : un émulateur Android et une
+instance FreshRSS en conteneur. Elle a été montée, l'application y a été
+installée, et **la connexion a échoué à la première tentative** — sur un défaut
+qu'aucun des tests du dépôt ne pouvait voir.
+
+### Le défaut
+
+```
+java.net.UnknownServiceException: CLEARTEXT communication to 10.0.2.2
+not permitted by network security policy
+```
+
+SPECS.md §3.1 dit que le schéma `http://` **reste accepté**, « les instances
+auto-hébergées sur réseau local sont un cas réel », et l'écran de connexion va
+jusqu'à afficher l'avertissement « cette connexion n'est pas chiffrée ». Le
+manifeste, lui, n'autorise le trafic en clair nulle part : depuis `targetSdk 28`,
+Android le refuse par défaut. **Aucune instance en `http://` n'était joignable**,
+et l'application affichait « le serveur ne répond pas » — un diagnostic faux, qui
+aurait envoyé l'utilisateur chercher la panne chez lui.
+
+C'est exactement le motif de `GOAL-001-T22` : trois défauts que 487 tests et
+30 captures n'avaient pas vus, et qu'une seule exécution réelle a montrés. La
+promesse était écrite dans SPECS.md, testée nulle part, et fausse.
+
+### Tâches
+
+- [x] `GOAL-022-T01` **Le trafic en clair est autorisé**, comme SPECS.md §3.1 le
+      promet, et un test le constate.
+      > **Le premier garde-fou écrit ne gardait rien.** La correction est passée
+      > d'abord par un `network_security_config.xml`, et le test qui devait la
+      > tenir lisait `NetworkSecurityPolicy.isCleartextTrafficPermitted`. Il
+      > passait — mais il passait **aussi** après suppression de la
+      > configuration : Robolectric autorise le clair quoi qu'en dise le
+      > manifeste. Vérifié par mutation avant de le croire, exactement ce
+      > qu'AGENTS.md §8 réclame d'un outil qui ne signale jamais rien.
+      > L'autorisation passe donc par `android:usesCleartextTraffic`, dont le
+      > fanion arrive jusqu'à `ApplicationInfo.flags` et **échoue** quand on le
+      > retire. Constat de mutation : retiré → `FAILED`, remis → `SUCCESSFUL`.
+      > Puis constaté sur l'émulateur : connexion réussie contre
+      > `http://10.0.2.2:8088`, flux réel de 134 articles sur 8 sources
+- [ ] `GOAL-022-T02` **Script `scripts/test-stack.sh`**, demandé par l'auteur :
+      deux commandes, `init` qui fabrique tout une fois, `run` qui relance.
+      Documenté dans `CONTRIBUTING.md` pour l'avenir
+- [ ] `GOAL-022-T03` **Le parcours complet constaté sur l'émulateur**, une fois
+      GOAL-019 et GOAL-020 fusionnés : connexion, flux, partage, carte cliquable
+      en Balayage, interrupteur de marquage
 
 ---
 

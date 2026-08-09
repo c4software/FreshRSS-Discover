@@ -19,3 +19,6 @@ captures
 *.jks
 *.keystore
 keystore.properties
+
+# Worktrees des agents (éphémères, jamais versionnés)
+.claude/worktrees/
