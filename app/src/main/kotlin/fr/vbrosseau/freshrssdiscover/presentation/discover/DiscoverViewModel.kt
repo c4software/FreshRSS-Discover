@@ -65,6 +65,25 @@ class DiscoverViewModel @Inject constructor(
     private var isLoading: Boolean = false
 
     /**
+     * Génération du parcours de pagination (GOAL-028).
+     *
+     * Le rechargement l'incrémente ; une page revenue d'une génération
+     * antérieure est **jetée à l'arrivée** — ni état, ni curseur, ni phase.
+     * Sans cela, une page demandée avant le tirage et revenue après lui
+     * s'ajoutait sous la liste rafraîchie et **écrasait le curseur du
+     * rechargement** : la pagination reprenait en silence le parcours
+     * abandonné. Depuis GOAL-027, son écriture au cache réinsérait de surcroît
+     * des lignes que `retainOnly` venait d'emporter.
+     *
+     * Un compteur et non une attente sur [isLoading] : faire patienter le geste
+     * derrière une requête lente serait l'inverse de ce qu'un rechargement
+     * promet. La page périmée est jetée même si le rechargement **échoue**
+     * ensuite — le geste a désavoué l'ancien parcours, et « Réessayer » est le
+     * chemin du retour.
+     */
+    private var loadGeneration = 0
+
+    /**
      * Vrai dès qu'une page du serveur a été fondue dans la liste.
      *
      * C'est ce qui referme la porte du cache. Le flux du cache réémet à
@@ -250,6 +269,9 @@ class DiscoverViewModel @Inject constructor(
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
+        // Le geste désavoue le parcours en cours : toute page encore en vol
+        // appartient désormais à une génération périmée (GOAL-028).
+        loadGeneration++
         _uiState.update { it.copy(isRefreshing = true) }
 
         viewModelScope.launch {
@@ -392,12 +414,20 @@ class DiscoverViewModel @Inject constructor(
             it.copy(phase = if (isFirstPage) DiscoverPhase.InitialLoading else DiscoverPhase.LoadingMore)
         }
 
+        // Relevée au départ, comparée à l'arrivée : si un rechargement est
+        // passé entre les deux, cette page décrit un flux qui n'existe plus.
+        val generation = loadGeneration
+
         viewModelScope.launch {
             val result = articleRepository.loadPage(cursor)
             // Relâché **avant** le traitement : une page entièrement déjà
             // affichée enchaîne sur la suivante, et le verrou encore posé
             // ferait de cet enchaînement un appel sans effet.
             isLoading = false
+
+            // Jetée entière, échec compris : signaler l'échec d'une requête
+            // désavouée peindrait en panne un flux qui vient d'être remplacé.
+            if (generation != loadGeneration) return@launch
 
             when (result) {
                 is Outcome.Success -> onPageLoaded(result.value)

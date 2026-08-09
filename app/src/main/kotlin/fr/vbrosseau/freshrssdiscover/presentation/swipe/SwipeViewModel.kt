@@ -65,6 +65,15 @@ class SwipeViewModel @Inject constructor(
      */
     private var isLoading: Boolean = false
 
+    /**
+     * Génération du parcours de pagination (GOAL-028), comme en mode Liste :
+     * le rechargement l'incrémente, une page revenue d'une génération
+     * antérieure est jetée à l'arrivée. Voir `DiscoverViewModel.loadGeneration`
+     * pour l'argument complet — même règle, deux ViewModels, deux cas de test
+     * (ARCHITECTURE.md §9.6).
+     */
+    private var loadGeneration = 0
+
     /** Vrai dès qu'une page du serveur a été fondue : le cache cesse alors d'alimenter. */
     private var hasServerContent: Boolean = false
 
@@ -175,7 +184,11 @@ class SwipeViewModel @Inject constructor(
      * chargé, sans avoir à savoir ce qu'il en est du chargement précédent.
      */
     fun loadMore() {
-        if (_uiState.value.phase != DiscoverPhase.Idle) return
+        // `isRefreshing` aussi, depuis GOAL-028 : le mode Liste l'avait, pas
+        // celui-ci — la divergence exacte qu'ARCHITECTURE.md §9.6 dit de
+        // traquer. Sans elle, le pagineur pouvait **démarrer** une page pendant
+        // le rechargement, avec le curseur de l'ancien parcours.
+        if (_uiState.value.phase != DiscoverPhase.Idle || _uiState.value.isRefreshing) return
         load()
     }
 
@@ -206,6 +219,8 @@ class SwipeViewModel @Inject constructor(
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
+        // Le geste désavoue le parcours en cours (GOAL-028).
+        loadGeneration++
         _uiState.update { it.copy(isRefreshing = true) }
 
         viewModelScope.launch {
@@ -316,12 +331,18 @@ class SwipeViewModel @Inject constructor(
             it.copy(phase = if (isFirstPage) DiscoverPhase.InitialLoading else DiscoverPhase.LoadingMore)
         }
 
+        // Relevée au départ, comparée à l'arrivée (GOAL-028).
+        val generation = loadGeneration
+
         viewModelScope.launch {
             val result = articleRepository.loadPage(cursor)
             // Relâché avant le traitement : une page entièrement déjà affichée
             // enchaîne sur la suivante, et le verrou encore posé ferait de cet
             // enchaînement un appel sans effet.
             isLoading = false
+
+            // Une page d'une génération périmée est jetée, échec compris.
+            if (generation != loadGeneration) return@launch
 
             when (result) {
                 is Outcome.Success -> onPageLoaded(result.value)

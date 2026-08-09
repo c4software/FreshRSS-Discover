@@ -98,6 +98,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-025 | An empty feed stops being a dead end | `[x]` |
 | GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
 | GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
+| GOAL-028 | A page in flight no longer survives the reload that disowned it | `[ ]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -1990,6 +1991,52 @@ of queries; two of them exist separately because of that same `NOT IN ()`. And
 13 rather than 12 because the threshold is the value **at** which Detekt
 reports, not the one it tolerates — the earlier bump to 12 for classes was one
 notch too low for a twelve-query interface.
+
+---
+
+## GOAL-028 — A page in flight no longer survives the reload that disowned it
+
+**Status: IN PROGRESS**
+
+Found by analysis, at the author's request, after GOAL-027: not observed on a
+device, but the window is real and GOAL-027 widened what it can corrupt.
+
+### The race
+
+`refresh()` checks `isRefreshing`, never `isLoading`: a page requested **before**
+the pull is still in flight, and nothing cancels it. If it lands after the
+reload:
+
+- `onPageLoaded` runs anyway — the old articles append **under the refreshed
+  list**, and `cursor = page.nextCursor` **overwrites the reload's cursor**:
+  pagination silently resumes the abandoned course. Pre-existing.
+- since GOAL-027, its `cache.save` also re-inserts rows `retainOnly` just
+  removed — articles displayed but gone at the next launch. New blast radius.
+
+The trigger is plausible: the title-row button is pressable during a
+`LoadingMore`, and Swipe mode's `loadMore` did not even check `isRefreshing` —
+a page could be **started** during the reload, not merely survive it.
+
+### The decision
+
+A **generation counter**, not a lock. The reload increments it; a page returning
+from an earlier generation is dropped on arrival — state, cursor and phase
+untouched. Waiting on `isLoading` instead would make the gesture queue behind a
+slow request, which is the opposite of what a reload promises. A stale page is
+dropped even if the reload then **fails**: the gesture disowned the old course,
+and "Retry" is the road back.
+
+### Tasks
+
+- [x] `GOAL-028-T01` **A stale page is dropped on arrival**, both modes: success
+      and failure both discarded, the next `loadMore` follows the reload's
+      cursor. `FakeArticleRepository` learns to gate `refresh()` separately
+      (`pendingRefresh`), since one deferred gating both sides cannot stage this
+      race
+- [x] `GOAL-028-T02` **Swipe mode stops starting pages during a reload** —
+      `loadMore` gains the `isRefreshing` guard List mode already had
+      (ARCHITECTURE.md §9.6, the divergence rule)
+- [ ] `GOAL-028-T03` **Record it**: ARCHITECTURE.md §9
 
 ---
 

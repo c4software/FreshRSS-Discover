@@ -361,12 +361,12 @@ class SwipeViewModelTest {
     @Test
     fun theReloadIndicatorLastsExactlyAsLongAsTheRequest() {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
 
         viewModel.refresh()
         assertTrue(state.isRefreshing)
 
-        repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 5L)), null)))
+        repository.completeRefresh(Outcome.Success(ArticlePage(listOf(article(id = 5L)), null)))
         assertFalse(state.isRefreshing)
         assertEquals(listOf(5L), state.articles.map { it.id })
     }
@@ -374,7 +374,7 @@ class SwipeViewModelTest {
     @Test
     fun asecondReloadIsIgnoredWhileOneIsAlreadyInFlight() {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
 
         viewModel.refresh()
         viewModel.refresh()

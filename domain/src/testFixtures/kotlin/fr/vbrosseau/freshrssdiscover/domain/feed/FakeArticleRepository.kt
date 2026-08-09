@@ -28,6 +28,18 @@ class FakeArticleRepository : ArticleRepository {
     /** Arme un chargement qui ne se terminera qu'une fois [completeLoad] appelée. */
     var pendingLoad: CompletableDeferred<FeedResult<ArticlePage>>? = null
 
+    /**
+     * Arme un rechargement qui ne se terminera qu'une fois [completeRefresh]
+     * appelée.
+     *
+     * Distinct de [pendingLoad], et la distinction est ce qui permet de mettre
+     * en scène la course de GOAL-028 : une page en vol **pendant** qu'un
+     * rechargement aboutit. Un verrou unique suspendrait les deux appels
+     * ensemble, et l'ordre d'arrivée — tout l'objet du test — deviendrait
+     * inobservable.
+     */
+    var pendingRefresh: CompletableDeferred<FeedResult<ArticlePage>>? = null
+
     var loadCallCount: Int = 0
         private set
 
@@ -78,7 +90,7 @@ class FakeArticleRepository : ArticleRepository {
         refreshCallCount++
         onRefresh?.invoke()
 
-        return nextResult()
+        return pendingRefresh?.await() ?: dequeue()
     }
 
     /** Ce que le cache rendra au rappel de lecture (SPECS.md §4.9). */
@@ -89,8 +101,9 @@ class FakeArticleRepository : ArticleRepository {
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cachedArticles.map { articles -> articles.take(limit) }
 
-    private suspend fun nextResult(): FeedResult<ArticlePage> =
-        pendingLoad?.await() ?: programmed.removeFirstOrNull() ?: fallbackResult
+    private suspend fun nextResult(): FeedResult<ArticlePage> = pendingLoad?.await() ?: dequeue()
+
+    private fun dequeue(): FeedResult<ArticlePage> = programmed.removeFirstOrNull() ?: fallbackResult
 
     /** Programme une page, avec son curseur de suite — `null` pour une fin de flux. */
     fun enqueuePage(
@@ -108,6 +121,13 @@ class FakeArticleRepository : ArticleRepository {
     fun completeLoad(result: FeedResult<ArticlePage>) {
         val pending = checkNotNull(pendingLoad) { "aucun chargement en attente" }
         pendingLoad = null
+        pending.complete(result)
+    }
+
+    /** Débloque le rechargement armé par [pendingRefresh], et le désarme. */
+    fun completeRefresh(result: FeedResult<ArticlePage>) {
+        val pending = checkNotNull(pendingRefresh) { "aucun rechargement en attente" }
+        pendingRefresh = null
         pending.complete(result)
     }
 }

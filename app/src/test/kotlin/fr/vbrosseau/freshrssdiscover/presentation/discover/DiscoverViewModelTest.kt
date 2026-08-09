@@ -610,12 +610,12 @@ class DiscoverViewModelTest {
     fun theRefreshIndicatorLastsExactlyAsLongAsTheRequest() {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(DiscoverPhase.Idle, state.phase)
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
 
         viewModel.refresh()
         assertTrue(state.isRefreshing)
 
-        repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 2L)), PageCursor("c9"))))
+        repository.completeRefresh(Outcome.Success(ArticlePage(listOf(article(id = 2L)), PageCursor("c9"))))
 
         assertFalse(state.isRefreshing)
         assertEquals(listOf(2L), state.articles.map { it.id })
@@ -625,13 +625,13 @@ class DiscoverViewModelTest {
     fun aSecondRefreshWhileTheFirstIsInFlightIsIgnored() {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(DiscoverPhase.Idle, state.phase)
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
 
         viewModel.refresh()
         viewModel.refresh()
 
         assertEquals(1, repository.refreshCallCount)
-        repository.completeLoad(Outcome.Success(ArticlePage(emptyList(), null)))
+        repository.completeRefresh(Outcome.Success(ArticlePage(emptyList(), null)))
     }
 
     @Test
@@ -640,13 +640,13 @@ class DiscoverViewModelTest {
         // front mêlerait leurs insertions.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(DiscoverPhase.Idle, state.phase)
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
         viewModel.refresh()
 
         viewModel.loadMore()
 
         assertEquals(1, repository.loadCallCount)
-        repository.completeLoad(Outcome.Success(ArticlePage(emptyList(), null)))
+        repository.completeRefresh(Outcome.Success(ArticlePage(emptyList(), null)))
     }
 
     @Test
@@ -878,7 +878,7 @@ class DiscoverViewModelTest {
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
         repository.enqueuePage(listOf(article(id = 1L)))
         assertTrue(state.showsStaleNotice)
-        repository.pendingLoad = CompletableDeferred()
+        repository.pendingRefresh = CompletableDeferred()
 
         viewModel.refresh()
 
