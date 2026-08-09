@@ -4,6 +4,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,6 +12,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingTestTags
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
@@ -39,6 +43,9 @@ private const val PREFETCH_TRIGGER_PAGE = 7
 /** Cadence des relevés de visibilité, reprise de `sampleVisibility`. */
 private const val SAMPLING_PERIOD_MILLIS = 200L
 
+/** Cible tactile minimale exigée par SPECS.md §7.1. */
+private val MIN_TOUCH_TARGET = 48.dp
+
 @RunWith(RobolectricTestRunner::class)
 class SwipeScreenTest {
     @get:Rule
@@ -56,6 +63,7 @@ class SwipeScreenTest {
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
         onArticleClick: (Long) -> Unit = {},
+        onArticleShare: (Long) -> Unit = {},
         onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     ) {
         composeRule.setContent {
@@ -64,6 +72,7 @@ class SwipeScreenTest {
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
                 pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
                 onVisibilityChanged = onVisibilityChanged,
             )
@@ -280,6 +289,37 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.OPEN).assertDoesNotExist()
     }
 
+    // ----- Partage de la carte (SPECS.md §4.3) --------------------------------
+
+    @Test
+    fun anArticleWithALinkCanBeShared() {
+        val shared = mutableListOf<Long>()
+        show(feedOf(uiArticle(id = 42L)), onArticleShare = { shared += it })
+
+        composeRule.onNodeWithTag(SwipeTestTags.share(42L)).performClick()
+
+        assertEquals(listOf(42L), shared)
+    }
+
+    @Test
+    fun anArticleWithoutLinkCarriesNoShareButton() {
+        show(feedOf(uiArticle(id = 1L, isOpenable = false)))
+
+        composeRule.onNodeWithTag(SwipeTestTags.share(1L)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theShareButtonAnnouncesItselfAndIsLargeEnoughToTouch() {
+        show(feedOf(uiArticle(id = 1L)))
+
+        composeRule.onNodeWithContentDescription("Partager l'article").assertExists()
+
+        val bounds = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
+
+        assertTrue(bounds.width >= MIN_TOUCH_TARGET, "largeur ${bounds.width}")
+        assertTrue(bounds.height >= MIN_TOUCH_TARGET, "hauteur ${bounds.height}")
+    }
+
     @Test
     fun anIllustratedArticleShowsItsImage() {
         show(feedOf(uiArticle(id = 1L, imageUrl = LOADABLE_IMAGE_URL)))
@@ -397,6 +437,7 @@ class SwipeScreenTest {
                 onLoadMore = {},
                 onRetry = {},
                 onArticleClick = {},
+                onArticleShare = {},
                 onRefresh = onRefresh,
                 onStaleNoticeDismiss = onStaleNoticeDismiss,
             )

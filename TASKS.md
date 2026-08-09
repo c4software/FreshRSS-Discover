@@ -1359,8 +1359,17 @@ traiter séparément reviendrait à corriger deux fois la même mise en page.
       puissent pas diverger. Le gabarit du texte partagé est une ressource,
       donnée au partageur par `rememberArticleSharer` : la composition reste
       éprouvable en JVM, la formulation reste traduisible
-- [ ] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
-      cible de 48 dp et description pour le lecteur d'écran — tests d'écran
+- [x] `GOAL-020-T03` **Bouton Partager sur la carte**, dans les deux modes,
+      cible de 48 dp et description pour le lecteur d'écran — tests d'écran.
+      `ArticleShareButton` vit dans `feed/`, comme `RefreshButton` : même
+      action des deux côtés. Posé **sous** les textes de la carte et non sur
+      la ligne du flux et de la date — là-haut, un lecteur d'écran annoncerait
+      la commande avant le titre de l'article qu'elle partage.
+      `onArticleShare` est **sans valeur par défaut** sur les deux écrans :
+      un `{}` implicite laisserait un bouton visible et inerte.
+      Références Roborazzi réenregistrées et **regardées** dans ce même
+      incrément, plutôt que reportées à `T05` : entre les deux, la
+      vérification visuelle aurait été rouge sans que cela signifie rien
 - [ ] `GOAL-020-T04` **En Balayage, la carte entière ouvre l'article** et le
       bouton disparaît. Un test constate que le balayage passe toujours
 - [ ] `GOAL-020-T05` Captures Roborazzi des deux modes, clair et sombre,

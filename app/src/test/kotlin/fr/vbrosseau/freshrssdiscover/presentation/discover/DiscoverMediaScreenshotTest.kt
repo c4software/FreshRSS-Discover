@@ -53,6 +53,7 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
                 onLoadMore = {},
                 onRetry = {},
                 onArticleClick = {},
+                onArticleShare = {},
             )
         }
     }
@@ -82,6 +83,7 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
                 onLoadMore = {},
                 onRetry = {},
                 onArticleClick = {},
+                onArticleShare = {},
             )
         }
     }
@@ -116,6 +118,7 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
                 onLoadMore = {},
                 onRetry = {},
                 onArticleClick = {},
+                onArticleShare = {},
             )
         }
     }

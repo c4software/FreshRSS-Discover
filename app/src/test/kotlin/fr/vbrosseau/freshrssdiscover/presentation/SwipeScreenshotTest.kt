@@ -162,6 +162,7 @@ class SwipeScreenshotTest : ScreenshotTest() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
             pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
         )
     }

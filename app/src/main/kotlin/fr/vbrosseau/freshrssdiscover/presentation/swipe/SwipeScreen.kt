@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -50,6 +51,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
+import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
@@ -102,6 +104,9 @@ private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 
  * prévisualisable et testable sans graphe d'injection. Le seul état qu'il tient
  * est la position du balayage, qui n'appartient qu'à lui.
  *
+ * @param onArticleShare **sans valeur par défaut**, comme en mode Liste : un
+ *   `{}` implicite laisserait un bouton visible et inerte, et rien ne le
+ *   signalerait.
  * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
  *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
  *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
@@ -114,6 +119,7 @@ fun SwipeScreen(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOfflineNoticeDismiss: () -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -134,6 +140,7 @@ fun SwipeScreen(
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
                 onArticleClick = onArticleClick,
+                onArticleShare = onArticleShare,
                 modifier = Modifier.weight(1f),
                 pagerState = pagerState,
                 onVisibilityChanged = onVisibilityChanged,
@@ -219,6 +226,7 @@ private fun SwipeBody(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -231,6 +239,7 @@ private fun SwipeBody(
             onLoadMore = onLoadMore,
             onRetry = onRetry,
             onArticleClick = onArticleClick,
+            onArticleShare = onArticleShare,
             modifier = modifier,
             pagerState = pagerState,
             onVisibilityChanged = onVisibilityChanged,
@@ -266,6 +275,7 @@ private fun ArticlePager(
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
     modifier: Modifier = Modifier,
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -297,7 +307,11 @@ private fun ArticlePager(
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
-                ArticlePage(article = article, onOpen = { onArticleClick(article.id) })
+                ArticlePage(
+                    article = article,
+                    onOpen = { onArticleClick(article.id) },
+                    onShare = { onArticleShare(article.id) },
+                )
             }
         }
     }
@@ -368,6 +382,7 @@ private fun SwipeCard(
 private fun ArticlePage(
     article: ArticleUiModel,
     onOpen: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -406,7 +421,23 @@ private fun ArticlePage(
                 )
             }
 
-            OpenAction(article = article, onOpen = onOpen)
+            /*
+             * Les deux commandes sur une même ligne, l'ouverture à gauche et
+             * le partage à droite : empilées, elles auraient occupé deux fois
+             * la hauteur d'une cible tactile au bas d'un contenu qui défile
+             * déjà (SPECS.md §7.1, taille de police augmentée).
+             */
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OpenAction(article = article, onOpen = onOpen)
+
+                if (article.isOpenable) {
+                    ArticleShareButton(onShare = onShare, testTag = SwipeTestTags.share(article.id))
+                }
+            }
         }
     }
 }
@@ -699,6 +730,7 @@ private fun SwipeScreenPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }
@@ -712,6 +744,7 @@ private fun SwipeScreenEmptyPreview() {
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},
+            onArticleShare = {},
         )
     }
 }

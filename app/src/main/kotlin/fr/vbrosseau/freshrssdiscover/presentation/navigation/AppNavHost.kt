@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
+import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleSharer
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
@@ -72,6 +73,15 @@ private fun DiscoverRoute(
     // dans la pile de l'application — sinon le retour ne ramènerait pas au flux.
     val articleOpener = rememberArticleOpener()
 
+    /*
+     * Le partage ne passe **pas** par le ViewModel, à la différence de
+     * l'ouverture : il ne marque pas l'article lu — on n'a rien lu en
+     * l'envoyant — et il ne demande pas le réseau, puisque rien ne part
+     * d'ici : c'est l'application choisie qui décidera quoi en faire, quand
+     * elle le pourra. Il n'y a donc aucune décision à prendre en amont.
+     */
+    val articleSharer = rememberArticleSharer()
+
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
@@ -87,6 +97,11 @@ private fun DiscoverRoute(
         onArticleClick = { articleId ->
             if (viewModel.onArticleOpened(articleId)) {
                 articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
+            }
+        },
+        onArticleShare = { articleId ->
+            uiState.articles.firstOrNull { it.id == articleId }?.let { article ->
+                articleSharer.share(title = article.title, url = article.url)
             }
         },
         onRefresh = viewModel::refresh,
@@ -107,6 +122,7 @@ private fun SwipeRoute(
     val viewModel: SwipeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articleOpener = rememberArticleOpener()
+    val articleSharer = rememberArticleSharer()
 
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
@@ -121,6 +137,11 @@ private fun SwipeRoute(
         onArticleClick = { articleId ->
             if (viewModel.onArticleOpened(articleId)) {
                 articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
+            }
+        },
+        onArticleShare = { articleId ->
+            uiState.articles.firstOrNull { it.id == articleId }?.let { article ->
+                articleSharer.share(title = article.title, url = article.url)
             }
         },
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,

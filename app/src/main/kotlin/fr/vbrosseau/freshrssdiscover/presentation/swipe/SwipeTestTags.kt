@@ -17,4 +17,6 @@ object SwipeTestTags {
     const val STALE_NOTICE_DISMISS = "swipe:stale-notice-dismiss"
 
     fun page(id: Long) = "swipe:page:$id"
+
+    fun share(id: Long) = "swipe:share:$id"
 }

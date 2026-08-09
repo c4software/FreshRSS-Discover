@@ -19,6 +19,13 @@
     <string name="feed_stale_dismiss">Plus tard</string>
 
     <!--
+        Description du bouton de partage, lue par les lecteurs d'écran.
+        L'infinitif plutôt qu'un nom, comme `feed_refresh` : elle annonce ce
+        que l'appui va faire.
+    -->
+    <string name="feed_article_share">Partager l\'article</string>
+
+    <!--
         Ce qui part dans le partage : le titre, puis le lien d'origine
         (SPECS.md §4.3). Deux lignes, parce que les messageries qui détectent
         les liens s'arrêtent au retour à la ligne — accolé au titre, le lien
