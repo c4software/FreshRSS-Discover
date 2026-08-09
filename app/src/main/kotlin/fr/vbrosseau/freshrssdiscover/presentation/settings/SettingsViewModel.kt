@@ -102,6 +102,21 @@ class SettingsViewModel @Inject constructor(
             ),
         )
 
+    /**
+     * Allume ou éteint le marquage par visibilité (SPECS.md §4.5, §6).
+     *
+     * Rien d'autre à faire qu'enregistrer, contrairement au rappel de lecture :
+     * les deux ViewModels du flux observent déjà les réglages et reconstruisent
+     * leur détecteur à chaque émission. Le changement s'applique donc sans
+     * redémarrage, sans que cet écran ait à toucher quoi que ce soit du flux.
+     *
+     * Les deux seuils ne sont **pas** réécrits au passage : ils restent tels
+     * quels pour le rallumage.
+     */
+    fun setAutoMarkAsReadEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setAutoMarkAsReadEnabled(enabled) }
+    }
+
     /** @param percent une position du curseur, donc déjà dans les bornes du domaine. */
     fun setVisibleFractionPercent(percent: Int) {
         viewModelScope.launch { settingsRepository.setVisibleFraction(percent / PERCENT) }
@@ -191,6 +206,7 @@ class SettingsViewModel @Inject constructor(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
         presentation = preferences.presentation,
         isReminderEnabled = preferences.reminderEnabled,
+        isAutoMarkAsReadEnabled = settings.autoMarkAsReadEnabled,
         visibleFraction = visibleFractionThresholdOf(settings),
         continuousVisibility = continuousVisibilityThresholdOf(settings),
         cache = SettingsCache(

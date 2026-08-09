@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.settings
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
@@ -333,6 +334,134 @@ class SettingsScreenTest {
             .performSemanticsAction(SemanticsActions.SetProgress) { it(500f) }
 
         assertTrue(reported.all { it in SettingsUiState().visibleFraction.range }, "valeurs remontées : $reported")
+    }
+
+    /**
+     * Un montage propre au marquage automatique, pour la raison déjà donnée à
+     * [showReminder] : la liste de rappels de [show] est au seuil que Detekt
+     * accepte.
+     */
+    private fun showAutomaticMarking(
+        isAutoMarkAsReadEnabled: Boolean = true,
+        onAutoMarkAsReadChange: (Boolean) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            SettingsScreen(
+                uiState = SettingsUiState(
+                    account = account,
+                    isAutoMarkAsReadEnabled = isAutoMarkAsReadEnabled,
+                ),
+                onSignOutRequest = {},
+                onSignOutConfirm = {},
+                onSignOutDismiss = {},
+                onVisibleFractionChange = {},
+                onContinuousVisibilityChange = {},
+                onAutoMarkAsReadChange = onAutoMarkAsReadChange,
+            )
+        }
+    }
+
+    /** SPECS.md §4.5 : le marquage a lieu tant qu'on ne l'éteint pas. */
+    @Test
+    fun theAutomaticMarkingSwitchFollowsTheState() {
+        showAutomaticMarking(isAutoMarkAsReadEnabled = true)
+
+        composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ).performScrollTo().assertIsOn()
+    }
+
+    @Test
+    fun theAutomaticMarkingSwitchIsOffWhenTheStoredChoiceIsOff() {
+        showAutomaticMarking(isAutoMarkAsReadEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ).performScrollTo().assertIsOff()
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingOffReportsIt() {
+        var reported: Boolean? = null
+        showAutomaticMarking(isAutoMarkAsReadEnabled = true, onAutoMarkAsReadChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ).performScrollTo().performClick()
+
+        assertEquals(false, reported)
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingBackOnReportsIt() {
+        var reported: Boolean? = null
+        showAutomaticMarking(isAutoMarkAsReadEnabled = false, onAutoMarkAsReadChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ).performScrollTo().performClick()
+
+        assertEquals(true, reported)
+    }
+
+    /** SPECS.md §7.1 : la rangée entière est la cible, et elle fait 48 dp. */
+    @Test
+    fun theAutomaticMarkingSwitchIsBigEnoughToBeTapped() {
+        showAutomaticMarking()
+
+        val bounds = composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ)
+            .performScrollTo()
+            .getUnclippedBoundsInRoot()
+        assertTrue(bounds.height >= 48.dp, "hauteur de la cible : ${bounds.height}")
+        assertTrue(bounds.width >= 48.dp, "largeur de la cible : ${bounds.width}")
+    }
+
+    /**
+     * Ce que l'extinction ne coupe pas.
+     *
+     * Sans cette phrase, l'utilisateur croirait avoir suspendu tout marquage et
+     * prendrait pour un défaut la disparition d'un article qu'il vient d'ouvrir
+     * (SPECS.md §4.7).
+     */
+    @Test
+    fun theAutomaticMarkingSaysWhatStaysWhenItIsOff() {
+        showAutomaticMarking()
+
+        composeRule.onNodeWithTag(SettingsTestTags.AUTO_MARK_AS_READ_HELP)
+            .assertTextEquals(
+                "Sans cela, faire défiler le flux ne marque plus rien : " +
+                    "les seuils ci-dessous cessent de s'appliquer. " +
+                    "Ouvrir un article le marque toujours comme lu.",
+            )
+    }
+
+    /**
+     * Les deux seuils restent **affichés** quand le marquage est éteint : les
+     * cacher ferait disparaître deux réglages sans dire pourquoi.
+     */
+    @Test
+    fun withAutomaticMarkingOffTheThresholdsAreStillShown() {
+        showAutomaticMarking(isAutoMarkAsReadEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION).assertTextEquals("au moins 60 %")
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 1 s")
+    }
+
+    /** Grisés, parce que proposer d'ajuster ce qui ne s'applique plus est un piège. */
+    @Test
+    fun withAutomaticMarkingOffTheThresholdSlidersAreDisabled() {
+        showAutomaticMarking(isAutoMarkAsReadEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION_SLIDER)
+            .performScrollTo()
+            .assertIsNotEnabled()
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY_SLIDER)
+            .performScrollTo()
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun withAutomaticMarkingOnTheThresholdSlidersAreUsable() {
+        showAutomaticMarking(isAutoMarkAsReadEnabled = true)
+
+        composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION_SLIDER)
+            .performScrollTo()
+            .assertIsEnabled()
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY_SLIDER)
+            .performScrollTo()
+            .assertIsEnabled()
     }
 
     /**

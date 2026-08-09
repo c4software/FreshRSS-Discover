@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -48,6 +49,19 @@ import kotlin.math.roundToInt
  * l'écran n'atteindrait les 48 dp exigés.
  */
 private val MinTouchTarget = 48.dp
+
+/**
+ * Opacité d'un contenu désactivé, telle que Material 3 la définit.
+ *
+ * Recopiée parce qu'elle n'est pas publiée : `SliderDefaults` l'applique à sa
+ * piste, mais rien n'expose la valeur aux textes qui l'accompagnent. Diverger
+ * ferait paraître le libellé plus vif que le curseur qu'il décrit.
+ */
+private const val DISABLED_CONTENT_ALPHA = 0.38f
+
+/** Atténue une couleur quand le contrôle qu'elle habille est désactivé. */
+private fun Color.dimmedUnless(enabled: Boolean): Color =
+    if (enabled) this else copy(alpha = DISABLED_CONTENT_ALPHA)
 
 /**
  * Écran de réglages (SPECS.md §6).
@@ -95,6 +109,14 @@ fun SettingsScreen(
      * **À câbler sur `viewModel::setReminderEnabled` par `AppNavHost`.**
      */
     onReminderEnabledChange: (Boolean) -> Unit = {},
+    /**
+     * Extinction ou rallumage du marquage automatique (SPECS.md §4.5, §6).
+     *
+     * Avec une valeur par défaut, comme les rappels voisins : les tests
+     * d'écran et les captures montrent l'état sans avoir à câbler le geste.
+     * **Câblé sur `viewModel::setAutoMarkAsReadEnabled` par `AppNavHost`.**
+     */
+    onAutoMarkAsReadChange: (Boolean) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -134,6 +156,7 @@ fun SettingsScreen(
             uiState = uiState,
             onVisibleFractionChange = onVisibleFractionChange,
             onContinuousVisibilityChange = onContinuousVisibilityChange,
+            onAutoMarkAsReadChange = onAutoMarkAsReadChange,
         )
         HorizontalDivider()
         /*
@@ -255,13 +278,22 @@ private fun presentationTestTagOf(presentation: FeedPresentation): String = when
 }
 
 /**
- * Seuils du marquage automatique (SPECS.md §4.5), modifiables et enregistrés.
+ * Le marquage automatique (SPECS.md §4.5) : un interrupteur, puis ses seuils.
+ *
+ * **Une bascule et non des segments**, contrairement au mode de parcours : le
+ * réglage n'a pas deux valeurs également légitimes — le marquage a lieu, ou il
+ * n'a pas lieu — et la position éteinte se nomme d'elle-même.
+ *
+ * **Les deux curseurs restent affichés, grisés.** Les cacher ferait disparaître
+ * deux réglages sans dire pourquoi, et l'écran changerait de hauteur sous le
+ * doigt ; les laisser actifs proposerait d'ajuster ce qui ne s'applique plus.
  */
 @Composable
 private fun ReadingSection(
     uiState: SettingsUiState,
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
+    onAutoMarkAsReadChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SettingsSection(title = stringResource(R.string.settings_section_reading), modifier = modifier) {
@@ -270,6 +302,35 @@ private fun ReadingSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // La rangée entière porte l'action, pour la raison exposée sur le
+        // rappel de lecture : un `Switch` seul est une cible de 32 dp de haut.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
+                .toggleable(
+                    value = uiState.isAutoMarkAsReadEnabled,
+                    role = Role.Switch,
+                    onValueChange = onAutoMarkAsReadChange,
+                )
+                .testTag(SettingsTestTags.AUTO_MARK_AS_READ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_auto_mark_as_read_label),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = uiState.isAutoMarkAsReadEnabled, onCheckedChange = null)
+        }
+        Text(
+            text = stringResource(R.string.settings_auto_mark_as_read_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(SettingsTestTags.AUTO_MARK_AS_READ_HELP),
+        )
         ThresholdSlider(
             label = stringResource(R.string.settings_visible_fraction_label),
             value = stringResource(R.string.settings_visible_fraction_value, uiState.visibleFraction.value),
@@ -277,6 +338,7 @@ private fun ReadingSection(
             onValueChange = onVisibleFractionChange,
             valueTestTag = SettingsTestTags.VISIBLE_FRACTION,
             sliderTestTag = SettingsTestTags.VISIBLE_FRACTION_SLIDER,
+            enabled = uiState.isAutoMarkAsReadEnabled,
         )
         ThresholdSlider(
             label = stringResource(R.string.settings_continuous_visibility_label),
@@ -288,6 +350,7 @@ private fun ReadingSection(
             onValueChange = onContinuousVisibilityChange,
             valueTestTag = SettingsTestTags.CONTINUOUS_VISIBILITY,
             sliderTestTag = SettingsTestTags.CONTINUOUS_VISIBILITY_SLIDER,
+            enabled = uiState.isAutoMarkAsReadEnabled,
         )
     }
 }
@@ -304,6 +367,10 @@ private fun ReadingSection(
  *
  * La valeur reste écrite au-dessus : SPECS.md §6 demande d'afficher les seuils,
  * et un curseur seul ne dit pas ce qu'il vaut.
+ *
+ * @param enabled faux quand le marquage automatique est éteint (SPECS.md §4.5).
+ *   Le libellé et la valeur s'atténuent avec le curseur : un chiffre resté noir
+ *   au-dessus d'une piste grise se lirait comme un réglage encore appliqué.
  */
 @Composable
 private fun ThresholdSlider(
@@ -313,21 +380,23 @@ private fun ThresholdSlider(
     onValueChange: (Int) -> Unit,
     valueTestTag: String,
     sliderTestTag: String,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.dimmedUnless(enabled),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSurface.dimmedUnless(enabled),
             modifier = Modifier.testTag(valueTestTag),
         )
         Slider(
+            enabled = enabled,
             value = threshold.value.toFloat(),
             // L'arrondi est imposé par `Slider`, qui ne travaille qu'en `Float` :
             // les crans le font tomber sur une position exacte, mais la

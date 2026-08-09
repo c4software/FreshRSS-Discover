@@ -30,9 +30,18 @@
     <string name="settings_presentation_list_description">Plusieurs articles à l\'écran, que vous faites défiler vers le bas.</string>
     <string name="settings_presentation_swipe_description">Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.</string>
 
-    <!-- Seuils du marquage automatique (SPECS.md §4.5). -->
+    <!--
+      Marquage automatique (SPECS.md §4.5) : l'interrupteur, puis ses seuils.
+
+      La phrase d'aide de l'interrupteur dit ce que l'extinction **ne** coupe
+      pas : ouvrir un article continue de le marquer lu (SPECS.md §4.7). Sans
+      elle, l'utilisateur croirait avoir suspendu tout marquage, et prendrait
+      pour un défaut la disparition d'un article qu'il vient d'ouvrir.
+    -->
     <string name="settings_section_reading">Marquage automatique</string>
     <string name="settings_reading_help">Un article devient lu lorsqu\'il est resté suffisamment visible à l\'écran. Les deux conditions doivent être réunies en même temps.</string>
+    <string name="settings_auto_mark_as_read_label">Marquer en faisant défiler</string>
+    <string name="settings_auto_mark_as_read_help">Sans cela, faire défiler le flux ne marque plus rien : les seuils ci-dessous cessent de s\'appliquer. Ouvrir un article le marque toujours comme lu.</string>
     <string name="settings_visible_fraction_label">Proportion visible</string>
     <string name="settings_visible_fraction_value">au moins %1$d %%</string>
     <string name="settings_continuous_visibility_label">Durée continue</string>

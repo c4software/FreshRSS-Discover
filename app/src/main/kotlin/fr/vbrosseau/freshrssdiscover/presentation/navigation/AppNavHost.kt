@@ -166,6 +166,7 @@ private fun SettingsRoute(modifier: Modifier = Modifier) {
         onContinuousVisibilityChange = viewModel::setContinuousVisibilitySeconds,
         onPresentationChange = viewModel::setFeedPresentation,
         onReminderEnabledChange = viewModel::setReminderEnabled,
+        onAutoMarkAsReadChange = viewModel::setAutoMarkAsReadEnabled,
         modifier = modifier,
     )
 }

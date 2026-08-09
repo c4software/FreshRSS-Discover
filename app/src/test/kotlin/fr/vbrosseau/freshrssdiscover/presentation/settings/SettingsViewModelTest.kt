@@ -117,6 +117,56 @@ class SettingsViewModelTest {
         assertEquals(ReadingSettings.Default.continuousVisibilityMillis, settings.current.continuousVisibilityMillis)
     }
 
+    @Test
+    fun theAutomaticMarkingIsAnnouncedOnUntilItIsTurnedOff() = runTest {
+        observe()
+
+        assertTrue(viewModel.uiState.value.isAutoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun theDisplayedAutomaticMarkingIsTheStoredOne() = runTest {
+        settings.setAutoMarkAsReadEnabled(false)
+
+        observe()
+
+        assertFalse(viewModel.uiState.value.isAutoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingOffStoresItAndRepublishesIt() = runTest {
+        observe()
+
+        viewModel.setAutoMarkAsReadEnabled(false)
+
+        assertFalse(settings.current.autoMarkAsReadEnabled)
+        assertFalse(viewModel.uiState.value.isAutoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingBackOnStoresItToo() = runTest {
+        settings.setAutoMarkAsReadEnabled(false)
+        observe()
+
+        viewModel.setAutoMarkAsReadEnabled(true)
+
+        assertTrue(settings.current.autoMarkAsReadEnabled)
+        assertTrue(viewModel.uiState.value.isAutoMarkAsReadEnabled)
+    }
+
+    @Test
+    fun turningTheAutomaticMarkingOffLeavesTheThresholdsStored() = runTest {
+        observe()
+        viewModel.setVisibleFractionPercent(80)
+
+        viewModel.setAutoMarkAsReadEnabled(false)
+
+        // Grisés, pas oubliés : ils doivent se retrouver tels quels au
+        // rallumage, et l'écran continue de les afficher.
+        assertEquals(0.8f, settings.current.visibleFraction)
+        assertEquals(80, viewModel.uiState.value.visibleFraction.value)
+    }
+
     /**
      * Les bornes offertes par l'écran sont celles du domaine, jamais des
      * chiffres recopiés : un curseur plus large que le dépôt produirait un

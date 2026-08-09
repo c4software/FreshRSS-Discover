@@ -1307,7 +1307,7 @@ emporte. Un interrupteur **Actif / Non actif** rend la règle facultative.
 - [x] `GOAL-019-T03` **Les deux ViewModels du flux cessent d'alimenter le
       détecteur** quand le réglage est éteint, et le reprennent sans redémarrage
       quand il se rallume. L'ouverture d'un article marque toujours
-- [ ] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
+- [x] `GOAL-019-T04` Interrupteur dans l'écran de réglages, seuils grisés en
       dessous — tests d'écran et captures Roborazzi **regardées**
 - [ ] `GOAL-019-T05` Documentation : SPECS.md §4.5 et §6, TASKS.md
 

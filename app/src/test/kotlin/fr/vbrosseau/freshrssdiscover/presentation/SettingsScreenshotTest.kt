@@ -141,6 +141,29 @@ class SettingsScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /**
+     * Le marquage automatique éteint, donc les deux curseurs grisés.
+     *
+     * C'est le seul état où une piste **désactivée** et un chiffre atténué se
+     * jugent côte à côte : Material 3 les peint à des opacités différentes, et
+     * le thème sombre traite leurs couleurs autrement. Un seuil resté vif
+     * au-dessus d'une piste éteinte se lirait comme encore appliqué
+     * (SPECS.md §4.5, §7.1).
+     */
+    @Test
+    fun settingsScreenWithTheAutomaticMarkingTurnedOff() {
+        capture("reglages-marquage-eteint") {
+            settings(
+                SettingsUiState(
+                    account = ACCOUNT,
+                    isAutoMarkAsReadEnabled = false,
+                    cache = CACHE,
+                    appVersion = APP_VERSION,
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun settings(uiState: SettingsUiState) {
         SettingsScreen(
