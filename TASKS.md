@@ -2084,9 +2084,11 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
 - [x] `GOAL-029-T03` Dead data code: `SubscriptionListDto`/`SubscriptionDto`,
       never-read DTO fields, `unreadOnly` parameter, `retainOnly`'s unread `Int`,
       `HTTP_UNAUTHORIZED` declared thrice, `ArticleCache`'s orphan KDoc
-- [ ] `GOAL-029-T04` The upsert preserves `is_read` in SQL
-      (`ON CONFLICT … MAX`) instead of loading every read id into memory on
-      each page
+- [x] `GOAL-029-T04` The upsert stops loading every read id into memory on
+      each page — the read-state lookup is bounded to the page's own ids.
+      (`INSERT … ON CONFLICT` on an entity list is not expressible in Room's
+      `@Query`; bounding the lookup kills the actual defect, the unbounded
+      whole-table read)
 - [ ] `GOAL-029-T05` Dead presentation paths: `isEmptyFeed`,
       `publishedAtEpochSeconds` on the UI model, `dismissFailure`, fossil `{}`
       defaults in `SettingsScreen`, state defaults on single-caller private

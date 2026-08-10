@@ -208,7 +208,7 @@ class DefaultReadSyncRepositoryTest {
 
         repository.markAsRead(setOf(ArticleId(1L)))
 
-        assertEquals(listOf(1L), articleDao.readArticleIds())
+        assertEquals(listOf(1L), articleDao.readArticleIdsAmong(listOf(1L)))
         assertTrue(editTagForms.isEmpty())
         assertEquals(0, tokenRequestCount)
     }
@@ -346,7 +346,7 @@ class DefaultReadSyncRepositoryTest {
 
         assertTrue(editTagForms.isEmpty())
         assertEquals(0, tokenRequestCount)
-        assertEquals(listOf(1L), articleDao.readArticleIds())
+        assertEquals(listOf(1L), articleDao.readArticleIdsAmong(listOf(1L)))
         assertEquals(listOf(1L), pendingIds())
     }
 

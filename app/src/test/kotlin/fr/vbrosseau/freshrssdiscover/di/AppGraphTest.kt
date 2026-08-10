@@ -219,7 +219,7 @@ class AppGraphTest {
         // premier accès, ce que ni le processeur Hilt ni la simple fourniture
         // de l'objet ne déclenchent.
         assertEquals(EXPECTED_DATABASE_VERSION, database.openHelper.writableDatabase.version)
-        assertTrue(articleDao.readArticleIds().isEmpty())
+        assertTrue(articleDao.readArticleIdsAmong(listOf(1L)).isEmpty())
         assertTrue(pendingMarkDao.pending(limit = 1).isEmpty())
         assertTrue(articleCache.observeArticles(limit = 1).first().isEmpty())
         assertTrue(pendingMarkQueue.pending(limit = 1).isEmpty())

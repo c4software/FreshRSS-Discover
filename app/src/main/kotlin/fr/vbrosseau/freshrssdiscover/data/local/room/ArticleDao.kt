@@ -40,8 +40,16 @@ internal interface ArticleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(articles: List<ArticleEntity>)
 
-    @Query("SELECT id FROM articles WHERE is_read = 1")
-    suspend fun readArticleIds(): List<Long>
+    /**
+     * Parmi [ids], ceux déjà lus localement.
+     *
+     * Borné aux identifiants demandés, et non « tous les lus » : l'appelant est
+     * l'upsert, invoqué à chaque page de 40 articles, et relire la table
+     * entière à chaque page ferait croître le coût avec l'historique plutôt
+     * qu'avec la page.
+     */
+    @Query("SELECT id FROM articles WHERE is_read = 1 AND id IN (:ids)")
+    suspend fun readArticleIdsAmong(ids: List<Long>): List<Long>
 
     /**
      * Les articles non lus du cache, du plus récent au plus ancien.
@@ -74,7 +82,10 @@ internal interface ArticleDao {
      */
     @Transaction
     suspend fun upsertPreservingLocalReadState(articles: List<ArticleEntity>) {
-        val locallyRead = readArticleIds().toSet()
+        // Garde du vide : Room n'engendre aucun paramètre pour une liste vide
+        // et `IN ()` n'est pas du SQL valide — même règle que `deleteExcept`.
+        if (articles.isEmpty()) return
+        val locallyRead = readArticleIdsAmong(articles.map(ArticleEntity::id)).toSet()
         insertAll(articles.map { if (it.id in locallyRead) it.copy(isRead = true) else it })
     }
 

@@ -97,6 +97,18 @@ class ArticleCacheTest {
     }
 
     @Test
+    fun savingAnEmptyPageChangesNothing() = runTest {
+        // Le cas du lecteur qui a tout lu : le serveur rend une page vide, et
+        // l'upsert ne doit ni échouer — `IN ()` n'est pas du SQL valide — ni
+        // toucher à ce qui est là.
+        cache.save(listOf(article(id = 1L, isRead = true)))
+
+        cache.save(emptyList())
+
+        assertTrue(cache.observeArticles(LARGE_LIMIT).first().single().isRead)
+    }
+
+    @Test
     fun anArticleReadElsewhereBecomesReadLocally() = runTest {
         // Le sens inverse doit rester possible : lu dans l'interface web ou sur
         // un autre appareil, l'article ne doit pas rester en tête du flux ici.
