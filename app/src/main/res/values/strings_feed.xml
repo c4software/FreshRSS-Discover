@@ -48,4 +48,7 @@
         offline banner owns that regime (SPECS.md §5.2).
     -->
     <string name="feed_server_unreachable_toast">Server unreachable — the feed could not be updated.</string>
+
+    <!-- Same intent when the API answers, but not OK: error status, unreadable body. -->
+    <string name="feed_server_failed_toast">The server answered with an error — the feed could not be updated.</string>
 </resources>

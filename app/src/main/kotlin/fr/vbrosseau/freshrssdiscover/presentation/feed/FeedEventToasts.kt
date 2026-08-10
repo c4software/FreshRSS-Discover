@@ -24,6 +24,7 @@ internal fun FeedEventToasts(events: Flow<FeedEvent>) {
         events.collect { event ->
             val message = when (event) {
                 FeedEvent.ServerUnreachable -> R.string.feed_server_unreachable_toast
+                FeedEvent.ServerFailed -> R.string.feed_server_failed_toast
             }
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }

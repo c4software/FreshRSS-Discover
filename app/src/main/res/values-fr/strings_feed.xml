@@ -48,4 +48,7 @@
         cas : le bandeau hors ligne porte déjà ce régime (SPECS.md §5.2).
     -->
     <string name="feed_server_unreachable_toast">Serveur injoignable — le flux n\'a pas pu être mis à jour.</string>
+
+    <!-- Même intention quand l'API répond, mais pas OK : statut d'erreur, corps illisible. -->
+    <string name="feed_server_failed_toast">Le serveur a répondu une erreur — le flux n\'a pas pu être mis à jour.</string>
 </resources>

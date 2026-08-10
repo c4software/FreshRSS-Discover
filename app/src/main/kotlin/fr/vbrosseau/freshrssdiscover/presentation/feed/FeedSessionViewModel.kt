@@ -38,8 +38,11 @@ import kotlinx.coroutines.launch
  * this channel only carries what must merely be *noticed*.
  */
 enum class FeedEvent {
-    /** A load or reload failed because the API did not answer. */
+    /** A load or reload failed because the API did not answer at all. */
     ServerUnreachable,
+
+    /** The API answered, but not OK — an error status or an unreadable body. */
+    ServerFailed,
 }
 
 /**
@@ -544,10 +547,15 @@ abstract class FeedSessionViewModel(
  * Which failures deserve a toast on top of the failure block, decided once
  * for the load and reload paths.
  *
- * Only the unreachable server (GOAL-030): `NoNetwork` already has the offline
- * banner as its regime (SPECS.md §5.2), and a toast on every offline scroll
- * would nag about a state the screen is already stating. The remaining causes
- * have nothing more to say than the block already does.
+ * Every "no OK answer" case toasts (GOAL-030): the server that does not
+ * answer, and the server that answers an error or an unreadable body. Two
+ * silences, each already owned elsewhere: `NoNetwork` has the offline banner
+ * as its regime (SPECS.md §5.2), and a toast on every offline scroll would
+ * nag about a state the screen is already stating; `SessionExpired` is
+ * already steering back to the sign-in screen (SPECS.md §3.4).
  */
-private fun FeedError.toFeedEvent(): FeedEvent? =
-    if (this == FeedError.ServerUnreachable) FeedEvent.ServerUnreachable else null
+private fun FeedError.toFeedEvent(): FeedEvent? = when (this) {
+    FeedError.ServerUnreachable -> FeedEvent.ServerUnreachable
+    is FeedError.Unexpected -> FeedEvent.ServerFailed
+    FeedError.NoNetwork, FeedError.SessionExpired -> null
+}

@@ -87,10 +87,28 @@ class FeedServerUnreachableEventTest {
     }
 
     @Test
+    fun aServerAnsweringAnErrorEmitsTheToastEvent() {
+        // "No OK answer" covers the server that answers wrongly too: an error
+        // status or an unreadable body must be as noticeable as no answer.
+        repository.enqueueFailure(FeedError.Unexpected("HTTP 503"))
+
+        assertEquals(listOf(FeedEvent.ServerFailed), collectedEvents())
+    }
+
+    @Test
     fun beingOfflineEmitsNoToastEvent() {
         // The offline banner already owns that regime: a toast on top would
         // nag about a state the screen is already stating (SPECS.md §5.2).
         repository.enqueueFailure(FeedError.NoNetwork)
+
+        assertTrue(collectedEvents().isEmpty())
+    }
+
+    @Test
+    fun anExpiredSessionEmitsNoToastEvent() {
+        // The root switch is already steering back to sign-in (SPECS.md §3.4):
+        // toasting over a disappearing screen would explain nothing.
+        repository.enqueueFailure(FeedError.SessionExpired)
 
         assertTrue(collectedEvents().isEmpty())
     }

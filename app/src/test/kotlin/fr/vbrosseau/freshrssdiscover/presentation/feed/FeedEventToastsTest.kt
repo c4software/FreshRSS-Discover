@@ -49,6 +49,18 @@ class FeedEventToastsTest {
     }
 
     @Test
+    fun aServerFailedEventShowsItsOwnToast() {
+        show()
+
+        events.tryEmit(FeedEvent.ServerFailed)
+        composeRule.waitForIdle()
+
+        val expected = ApplicationProvider.getApplicationContext<Application>()
+            .getString(R.string.feed_server_failed_toast)
+        assertEquals(expected, ShadowToast.getTextOfLatestToast())
+    }
+
+    @Test
     fun noEventShowsNoToast() {
         show()
         composeRule.waitForIdle()
