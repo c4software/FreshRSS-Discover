@@ -20,6 +20,17 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
+      Joindre une instance auto-hébergée sur le réseau local. SPECS.md §3.1
+      accepte délibérément ce cas — c'est déjà ce qui a motivé le trafic en
+      clair plus bas. Depuis Android 17, la protection du réseau local exige en
+      plus cette permission à l'exécution : sans elle, l'instance en LAN
+      redevient injoignable et l'échec se présente en « le serveur ne répond
+      pas », le diagnostic trompeur que GOAL-022 avait justement écarté.
+      En dessous d'Android 17 la permission n'existe pas et le système l'ignore.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+
+    <!--
       Le trafic en clair est autorisé, et c'est une décision, pas un oubli.
 
       SPECS.md §3.1 accepte délibérément `http://` : une instance FreshRSS

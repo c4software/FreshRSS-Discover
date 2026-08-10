@@ -93,6 +93,11 @@ An address with no scheme is completed to `https://`. The `http://` scheme
 remains accepted — self-hosted instances on a local network are a real case —
 but the application then states that the connection is not encrypted.
 
+From Android 17 on, reaching such an instance requires the local network
+permission, asked for at launch alongside the notification one. A refusal leaves
+the whole application working; only an instance on the local network becomes
+unreachable, and it is then reported like any server that does not answer (§7).
+
 ### 3.2 What the application must explain
 
 The API password is the main cause of failed connections, and its existence is

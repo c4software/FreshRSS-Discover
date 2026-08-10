@@ -40,7 +40,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppDestination
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavHost
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavigationBar
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.navigateToTopLevel
-import fr.vbrosseau.freshrssdiscover.presentation.permission.NotificationPermissionRequest
+import fr.vbrosseau.freshrssdiscover.presentation.permission.StartupPermissionsRequest
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import javax.inject.Inject
 
@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
      * Built with the activity, not in `onCreate`: the result contract must be
      * registered before the started state.
      */
-    private val notificationPermission = NotificationPermissionRequest(this)
+    private val startupPermissions = StartupPermissionsRequest(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -76,9 +76,9 @@ class MainActivity : ComponentActivity() {
         lifecycle.addObserver(readFlushOnBackground)
         lifecycle.addObserver(reminderOnForeground)
         // Neither awaited nor blocking: the UI mounts right after, whatever
-        // the answer. See `shouldAskForNotificationPermission` for what
+        // the answers. See `permissionsToAskAtStartup` for what
         // `savedInstanceState` decides here.
-        notificationPermission.askIfNeeded(isFirstCreation = savedInstanceState == null)
+        startupPermissions.askIfNeeded(isFirstCreation = savedInstanceState == null)
         setContent {
             AppTheme {
                 /*

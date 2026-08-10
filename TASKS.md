@@ -104,6 +104,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-028 | A page in flight no longer survives the reload that disowned it | `[x]` |
 | GOAL-029 | The 2026-08-10 review: needless complexity is worked off | `[x]` |
 | GOAL-030 | An unreachable server announces itself with a toast | `[x]` |
+| GOAL-031 | Android 17 asks for the local network at launch | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2162,6 +2163,38 @@ excluded: the offline banner already owns that regime (SPECS.md §5.2).
       The failure→event mapping lives once, at file level: adding it as a
       member was the class's 13th function, exactly the line the detekt
       config drew ("twelve, and no more")
+
+---
+
+## GOAL-031 — Android 17 asks for the local network at launch
+
+**Status: DONE**
+
+Requested by the author. Android 17 (API 37) puts the local network behind the
+runtime permission `ACCESS_LOCAL_NETWORK`. SPECS.md §3.1 accepts a self-hosted
+instance on a LAN on purpose — that is already what motivated
+`usesCleartextTraffic` in GOAL-022 — so without that permission such an
+instance becomes unreachable on API 37, and the failure shows up as "the server
+does not answer": the misleading diagnostic GOAL-022 had precisely removed.
+
+The permission is asked for at launch, like the notification one, and **only**
+from API 37 on: below it, it does not exist and the request would be denied in
+silence.
+
+- [x] `GOAL-031-T01` `NotificationPermission.kt` becomes `StartupPermissions.kt`:
+      a pure `permissionsToAskAtStartup(sdkInt, isFirstCreation, isGranted)`
+      returning the list to ask for, and a single
+      `RequestMultiplePermissions` launcher. Manifest declaration, SPECS.md §3.1
+      updated, tests on the rule — including the exact API 37 boundary, which
+      Robolectric (pinned to API 36) could not observe
+
+### Decisions taken
+
+| Decision | Reason |
+|---|---|
+| One grouped launcher rather than one per permission | The system shows a single dialog at a time; two `RequestPermission` launchers fired from the same `onCreate` step on each other and one of the two answers is lost |
+| The rule takes an `isGranted` predicate | It keeps the whole decision in plain JUnit. `robolectric.properties` pins the simulated Android to 36 — below the very threshold being added — so a Robolectric test could not exercise it at all |
+| The local network answer stays ignored, like the notification one | A refusal breaks nothing: it falls back on the "server unreachable" path already stated by GOAL-030 |
 
 ---
 
