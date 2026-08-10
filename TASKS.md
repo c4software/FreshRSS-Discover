@@ -35,7 +35,10 @@ Reminder (AGENTS.md §1.1): `code written ≠ task finished`.
 **Phase 3 — Tuning the marking, sharing, English documentation** ✅ finished
 (GOAL-019 to GOAL-028)
 
-**The twenty-eight Goals are done.** One point remains blocked, out of our hands:
+**The twenty-nine Goals are done.** GOAL-029 worked off the needless
+complexity a four-part review had listed on 2026-08-10 — the List/Swipe
+duplication above all, whose predicted divergence had already happened twice.
+One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
@@ -99,7 +102,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
 | GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
 | GOAL-028 | A page in flight no longer survives the reload that disowned it | `[x]` |
-| GOAL-029 | The 2026-08-10 review: needless complexity is worked off | `[-]` |
+| GOAL-029 | The 2026-08-10 review: needless complexity is worked off | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2057,7 +2060,9 @@ of the feed.
 
 ## GOAL-029 — The 2026-08-10 review: needless complexity is worked off
 
-**Status: IN PROGRESS**
+**Status: DONE** — eleven tasks, one commit each, full verification observed
+every time; `verifyRoborazziDebug` saw zero pixels move on every UI-touching
+task.
 
 A four-part review (presentation, data, domain, DI/infra) listed every piece of
 complexity that serves no purpose. The author asked for the whole list to be
@@ -2116,8 +2121,25 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       incomplete — the plugin still checks the Kotlin scripts there, including
       the ~380-line `app/build.gradle.kts`, and removing it would leave them
       unchecked. The misleading comment is corrected instead (AGENTS.md §8)
-- [ ] `GOAL-029-T11` Documentation (ARCHITECTURE.md §9, SPECS.md if needed) and
-      closure
+- [x] `GOAL-029-T11` Documentation (ARCHITECTURE.md §9 — package map, §9.6,
+      §9.9, §9.10 — brought back in line with the shared engine) and closure.
+      SPECS.md needed nothing: no user-visible behaviour changed, except the
+      Swipe reload excerpt fix which *restores* what §8 question 8 already
+      promised
+
+### Decisions taken
+
+| Decision | Reason |
+|---|---|
+| Job cancellation supersedes GOAL-028's generation counter | The counter lived once per ViewModel and only discarded the page on arrival — the disowned page's `cache.save()` still ran. Cancellation propagates through Ktor and the repository: display and cache covered by one mechanism, in one place. The GOAL-028 objection ("the gesture must not wait") targeted a lock, not cancellation |
+| One engine (`FeedSessionViewModel`), parameterised by the excerpt projection | The predicted divergence had already happened twice (GOAL-028's missing guard; the Swipe reload projecting List-length excerpts). A base class, not delegation: the eight public gestures *are* the engine |
+| `DiscoverUiState`/`SwipeUiState` become aliases of `FeedUiState` | Same fields, same transitions; `pageCount` stays a Swipe-side extension so the common state never lies to the List. Aliases keep every existing test source-compatible |
+| The pagination tail travels with the caller | It is continuity-of-pagination state, like the cursor; in the singleton repository it cross-contaminated the two modes' junctions at every List↔Swipe switch |
+| `flush(): Unit`, `ReadSyncOutcome` deleted | Every caller discarded it; `SessionLost` was already handled inside the repository |
+| ktlint **stays** on `:app` | The review's premise was incomplete: the plugin still checks the Gradle scripts there. The misleading comment is fixed instead (AGENTS.md §8) |
+| Roborazzi task-name sniffing kept, property escape hatch added | The plugin exposes no mode at configuration time; a pure property switch would have silently unfiltered the screenshot runs |
+| `LoginFailure.Address` kept | Not a mirror: it excludes the domain's `Valid` case — the same typing pattern as `DiscoverFailure`/`FeedError`, which the review itself blessed |
+| `AppGraphTest`'s binding assertions kept | They survived the module regrouping unchanged, disproving the "will need rewriting" concern, and they catch an accidental binding swap for free |
 
 ---
 

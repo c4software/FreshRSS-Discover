@@ -530,7 +530,7 @@ app/
 └── presentation/
     ├── browser/              what leaves the application: opening the article, sharing the link
     ├── discover/             feed as a list
-    ├── feed/                 what the two modes share (reloading, notice strip, staleness, illustration)
+    ├── feed/                 the feed engine and everything the two modes share
     ├── lifecycle/            what reacts to going into the background
     ├── login/                sign-in
     ├── navigation/           destinations, graph, presentation mode
@@ -541,18 +541,23 @@ app/
 ```
 
 **Two packages for one and the same feed, and it is intentional.** `discover/`
-and `swipe/` present the same articles according to SPECS.md §4.8, but nothing of
-their layout is common: a lazy list and a pager have neither the same state, nor
-the same visibility measurement, nor the same components. What they really share
-— the displayed article model, the feed's phases, the reload button, the notice
-strip, the watching of the feed's staleness, the illustration slot — lives in
-`discover/` for the first two, inherited, and in `feed/` for what was born
-common.
+and `swipe/` present the same articles according to SPECS.md §4.8, but their
+layout is not common: a lazy list and a pager have neither the same state nor
+the same visibility measurement. Everything else **is** common, and lives in
+`feed/` since GOAL-029: the engine (`FeedSessionViewModel` — pagination,
+reload, bootstrap, marking, notices), the shared state (`FeedUiState`) and its
+transitions, the terminal composables (offline banner, stale notice, failure
+block, empty feed), the word-boundary truncation, the staleness watcher, the
+illustration slot. Each mode keeps only its wiring: a `@HiltViewModel`
+subclass that names its excerpt projection, screens that bind their strings
+and test tags. The displayed article model and the feed's phases stay in
+`discover/`, inherited.
 
-The latter has, moreover, a history that repeats itself: `FeedNotice` and then
-`ArticleIllustration` both started out written **twice**, identically, before a
-fix had to be applied in both places. What touches both modes is brought together
-before being fixed, not after.
+`feed/` has a history that repeats itself: `FeedNotice`, then
+`ArticleIllustration`, then the whole engine started out written **twice**,
+identically, until a fix had to be applied in both places — twice, the
+divergence arrived before the fix (see §9.10 and the GOAL-029 review). What
+touches both modes is brought together before being fixed, not after.
 
 The tests follow the same structure, plus `startup/` for what belongs to no
 layer — building the graph, database migration, startup.
@@ -734,11 +739,12 @@ loop on it. The lifecycle stays in the presentation layer — a ViewModel that
 observed it would hold onto something that outlives it badly — and the ViewModel
 keeps the decision: the screen says what happens, never what to do about it.
 
-The rule is written **twice**, once per ViewModel, and this is the exception
-that §9.6 argues against. It is four lines of guard; sharing them would mean
-giving the two ViewModels a common state they do not have. What keeps them from
-diverging is that each has its case in
-`EmptyFeedAsksServerWhenShownTest`.
+The rule was long written **twice**, once per ViewModel — defended at the time
+as four lines of guard not worth sharing. GOAL-029 closed the question the
+other way: the guard was never the unit to share, the whole engine was, and it
+now lives once in `FeedSessionViewModel`. The two cases of
+`EmptyFeedAsksServerWhenShownTest` remain, one per mode, exercising the same
+engine through both wirings.
 
 The pull needed one more thing to exist on a screen with no article: something
 that dispatches scroll. `PullableMessage` is a `LazyColumn` of a single item
@@ -792,9 +798,12 @@ not by the ViewModels that ask for the pages.
 
 Two reasons, and the second decides. The layer that talked to the server is the
 only one to **know** that it answered: a successful `loadPage` counts as much as
-an explicit reload, and a valid but empty page counts too. Above all, two
-ViewModels ask for pages: the rule written in them would live twice, and the two
-presentation modes would diverge on the first fix applied on one side only.
+an explicit reload, and a valid but empty page counts too. Above all, at the
+time two ViewModels asked for pages: the rule written in them would have lived
+twice, and the two presentation modes would have diverged on the first fix
+applied on one side only — the very pattern that GOAL-029 ended by sharing the
+whole engine (§9.10). The timestamp stays where it is: the repository remains
+the only layer that knows the server answered.
 
 Symmetrically, the **decision** — six hours, bound included, a clock going
 backwards makes nothing stale — is a pure function of `:domain`, to which the
