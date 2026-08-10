@@ -20,11 +20,20 @@ plugins {
  * `test` ordinaire — celui de la CI — garde la configuration par défaut : sans
  * mode Roborazzi actif, `captureRoboImage` ne fait rien, les tests de rendu se
  * réduisent alors à quelques millisecondes.
+ *
+ * Deux signaux, parce qu'aucun des deux ne suffit seul. Le greffon Roborazzi
+ * ne publie pas son mode au moment de la configuration : le nom des tâches
+ * demandées est donc le seul indice pour `recordRoborazziDebug` et
+ * `verifyRoborazziDebug` — mais il ne voit ni une construction composite, ni
+ * une abréviation de tâche. Une propriété `roborazzi.*` passée explicitement
+ * (`-Proborazzi.test.verify=true test`) couvre ces cas-là : elle est de toute
+ * façon relayée aux tests plus bas, c'est le mode officiel du greffon.
  */
 val isScreenshotRun =
-    gradle.startParameter.taskNames.any {
-        it.contains("roborazzi", ignoreCase = true)
-    }
+    providers.gradlePropertiesPrefixedBy("roborazzi.").get().isNotEmpty() ||
+        gradle.startParameter.taskNames.any {
+            it.contains("roborazzi", ignoreCase = true)
+        }
 
 /**
  * Version utilisée quand rien ne permet de la déduire — dépôt sans étiquette,
@@ -253,7 +262,9 @@ dependencies {
 
     // Les règles de style ktlint, appliquées par Detekt. Le greffon
     // ktlint-gradle ne voit pas les sources Kotlin d'un module Android sous
-    // AGP 9 : sans ceci, elles ne seraient vérifiées par personne.
+    // AGP 9 : sans ceci, elles ne seraient vérifiées par personne. Le greffon
+    // reste appliqué au module pour ce qu'il voit encore — les scripts
+    // Gradle (.kts), dont ce fichier : le retirer les laisserait sans filet.
     detektPlugins(libs.detekt.formatting)
 
     implementation(libs.hilt.android)

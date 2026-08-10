@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import fr.vbrosseau.freshrssdiscover.data.local.FeedFreshnessStore
+import fr.vbrosseau.freshrssdiscover.data.local.SettingsStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.CacheMaintenance
 import fr.vbrosseau.freshrssdiscover.data.network.AndroidNetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
@@ -16,7 +17,15 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
+import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 
+/**
+ * Les liaisons interface du domaine → implémentation de la couche data.
+ *
+ * Un seul module pour tous les dépôts, réseau ou local : le critère est la
+ * nature de la liaison, pas le sujet. Un module par binding a existé — les
+ * réglages avaient le leur — et n'achetait que de la navigation en plus.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class RepositoryModule {
@@ -39,4 +48,7 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindNetworkAvailability(implementation: AndroidNetworkAvailability): NetworkAvailability
+
+    @Binds
+    abstract fun bindSettingsRepository(implementation: SettingsStore): SettingsRepository
 }

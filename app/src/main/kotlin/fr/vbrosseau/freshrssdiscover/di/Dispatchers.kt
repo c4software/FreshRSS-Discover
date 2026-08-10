@@ -19,8 +19,3 @@ annotation class IoDispatcher
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class DefaultDispatcher
-
-/** Fil principal : uniquement ce qui touche à l'interface. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class MainDispatcher

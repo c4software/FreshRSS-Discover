@@ -2105,9 +2105,17 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       truncation and after-refresh effect, `PrefetchNextPage` stops writing
       state during composition — `verifyRoborazziDebug` must see zero pixels
       move
-- [ ] `GOAL-029-T10` Infra: dead `@MainDispatcher` binding, Roborazzi mode via a
-      Gradle property instead of task-name sniffing, ktlint off `:app` where it
-      checks nothing, single-binding DI modules regrouped, dust
+- [x] `GOAL-029-T10` Infra: dead `@MainDispatcher` binding removed, Roborazzi
+      task-name sniffing backed by an explicit `roborazzi.*` property escape
+      hatch (the plugin exposes no mode at configuration time — a full
+      replacement would have broken the screenshot filter), single-binding DI
+      modules regrouped (`SettingsModule`→`RepositoryModule`,
+      `NotificationModule`→`ReminderModule`), `@Singleton` off the platform
+      dispatchers, `OpeningRecorder`'s KDoc names its real test.
+      **ktlint stays on `:app`, deliberately**: the review's premise was
+      incomplete — the plugin still checks the Kotlin scripts there, including
+      the ~380-line `app/build.gradle.kts`, and removing it would leave them
+      unchecked. The misleading comment is corrected instead (AGENTS.md §8)
 - [ ] `GOAL-029-T11` Documentation (ARCHITECTURE.md §9, SPECS.md if needed) and
       closure
 

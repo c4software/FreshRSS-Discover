@@ -9,14 +9,18 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import fr.vbrosseau.freshrssdiscover.data.local.ReminderTimeStore
+import fr.vbrosseau.freshrssdiscover.reminder.AndroidReminderNotifier
 import fr.vbrosseau.freshrssdiscover.reminder.OpeningRecorder
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderNotifier
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import fr.vbrosseau.freshrssdiscover.reminder.WorkManagerReminderScheduler
 import java.time.ZoneId
 
 /**
- * Le rappel de lecture (SPECS.md §4.9) : ce qui le programme, et ce qui retient
- * l'heure qu'il vise.
+ * Le rappel de lecture (SPECS.md §4.9), au complet : ce qui le programme, ce
+ * qui retient l'heure qu'il vise, et ce qui le montre. La notification a eu
+ * son module à part ; même feature, même travailleur consommateur — un module
+ * unique dit mieux le périmètre.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,6 +31,14 @@ internal abstract class ReminderModule {
 
     @Binds
     abstract fun bindOpeningRecorder(implementation: ReminderTimeStore): OpeningRecorder
+
+    /**
+     * Le travailleur ne dépend que de l'interface : c'est ce qui le rend
+     * éprouvable sans `NotificationManager`, et cette liaison est le seul
+     * endroit du code qui connaisse l'implémentation Android.
+     */
+    @Binds
+    abstract fun bindReminderNotifier(implementation: AndroidReminderNotifier): ReminderNotifier
 
     companion object {
 

@@ -5,9 +5,10 @@ import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
 /**
  * Ce qui retient le moment d'une ouverture.
  *
- * Une interface plutôt qu'un appel direct au magasin : elle garde
- * [ReminderOnForegroundObserver] éprouvable sans `DataStore`, et sans horloge
- * ni fuseau à lui transmettre — le magasin possède déjà les deux.
+ * Une interface plutôt qu'un appel direct au magasin : c'est elle qui permet à
+ * `ReadingReminderWorkerTest` d'éprouver le travailleur avec un faux, sans
+ * `DataStore`, sans horloge ni fuseau à lui transmettre — le magasin possède
+ * déjà les deux.
  */
 interface OpeningRecorder {
 

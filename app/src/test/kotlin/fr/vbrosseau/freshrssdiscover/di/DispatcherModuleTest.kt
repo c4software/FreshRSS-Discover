@@ -39,10 +39,6 @@ class DispatcherModuleTest {
     @DefaultDispatcher
     lateinit var defaultDispatcher: CoroutineDispatcher
 
-    @Inject
-    @MainDispatcher
-    lateinit var mainDispatcher: CoroutineDispatcher
-
     @Before
     fun injectDependencies() {
         hiltRule.inject()
@@ -52,15 +48,12 @@ class DispatcherModuleTest {
     fun eachQualifierResolvesToItsOwnDispatcher() {
         assertSame(Dispatchers.IO, ioDispatcher)
         assertSame(Dispatchers.Default, defaultDispatcher)
-        assertSame(Dispatchers.Main, mainDispatcher)
     }
 
     @Test
-    fun theThreeDispatchersAreDistinct() {
+    fun theTwoDispatchersAreDistinct() {
         // Une inversion de qualifiers compile sans erreur : seule une
         // vérification à l'exécution la détecte.
         assertNotSame(ioDispatcher, defaultDispatcher)
-        assertNotSame(ioDispatcher, mainDispatcher)
-        assertNotSame(defaultDispatcher, mainDispatcher)
     }
 }
