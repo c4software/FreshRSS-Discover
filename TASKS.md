@@ -2097,7 +2097,7 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       written once, a session controller parameterised by the excerpt projection
       — both ViewModels reduced to wiring. Fixes the installed divergence
       (`SwipeUiState.refreshedWith` projecting List-length excerpts)
-- [ ] `GOAL-029-T07` The reload cancels the load Job instead of counting
+- [x] `GOAL-029-T07` The reload cancels the load Job instead of counting
       generations — covers the cache write too; ARCHITECTURE.md §9.10 updated
 - [ ] `GOAL-029-T08` `paginationTail` leaves the singleton repository: the tail
       travels with the page, display state goes back to whoever displays

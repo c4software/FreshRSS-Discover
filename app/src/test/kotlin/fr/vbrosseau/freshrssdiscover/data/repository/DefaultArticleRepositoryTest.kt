@@ -32,12 +32,15 @@ import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Rule
@@ -102,6 +105,15 @@ class DefaultArticleRepositoryTest {
                 // instance la fait décorer deux fois par la pile de coroutines,
                 // et elle finit par échapper au rattrapage.
                 is MockEngineResponse.Failure -> throw respond.newCause()
+
+                is MockEngineResponse.Gated -> {
+                    respond.gate.await()
+                    respond(
+                        content = respond.text,
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
             }
         }
 
@@ -149,6 +161,9 @@ class DefaultArticleRepositoryTest {
         data class Bodies(val texts: List<String>) : MockEngineResponse
 
         data class Failure(val newCause: () -> Throwable) : MockEngineResponse
+
+        /** Réponse retenue jusqu'à ce que le test la libère : reproduit une page en vol. */
+        data class Gated(val gate: CompletableDeferred<Unit>, val text: String) : MockEngineResponse
     }
 
     private suspend fun signedIn() {
@@ -189,6 +204,25 @@ class DefaultArticleRepositoryTest {
                    "summary":{"content":"<p>Extrait.</p>"}}],
          "continuation":"45219"}
     """.trimIndent()
+
+    @Test
+    fun aCancelledPageInFlightWritesNothingToTheCache() = runTest {
+        // L'annulation du rechargement (GOAL-029) promet plus que jeter le
+        // résultat : la requête est abandonnée, donc son `cache.save` ne
+        // s'exécute jamais — les lignes que `retainOnly` vient d'emporter ne
+        // reviennent pas. C'est ce que le compteur de GOAL-028 ne couvrait pas.
+        val gate = CompletableDeferred<Unit>()
+        val repository = repository(MockEngineResponse.Gated(gate, onePage))
+        signedIn()
+
+        val flight = launch { repository.loadPage() }
+        runCurrent()
+        flight.cancel()
+        gate.complete(Unit)
+        flight.join()
+
+        assertTrue(cache.observeArticles(CACHE_LIMIT).first().isEmpty())
+    }
 
     @Test
     fun aPageIsReadAndConvertedToTheDomain() = runTest {

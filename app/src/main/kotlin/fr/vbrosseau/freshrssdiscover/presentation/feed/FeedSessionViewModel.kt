@@ -14,6 +14,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,23 +83,27 @@ abstract class FeedSessionViewModel(
     private var isLoading: Boolean = false
 
     /**
-     * Génération du parcours de pagination (GOAL-028).
+     * Le chargement de page en vol, pour que le rechargement puisse l'annuler
+     * (GOAL-028, remplacé en GOAL-029).
      *
-     * Le rechargement l'incrémente ; une page revenue d'une génération
-     * antérieure est **jetée à l'arrivée** — ni état, ni curseur, ni phase.
      * Sans cela, une page demandée avant le tirage et revenue après lui
      * s'ajoutait sous la liste rafraîchie et **écrasait le curseur du
      * rechargement** : la pagination reprenait en silence le parcours
      * abandonné. Depuis GOAL-027, son écriture au cache réinsérait de surcroît
      * des lignes que `retainOnly` venait d'emporter.
      *
-     * Un compteur et non une attente sur [isLoading] : faire patienter le geste
-     * derrière une requête lente serait l'inverse de ce qu'un rechargement
-     * promet. La page périmée est jetée même si le rechargement **échoue**
-     * ensuite — le geste a désavoué l'ancien parcours, et « Réessayer » est le
-     * chemin du retour.
+     * L'**annulation** et non le compteur de génération de GOAL-028 : le
+     * compteur ne jetait que l'affichage, à l'arrivée — la requête courait
+     * jusqu'au bout, et son `cache.save()` s'exécutait quand même si la page
+     * atterrissait après le `retainOnly` du rechargement. L'annulation se
+     * propage à Ktor et au dépôt : la requête est abandonnée, pas seulement
+     * son résultat, et l'écriture au cache avec elle. Elle n'a rien d'une
+     * attente sur [isLoading] — le geste ne patiente jamais derrière une
+     * requête lente. La page en vol est perdue même si le rechargement
+     * **échoue** ensuite : le geste a désavoué l'ancien parcours, et
+     * « Réessayer » est le chemin du retour.
      */
-    private var loadGeneration = 0
+    private var loadJob: Job? = null
 
     /**
      * Vrai dès qu'une page du serveur a été fondue dans la liste.
@@ -292,9 +297,12 @@ abstract class FeedSessionViewModel(
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
-        // Le geste désavoue le parcours en cours : toute page encore en vol
-        // appartient désormais à une génération périmée (GOAL-028).
-        loadGeneration++
+        // Le geste désavoue le parcours en cours : la page encore en vol est
+        // annulée — requête, résultat et écriture au cache avec elle
+        // (GOAL-028, puis GOAL-029 pour la portée).
+        loadJob?.cancel()
+        loadJob = null
+        isLoading = false
         _uiState.update { it.copy(isRefreshing = true) }
 
         viewModelScope.launch {
@@ -438,24 +446,24 @@ abstract class FeedSessionViewModel(
             it.copy(phase = if (isFirstPage) DiscoverPhase.InitialLoading else DiscoverPhase.LoadingMore)
         }
 
-        // Relevée au départ, comparée à l'arrivée : si un rechargement est
-        // passé entre les deux, cette page décrit un flux qui n'existe plus.
-        val generation = loadGeneration
+        // Retenu pour que le rechargement puisse l'annuler : une page annulée
+        // ne revient jamais — ni état, ni curseur, ni écriture au cache.
+        loadJob = viewModelScope.launch {
+            try {
+                val result = articleRepository.loadPage(cursor)
+                // Relâché **avant** le traitement : une page entièrement déjà
+                // affichée enchaîne sur la suivante, et le verrou encore posé
+                // ferait de cet enchaînement un appel sans effet.
+                isLoading = false
 
-        viewModelScope.launch {
-            val result = articleRepository.loadPage(cursor)
-            // Relâché **avant** le traitement : une page entièrement déjà
-            // affichée enchaîne sur la suivante, et le verrou encore posé
-            // ferait de cet enchaînement un appel sans effet.
-            isLoading = false
-
-            // Jetée entière, échec compris : signaler l'échec d'une requête
-            // désavouée peindrait en panne un flux qui vient d'être remplacé.
-            if (generation != loadGeneration) return@launch
-
-            when (result) {
-                is Outcome.Success -> onPageLoaded(result.value)
-                is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
+                when (result) {
+                    is Outcome.Success -> onPageLoaded(result.value)
+                    is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
+                }
+            } finally {
+                // Couvre l'annulation : sans cette levée, le verrou resterait
+                // posé et plus aucune page ne partirait après un rechargement.
+                isLoading = false
             }
         }
     }

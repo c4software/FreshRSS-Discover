@@ -756,17 +756,28 @@ write re-inserted rows `retainOnly` had just removed. Found by analysis at the
 author's request, not observed on a device — the trigger is merely a slow
 network and the title-row button pressed during a `LoadingMore`.
 
-The fix is a **generation counter**, one per ViewModel: the reload increments
-it, and a page returning from an earlier generation is dropped on arrival —
-state, cursor and phase untouched, failure included, since reporting the
-failure of a disowned request would paint as broken a feed that was just
-replaced. A lock or an await on `isLoading` was rejected: it would make the
-gesture wait, which is the opposite of what it promises.
+The fix is **cancellation**: the engine keeps the in-flight load's `Job`, and
+the reload cancels it. Cancellation propagates through the repository and
+Ktor — the request is abandoned, not merely its result, and the disowned
+page's cache write with it. State, cursor and phase stay untouched, failure
+included, since reporting the failure of a disowned request would paint as
+broken a feed that was just replaced. A lock or an await on `isLoading` was
+rejected then and remains rejected: cancellation is immediate, the gesture
+never waits.
+
+**This supersedes GOAL-028's generation counter** (GOAL-029). The counter had
+two defects the review exposed: it lived once per ViewModel — the very
+divergence pattern §9.6 warns about — and it only discarded the page **on
+arrival**, so the request ran to completion and its `cache.save()` still
+executed if it landed after the reload's `retainOnly`. The counter covered the
+display; cancellation covers the display *and* the cache, in one place, since
+the engine itself is now shared (§9.6). A repository test pins the wider
+guarantee: a cancelled page in flight writes nothing to the cache.
 
 Swipe mode had a second door to the same race: its `loadMore` did not check
 `isRefreshing` — List mode's did — so the pager could *start* a page during
-the reload. That is the §9.6 divergence pattern, once more; the guard is now
-on both sides, with a case each.
+the reload. That divergence died with the shared engine: the guard is written
+once.
 
 The staging of this race in tests required splitting the fake's lock in two —
 `pendingLoad` gates `loadPage`, `pendingRefresh` gates `refresh` — because a
