@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -18,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -26,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -50,11 +49,19 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
+import fr.vbrosseau.freshrssdiscover.presentation.feed.AfterRefreshSettles
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedCentered
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEmptyMessage
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureBlock
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
+import kotlinx.coroutines.flow.first
 
 /**
  * Nombre d'articles restants sous lequel la page suivante est demandée
@@ -72,9 +79,6 @@ private const val PREFETCH_DISTANCE = 3
 
 /** Clé de la page de fin, distincte de tout identifiant d'article. */
 private const val TRAILING_PAGE_KEY = "swipe:trailing"
-
-/** Cible tactile minimale (SPECS.md §7.1) : Material s'arrête à 40 dp. */
-private val MinTouchTarget = 48.dp
 
 /** Arrondi de la carte, celui des surfaces larges de Material 3. */
 private val CardShape = RoundedCornerShape(28.dp)
@@ -187,14 +191,11 @@ private fun StaleFeedNotice(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FeedNotice(
-        message = stringResource(R.string.feed_stale_notice),
-        actionLabel = stringResource(R.string.feed_stale_refresh),
-        onAction = onRefresh,
+    FeedStaleNotice(
+        onRefresh = onRefresh,
+        onDismiss = onDismiss,
         modifier = modifier.testTag(SwipeTestTags.STALE_NOTICE),
         actionModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_REFRESH),
-        dismissLabel = stringResource(R.string.feed_stale_dismiss),
-        onDismiss = onDismiss,
         dismissModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_DISMISS),
     )
 }
@@ -208,17 +209,12 @@ private fun StaleFeedNotice(
  * rien n'atteste l'effet.
  *
  * Le retour a lieu au **passage** de `true` à `false`, pas pendant : y aller
- * dès l'appui ferait défiler une pile que l'on s'apprête à jeter.
+ * dès l'appui ferait défiler une pile que l'on s'apprête à jeter. Le front
+ * descendant vit dans [AfterRefreshSettles], partagé avec la Liste.
  */
-
 @Composable
 private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
-    var wasRefreshing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isRefreshing) {
-        if (wasRefreshing && !isRefreshing) pagerState.scrollToPage(0)
-        wasRefreshing = isRefreshing
-    }
+    AfterRefreshSettles(isRefreshing) { pagerState.scrollToPage(0) }
 }
 
 @Composable
@@ -251,13 +247,13 @@ private fun SwipeBody(
         // Une session terminée est une attente, pas une erreur : l'aiguillage
         // racine bascule de lui-même vers la connexion (SPECS.md §3.4).
         phase == DiscoverPhase.InitialLoading ||
-            phase == DiscoverPhase.SessionEnded -> Centered(modifier) { LoadingIndicator() }
+            phase == DiscoverPhase.SessionEnded -> FeedCentered(modifier) { LoadingIndicator() }
 
-        phase is DiscoverPhase.Failed -> Centered(modifier) {
+        phase is DiscoverPhase.Failed -> FeedCentered(modifier) {
             FailureBlock(failure = phase.failure, onRetry = onRetry)
         }
 
-        else -> Centered(modifier) { EmptyFeedMessage() }
+        else -> FeedCentered(modifier) { EmptyFeedMessage() }
     }
 }
 
@@ -591,9 +587,13 @@ private fun PrefetchNextPage(
     // filtré de ses articles lus peut tenir en moins de pages que le seuil, et
     // le chargement partirait alors sans qu'on ait bougé le doigt — la requête
     // que SPECS.md §5.1 vient de retirer du lancement (voir `PrefetchNextPage`
-    // du mode Liste, qui porte le constat).
+    // du mode Liste, qui porte le constat). Verrouillé par un effet et non
+    // écrit en composition, comme en Liste.
     var hasSwiped by remember(pagerState) { mutableStateOf(false) }
-    if (pagerState.currentPage > 0 || pagerState.isScrollInProgress) hasSwiped = true
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage > 0 || pagerState.isScrollInProgress }.first { it }
+        hasSwiped = true
+    }
 
     val shouldLoadMore by remember(pagerState, articleCount) {
         derivedStateOf { pagerState.currentPage >= articleCount - PREFETCH_DISTANCE }
@@ -640,29 +640,13 @@ private fun ObserveArticleVisibility(
     }
 }
 
-/**
- * Le régime hors ligne, dit calmement (SPECS.md §5.2).
- *
- * `surfaceVariant` et non `errorContainer` : ce que l'utilisateur a sous les
- * yeux fonctionne, et le peindre aux couleurs de l'erreur laisserait croire à
- * une panne de l'application.
- */
+/** Le bandeau hors ligne partagé (SPECS.md §5.2). */
 @Composable
 private fun OfflineBanner(modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = stringResource(R.string.swipe_offline_banner),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        )
-    }
+    FeedOfflineBanner(
+        message = stringResource(R.string.swipe_offline_banner),
+        modifier = modifier,
+    )
 }
 
 /** L'ouverture refusée faute de réseau (SPECS.md §5.2). */
@@ -683,65 +667,30 @@ private fun FailureBlock(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(Spacing.md)
-            .testTag(SwipeTestTags.FAILURE),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = failure.message(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-        )
-        RetryAction(onRetry)
-    }
+    FeedFailureBlock(
+        failure = failure,
+        retryLabel = stringResource(R.string.swipe_retry),
+        onRetry = onRetry,
+        modifier = modifier.testTag(SwipeTestTags.FAILURE),
+        retryModifier = Modifier.testTag(SwipeTestTags.RETRY),
+    )
 }
 
 @Composable
 private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(
-        onClick = onRetry,
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .testTag(SwipeTestTags.RETRY),
-    ) {
-        Text(stringResource(R.string.swipe_retry))
-    }
+    FeedRetryAction(
+        label = stringResource(R.string.swipe_retry),
+        onRetry = onRetry,
+        modifier = modifier.testTag(SwipeTestTags.RETRY),
+    )
 }
 
 @Composable
 private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .padding(Spacing.xl)
-            .testTag(SwipeTestTags.EMPTY),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = stringResource(R.string.swipe_empty_title),
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(R.string.swipe_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun Centered(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-        content = { content() },
+    FeedEmptyMessage(
+        title = stringResource(R.string.swipe_empty_title),
+        body = stringResource(R.string.swipe_empty_body),
+        modifier = modifier.testTag(SwipeTestTags.EMPTY),
     )
 }
 

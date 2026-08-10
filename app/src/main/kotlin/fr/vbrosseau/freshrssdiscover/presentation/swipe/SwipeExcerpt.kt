@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.swipe
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
 
 /**
  * Longueur maximale de l'extrait **en mode Balayage** (SPECS.md §8, question 8).
@@ -40,9 +41,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
  */
 const val SWIPE_EXCERPT_MAX_LENGTH = 1_400
 
-/** Marque de troncature, ajoutée seulement lorsque du texte a été retiré. */
-private const val ELLIPSIS = "…"
-
 /**
  * Projette un article du domaine dans sa forme affichable en plein écran.
  *
@@ -56,18 +54,5 @@ private const val ELLIPSIS = "…"
 fun Article.toSwipeUiModel(nowEpochMillis: Long): ArticleUiModel =
     toUiModel(nowEpochMillis).copy(excerpt = summary.toSwipeExcerpt())
 
-/**
- * Écourte un résumé sans couper un mot en deux.
- *
- * La coupure se fait sur la dernière espace avant la limite : une phrase
- * tranchée au milieu d'un mot se lit comme un défaut d'affichage, pas comme un
- * extrait. Un résumé sans aucune espace — jeton, URL — est coupé net, faute de
- * mieux.
- */
-private fun String.toSwipeExcerpt(): String {
-    if (length <= SWIPE_EXCERPT_MAX_LENGTH) return this
-
-    val cut = take(SWIPE_EXCERPT_MAX_LENGTH)
-    val lastSpace = cut.lastIndexOf(' ')
-    return if (lastSpace > 0) cut.take(lastSpace) + ELLIPSIS else cut + ELLIPSIS
-}
+/** La coupure au mot près vit dans `truncatedAtWord`, partagée avec la Liste. */
+private fun String.toSwipeExcerpt(): String = truncatedAtWord(SWIPE_EXCERPT_MAX_LENGTH)

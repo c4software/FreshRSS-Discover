@@ -17,9 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -30,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -44,11 +43,19 @@ import androidx.lifecycle.repeatOnLifecycle
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
+import fr.vbrosseau.freshrssdiscover.presentation.feed.AfterRefreshSettles
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedCentered
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEmptyMessage
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureBlock
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
+import kotlinx.coroutines.flow.first
 
 /**
  * Nombre d'articles restants sous lesquels la page suivante est demandée.
@@ -144,28 +151,18 @@ fun DiscoverScreen(
     }
 }
 
-/**
- * Le flux affiché date de plusieurs heures (SPECS.md §4.6).
- *
- * L'action **emprunte le rechargement existant** plutôt que d'en ouvrir un à
- * elle : deux chemins vers le même geste divergeraient. La seconde commande
- * existe pour qui ne veut pas recharger maintenant — sans elle, l'avis ne
- * pourrait se taire qu'en obéissant.
- */
+/** L'avis d'ancienneté partagé, sous les étiquettes de test de cet écran. */
 @Composable
 private fun StaleFeedNotice(
     onRefresh: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FeedNotice(
-        message = stringResource(R.string.feed_stale_notice),
-        actionLabel = stringResource(R.string.feed_stale_refresh),
-        onAction = onRefresh,
+    FeedStaleNotice(
+        onRefresh = onRefresh,
+        onDismiss = onDismiss,
         modifier = modifier.testTag(DiscoverTestTags.STALE_NOTICE),
         actionModifier = Modifier.testTag(DiscoverTestTags.STALE_NOTICE_REFRESH),
-        dismissLabel = stringResource(R.string.feed_stale_dismiss),
-        onDismiss = onDismiss,
         dismissModifier = Modifier.testTag(DiscoverTestTags.STALE_NOTICE_DISMISS),
     )
 }
@@ -208,7 +205,7 @@ private fun FeedBody(
          * disparaître.
          */
         phase == DiscoverPhase.InitialLoading ||
-            phase == DiscoverPhase.SessionEnded -> Centered(modifier) { LoadingIndicator() }
+            phase == DiscoverPhase.SessionEnded -> FeedCentered(modifier) { LoadingIndicator() }
 
         phase is DiscoverPhase.Failed -> PullableMessage(
             isRefreshing = uiState.isRefreshing,
@@ -376,33 +373,13 @@ private fun ArticleList(
     }
 }
 
-/**
- * Le régime hors ligne, dit calmement (SPECS.md §5.2).
- *
- * `surfaceVariant` et non `errorContainer` : ce que l'utilisateur a sous les
- * yeux fonctionne, et le peindre aux couleurs de l'erreur laisserait croire à
- * une panne de l'application. La paire `surfaceVariant`/`onSurfaceVariant` est
- * définie dans les deux thèmes, ce qu'une couleur choisie à la main ne
- * garantirait pas.
- */
+/** Le bandeau hors ligne partagé (SPECS.md §5.2), sous l'étiquette de cet écran. */
 @Composable
 private fun OfflineBanner(modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(DiscoverTestTags.OFFLINE_BANNER),
-    ) {
-        Text(
-            text = stringResource(R.string.discover_offline_banner),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        )
-    }
+    FeedOfflineBanner(
+        message = stringResource(R.string.discover_offline_banner),
+        modifier = modifier.testTag(DiscoverTestTags.OFFLINE_BANNER),
+    )
 }
 
 /**
@@ -448,12 +425,15 @@ private fun PrefetchNextPage(
     // programmatique en est un aussi, et `isScrollInProgress` le manquerait.
     // Mémorisé et non dérivé, car c'est un fait acquis — une fois l'utilisateur
     // entré dans le flux, la pagination suit sans qu'il ait à relancer un geste
-    // à chaque page.
+    // à chaque page. Verrouillé par un effet et non écrit en composition : une
+    // écriture d'instantané dans le corps du Composable est le motif à éviter.
     var hasScrolled by remember(listState) { mutableStateOf(false) }
-    if (listState.firstVisibleItemIndex > 0 ||
-        listState.firstVisibleItemScrollOffset > 0 ||
-        listState.isScrollInProgress
-    ) {
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.firstVisibleItemIndex > 0 ||
+                listState.firstVisibleItemScrollOffset > 0 ||
+                listState.isScrollInProgress
+        }.first { it }
         hasScrolled = true
     }
 
@@ -730,65 +710,30 @@ private fun FailureBlock(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(Spacing.md)
-            .testTag(DiscoverTestTags.FAILURE),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = failure.message(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-        )
-        RetryAction(onRetry)
-    }
+    FeedFailureBlock(
+        failure = failure,
+        retryLabel = stringResource(R.string.discover_retry),
+        onRetry = onRetry,
+        modifier = modifier.testTag(DiscoverTestTags.FAILURE),
+        retryModifier = Modifier.testTag(DiscoverTestTags.RETRY),
+    )
 }
 
 @Composable
 private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(
-        onClick = onRetry,
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .testTag(DiscoverTestTags.RETRY),
-    ) {
-        Text(stringResource(R.string.discover_retry))
-    }
+    FeedRetryAction(
+        label = stringResource(R.string.discover_retry),
+        onRetry = onRetry,
+        modifier = modifier.testTag(DiscoverTestTags.RETRY),
+    )
 }
 
 @Composable
 private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .padding(Spacing.xl)
-            .testTag(DiscoverTestTags.EMPTY),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = stringResource(R.string.discover_empty_title),
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(R.string.discover_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun Centered(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-        content = { content() },
+    FeedEmptyMessage(
+        title = stringResource(R.string.discover_empty_title),
+        body = stringResource(R.string.discover_empty_body),
+        modifier = modifier.testTag(DiscoverTestTags.EMPTY),
     )
 }
 
@@ -881,17 +826,10 @@ private fun DiscoverScreenEmptyPreview() {
  *
  * SPECS.md §4.6 : le geste vide la liste et repart du début. Sans cette
  * remontée, l'utilisateur resterait à un rang qui ne désigne plus rien de ce
- * qu'il regardait — le contenu a été remplacé sous lui.
- *
- * Déclenché sur la **retombée** de l'indicateur, pas sur sa montée : remonter
- * avant que la nouvelle liste ne soit posée ferait défiler l'ancienne.
+ * qu'il regardait — le contenu a été remplacé sous lui. Le front descendant
+ * vit dans [AfterRefreshSettles], partagé avec le Balayage.
  */
 @Composable
 private fun ScrollToTopAfterRefresh(listState: LazyListState, isRefreshing: Boolean) {
-    var wasRefreshing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isRefreshing) {
-        if (wasRefreshing && !isRefreshing) listState.scrollToItem(0)
-        wasRefreshing = isRefreshing
-    }
+    AfterRefreshSettles(isRefreshing) { listState.scrollToItem(0) }
 }
