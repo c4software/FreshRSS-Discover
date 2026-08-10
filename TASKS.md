@@ -2093,7 +2093,7 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       `publishedAtEpochSeconds` on the UI model, `dismissFailure`, fossil `{}`
       defaults in `SettingsScreen`, state defaults on single-caller private
       composables, `ArticleOpenOutcome`/`ArticleShareOutcome`
-- [ ] `GOAL-029-T06` The shared List/Swipe engine: one `FeedUiState`, transitions
+- [x] `GOAL-029-T06` The shared List/Swipe engine: one `FeedUiState`, transitions
       written once, a session controller parameterised by the excerpt projection
       — both ViewModels reduced to wiring. Fixes the installed divergence
       (`SwipeUiState.refreshedWith` projecting List-length excerpts)

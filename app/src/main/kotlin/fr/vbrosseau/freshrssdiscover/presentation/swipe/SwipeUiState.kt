@@ -1,142 +1,34 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
-import fr.vbrosseau.freshrssdiscover.domain.feed.Article
-import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
-import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
-import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
-import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedUiState
 
 /**
- * Ce que la vue Balayage affiche (SPECS.md §4.8).
+ * Ce que la vue Balayage affiche : le même état que la Liste, sous le nom que
+ * ce mode a toujours employé.
  *
- * Le type est propre à ce mode, mais [DiscoverPhase] et [DiscoverFailure] sont
- * **repris tels quels** : SPECS.md §4.8 dit que le contenu et les règles de
- * chargement sont les mêmes, et seule la présentation change. Dupliquer la
- * machine à états ferait exister deux vérités sur « où en est le flux », qui
- * divergeraient au premier correctif appliqué d'un seul côté.
+ * Un alias et non une classe : deux états jumeaux ont existé ici, transitions
+ * comprises, et ils ont divergé — le rechargement projetait des extraits à la
+ * longueur de la Liste. Voir [FeedUiState], qui documente l'état lui-même. Ce
+ * que le Balayage garde en propre tient dans sa projection (`toSwipeUiModel`)
+ * et dans [pageCount].
  *
  * Le rechargement de SPECS.md §4.6 y figure, mais **pas son geste** : tirer est
  * un mouvement vertical sur une liste, et en plein écran il n'y a pas de liste
- * à tirer — le superposer au balayage horizontal donnerait deux gestes
- * concurrents sur la même surface. C'est un bouton qui le déclenche ici, et
- * l'état à porter est le même : [isRefreshing].
- *
- * Ce que cet état n'a toujours pas : de position de défilement. Le balayage la
- * tient lui-même, dans son pagineur.
+ * à tirer. C'est un bouton qui le déclenche ici, et l'état à porter est le
+ * même : `isRefreshing`.
  */
-data class SwipeUiState(
-    val articles: List<ArticleUiModel> = emptyList(),
-    val phase: DiscoverPhase = DiscoverPhase.InitialLoading,
-    /** Régime hors ligne (SPECS.md §5.2) : ce qui est affiché vient du cache. */
-    val isOffline: Boolean = false,
-    /** Une ouverture d'article a été refusée faute de réseau (SPECS.md §5.2). */
-    val isOfflineOpenNoticeVisible: Boolean = false,
-    /** Un rechargement demandé par l'utilisateur est en cours (SPECS.md §4.6). */
-    val isRefreshing: Boolean = false,
-    /** Le serveur n'a plus répondu depuis assez longtemps pour qu'on le dise (SPECS.md §4.6). */
-    val isStaleNoticeAvailable: Boolean = false,
-) {
-    /**
-     * Nombre d'écrans que le balayage traverse : les articles, **plus un**.
-     *
-     * Cette page supplémentaire est la traduction du pied de liste du mode
-     * Liste : c'est là que la fin du flux se dit, que le chargement se voit et
-     * que l'échec propose sa reprise. Sans elle, le balayage cesserait
-     * simplement de répondre après le dernier article — indistinguable d'une
-     * panne (SPECS.md §4.4).
-     */
-    val pageCount: Int get() = articles.size + 1
-
-    /**
-     * Le bandeau hors ligne ne s'affiche qu'**au-dessus de quelque chose à
-     * lire** : sans article, l'absence de réseau n'est plus un régime dégradé
-     * mais la seule chose à dire, et c'est alors le message plein cadre qui
-     * l'explique.
-     */
-    val showsOfflineBanner: Boolean get() = isOffline && articles.isNotEmpty()
-
-    /**
-     * L'invitation à rafraîchir est-elle à l'écran ?
-     *
-     * Mêmes retenues qu'en mode Liste, et pour les mêmes raisons : hors ligne
-     * le bandeau parle déjà et « Rafraîchir » n'ouvrirait qu'une porte vide,
-     * pendant un rechargement la demande est déjà partie, et sans article il
-     * n'y a pas de flux ancien mais un écran vide.
-     */
-    val showsStaleNotice: Boolean
-        get() = isStaleNoticeAvailable && !isOffline && !isRefreshing && articles.isNotEmpty()
-}
+typealias SwipeUiState = FeedUiState
 
 /**
- * Remplace la pile par la page qui vient d'arriver (SPECS.md §4.6).
+ * Nombre d'écrans que le balayage traverse : les articles, **plus un**.
  *
- * Rien n'est remis à zéro côté ViewModel, et il faut le dire parce que ce serait
- * le réflexe : ni le détecteur de lecture, dont `onVisibilityChanged` écarte de
- * lui-même les chronomètres des articles absents de l'observation suivante ; ni
- * les articles déjà signalés au serveur — ce qu'un rechargement ne change pas.
- */
-internal fun SwipeUiState.refreshedWith(
-    page: ArticlePage,
-    nowEpochMillis: Long,
-): SwipeUiState = copy(
-    articles = page.articles.map { article -> article.toUiModel(nowEpochMillis) },
-    phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
-    isOffline = false,
-)
-
-/**
- * Ajoute les articles absents, sans toucher à ceux qui sont déjà là.
+ * Cette page supplémentaire est la traduction du pied de liste du mode Liste :
+ * c'est là que la fin du flux se dit, que le chargement se voit et que l'échec
+ * propose sa reprise. Sans elle, le balayage cesserait simplement de répondre
+ * après le dernier article — indistinguable d'une panne (SPECS.md §4.4).
  *
- * Même règle qu'en mode Liste, et pour la même raison : la règle 3 de
- * SPECS.md §4.2 veut qu'un même ensemble d'articles se présente toujours dans
- * le même ordre. Ici l'enjeu est plus aigu encore — réordonner sous le doigt
- * changerait l'article que le balayage suivant va montrer.
- *
- * @param atHead vrai pour insérer les inconnus en tête, ce que fait la première
- *   page du serveur par-dessus le cache déjà affiché.
+ * Une dérivation propre à ce mode, déclarée chez lui : la Liste n'a pas de
+ * pagineur, et porter ce compte dans l'état commun l'aurait fait mentir d'un
+ * côté.
  */
-internal fun SwipeUiState.merging(
-    articles: List<Article>,
-    nowEpochMillis: Long,
-    atHead: Boolean,
-): SwipeUiState {
-    val known = this.articles.mapTo(mutableSetOf(), ArticleUiModel::id)
-    val fresh = articles.filterNot { it.id.value in known }.map { it.toSwipeUiModel(nowEpochMillis) }
-    if (fresh.isEmpty()) return this
-
-    return copy(articles = if (atHead) fresh + this.articles else this.articles + fresh)
-}
-
-/**
- * Le drapeau change, l'article ne bouge pas.
- *
- * **Et il ne repasse jamais à faux** (SPECS.md §4.8, GOAL-012-T04) : revenir
- * en arrière sur un article lu ne le délie pas. C'est ce que garantit
- * l'absence de toute transition inverse — il n'existe pas de « markingUnread ».
- */
-internal fun SwipeUiState.markingRead(ids: Set<ArticleId>): SwipeUiState =
-    copy(articles = articles.map { if (ArticleId(it.id) in ids) it.copy(isRead = true) else it })
-
-/**
- * Les articles déjà chargés sont **conservés** (SPECS.md §4.4) : un échec de
- * page suivante ne doit pas vider ce que l'utilisateur est en train de lire.
- */
-internal fun SwipeUiState.failedWith(error: FeedError): SwipeUiState = copy(
-    phase = when (error) {
-        FeedError.SessionExpired -> DiscoverPhase.SessionEnded
-        FeedError.NoNetwork -> DiscoverPhase.Failed(DiscoverFailure.NoNetwork)
-        FeedError.ServerUnreachable -> DiscoverPhase.Failed(DiscoverFailure.ServerUnreachable)
-        is FeedError.Unexpected -> DiscoverPhase.Failed(DiscoverFailure.Unexpected)
-    },
-    isOffline = error == FeedError.NoNetwork,
-)
-
-/**
- * Cache garni au lancement : rien à demander, le flux est celui qu'on a laissé
- * (SPECS.md §5.1). Même transition qu'en mode Liste, pour la même raison.
- */
-internal fun SwipeUiState.settledFromCache(): SwipeUiState =
-    if (phase == DiscoverPhase.InitialLoading) copy(phase = DiscoverPhase.Idle) else this
+val SwipeUiState.pageCount: Int get() = articles.size + 1

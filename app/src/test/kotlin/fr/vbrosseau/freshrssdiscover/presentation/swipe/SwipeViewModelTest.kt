@@ -118,6 +118,21 @@ class SwipeViewModelTest {
         assertTrue(state.articles.single().excerpt.length > EXCERPT_LENGTH_OF_A_CARD)
     }
 
+    @Test
+    fun reloadingKeepsTheFullScreenExcerptLength() {
+        // La divergence qui a réellement existé : le rechargement projetait
+        // avec l'extrait de la Liste (240 caractères), et une pile rechargée
+        // montrait des cartes tronquées à la longueur de l'autre mode. La
+        // projection est la même à l'amorçage et au rechargement.
+        val summary = "mot ".repeat(500)
+        repository.enqueuePage(listOf(article(id = 1L, summary = summary)))
+        repository.enqueuePage(listOf(article(id = 2L, summary = summary)))
+
+        viewModel.refresh()
+
+        assertTrue(state.articles.single().excerpt.length > EXCERPT_LENGTH_OF_A_CARD)
+    }
+
     // ----- Chargement anticipé et fin de flux ---------------------------------
 
     @Test

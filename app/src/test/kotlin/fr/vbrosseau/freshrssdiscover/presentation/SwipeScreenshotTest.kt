@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.installFakeImageLoade
 import fr.vbrosseau.freshrssdiscover.presentation.discover.resetImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeUiState
+import fr.vbrosseau.freshrssdiscover.presentation.swipe.pageCount
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
