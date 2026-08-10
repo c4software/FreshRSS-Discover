@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
+import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
@@ -104,6 +105,18 @@ abstract class FeedSessionViewModel(
      * « Réessayer » est le chemin du retour.
      */
     private var loadJob: Job? = null
+
+    /**
+     * Fin de la dernière page rendue — son dernier article suffit, la
+     * monotonie ne se jugeant qu'entre voisins immédiats (SPECS.md §4.2,
+     * règle 4).
+     *
+     * Elle vit ici, avec le [cursor] : c'est le même état de continuité de
+     * pagination, et la loger dans le dépôt — un singleton partagé par les
+     * deux modes — faisait contaminer la jonction d'un mode par la pagination
+     * de l'autre.
+     */
+    private var paginationTail: List<Article> = emptyList()
 
     /**
      * Vrai dès qu'une page du serveur a été fondue dans la liste.
@@ -331,6 +344,10 @@ abstract class FeedSessionViewModel(
             when (val result = articleRepository.refresh()) {
                 is Outcome.Success -> {
                     cursor = result.value.nextCursor
+                    // La queue suit le parcours que suit le curseur : la
+                    // prochaine page prolonge la page rafraîchie, sa jonction
+                    // se juge contre elle.
+                    paginationTail = listOfNotNull(result.value.articles.lastOrNull())
                     hasServerContent = true
                     _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis(), project) }
                 }
@@ -450,7 +467,7 @@ abstract class FeedSessionViewModel(
         // ne revient jamais — ni état, ni curseur, ni écriture au cache.
         loadJob = viewModelScope.launch {
             try {
-                val result = articleRepository.loadPage(cursor)
+                val result = articleRepository.loadPage(cursor, paginationTail)
                 // Relâché **avant** le traitement : une page entièrement déjà
                 // affichée enchaîne sur la suivante, et le verrou encore posé
                 // ferait de cet enchaînement un appel sans effet.
@@ -490,6 +507,9 @@ abstract class FeedSessionViewModel(
 
         hasServerContent = true
         cursor = page.nextCursor
+        // Le dernier article **tel que rendu** : la page arrive déjà mélangée,
+        // et c'est cet ordre-là que la jonction suivante doit prolonger.
+        paginationTail = listOfNotNull(page.articles.lastOrNull())
 
         /*
          * Une page dont tout était déjà affiché — le cas ordinaire au

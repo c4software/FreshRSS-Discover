@@ -45,37 +45,19 @@ internal class DefaultArticleRepository @Inject constructor(
     private val network: NetworkAvailability,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ArticleRepository {
-    /**
-     * Dernier article rendu par la pagination, ou rien avant la première page.
-     *
-     * Le mélange a besoin de savoir ce qui précède pour que la règle 4 de
-     * SPECS.md §4.2 tienne à la jonction entre deux pages. Cet état vit ici
-     * plutôt que chez l'appelant pour une raison mécanique : `loadPage` ne
-     * prend pas la fin de page en paramètre, et lui en ajouter un ferait porter
-     * à l'écran une contrainte de l'algorithme de mélange, qu'il ne peut pas
-     * satisfaire sans savoir combien d'éléments la règle consomme.
-     *
-     * Un seul article est conservé : la monotonie ne se juge qu'entre voisins
-     * immédiats, retenir la page entière garderait quarante articles en mémoire
-     * pour n'en lire qu'un.
-     *
-     * Ni verrou ni volatile : les chargements sont sérialisés par l'appelant,
-     * et l'unique conséquence d'un entrelacement serait une jonction moins bien
-     * répartie — jamais un état incohérent.
-     */
-    private var paginationTail: List<Article> = emptyList()
-
-    override suspend fun loadPage(cursor: PageCursor?): FeedResult<ArticlePage> = withContext(ioDispatcher) {
+    override suspend fun loadPage(
+        cursor: PageCursor?,
+        previousTail: List<Article>,
+    ): FeedResult<ArticlePage> = withContext(ioDispatcher) {
         // Rien ne précède le début du flux : un rechargement complet doit
         // produire exactement le même ordre que le premier affichage (règle 3).
-        if (cursor == null) paginationTail = emptyList()
-        fetchPage(cursor, continuesPagination = true, renewsCache = false)
+        val tail = if (cursor == null) emptyList() else previousTail
+        fetchPage(cursor, previousTail = tail, renewsCache = false)
     }
 
     /**
-     * Le mélange repart de zéro et la continuité de la pagination n'est pas
-     * touchée : la page rendue est la tête du flux, alors que [paginationTail]
-     * en décrit le bas.
+     * Le mélange repart de zéro : la page rendue est la tête du flux, rien ne
+     * la précède.
      *
      * **Et le cache est renouvelé**, ce qu'il n'était pas (GOAL-026) : le
      * rechargement vidait l'affichage sans toucher à la base, si bien qu'une
@@ -83,7 +65,7 @@ internal class DefaultArticleRepository @Inject constructor(
      * d'épuiser. Voir [renewCache].
      */
     override suspend fun refresh(): FeedResult<ArticlePage> = withContext(ioDispatcher) {
-        fetchPage(cursor = null, continuesPagination = false, renewsCache = true)
+        fetchPage(cursor = null, previousTail = emptyList(), renewsCache = true)
     }
 
     /**
@@ -119,7 +101,7 @@ internal class DefaultArticleRepository @Inject constructor(
 
     private suspend fun fetchPage(
         cursor: PageCursor?,
-        continuesPagination: Boolean,
+        previousTail: List<Article>,
         renewsCache: Boolean,
     ): FeedResult<ArticlePage> {
         /*
@@ -134,7 +116,7 @@ internal class DefaultArticleRepository @Inject constructor(
             token = session.token,
             pageSize = PAGE_SIZE,
             cursor = cursor,
-        ).toFeedResult(continuesPagination, renewsCache)
+        ).toFeedResult(previousTail, renewsCache)
     }
 
     /**
@@ -201,14 +183,12 @@ internal class DefaultArticleRepository @Inject constructor(
      * n'apporterait rien et le figerait alors que de nouveaux articles doivent
      * pouvoir s'y insérer.
      */
-    private fun ArticlePage.interleaved(continuesPagination: Boolean): ArticlePage {
+    private fun ArticlePage.interleaved(previousTail: List<Article>): ArticlePage {
         val chronological = articles.sortedWith(
             compareByDescending<Article> { it.publishedAtEpochSeconds }
                 .thenByDescending { it.id.value },
         )
-        val ordered = interleaveBySource(chronological, if (continuesPagination) paginationTail else emptyList())
-        if (continuesPagination) paginationTail = listOfNotNull(ordered.lastOrNull())
-        return copy(articles = ordered)
+        return copy(articles = interleaveBySource(chronological, previousTail))
     }
 
     /**
@@ -232,7 +212,7 @@ internal class DefaultArticleRepository @Inject constructor(
      * paraîtrait fraîche.
      */
     private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(
-        continuesPagination: Boolean,
+        previousTail: List<Article>,
         renewsCache: Boolean,
     ): FeedResult<ArticlePage> = when (this) {
         is ApiOutcome.Success -> {
@@ -240,7 +220,7 @@ internal class DefaultArticleRepository @Inject constructor(
             cache.save(page.articles)
             if (renewsCache) renewCache(page.articles)
             freshness.recordRefresh()
-            Outcome.Success(page.interleaved(continuesPagination))
+            Outcome.Success(page.interleaved(previousTail))
         }
 
         is ApiOutcome.HttpError -> httpFailure(status)

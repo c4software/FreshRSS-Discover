@@ -2099,7 +2099,7 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       (`SwipeUiState.refreshedWith` projecting List-length excerpts)
 - [x] `GOAL-029-T07` The reload cancels the load Job instead of counting
       generations — covers the cache write too; ARCHITECTURE.md §9.10 updated
-- [ ] `GOAL-029-T08` `paginationTail` leaves the singleton repository: the tail
+- [x] `GOAL-029-T08` `paginationTail` leaves the singleton repository: the tail
       travels with the page, display state goes back to whoever displays
 - [ ] `GOAL-029-T09` Terminal composables factored into `feed/`, shared word
       truncation and after-refresh effect, `PrefetchNextPage` stops writing

@@ -532,8 +532,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theMixKeepsItsContinuityAcrossTwoPages() = runTest {
-        // Règle 4 : la jonction entre deux pages obéit à la règle 1. Le dépôt
-        // est le seul à savoir comment il a ordonné la page précédente.
+        // Règle 4 : la jonction entre deux pages obéit à la règle 1. La fin de
+        // la page précédente est passée par l'appelant — le dépôt ne retient
+        // rien, il est partagé par les deux modes de présentation.
         val repository = repository(
             MockEngineResponse.Bodies(
                 listOf(
@@ -545,7 +546,9 @@ class DefaultArticleRepositoryTest {
         signedIn()
 
         val first = assertNotNull(repository.loadPage().valueOrNull())
-        val second = assertNotNull(repository.loadPage(first.nextCursor).valueOrNull())
+        val second = assertNotNull(
+            repository.loadPage(first.nextCursor, previousTail = first.articles.takeLast(1)).valueOrNull(),
+        )
 
         assertEquals("feed/1", first.articles.single().feed.id)
         assertEquals(listOf("feed/2", "feed/1"), second.articles.map { it.feed.id })
@@ -697,8 +700,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun refreshDoesNotDisturbThePaginationContinuity() = runTest {
-        // La page rafraîchie est la tête du flux ; la fin de page conservée
-        // décrit son bas. Les confondre réordonnerait la jonction suivante.
+        // Le rechargement ne retient rien dans le dépôt : la continuité est
+        // l'affaire de l'appelant, qui prolonge le parcours de son choix en
+        // passant la queue correspondante — ici l'ancien parcours.
         val repository = repository(
             MockEngineResponse.Bodies(
                 listOf(
@@ -712,7 +716,9 @@ class DefaultArticleRepositoryTest {
 
         val first = assertNotNull(repository.loadPage().valueOrNull())
         repository.refresh()
-        val second = assertNotNull(repository.loadPage(first.nextCursor).valueOrNull())
+        val second = assertNotNull(
+            repository.loadPage(first.nextCursor, previousTail = first.articles.takeLast(1)).valueOrNull(),
+        )
 
         assertEquals(listOf("feed/2", "feed/1"), second.articles.map { it.feed.id })
     }

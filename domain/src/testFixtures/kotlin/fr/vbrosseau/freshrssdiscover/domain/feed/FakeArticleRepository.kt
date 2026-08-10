@@ -63,9 +63,16 @@ class FakeArticleRepository : ArticleRepository {
      */
     val cachedArticles: MutableStateFlow<List<Article>> = MutableStateFlow(emptyList())
 
-    override suspend fun loadPage(cursor: PageCursor?): FeedResult<ArticlePage> {
+    /** Chaque fin de page reçue, dans l'ordre : la continuité du mélange s'observe ici. */
+    val requestedTails: MutableList<List<Article>> = mutableListOf()
+
+    override suspend fun loadPage(
+        cursor: PageCursor?,
+        previousTail: List<Article>,
+    ): FeedResult<ArticlePage> {
         loadCallCount++
         requestedCursors += cursor
+        requestedTails += previousTail
 
         return nextResult()
     }
