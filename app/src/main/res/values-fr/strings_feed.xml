@@ -39,4 +39,13 @@
         version 9 ; au-delà, sa feuille de partage impose le sien.
     -->
     <string name="feed_article_share_chooser">Partager l\'article</string>
+
+    <!--
+        Toast affiché quand un chargement de page ou un rechargement échoue
+        parce que l'API ne répond pas. Il complète le bloc d'échec et son
+        « Réessayer », il ne les remplace pas : il rend l'échec visible quand
+        ce bloc est sous la ligne de flottaison. Le hors-ligne n'est pas ce
+        cas : le bandeau hors ligne porte déjà ce régime (SPECS.md §5.2).
+    -->
+    <string name="feed_server_unreachable_toast">Serveur injoignable — le flux n\'a pas pu être mis à jour.</string>
 </resources>

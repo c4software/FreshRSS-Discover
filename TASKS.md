@@ -103,6 +103,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
 | GOAL-028 | A page in flight no longer survives the reload that disowned it | `[x]` |
 | GOAL-029 | The 2026-08-10 review: needless complexity is worked off | `[x]` |
+| GOAL-030 | An unreachable server announces itself with a toast | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2140,6 +2141,27 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
 | Roborazzi task-name sniffing kept, property escape hatch added | The plugin exposes no mode at configuration time; a pure property switch would have silently unfiltered the screenshot runs |
 | `LoginFailure.Address` kept | Not a mirror: it excludes the domain's `Valid` case — the same typing pattern as `DiscoverFailure`/`FeedError`, which the review itself blessed |
 | `AppGraphTest`'s binding assertions kept | They survived the module regrouping unchanged, disproving the "will need rewriting" concern, and they catch an accidental binding swap for free |
+
+---
+
+## GOAL-030 — An unreachable server announces itself with a toast
+
+**Status: DONE**
+
+Requested by the author. When a page load or a reload fails because the API
+does not answer (`FeedError.ServerUnreachable`), a toast says so. This
+complements the failure block and its Retry — which stay, with their
+hand-acknowledged doctrine — rather than replacing them: the toast makes the
+failure *noticeable* when the block sits below the fold. `NoNetwork` is
+excluded: the offline banner already owns that regime (SPECS.md §5.2).
+
+- [x] `GOAL-030-T01` The engine emits a one-shot `ServerUnreachable` event on
+      load and reload failures; both routes surface it as a toast. Strings in
+      both languages, tests on the event (load, reload, offline stays silent,
+      buffering across a collector gap) and on the toast itself (ShadowToast).
+      The failure→event mapping lives once, at file level: adding it as a
+      member was the class's 13th function, exactly the line the detekt
+      config drew ("twelve, and no more")
 
 ---
 

@@ -254,6 +254,10 @@ scrolling is not interrupted.
 - The loading in progress is visible at the bottom of the feed.
 - A loading failure displays a message and a "Retry" action, **without emptying
   what is already displayed**.
+- When the failure is an unreachable server — the device is online but the API
+  does not answer — a toast says so as well. It complements the failure block,
+  which may sit below the fold; it does not replace it, and being offline is
+  not this case: the offline banner owns that regime (§5.2).
 - When there are no articles left, the feed ends with an explicit message. A
   feed that simply stops getting longer is indistinguishable from a breakdown.
 

@@ -16,6 +16,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleSharer
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
@@ -83,6 +84,8 @@ private fun DiscoverRoute(
 
     AskTheServerWhenShownEmpty(viewModel::onScreenShown)
 
+    FeedEventToasts(viewModel.events)
+
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
@@ -128,6 +131,8 @@ private fun SwipeRoute(
     val articleSharer = rememberArticleSharer()
 
     AskTheServerWhenShownEmpty(viewModel::onScreenShown)
+
+    FeedEventToasts(viewModel.events)
 
     PublishFeedRefresh(
         isRefreshing = uiState.isRefreshing,

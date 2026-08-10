@@ -39,4 +39,13 @@
         beyond that, its share sheet imposes its own.
     -->
     <string name="feed_article_share_chooser">Share the article</string>
+
+    <!--
+        Toast shown when a page load or a reload fails because the API does
+        not answer. It complements the failure block and its Retry — it does
+        not replace them: it only makes the failure noticeable when that
+        block sits below the fold. Being offline is not this case; the
+        offline banner owns that regime (SPECS.md §5.2).
+    -->
+    <string name="feed_server_unreachable_toast">Server unreachable — the feed could not be updated.</string>
 </resources>

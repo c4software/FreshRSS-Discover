@@ -8,6 +8,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.CACHED_FEED_LIMIT
+import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadDetector
@@ -16,13 +17,30 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * One-shot facts the screen surfaces as a toast.
+ *
+ * Distinct from [FeedUiState]: a toast is fired, not displayed-until-
+ * acknowledged, so modelling it as state would either replay it on every
+ * recomposition or force an acknowledgement gesture the message does not
+ * deserve. The repository's hand-acknowledged notices keep their doctrine;
+ * this channel only carries what must merely be *noticed*.
+ */
+enum class FeedEvent {
+    /** A load or reload failed because the API did not answer. */
+    ServerUnreachable,
+}
 
 /**
  * The feed engine, shared by List and swipe modes (SPECS.md §4.8).
@@ -52,6 +70,14 @@ abstract class FeedSessionViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
+
+    /**
+     * Buffered so an event emitted while nobody collects — a failure landing
+     * during a configuration change — is delivered to the next collector
+     * instead of being dropped.
+     */
+    private val _events = Channel<FeedEvent>(Channel.BUFFERED)
+    val events: Flow<FeedEvent> = _events.receiveAsFlow()
 
     /**
      * Watches feed staleness (SPECS.md §4.6).
@@ -336,7 +362,10 @@ abstract class FeedSessionViewModel(
                     _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis(), project) }
                 }
 
-                is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
+                is Outcome.Failure -> {
+                    _uiState.update { it.failedWith(result.error) }
+                    result.error.toFeedEvent()?.let(_events::trySend)
+                }
             }
             _uiState.update { it.copy(isRefreshing = false) }
         }
@@ -459,7 +488,10 @@ abstract class FeedSessionViewModel(
 
                 when (result) {
                     is Outcome.Success -> onPageLoaded(result.value)
-                    is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
+                    is Outcome.Failure -> {
+                        _uiState.update { it.failedWith(result.error) }
+                        result.error.toFeedEvent()?.let(_events::trySend)
+                    }
                 }
             } finally {
                 // Covers cancellation: without this release, the lock would
@@ -507,3 +539,15 @@ abstract class FeedSessionViewModel(
         if (_uiState.value.articles.size == shownBefore && page.hasMore) load()
     }
 }
+
+/**
+ * Which failures deserve a toast on top of the failure block, decided once
+ * for the load and reload paths.
+ *
+ * Only the unreachable server (GOAL-030): `NoNetwork` already has the offline
+ * banner as its regime (SPECS.md §5.2), and a toast on every offline scroll
+ * would nag about a state the screen is already stating. The remaining causes
+ * have nothing more to say than the block already does.
+ */
+private fun FeedError.toFeedEvent(): FeedEvent? =
+    if (this == FeedError.ServerUnreachable) FeedEvent.ServerUnreachable else null
