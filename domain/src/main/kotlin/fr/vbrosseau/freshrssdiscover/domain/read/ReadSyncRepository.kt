@@ -1,7 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.read
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import kotlinx.coroutines.flow.Flow
 
 /**
  * Propage au serveur les articles que [ReadDetector] a déclarés lus.
@@ -29,8 +28,8 @@ interface ReadSyncRepository {
      *
      * Ne rend aucune issue, et c'est délibéré : du point de vue de l'appelant,
      * cette opération ne peut pas échouer. Elle n'attend pas le réseau — elle
-     * ne le touche même pas. Un `ReadSyncOutcome` ici obligerait l'écran à
-     * traiter un échec qu'il n'a pas à montrer (SPECS.md §4.5).
+     * ne le touche même pas. Une issue ici obligerait l'écran à traiter un
+     * échec qu'il n'a pas à montrer (SPECS.md §4.5).
      *
      * **L'appelant n'a rien à envoyer après cet appel.** Le regroupement
      * temporel est du ressort de l'implémentation
@@ -54,20 +53,16 @@ interface ReadSyncRepository {
      * passage en arrière-plan par exemple. Le marquage ordinaire, lui, n'a pas
      * à l'appeler.
      *
-     * Sans rien en file, ne touche pas au réseau et rend
-     * [ReadSyncOutcome.Synchronized] : il serait absurde de payer un
-     * aller-retour pour n'envoyer aucun article.
-     */
-    suspend fun flush(): ReadSyncOutcome
-
-    /**
-     * Nombre de marquages restant à transmettre.
+     * Sans rien en file, ne touche pas au réseau : il serait absurde de payer
+     * un aller-retour pour n'envoyer aucun article.
      *
-     * Un flux et non une lecture ponctuelle : l'indicateur retombe de lui-même
-     * quand la file se vide, sans que l'affichage ait à interroger quoi que ce
-     * soit.
+     * Ne rend rien, comme [markAsRead] et pour la même raison : aucun appelant
+     * n'a de conduite à tenir selon l'issue. Un échec est un report — la file
+     * conserve (SPECS.md §4.5) — et une session refusée est déjà prise en
+     * charge par l'implémentation, l'aiguillage racine ramenant de lui-même à
+     * l'écran de connexion (SPECS.md §3.4).
      */
-    fun observePendingCount(): Flow<Int>
+    suspend fun flush()
 
     /**
      * Abandonne ce qui attend, sans le transmettre.

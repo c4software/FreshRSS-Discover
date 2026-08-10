@@ -4,7 +4,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
-import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncOutcome
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -56,17 +55,15 @@ class ReadFlushOnBackgroundObserverTest {
     /**
      * Sans rien en file, l'envoi forcé ne transmet rien : le garde-fou vit dans
      * `flush`, qui ne touche pas au réseau quand la file est vide. L'observateur
-     * n'a donc pas à consulter le compteur avant de déclencher — ce serait une
+     * n'a donc pas à consulter la file avant de déclencher — ce serait une
      * lecture de plus pour la même issue.
      */
     @Test
     fun goingToBackgroundWithNothingPendingSendsNothing() {
-        repository.nextOutcome = ReadSyncOutcome.Synchronized(transmittedCount = 0)
         val owner = ownerObservedFromResumed()
 
         owner.registry.currentState = Lifecycle.State.CREATED
 
-        assertEquals(0, repository.pendingCount.value)
         assertEquals(0, repository.markedIds.size)
     }
 

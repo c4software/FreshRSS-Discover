@@ -43,15 +43,12 @@ class ReadTransmissionSchedulerTest {
     /** Retient la transmission en cours, pour reproduire un envoi lent. */
     private var suspender: CompletableDeferred<Unit>? = null
 
-    private var outcome: ReadSyncOutcome = ReadSyncOutcome.Synchronized(transmittedCount = 0)
-
-    private suspend fun transmit(): ReadSyncOutcome {
+    private suspend fun transmit() {
         transmissionCount++
         runningTransmissions++
         maxSimultaneousTransmissions = maxOf(maxSimultaneousTransmissions, runningTransmissions)
         suspender?.await()
         runningTransmissions--
-        return outcome
     }
 
     private fun TestScope.newScheduler() =
@@ -160,15 +157,6 @@ class ReadTransmissionSchedulerTest {
 
             assertEquals(1, transmissionCount)
             assertEquals(0L, currentTime)
-        }
-
-    @Test
-    fun transmittingNowReturnsTheOutcome() =
-        runTest {
-            outcome = ReadSyncOutcome.Deferred(transmittedCount = 3)
-            val scheduler = newScheduler()
-
-            assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 3), scheduler.transmitNow())
         }
 
     @Test

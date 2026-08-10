@@ -2,7 +2,6 @@ package fr.vbrosseau.freshrssdiscover.data.local.room
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -62,9 +61,6 @@ internal class PendingMarkQueue @Inject constructor(
     suspend fun acknowledge(ids: List<ArticleId>) {
         dao.deleteByIds(ids.map { it.value })
     }
-
-    /** Nombre de marquages en attente, pour signaler une synchronisation en retard. */
-    fun observePendingCount(): Flow<Int> = dao.observePendingCount()
 
     /**
      * Vide la file. Appelé à la déconnexion (SPECS.md §3.5) : ces marquages

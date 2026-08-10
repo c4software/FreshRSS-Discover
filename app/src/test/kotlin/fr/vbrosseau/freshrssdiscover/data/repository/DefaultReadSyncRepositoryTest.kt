@@ -18,7 +18,6 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedRef
-import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncOutcome
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
@@ -244,9 +243,8 @@ class DefaultReadSyncRepositoryTest {
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L), ArticleId(2L)))
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 2), outcome)
         assertTrue(pendingIds().isEmpty())
         assertEquals(listOf("1", "2"), sentIds(request = 0))
     }
@@ -257,7 +255,8 @@ class DefaultReadSyncRepositoryTest {
         // c'est le cas courant du démarrage.
         signedIn()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 0), repository.flush())
+        repository.flush()
+
         assertEquals(0, tokenRequestCount)
         assertTrue(editTagForms.isEmpty())
     }
@@ -269,9 +268,8 @@ class DefaultReadSyncRepositoryTest {
         signedIn()
         markAll(2 * BATCH_SIZE + 50)
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 250), outcome)
         assertEquals(3, editTagForms.size)
         assertEquals(BATCH_SIZE, sentIds(request = 0).size)
         assertEquals(BATCH_SIZE, sentIds(request = 1).size)
@@ -373,9 +371,8 @@ class DefaultReadSyncRepositoryTest {
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 1), outcome)
         assertEquals(1, editTagForms.size)
         awaitScheduledTransmission()
         assertEquals(1, editTagForms.size)
@@ -421,9 +418,8 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         val failing = failingRepository()
 
-        val outcome = failing.flush()
+        failing.flush()
 
-        assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 0), outcome)
         assertEquals(listOf(1L), pendingIds())
     }
 
@@ -433,9 +429,8 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("Oups", HttpStatusCode.InternalServerError)
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 0), outcome)
         assertEquals(listOf(1L), pendingIds())
     }
 
@@ -447,7 +442,8 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("<html>maintenance</html>")
 
-        assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 0), repository.flush())
+        repository.flush()
+
         assertEquals(listOf(1L), pendingIds())
     }
 
@@ -458,9 +454,10 @@ class DefaultReadSyncRepositoryTest {
         editTagReplies += Reply("OK")
         editTagReplies += Reply("Oups", HttpStatusCode.InternalServerError)
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Deferred(transmittedCount = BATCH_SIZE), outcome)
+        // Le premier lot est parti et acquitté ; seul le second reste.
+        assertEquals(2, editTagForms.size)
         assertEquals(50, pendingIds().size)
     }
 
@@ -468,9 +465,11 @@ class DefaultReadSyncRepositoryTest {
     fun flushingWithoutASessionKeepsTheQueueForTheNextSignIn() = runTest {
         repository.markAsRead(setOf(ArticleId(1L)))
 
-        assertEquals(ReadSyncOutcome.SessionLost, repository.flush())
+        repository.flush()
+
         assertEquals(listOf(1L), pendingIds())
         assertTrue(editTagForms.isEmpty())
+        assertEquals(0, tokenRequestCount)
     }
 
     // ----- Jeton refusé (GOAL-008-T05) ---------------------------------------
@@ -483,9 +482,8 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 1), outcome)
         assertEquals(1, tokenRequestCount)
         assertEquals(listOf("PERIME", FRESH_TOKEN), editTagForms.map { it["T"] })
         assertTrue(pendingIds().isEmpty())
@@ -500,9 +498,10 @@ class DefaultReadSyncRepositoryTest {
         editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
         editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
 
-        val outcome = repository.flush()
+        repository.flush()
 
-        assertEquals(ReadSyncOutcome.SessionLost, outcome)
+        // La session est tombée — c'est le test suivant qui l'observe — mais la
+        // file, elle, est intacte.
         assertEquals(listOf(1L), pendingIds())
     }
 
@@ -539,7 +538,9 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         tokenReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
 
-        assertEquals(ReadSyncOutcome.SessionLost, repository.flush())
+        repository.flush()
+
+        assertNull(sessionStore.observeSession().first())
         assertEquals(listOf(1L), pendingIds())
     }
 
@@ -551,7 +552,8 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L)))
         tokenReplies += Reply("Oups", HttpStatusCode.InternalServerError)
 
-        assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 0), repository.flush())
+        repository.flush()
+
         assertEquals(listOf(1L), pendingIds())
         assertNotNull(sessionStore.observeSession().first())
     }
@@ -570,21 +572,10 @@ class DefaultReadSyncRepositoryTest {
         assertEquals(listOf(1L), pendingIds())
 
         val afterRestart = newRepository()
-        val outcome = afterRestart.flush()
+        afterRestart.flush()
 
-        assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 1), outcome)
+        assertEquals(listOf("1"), sentIds(request = 1))
         assertTrue(pendingIds().isEmpty())
-    }
-
-    @Test
-    fun thePendingCountFollowsTheQueue() = runTest {
-        signedIn()
-        repository.markAsRead(setOf(ArticleId(1L), ArticleId(2L)))
-        assertEquals(2, repository.observePendingCount().first())
-
-        repository.flush()
-
-        assertEquals(0, repository.observePendingCount().first())
     }
 
     @Test

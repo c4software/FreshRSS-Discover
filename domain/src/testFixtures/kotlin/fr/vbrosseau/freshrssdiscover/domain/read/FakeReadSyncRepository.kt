@@ -1,8 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.read
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Dépôt de synchronisation piloté, pour les tests.
@@ -29,26 +27,16 @@ class FakeReadSyncRepository : ReadSyncRepository {
     var clearPendingCallCount: Int = 0
         private set
 
-    /** Issue rendue par le prochain [flush]. */
-    var nextOutcome: ReadSyncOutcome = ReadSyncOutcome.Synchronized(transmittedCount = 0)
-
-    /** Compteur d'attente exposé, librement pilotable par le test. */
-    val pendingCount: MutableStateFlow<Int> = MutableStateFlow(0)
-
     override suspend fun markAsRead(ids: Set<ArticleId>) {
         markCalls += ids
         markedIds += ids
     }
 
-    override suspend fun flush(): ReadSyncOutcome {
+    override suspend fun flush() {
         flushCallCount++
-        return nextOutcome
     }
-
-    override fun observePendingCount(): Flow<Int> = pendingCount
 
     override suspend fun clearPending() {
         clearPendingCallCount++
-        pendingCount.value = 0
     }
 }

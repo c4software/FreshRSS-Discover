@@ -57,7 +57,7 @@ private const val DEFAULT_GROUPING_DELAY_MILLIS = 5_000L
 class ReadTransmissionScheduler(
     private val scope: CoroutineScope,
     private val groupingDelayMillis: Long = DEFAULT_GROUPING_DELAY_MILLIS,
-    private val transmit: suspend () -> ReadSyncOutcome,
+    private val transmit: suspend () -> Unit,
 ) {
     /** Protège [window] : un marquage et un envoi forcé n'arrivent pas du même fil. */
     private val windowMutex = Mutex()
@@ -110,9 +110,9 @@ class ReadTransmissionScheduler(
      * seulement à rattraper — et ce que fera un passage en arrière-plan, où
      * l'attente n'a plus d'objet puisque plus rien ne sera lu.
      */
-    suspend fun transmitNow(): ReadSyncOutcome {
+    suspend fun transmitNow() {
         closeWindow()
-        return transmitExclusively()
+        transmitExclusively()
     }
 
     /**
@@ -145,5 +145,5 @@ class ReadTransmissionScheduler(
         windowMutex.withLock { if (window === current) window = null }
     }
 
-    private suspend fun transmitExclusively(): ReadSyncOutcome = transmissionMutex.withLock { transmit() }
+    private suspend fun transmitExclusively() = transmissionMutex.withLock { transmit() }
 }

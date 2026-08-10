@@ -24,16 +24,6 @@ enum class FeedPresentation {
 
     ;
 
-    /**
-     * La forme écrite sur disque.
-     *
-     * Le **nom** et non l'`ordinal` : un ordinal lie la valeur enregistrée à
-     * l'ordre de déclaration, et intercaler un mode un jour ferait rouvrir
-     * l'application dans un autre mode que celui qu'on avait quitté — sans que
-     * rien ne le signale, puisque l'entier resterait valide.
-     */
-    val storedName: String get() = name
-
     companion object {
         /**
          * **Liste**, imposé par SPECS.md §4.8.
@@ -52,7 +42,12 @@ enum class FeedPresentation {
          * [Default] : un mode de présentation illisible ne doit pas empêcher
          * l'application de démarrer. La valeur corrigée sera réécrite au
          * prochain choix de l'utilisateur.
+         *
+         * La forme sur disque est le **nom** et non l'`ordinal` : un ordinal
+         * lierait la valeur enregistrée à l'ordre de déclaration, et intercaler
+         * un mode un jour ferait rouvrir l'application dans un autre mode que
+         * celui qu'on avait quitté — sans que rien ne le signale.
          */
-        fun fromStoredName(raw: String?): FeedPresentation = entries.firstOrNull { it.storedName == raw } ?: Default
+        fun fromStoredName(raw: String?): FeedPresentation = entries.firstOrNull { it.name == raw } ?: Default
     }
 }

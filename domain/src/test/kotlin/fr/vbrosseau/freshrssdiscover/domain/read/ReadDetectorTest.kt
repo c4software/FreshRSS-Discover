@@ -108,29 +108,6 @@ class ReadDetectorTest {
     }
 
     @Test
-    fun anArticleThatLeftTheScreenLeavesNoInternalState() {
-        // Une session de défilement traverse des milliers d'articles : chacun
-        // laisserait une entrée derrière lui.
-        detector.onVisibilityChanged(mapOf(first to 1.0f, second to 0.8f))
-        assertEquals(2, detector.trackedArticleCount)
-
-        detector.onVisibilityChanged(emptyMap())
-
-        assertEquals(0, detector.trackedArticleCount)
-    }
-
-    @Test
-    fun aReportedArticleLeavesNoInternalStateEither() {
-        // Une fois signalé, le chronomètre n'a plus d'objet : le garder tant
-        // que l'article reste à l'écran ferait grossir la table pour rien.
-        detector.onVisibilityChanged(mapOf(first to 1.0f))
-        clock.advanceBy(1_000L)
-        detector.onVisibilityChanged(mapOf(first to 1.0f))
-
-        assertEquals(0, detector.trackedArticleCount)
-    }
-
-    @Test
     fun anArticleIsNeverReportedTwice() {
         // Un article reste visible pendant des dizaines d'images de rendu après
         // avoir franchi le seuil : le re-signaler produirait autant d'appels
@@ -226,6 +203,5 @@ class ReadDetectorTest {
         // Le premier appel ne fait que démarrer le chronomètre : conclure dès
         // là marquerait tout l'écran au premier rendu.
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
-        assertEquals(1, detector.trackedArticleCount)
     }
 }

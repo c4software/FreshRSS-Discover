@@ -57,16 +57,6 @@ class ReadDetector(
     private val reported = mutableSetOf<ArticleId>()
 
     /**
-     * Nombre d'articles dont une visibilité est en cours de chronométrage.
-     *
-     * Exposé pour que l'absence de fuite soit vérifiable : c'est la seule
-     * partie de l'état interne qui croît avec le défilement plutôt qu'avec la
-     * lecture.
-     */
-    val trackedArticleCount: Int
-        get() = visibleSince.size
-
-    /**
      * Prend en compte une nouvelle observation de visibilité.
      *
      * [visibility] décrit les articles actuellement à l'écran et la fraction de

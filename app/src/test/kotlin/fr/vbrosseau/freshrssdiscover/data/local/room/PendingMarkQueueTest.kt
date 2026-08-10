@@ -8,7 +8,6 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -139,18 +138,7 @@ class PendingMarkQueueTest {
         assertTrue(pendingIds().isEmpty())
     }
 
-    // ----- Comptage et effacement --------------------------------------------
-
-    @Test
-    fun thePendingCountFollowsTheQueue() = runTest {
-        assertEquals(0, queue.observePendingCount().first())
-
-        queue.enqueue(listOf(ArticleId(1L), ArticleId(2L)))
-        assertEquals(2, queue.observePendingCount().first())
-
-        queue.acknowledge(listOf(ArticleId(1L)))
-        assertEquals(1, queue.observePendingCount().first())
-    }
+    // ----- Effacement --------------------------------------------------------
 
     @Test
     fun clearingEmptiesTheQueue() = runTest {
@@ -159,7 +147,6 @@ class PendingMarkQueueTest {
         queue.clear()
 
         assertTrue(pendingIds().isEmpty())
-        assertEquals(0, queue.observePendingCount().first())
     }
 
     // ----- Migration ---------------------------------------------------------

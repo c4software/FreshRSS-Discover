@@ -13,15 +13,17 @@ class FeedPresentationTest {
 
     @Test
     fun eachModeIsStoredUnderItsOwnName() {
-        assertEquals("List", FeedPresentation.List.storedName)
-        assertEquals("Swipe", FeedPresentation.Swipe.storedName)
+        // Ces chaînes sont écrites sur disque : les renommer casserait la
+        // relecture des préférences existantes, et ce test le rend visible.
+        assertEquals("List", FeedPresentation.List.name)
+        assertEquals("Swipe", FeedPresentation.Swipe.name)
     }
 
     @Test
     fun aStoredNameIsReadBackAsTheSameMode() {
         // La garantie qui compte : l'application rouvre dans le mode quitté.
         FeedPresentation.entries.forEach { mode ->
-            assertEquals(mode, FeedPresentation.fromStoredName(mode.storedName))
+            assertEquals(mode, FeedPresentation.fromStoredName(mode.name))
         }
     }
 

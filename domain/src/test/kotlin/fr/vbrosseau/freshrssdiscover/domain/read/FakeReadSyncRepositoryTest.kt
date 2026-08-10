@@ -1,17 +1,14 @@
 package fr.vbrosseau.freshrssdiscover.domain.read
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 /**
  * Le faux servira à éprouver l'écran, qui ne doit jamais parler de réseau. Ces
  * tests fixent ce sur quoi cet écran s'appuiera : marquer n'échoue pas, les
- * lots restent observables un par un, et l'issue de la transmission est un
- * verdict pilotable.
+ * lots restent observables un par un, et chaque appel se compte.
  */
 class FakeReadSyncRepositoryTest {
     private val repository = FakeReadSyncRepository()
@@ -42,40 +39,19 @@ class FakeReadSyncRepositoryTest {
         }
 
     @Test
-    fun theProgrammedOutcomeIsWhatFlushReturns() =
+    fun everyForcedTransmissionIsCounted() =
         runTest {
-            repository.nextOutcome = ReadSyncOutcome.Deferred(transmittedCount = 2)
+            repository.flush()
+            repository.flush()
 
-            assertEquals(ReadSyncOutcome.Deferred(transmittedCount = 2), repository.flush())
-            assertEquals(1, repository.flushCallCount)
+            assertEquals(2, repository.flushCallCount)
         }
 
     @Test
-    fun aFlushWithNothingPendingReportsNothingTransmitted() =
+    fun abandoningThePendingMarksIsCounted() =
         runTest {
-            assertEquals(ReadSyncOutcome.Synchronized(transmittedCount = 0), repository.flush())
-        }
-
-    @Test
-    fun aPartialTransmissionIsNotTheSameAsACompleteOne() {
-        // Deferred et Synchronized peuvent porter le même compte : c'est le
-        // verdict qui distingue « tout est parti » de « le reste attend ».
-        assertNotEquals<ReadSyncOutcome>(
-            ReadSyncOutcome.Synchronized(transmittedCount = 2),
-            ReadSyncOutcome.Deferred(transmittedCount = 2),
-        )
-        assertEquals(ReadSyncOutcome.SessionLost, ReadSyncOutcome.SessionLost)
-    }
-
-    @Test
-    fun clearingResetsThePendingCount() =
-        runTest {
-            repository.pendingCount.value = 3
-            assertEquals(3, repository.observePendingCount().first())
-
             repository.clearPending()
 
-            assertEquals(0, repository.observePendingCount().first())
             assertEquals(1, repository.clearPendingCallCount)
         }
 }

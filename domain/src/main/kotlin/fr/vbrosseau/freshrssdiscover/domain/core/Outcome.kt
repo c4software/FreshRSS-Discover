@@ -21,17 +21,3 @@ sealed interface Outcome<out T, out E> {
 
     data class Failure<out E>(val error: E) : Outcome<Nothing, E>
 }
-
-/** Valeur si l'opération a réussi, `null` sinon. */
-fun <T> Outcome<T, *>.valueOrNull(): T? =
-    when (this) {
-        is Outcome.Success -> value
-        is Outcome.Failure -> null
-    }
-
-/** Erreur si l'opération a échoué, `null` sinon. */
-fun <E> Outcome<*, E>.errorOrNull(): E? =
-    when (this) {
-        is Outcome.Success -> null
-        is Outcome.Failure -> error
-    }

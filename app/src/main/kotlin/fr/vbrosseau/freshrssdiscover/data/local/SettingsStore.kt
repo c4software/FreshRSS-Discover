@@ -99,7 +99,7 @@ internal class SettingsStore @Inject constructor(
             .distinctUntilChanged()
 
     override suspend fun setFeedPresentation(value: FeedPresentation) {
-        dataStore.edit { it[Keys.FeedPresentation] = value.storedName }
+        dataStore.edit { it[Keys.FeedPresentation] = value.name }
     }
 
     /**
@@ -148,8 +148,8 @@ internal class SettingsStore @Inject constructor(
         val AutoMarkAsReadEnabled = booleanPreferencesKey("reading.auto_mark_as_read")
 
         /**
-         * Une chaîne et non un entier : voir `FeedPresentation.storedName`, qui
-         * explique pourquoi l'`ordinal` serait piégeux.
+         * Une chaîne et non un entier : voir `FeedPresentation.fromStoredName`,
+         * qui explique pourquoi l'`ordinal` serait piégeux.
          */
         val FeedPresentation = stringPreferencesKey("display.feed_presentation")
 

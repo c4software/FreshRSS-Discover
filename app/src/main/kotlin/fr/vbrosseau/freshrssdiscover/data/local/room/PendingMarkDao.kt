@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 /** Accès à la file des marquages « lu » restant à transmettre. */
 @Dao
@@ -37,16 +36,6 @@ internal interface PendingMarkDao {
     /** Retire de la file les marquages dont la transmission est confirmée. */
     @Query("DELETE FROM pending_marks WHERE article_id IN (:articleIds)")
     suspend fun deleteByIds(articleIds: List<Long>)
-
-    /**
-     * Nombre de marquages en attente, observable.
-     *
-     * Un `Flow` et non une lecture ponctuelle : l'indicateur de synchronisation
-     * doit retomber à zéro de lui-même quand la file se vide, sans que
-     * l'affichage ait à interroger la base.
-     */
-    @Query("SELECT COUNT(*) FROM pending_marks")
-    fun observePendingCount(): Flow<Int>
 
     @Query("DELETE FROM pending_marks")
     suspend fun deleteAll()

@@ -10,12 +10,10 @@ import fr.vbrosseau.freshrssdiscover.di.ApplicationScope
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
-import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncOutcome
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadTransmissionScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -76,11 +74,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
     private val scheduler = ReadTransmissionScheduler(scope = applicationScope) {
         withContext(ioDispatcher) {
             val session = sessionStore.observeSession().first()
-            when {
-                queue.pending(limit = 1).isEmpty() -> ReadSyncOutcome.Synchronized(transmittedCount = 0)
-                session == null -> ReadSyncOutcome.SessionLost
-                else -> transmit(session)
-            }
+            if (queue.pending(limit = 1).isNotEmpty() && session != null) transmit(session)
         }
     }
 
@@ -115,9 +109,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
      * regroupement ne le change pas : ce qui est différé, c'est le marquage
      * ordinaire, pas la demande explicite d'envoyer.
      */
-    override suspend fun flush(): ReadSyncOutcome = scheduler.transmitNow()
-
-    override fun observePendingCount(): Flow<Int> = queue.observePendingCount()
+    override suspend fun flush() = scheduler.transmitNow()
 
     /**
      * La fenêtre en cours est abandonnée avec la file : à la déconnexion, elle
@@ -140,15 +132,14 @@ internal class DefaultReadSyncRepository @Inject constructor(
      * rien, puisqu'il est déterministe et réutilisable (docs/freshrss-api.md
      * §2.3).
      */
-    private suspend fun transmit(session: AuthSession): ReadSyncOutcome {
+    private suspend fun transmit(session: AuthSession) {
         var token = session.modificationToken?.let { ModificationToken(it.value) }
-        var transmitted = 0
-        var conclusion: ReadSyncOutcome? = null
+        var done = false
 
-        while (conclusion == null) {
+        while (!done) {
             val batch = queue.pending(BATCH_SIZE)
             if (batch.isEmpty()) {
-                conclusion = ReadSyncOutcome.Synchronized(transmitted)
+                done = true
                 continue
             }
             when (val outcome = sendBatch(session, batch, token)) {
@@ -156,7 +147,6 @@ internal class DefaultReadSyncRepository @Inject constructor(
                     // L'acquittement suit la confirmation, jamais l'envoi : une
                     // ligne retirée trop tôt serait un article perdu.
                     queue.acknowledge(batch)
-                    transmitted += batch.size
                     token = outcome.token
                 }
 
@@ -169,13 +159,14 @@ internal class DefaultReadSyncRepository @Inject constructor(
                  */
                 BatchOutcome.SessionLost -> {
                     sessionStore.invalidateTokens()
-                    conclusion = ReadSyncOutcome.SessionLost
+                    done = true
                 }
 
-                BatchOutcome.Deferred -> conclusion = ReadSyncOutcome.Deferred(transmitted)
+                // Rien n'est parti, rien n'est perdu : la file conserve, et le
+                // prochain passage retentera (SPECS.md §4.5).
+                BatchOutcome.Deferred -> done = true
             }
         }
-        return conclusion
     }
 
     /**
@@ -250,9 +241,9 @@ internal class DefaultReadSyncRepository @Inject constructor(
 /**
  * Sort d'un lot, à l'usage interne de la boucle de transmission.
  *
- * Distinct de `ReadSyncOutcome` : celui-ci conclut sur la file entière, celui-là
- * sur une requête. Les confondre ferait remonter un « tout est synchronisé »
- * après le premier lot.
+ * Un sort par **requête**, pas par file entière : conclure la boucle de
+ * transmission sur le sort du premier lot ferait passer un envoi partiel pour
+ * une synchronisation complète.
  */
 private sealed interface BatchOutcome {
     /** Confirmé par le serveur. [token] est celui qui a fonctionné : les lots suivants le réutilisent. */

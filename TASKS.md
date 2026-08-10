@@ -99,6 +99,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-026 | Killing the app resurrected the feed one had just emptied | `[x]` |
 | GOAL-027 | The reload keeps what the server returned, not what looks unread | `[x]` |
 | GOAL-028 | A page in flight no longer survives the reload that disowned it | `[x]` |
+| GOAL-029 | The 2026-08-10 review: needless complexity is worked off | `[-]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2051,6 +2052,62 @@ The cursor is asserted through `requestedCursors`, not the displayed list: the
 reload replaces the list either way, so the display alone would mask the cursor
 overwrite — the defect only shows at the *next* page, served from the wrong end
 of the feed.
+
+---
+
+## GOAL-029 — The 2026-08-10 review: needless complexity is worked off
+
+**Status: IN PROGRESS**
+
+A four-part review (presentation, data, domain, DI/infra) listed every piece of
+complexity that serves no purpose. The author asked for the whole list to be
+treated. Constraint: **existing tests keep passing** — adaptation is only
+allowed where a removed API was tested for itself.
+
+### The decision that supersedes an earlier one
+
+GOAL-028 chose a generation counter over "waiting on `isLoading`" — but
+cancellation was never weighed. The counter lives twice (one per ViewModel) and
+only discards the **display**: the disowned page's `cache.save()` still runs if
+it lands after the reload's `retainOnly`. Cancelling the load Job propagates
+through Ktor and the repository, covering display **and** cache with one
+mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
+
+### Tasks
+
+- [x] `GOAL-029-T01` Dead domain APIs: `flush(): Unit` (drop `ReadSyncOutcome`,
+      unread by every caller), drop `observePendingCount` and its DAO→Queue→Repo
+      chain, `ReadDetector.trackedArticleCount`, `Outcome.valueOrNull/errorOrNull`,
+      `FeedPresentation.storedName`
+- [ ] `GOAL-029-T02` One `ModificationToken`: data consumes the domain type, as
+      it already does for `AuthToken`
+- [ ] `GOAL-029-T03` Dead data code: `SubscriptionListDto`/`SubscriptionDto`,
+      never-read DTO fields, `unreadOnly` parameter, `retainOnly`'s unread `Int`,
+      `HTTP_UNAUTHORIZED` declared thrice, `ArticleCache`'s orphan KDoc
+- [ ] `GOAL-029-T04` The upsert preserves `is_read` in SQL
+      (`ON CONFLICT … MAX`) instead of loading every read id into memory on
+      each page
+- [ ] `GOAL-029-T05` Dead presentation paths: `isEmptyFeed`,
+      `publishedAtEpochSeconds` on the UI model, `dismissFailure`, fossil `{}`
+      defaults in `SettingsScreen`, state defaults on single-caller private
+      composables, `ArticleOpenOutcome`/`ArticleShareOutcome`
+- [ ] `GOAL-029-T06` The shared List/Swipe engine: one `FeedUiState`, transitions
+      written once, a session controller parameterised by the excerpt projection
+      — both ViewModels reduced to wiring. Fixes the installed divergence
+      (`SwipeUiState.refreshedWith` projecting List-length excerpts)
+- [ ] `GOAL-029-T07` The reload cancels the load Job instead of counting
+      generations — covers the cache write too; ARCHITECTURE.md §9.10 updated
+- [ ] `GOAL-029-T08` `paginationTail` leaves the singleton repository: the tail
+      travels with the page, display state goes back to whoever displays
+- [ ] `GOAL-029-T09` Terminal composables factored into `feed/`, shared word
+      truncation and after-refresh effect, `PrefetchNextPage` stops writing
+      state during composition — `verifyRoborazziDebug` must see zero pixels
+      move
+- [ ] `GOAL-029-T10` Infra: dead `@MainDispatcher` binding, Roborazzi mode via a
+      Gradle property instead of task-name sniffing, ktlint off `:app` where it
+      checks nothing, single-binding DI modules regrouped, dust
+- [ ] `GOAL-029-T11` Documentation (ARCHITECTURE.md §9, SPECS.md if needed) and
+      closure
 
 ---
 
