@@ -187,7 +187,7 @@ class DiscoverViewModelTest {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         assertEquals(DiscoverPhase.EndOfFeed, state.phase)
-        assertFalse(state.isEmptyFeed)
+        assertEquals(1, state.articles.size)
     }
 
     @Test
@@ -200,10 +200,12 @@ class DiscoverViewModelTest {
 
     @Test
     fun anEmptyFirstPageIsAnEmptyFeedRatherThanAnEnd() {
-        // « Vous avez tout lu » sous une liste vide n'explique rien.
+        // « Vous avez tout lu » sous une liste vide n'explique rien : l'écran
+        // distingue le cas sur la liste vide et la phase, comme il l'affiche.
         repository.enqueuePage(emptyList(), nextCursor = null)
 
-        assertTrue(state.isEmptyFeed)
+        assertTrue(state.articles.isEmpty())
+        assertEquals(DiscoverPhase.EndOfFeed, state.phase)
     }
 
     @Test

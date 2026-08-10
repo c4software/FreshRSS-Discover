@@ -13,8 +13,8 @@ private const val SHARE_TEXT_FORMAT = "%1\$s\n%2\$s"
 
 /**
  * Aucune API Android ici, et c'est le but : ce qui se partage se décide en JVM
- * pure. Le contenu de l'intention est éprouvé à part, par
- * [ArticleShareIntentTest].
+ * pure, et s'observe sur le **lanceur** — ce qui est parti, ou rien. Le contenu
+ * de l'intention est éprouvé à part, par [ArticleShareIntentTest].
  */
 class ArticleSharerTest {
     private val launcher = FakeArticleShareLauncher()
@@ -22,56 +22,50 @@ class ArticleSharerTest {
 
     @Test
     fun theTitleThenTheLinkIsWhatLeaves() {
-        val outcome = sharer.share(title = "Un titre", url = "https://example.org/article")
+        sharer.share(title = "Un titre", url = "https://example.org/article")
 
-        assertEquals(ArticleShareOutcome.Shared, outcome)
         assertEquals(listOf("Un titre\nhttps://example.org/article"), launcher.sharedTexts)
     }
 
     @Test
     fun anHttpLinkIsSharedToo() {
-        val outcome = sharer.share(title = "Un titre", url = "http://example.org/article")
+        sharer.share(title = "Un titre", url = "http://example.org/article")
 
-        assertEquals(ArticleShareOutcome.Shared, outcome)
         assertEquals(listOf("Un titre\nhttp://example.org/article"), launcher.sharedTexts)
     }
 
     @Test
     fun aSchemeIsRecognizedWhateverItsCase() {
-        val outcome = sharer.share(title = "Un titre", url = "HTTPS://example.org/article")
+        sharer.share(title = "Un titre", url = "HTTPS://example.org/article")
 
-        assertEquals(ArticleShareOutcome.Shared, outcome)
+        assertEquals(listOf("Un titre\nHTTPS://example.org/article"), launcher.sharedTexts)
     }
 
     @Test
     fun surroundingWhitespaceIsTrimmedBeforeSharing() {
-        val outcome = sharer.share(title = "Un titre", url = "  https://example.org/article\n")
+        sharer.share(title = "Un titre", url = "  https://example.org/article\n")
 
-        assertEquals(ArticleShareOutcome.Shared, outcome)
         assertEquals(listOf("Un titre\nhttps://example.org/article"), launcher.sharedTexts)
     }
 
     @Test
     fun anAbsentLinkSharesNothing() {
-        val outcome = sharer.share(title = "Un titre", url = null)
+        sharer.share(title = "Un titre", url = null)
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun anEmptyLinkSharesNothing() {
-        val outcome = sharer.share(title = "Un titre", url = "")
+        sharer.share(title = "Un titre", url = "")
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun aBlankLinkSharesNothing() {
-        val outcome = sharer.share(title = "Un titre", url = "   ")
+        sharer.share(title = "Un titre", url = "   ")
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
@@ -82,47 +76,42 @@ class ArticleSharerTest {
      */
     @Test
     fun aJavascriptLinkIsRefused() {
-        val outcome = sharer.share(title = "Un titre", url = "javascript://void(0)")
+        sharer.share(title = "Un titre", url = "javascript://void(0)")
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun aFileLinkIsRefused() {
-        val outcome = sharer.share(
+        sharer.share(
             title = "Un titre",
             url = "file:///data/data/fr.vbrosseau.freshrssdiscover/databases/discover.db",
         )
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun anIntentLinkIsRefused() {
-        val outcome = sharer.share(
+        sharer.share(
             title = "Un titre",
             url = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end",
         )
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun aLinkWithoutAuthorityIsRefused() {
-        val outcome = sharer.share(title = "Un titre", url = "https://")
+        sharer.share(title = "Un titre", url = "https://")
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 
     @Test
     fun aRelativeLinkIsRefused() {
-        val outcome = sharer.share(title = "Un titre", url = "/2026/08/article.html")
+        sharer.share(title = "Un titre", url = "/2026/08/article.html")
 
-        assertEquals(ArticleShareOutcome.Ignored, outcome)
         assertTrue(launcher.sharedTexts.isEmpty())
     }
 }

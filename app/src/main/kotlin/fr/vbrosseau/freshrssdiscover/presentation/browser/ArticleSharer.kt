@@ -1,22 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.browser
 
 /**
- * Ce qu'il est advenu d'une demande de partage.
- *
- * Deux cas seulement, là où l'ouverture en compte trois. Il n'y a pas
- * d'équivalent de `NoBrowser` : le sélecteur est fourni par le système, et
- * s'affiche même quand aucune application ne sait recevoir du texte — il le dit
- * alors lui-même. Il n'y a donc rien à rattraper, ni à expliquer à notre tour.
- */
-internal enum class ArticleShareOutcome {
-    /** Le sélecteur a été présenté à l'utilisateur. */
-    Shared,
-
-    /** Lien absent, vide ou porteur d'un schéma refusé : rien n'a été lancé. */
-    Ignored,
-}
-
-/**
  * Présente le sélecteur de partage du système.
  *
  * Réduite à ce seul geste, comme [CustomTabLauncher] et pour la même raison :
@@ -55,15 +39,15 @@ internal class ArticleSharer(
     private val textFormat: String,
 ) {
     /**
+     * Ne rend rien, comme [ArticleOpener.open] et pour la même raison : un
+     * lien refusé se tait, et le sélecteur du système dit lui-même quand
+     * aucune application ne sait recevoir du texte.
+     *
      * @param url le lien d'origine de l'article, éventuellement absent.
      */
-    fun share(title: String, url: String?): ArticleShareOutcome {
+    fun share(title: String, url: String?) {
         val target = url?.trim().orEmpty()
 
-        if (!target.isSupportedWebLink()) return ArticleShareOutcome.Ignored
-
-        launcher.share(textFormat.format(title, target))
-
-        return ArticleShareOutcome.Shared
+        if (target.isSupportedWebLink()) launcher.share(textFormat.format(title, target))
     }
 }

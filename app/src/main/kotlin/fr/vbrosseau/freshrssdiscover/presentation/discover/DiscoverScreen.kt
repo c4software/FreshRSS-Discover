@@ -178,8 +178,11 @@ private fun FeedBody(
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
+    // Sans défaut : un `rememberLazyListState` de repli créerait un second état
+    // de défilement, désynchronisé de celui que l'écran remonte au
+    // retour-en-tête après rechargement.
+    listState: LazyListState,
     modifier: Modifier = Modifier,
-    listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     val phase = uiState.phase
@@ -306,8 +309,9 @@ private fun ArticleList(
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
+    // Sans défaut, comme `FeedBody` : l'état vient toujours de l'écran.
+    listState: LazyListState,
     modifier: Modifier = Modifier,
-    listState: LazyListState = rememberLazyListState(),
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     PrefetchNextPage(

@@ -50,15 +50,6 @@ data class DiscoverUiState(
     val isStaleNoticeAvailable: Boolean = false,
 ) {
     /**
-     * Vrai quand le flux est arrivé au bout **sans avoir rien à montrer**.
-     *
-     * C'est un cas distinct de la fin de flux ordinaire : « vous avez tout lu »
-     * sous une liste vide n'explique rien.
-     */
-    val isEmptyFeed: Boolean
-        get() = articles.isEmpty() && phase == DiscoverPhase.EndOfFeed
-
-    /**
      * Le bandeau ne s'affiche qu'**au-dessus de quelque chose à lire**.
      *
      * Sans article, l'absence de réseau n'est plus un régime dégradé mais la

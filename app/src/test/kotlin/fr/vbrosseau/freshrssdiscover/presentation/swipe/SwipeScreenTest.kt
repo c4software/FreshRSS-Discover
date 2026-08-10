@@ -489,14 +489,12 @@ class SwipeScreenTest {
         imageUrl: String? = null,
         isOpenable: Boolean = true,
         excerpt: String = "Un extrait.",
-        publishedAtEpochSeconds: Long = 1_700_000_000L,
     ): ArticleUiModel = ArticleUiModel(
         id = id,
         title = title,
         feedTitle = "Le Monde",
         publishedAt = RelativeTime.Hours(2),
         excerpt = excerpt,
-        publishedAtEpochSeconds = publishedAtEpochSeconds,
         imageUrl = imageUrl,
         isOpenable = isOpenable,
     )

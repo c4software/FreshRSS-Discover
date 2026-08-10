@@ -265,18 +265,6 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun dismissingTheFailureKeepsTheForm() {
-        fillValidForm()
-        repository.nextResult = Outcome.Failure(AuthError.NoNetwork)
-        viewModel.submit()
-
-        viewModel.dismissFailure()
-
-        assertNull(viewModel.uiState.value.failure)
-        assertEquals("alice", viewModel.uiState.value.username)
-    }
-
-    @Test
     fun aNewAttemptClearsThePreviousFailure() {
         fillValidForm()
         repository.nextResult = Outcome.Failure(AuthError.NoNetwork)

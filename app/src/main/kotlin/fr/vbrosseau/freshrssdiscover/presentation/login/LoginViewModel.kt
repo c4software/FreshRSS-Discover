@@ -50,9 +50,6 @@ class LoginViewModel @Inject constructor(
 
     fun onApiPasswordChange(value: String) = update { it.copy(apiPassword = value) }
 
-    /** Referme le message d'erreur, sans effacer ce que l'utilisateur a saisi. */
-    fun dismissFailure() = update { it.copy(failure = null) }
-
     /**
      * Tente la connexion.
      *

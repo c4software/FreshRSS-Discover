@@ -79,44 +79,18 @@ fun SettingsScreen(
     onSignOutConfirm: () -> Unit,
     onSignOutDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    /*
-     */
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
-    /**
-     * Purge manuelle du cache (SPECS.md §6).
-     *
-     * Avec une valeur par défaut, contrairement aux autres rappels : la
-     * destination Réglages (`AppNavHost`) sort du périmètre de la tâche qui a
-     * livré cette section, et un paramètre obligatoire l'aurait empêchée de
-     * compiler. **À câbler sur `viewModel::purgeCache`** — voir GOAL-011-T05.
+    /*
+     * Tous obligatoires, sans défaut `{}` : `AppNavHost` câble aujourd'hui les
+     * neuf rappels, et un défaut silencieux laisserait une commande visible et
+     * inerte sans que rien ne le signale — les défauts « à câbler plus tard »
+     * qui vivaient ici étaient un fossile du découpage des tâches.
      */
-    onPurgeCache: () -> Unit = {},
-    /**
-     * Changement de mode de parcours du flux (SPECS.md §4.8).
-     *
-     * Avec une valeur par défaut, pour la même raison que [onPurgeCache] : la
-     * destination Réglages (`AppNavHost`) sort du périmètre de cette tâche, et
-     * un paramètre obligatoire l'empêcherait de compiler. **À câbler sur
-     * `viewModel::setFeedPresentation` par `AppNavHost`.
-     */
-    onPresentationChange: (FeedPresentation) -> Unit = {},
-    /**
-     * Activation du rappel de lecture (SPECS.md §4.9, §6).
-     *
-     * Avec une valeur par défaut, pour la même raison que [onPurgeCache] : la
-     * destination Réglages (`AppNavHost`) sort du périmètre de cette tâche.
-     * **À câbler sur `viewModel::setReminderEnabled` par `AppNavHost`.**
-     */
-    onReminderEnabledChange: (Boolean) -> Unit = {},
-    /**
-     * Extinction ou rallumage du marquage automatique (SPECS.md §4.5, §6).
-     *
-     * Avec une valeur par défaut, comme les rappels voisins : les tests
-     * d'écran et les captures montrent l'état sans avoir à câbler le geste.
-     * **Câblé sur `viewModel::setAutoMarkAsReadEnabled` par `AppNavHost`.**
-     */
-    onAutoMarkAsReadChange: (Boolean) -> Unit = {},
+    onPurgeCache: () -> Unit,
+    onPresentationChange: (FeedPresentation) -> Unit,
+    onReminderEnabledChange: (Boolean) -> Unit,
+    onAutoMarkAsReadChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -654,6 +628,10 @@ private fun SettingsScreenPreview() {
             onSignOutDismiss = {},
             onVisibleFractionChange = {},
             onContinuousVisibilityChange = {},
+            onPurgeCache = {},
+            onPresentationChange = {},
+            onReminderEnabledChange = {},
+            onAutoMarkAsReadChange = {},
         )
     }
 }
@@ -674,6 +652,10 @@ private fun SettingsScreenSignOutPreview() {
             onSignOutDismiss = {},
             onVisibleFractionChange = {},
             onContinuousVisibilityChange = {},
+            onPurgeCache = {},
+            onPresentationChange = {},
+            onReminderEnabledChange = {},
+            onAutoMarkAsReadChange = {},
         )
     }
 }

@@ -63,6 +63,9 @@ class SettingsScreenTest {
                 onVisibleFractionChange = onVisibleFractionChange,
                 onContinuousVisibilityChange = onContinuousVisibilityChange,
                 onPurgeCache = onPurgeCache,
+                onPresentationChange = {},
+                onReminderEnabledChange = {},
+                onAutoMarkAsReadChange = {},
             )
         }
     }
@@ -84,7 +87,10 @@ class SettingsScreenTest {
                 onSignOutDismiss = {},
                 onVisibleFractionChange = {},
                 onContinuousVisibilityChange = {},
+                onPurgeCache = {},
                 onPresentationChange = onPresentationChange,
+                onReminderEnabledChange = {},
+                onAutoMarkAsReadChange = {},
             )
         }
     }
@@ -167,7 +173,10 @@ class SettingsScreenTest {
                 onSignOutDismiss = {},
                 onVisibleFractionChange = {},
                 onContinuousVisibilityChange = {},
+                onPurgeCache = {},
+                onPresentationChange = {},
                 onReminderEnabledChange = onReminderEnabledChange,
+                onAutoMarkAsReadChange = {},
             )
         }
     }
@@ -356,6 +365,9 @@ class SettingsScreenTest {
                 onSignOutDismiss = {},
                 onVisibleFractionChange = {},
                 onContinuousVisibilityChange = {},
+                onPurgeCache = {},
+                onPresentationChange = {},
+                onReminderEnabledChange = {},
                 onAutoMarkAsReadChange = onAutoMarkAsReadChange,
             )
         }

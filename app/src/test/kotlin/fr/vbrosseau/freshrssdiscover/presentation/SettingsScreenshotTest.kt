@@ -173,6 +173,10 @@ class SettingsScreenshotTest : ScreenshotTest() {
             onSignOutDismiss = {},
             onVisibleFractionChange = {},
             onContinuousVisibilityChange = {},
+            onPurgeCache = {},
+            onPresentationChange = {},
+            onReminderEnabledChange = {},
+            onAutoMarkAsReadChange = {},
         )
     }
 

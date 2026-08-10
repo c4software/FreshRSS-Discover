@@ -228,8 +228,10 @@ private fun SwipeBody(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
+    // Sans défaut : un `rememberPagerState` de repli créerait un second état de
+    // balayage, désynchronisé de celui que l'écran remonte au retour-en-tête.
+    pagerState: PagerState,
     modifier: Modifier = Modifier,
-    pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     val phase = uiState.phase
@@ -277,8 +279,9 @@ private fun ArticlePager(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
+    // Sans défaut, comme `SwipeBody` : l'état vient toujours de l'écran.
+    pagerState: PagerState,
     modifier: Modifier = Modifier,
-    pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     val articleIds = remember(uiState.articles) { uiState.articles.map(ArticleUiModel::id) }

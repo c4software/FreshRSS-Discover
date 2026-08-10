@@ -17,25 +17,6 @@ private const val SCHEME_SEPARATOR = "://"
 private val ALLOWED_SCHEMES = setOf("http", "https")
 
 /**
- * Ce qu'il est advenu d'une demande d'ouverture.
- *
- * Trois cas, parce que l'appelant y réagit de trois façons : ne rien faire,
- * ne rien dire, ou expliquer. [Ignored] et [NoBrowser] ne sont pas fusionnés :
- * le premier est une donnée inexploitable dont l'utilisateur n'a que faire, le
- * second est un appareil sans navigateur, qui mérite un message.
- */
-internal enum class ArticleOpenOutcome {
-    /** L'onglet personnalisé a été lancé. */
-    Opened,
-
-    /** Lien absent, vide ou porteur d'un schéma refusé : rien n'a été lancé. */
-    Ignored,
-
-    /** Aucune application ne sait afficher une page web sur cet appareil. */
-    NoBrowser,
-}
-
-/**
  * Lance l'onglet personnalisé.
  *
  * L'interface est réduite à ce seul geste, volontairement : elle isole la
@@ -64,12 +45,17 @@ internal fun interface CustomTabLauncher {
  */
 internal class ArticleOpener(private val launcher: CustomTabLauncher) {
     /**
+     * Ne rend rien : aucun appelant n'a de conduite à tenir selon l'issue — un
+     * lien refusé se tait, et l'écran a déjà rendu non cliquable ce qui n'a pas
+     * de lien. Une issue détaillée a existé ici, que tous les appelants
+     * jetaient (AGENTS.md §2).
+     *
      * @param url le lien d'origine de l'article, éventuellement absent.
      */
-    fun open(url: String?): ArticleOpenOutcome {
+    fun open(url: String?) {
         val target = url?.trim().orEmpty()
 
-        return if (target.isSupportedWebLink()) launchOrReportAbsentBrowser(target) else ArticleOpenOutcome.Ignored
+        if (target.isSupportedWebLink()) launchIgnoringAbsentBrowser(target)
     }
 
     /**
@@ -77,13 +63,14 @@ internal class ArticleOpener(private val launcher: CustomTabLauncher) {
      * une politique d'entreprise — n'a rien pour afficher une page web, et
      * `startActivity` lève alors une exception. Planter sur un lien invalide
      * serait la pire réponse possible : le geste est sans conséquence, l'échec
-     * doit l'être aussi. On le rapporte, et l'appelant décide de le dire.
+     * doit l'être aussi.
      */
-    private fun launchOrReportAbsentBrowser(url: String): ArticleOpenOutcome = try {
-        launcher.launch(url)
-        ArticleOpenOutcome.Opened
-    } catch (ignored: ActivityNotFoundException) {
-        ArticleOpenOutcome.NoBrowser
+    private fun launchIgnoringAbsentBrowser(url: String) {
+        try {
+            launcher.launch(url)
+        } catch (ignored: ActivityNotFoundException) {
+            // Rien à afficher : le geste est sans conséquence, l'échec aussi.
+        }
     }
 }
 

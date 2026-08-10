@@ -10,6 +10,9 @@ import kotlin.test.assertTrue
  * Robolectric, uniquement pour que `ActivityNotFoundException` soit une vraie
  * classe et non le talon de `android.jar` qui lève « Stub! » à la construction.
  * La décision testée, elle, ne dépend d'aucune API Android.
+ *
+ * La décision s'observe sur le **lanceur** — ce qui a été lancé, ou rien :
+ * `open` ne rend aucune issue, aucun appelant n'en ayant l'usage.
  */
 @RunWith(RobolectricTestRunner::class)
 class ArticleOpenerTest {
@@ -18,105 +21,95 @@ class ArticleOpenerTest {
 
     @Test
     fun anHttpsLinkIsOpened() {
-        val outcome = opener.open("https://example.org/article")
+        opener.open("https://example.org/article")
 
-        assertEquals(ArticleOpenOutcome.Opened, outcome)
         assertEquals(listOf("https://example.org/article"), launcher.launchedUrls)
     }
 
     @Test
     fun anHttpLinkIsOpened() {
-        val outcome = opener.open("http://example.org/article")
+        opener.open("http://example.org/article")
 
-        assertEquals(ArticleOpenOutcome.Opened, outcome)
         assertEquals(listOf("http://example.org/article"), launcher.launchedUrls)
     }
 
     @Test
     fun aSchemeIsRecognizedWhateverItsCase() {
-        val outcome = opener.open("HTTPS://example.org/article")
+        opener.open("HTTPS://example.org/article")
 
-        assertEquals(ArticleOpenOutcome.Opened, outcome)
+        assertEquals(listOf("HTTPS://example.org/article"), launcher.launchedUrls)
     }
 
     @Test
     fun surroundingWhitespaceIsTrimmedBeforeOpening() {
-        val outcome = opener.open("  https://example.org/article\n")
+        opener.open("  https://example.org/article\n")
 
-        assertEquals(ArticleOpenOutcome.Opened, outcome)
         assertEquals(listOf("https://example.org/article"), launcher.launchedUrls)
     }
 
     @Test
     fun anAbsentLinkOpensNothing() {
-        val outcome = opener.open(null)
+        opener.open(null)
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun anEmptyLinkOpensNothing() {
-        val outcome = opener.open("")
+        opener.open("")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun aBlankLinkOpensNothing() {
-        val outcome = opener.open("   ")
+        opener.open("   ")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun aJavascriptLinkIsRefused() {
-        val outcome = opener.open("javascript://void(0)")
+        opener.open("javascript://void(0)")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun aFileLinkIsRefused() {
-        val outcome = opener.open("file:///data/data/fr.vbrosseau.freshrssdiscover/databases/discover.db")
+        opener.open("file:///data/data/fr.vbrosseau.freshrssdiscover/databases/discover.db")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun anIntentLinkIsRefused() {
-        val outcome = opener.open("intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end")
+        opener.open("intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun aLinkWithoutAuthorityIsRefused() {
-        val outcome = opener.open("https://")
+        opener.open("https://")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
     fun aRelativeLinkIsRefused() {
-        val outcome = opener.open("/2026/08/article.html")
+        opener.open("/2026/08/article.html")
 
-        assertEquals(ArticleOpenOutcome.Ignored, outcome)
         assertTrue(launcher.launchedUrls.isEmpty())
     }
 
     @Test
-    fun anAbsentBrowserIsReportedWithoutCrashing() {
+    fun anAbsentBrowserDoesNotCrash() {
+        // Image système minimale, ou navigateur désactivé par une politique
+        // d'entreprise : `startActivity` lève, et le geste doit rester sans
+        // conséquence.
         val strippedDevice = ArticleOpener(FakeCustomTabLauncher(browserInstalled = false))
 
-        val outcome = strippedDevice.open("https://example.org/article")
-
-        assertEquals(ArticleOpenOutcome.NoBrowser, outcome)
+        strippedDevice.open("https://example.org/article")
     }
 }
