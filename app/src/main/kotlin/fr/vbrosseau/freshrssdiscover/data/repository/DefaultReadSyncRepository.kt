@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.data.repository
 
 import fr.vbrosseau.freshrssdiscover.data.api.ApiOutcome
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
+import fr.vbrosseau.freshrssdiscover.data.api.HTTP_UNAUTHORIZED
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkQueue
@@ -37,8 +38,6 @@ import javax.inject.Singleton
  * de lecture d'une seule requête, et pèse environ 2 ko de corps.
  */
 private const val BATCH_SIZE = 100
-
-private const val HTTP_UNAUTHORIZED = 401
 
 /**
  * Marquage optimiste, et transmission par lots de ce qui attend.

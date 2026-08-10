@@ -63,7 +63,6 @@ private fun httpStatusToAuthError(status: Int, body: String): AuthError = when (
 }
 
 private const val HTTP_BAD_REQUEST = 400
-private const val HTTP_UNAUTHORIZED = 401
 private const val HTTP_NOT_FOUND = 404
 private const val HTTP_SERVICE_UNAVAILABLE = 503
 

@@ -54,6 +54,10 @@ internal class ArticleCache @Inject constructor(
     fun observeArticles(limit: Int): Flow<List<Article>> =
         dao.observeArticles(limit).map { entities -> entities.map(ArticleEntity::toDomain) }
 
+    /** Ce qu'il reste à lire, pour le rappel quotidien (SPECS.md §4.9). */
+    suspend fun unreadArticles(limit: Int): List<Article> =
+        dao.unreadArticles(limit).map(ArticleEntity::toDomain)
+
     /**
      * Marque des articles comme lus **localement**, sans rien transmettre.
      *
@@ -62,10 +66,6 @@ internal class ArticleCache @Inject constructor(
      * DAO garde la règle du projet — les entités Room ne franchissent pas cette
      * frontière, et rien au-dessus n'a à connaître le nom d'une colonne.
      */
-    /** Ce qu'il reste à lire, pour le rappel quotidien (SPECS.md §4.9). */
-    suspend fun unreadArticles(limit: Int): List<Article> =
-        dao.unreadArticles(limit).map(ArticleEntity::toDomain)
-
     suspend fun markAsRead(ids: Collection<ArticleId>) {
         if (ids.isEmpty()) return
         dao.markAsRead(ids.map(ArticleId::value))
@@ -75,19 +75,18 @@ internal class ArticleCache @Inject constructor(
      * Ne garde que [ids] — la réponse du rechargement — et ce dont le marquage
      * n'est pas encore parti (SPECS.md §4.6, GOAL-027).
      *
-     * Renvoie le nombre de lignes supprimées.
-     *
      * L'aiguillage sur la liste vide n'est pas une précaution de style : Room
      * n'engendre aucun paramètre pour une liste vide, `NOT IN ()` n'est pas du
      * SQL valide, et le cas vide est justement celui du lecteur qui a tout lu —
      * le plus fréquent des deux.
      */
-    suspend fun retainOnly(ids: Collection<ArticleId>): Int =
+    suspend fun retainOnly(ids: Collection<ArticleId>) {
         if (ids.isEmpty()) {
             dao.deleteAllExceptPendingMarks()
         } else {
             dao.deleteExcept(ids.map(ArticleId::value))
         }
+    }
 
     /** Vide le cache. Appelé à la déconnexion (SPECS.md §3.5). */
     suspend fun clear() {

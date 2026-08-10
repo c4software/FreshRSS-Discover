@@ -1,20 +1,21 @@
 package fr.vbrosseau.freshrssdiscover.data.api
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * Réponse de `stream/contents`, telle que FreshRSS la produit.
  *
- * **Presque tout est facultatif.** `Entry::toGReader` n'émet `author`,
- * `enclosure` ou `origin.htmlUrl` que s'ils existent, et leur présence dépend
- * du flux RSS source, pas de FreshRSS. Une valeur par défaut sur chaque champ
- * est donc la seule façon de ne pas échouer sur un flux parfaitement normal.
+ * **Presque tout est facultatif.** `Entry::toGReader` n'émet `author` ou
+ * `enclosure` que s'ils existent, et leur présence dépend du flux RSS source,
+ * pas de FreshRSS. Une valeur par défaut sur chaque champ est donc la seule
+ * façon de ne pas échouer sur un flux parfaitement normal.
+ *
+ * Seuls les champs **consommés** sont déclarés : `ignoreUnknownKeys` fait
+ * passer les autres, et docs/freshrss-api.md décrit la réponse entière. Un
+ * champ déclaré « pour mémoire » serait du code mort (AGENTS.md §2).
  */
 @Serializable
 internal data class StreamContentsDto(
-    val id: String = "",
-    val updated: Long = 0L,
     val items: List<ItemDto> = emptyList(),
     /**
      * Absent lorsque le flux est épuisé — c'est le **seul** signal de fin
@@ -46,14 +47,11 @@ internal data class ItemDto(
     val origin: OriginDto = OriginDto(),
     val author: String? = null,
     val enclosure: List<EnclosureDto> = emptyList(),
-    /** Microsecondes, transmis comme chaîne — trois unités de temps coexistent. */
-    val timestampUsec: String? = null,
 )
 
 @Serializable
 internal data class LinkDto(
     val href: String = "",
-    val type: String? = null,
 )
 
 @Serializable
@@ -65,7 +63,6 @@ internal data class ContentDto(
 internal data class OriginDto(
     val streamId: String = "",
     val title: String = "",
-    val htmlUrl: String? = null,
 )
 
 @Serializable
@@ -76,22 +73,4 @@ internal data class EnclosureDto(
      * flux source ne précise rien, FreshRSS se rabat sur cette valeur.
      */
     val type: String? = null,
-    val length: Long? = null,
-)
-
-/** Réponse de `subscription/list`. */
-@Serializable
-internal data class SubscriptionListDto(
-    val subscriptions: List<SubscriptionDto> = emptyList(),
-)
-
-@Serializable
-internal data class SubscriptionDto(
-    val id: String = "",
-    val title: String = "",
-    val url: String = "",
-    val htmlUrl: String = "",
-    val iconUrl: String = "",
-    @SerialName("frss:priority")
-    val priority: String? = null,
 )

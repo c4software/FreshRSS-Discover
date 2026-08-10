@@ -101,18 +101,13 @@ class FreshRssApiStreamTest {
     }
 
     @Test
-    fun unreadOnlyExcludesTheReadStateAndIsTheOnlyReasonToSendXt() = runTest {
+    fun everyPageRequestExcludesTheArticlesAlreadyRead() = runTest {
+        // Le flux Discover ne montre que du non-lu (SPECS.md §4.1) : `xt` est
+        // systématique. Son absence ferait resurgir la moitié du flux.
         api { json(PAGE_WITH_CONTINUATION) }
-            .streamContents(address, token, pageSize = 40, unreadOnly = true)
+            .streamContents(address, token, pageSize = 40)
 
         assertEquals("user/-/state/com.google/read", queryParameter("xt"))
-
-        api { json(PAGE_WITH_CONTINUATION) }
-            .streamContents(address, token, pageSize = 40, unreadOnly = false)
-
-        // Un `xt` laissé en place masquerait la moitié du flux à l'appelant qui
-        // demande explicitement tous les articles.
-        assertNull(queryParameter("xt"))
     }
 
     // ----- Réponse -----------------------------------------------------------

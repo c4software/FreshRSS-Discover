@@ -118,20 +118,21 @@ internal class FreshRssApi @Inject constructor(
      *   un JSON tronqué doit devenir [ApiOutcome.MalformedResponse], pas une
      *   exception que chaque appelant devrait rattraper.
      *
-     * @param unreadOnly exclut les articles déjà lus, via `xt`.
+     * Les articles déjà lus sont **toujours** exclus, via `xt` : le flux
+     * Discover ne montre que du non-lu (SPECS.md §4.1), et aucun appelant n'a
+     * jamais demandé autre chose.
      */
     suspend fun streamContents(
         address: ServerAddress,
         token: AuthToken,
         pageSize: Int,
         cursor: PageCursor? = null,
-        unreadOnly: Boolean = true,
     ): ApiOutcome<StreamContentsDto> = call {
         val response = httpClient.get(address.apiEndpoint + STREAM_CONTENTS_PATH) {
             header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
             parameter(PARAM_COUNT, pageSize)
             cursor?.let { parameter(PARAM_CONTINUATION, it.value) }
-            if (unreadOnly) parameter(PARAM_EXCLUDE_TARGET, READ_STATE)
+            parameter(PARAM_EXCLUDE_TARGET, READ_STATE)
         }
         when {
             !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())

@@ -114,7 +114,7 @@ internal interface ArticleDao {
         "DELETE FROM articles WHERE id NOT IN (:keptIds) " +
             "AND id NOT IN (SELECT article_id FROM pending_marks)",
     )
-    suspend fun deleteExcept(keptIds: List<Long>): Int
+    suspend fun deleteExcept(keptIds: List<Long>)
 
     /**
      * Le même renouvellement quand la page rendue est **vide**.
@@ -125,7 +125,7 @@ internal interface ArticleDao {
      * du lecteur qui a tout lu.
      */
     @Query("DELETE FROM articles WHERE id NOT IN (SELECT article_id FROM pending_marks)")
-    suspend fun deleteAllExceptPendingMarks(): Int
+    suspend fun deleteAllExceptPendingMarks()
 
     /**
      * Supprime les articles lus **et synchronisés** entrés dans le cache avant

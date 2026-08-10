@@ -110,7 +110,6 @@ class StreamContentsDtoTest {
 
         assertNull(item.author)
         assertTrue(item.enclosure.isEmpty())
-        assertNull(item.origin.htmlUrl)
     }
 
     @Test
@@ -138,25 +137,5 @@ class StreamContentsDtoTest {
         val decoded = decode("""{"items":[],"champTotalementNouveau":{"imbriqué":[1,2,3]}}""")
 
         assertTrue(decoded.items.isEmpty())
-    }
-
-    @Test
-    fun theSubscriptionListIsReadIncludingItsPrefixedKey() {
-        // `frss:priority` porte un préfixe qui n'est pas un identifiant Kotlin
-        // valide : sans @SerialName, il serait silencieusement ignoré.
-        val decoded = FreshRssJson.decodeFromString(
-            SubscriptionListDto.serializer(),
-            """
-            {"subscriptions":[{
-              "id":"feed/12","title":"Exemple","url":"https://exemple.org/rss",
-              "htmlUrl":"https://exemple.org/","iconUrl":"https://serveur/f.php",
-              "categories":[{"id":"user/-/label/Tech","label":"Tech"}],
-              "frss:priority":"main_stream"
-            }]}
-            """.trimIndent(),
-        )
-
-        assertEquals("feed/12", decoded.subscriptions.single().id)
-        assertEquals("main_stream", decoded.subscriptions.single().priority)
     }
 }

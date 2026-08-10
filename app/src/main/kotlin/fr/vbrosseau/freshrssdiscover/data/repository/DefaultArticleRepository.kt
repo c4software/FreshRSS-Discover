@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.data.repository
 
 import fr.vbrosseau.freshrssdiscover.data.api.ApiOutcome
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
+import fr.vbrosseau.freshrssdiscover.data.api.HTTP_UNAUTHORIZED
 import fr.vbrosseau.freshrssdiscover.data.api.StreamContentsDto
 import fr.vbrosseau.freshrssdiscover.data.api.toArticlePage
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
@@ -34,8 +35,6 @@ import javax.inject.Singleton
  * retarder le premier affichage.
  */
 private const val PAGE_SIZE = 40
-
-private const val HTTP_UNAUTHORIZED = 401
 
 @Singleton
 internal class DefaultArticleRepository @Inject constructor(

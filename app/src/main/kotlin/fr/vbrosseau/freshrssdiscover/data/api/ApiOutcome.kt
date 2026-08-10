@@ -27,3 +27,10 @@ internal sealed interface ApiOutcome<out T> {
     /** La requête n'a pas abouti : DNS, TLS, délai dépassé, absence de réseau. */
     data class TransportError(val cause: Throwable) : ApiOutcome<Nothing>
 }
+
+/**
+ * Le seul statut que plusieurs consommateurs de [ApiOutcome.HttpError]
+ * interprètent eux-mêmes : il signale un jeton refusé, donc une session à
+ * invalider, quel que soit l'appel qui le reçoit.
+ */
+internal const val HTTP_UNAUTHORIZED = 401
