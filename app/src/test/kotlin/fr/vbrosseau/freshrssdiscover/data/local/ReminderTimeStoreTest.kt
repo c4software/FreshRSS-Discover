@@ -29,7 +29,7 @@ import kotlin.test.assertNull
 private val PARIS: ZoneId = ZoneId.of("Europe/Paris")
 private val TOKYO: ZoneId = ZoneId.of("Asia/Tokyo")
 
-/** Minutes dans une heure, pour lire les attentes sans compter mentalement. */
+/** Minutes per hour, so expectations read without mental arithmetic. */
 private const val MINUTES_PER_HOUR = 60
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -57,7 +57,7 @@ class ReminderTimeStoreTest {
         scope.cancel()
     }
 
-    /** Place l'horloge à une date et une heure lisibles, dans [zone]. */
+    /** Sets the clock to a readable date and time, in [zone]. */
     private fun clockAt(
         year: Int,
         month: Int,
@@ -80,8 +80,8 @@ class ReminderTimeStoreTest {
 
     @Test
     fun withoutAnyOpeningNoMinuteIsKnown() = runTest {
-        // Le programmateur en déduit qu'il n'a rien à programmer : choisir une
-        // heure par défaut serait exactement ce que SPECS.md §4.9 refuse.
+        // The scheduler concludes there is nothing to schedule: a default
+        // time would be exactly what SPECS.md §4.9 refuses.
         assertNull(store().openingMinute())
     }
 
@@ -97,10 +97,9 @@ class ReminderTimeStoreTest {
 
     @Test
     fun aSecondOpeningTheSameDayIsIgnored() = runTest {
-        // Le cœur de SPECS.md §4.9 : l'heure recherchée est celle où
-        // l'utilisateur tend la main vers l'application. Retenir la dernière
-        // ouverture ferait tomber le rappel du lendemain à l'heure d'un coup
-        // d'œil distrait avant de dormir.
+        // The core of SPECS.md §4.9: the time sought is when the user
+        // reaches for the app. Keeping the last opening would place the next
+        // day's reminder at the time of a distracted glance before sleep.
         val store = store()
         clockAt(2026, 3, 4, hour = 8, minute = 12)
         store.recordOpening()
@@ -125,10 +124,10 @@ class ReminderTimeStoreTest {
 
     @Test
     fun anOpeningJustAfterMidnightBelongsToTheNewDay() = runTest {
-        // Le jour se compte dans le fuseau de l'utilisateur et non en UTC : à
-        // Paris, 0 h 30 est un jour nouveau, alors qu'en UTC il est encore
-        // 23 h 30 la veille. Compté en UTC, ce second appel serait pris pour
-        // une deuxième ouverture du même jour et n'écrirait rien.
+        // The day is counted in the user's zone, not UTC: in Paris, 00:30 is
+        // a new day while in UTC it is still 23:30 the previous day. Counted
+        // in UTC, this second call would look like a second opening of the
+        // same day and write nothing.
         val store = store()
         clockAt(2026, 3, 4, hour = 9, minute = 0)
         store.recordOpening()
@@ -141,9 +140,8 @@ class ReminderTimeStoreTest {
 
     @Test
     fun theMinuteIsCountedInTheZoneOfTheUserAndNotInUtc() = runTest {
-        // Le même instant, lu depuis Tokyo : c'est l'heure qu'affiche le
-        // téléphone de l'utilisateur qui doit être retenue, pas celle de
-        // Greenwich.
+        // The same instant, read from Tokyo: the time shown on the user's
+        // phone must be kept, not Greenwich time.
         clockAt(2026, 3, 4, hour = 8, minute = 12, zone = TOKYO)
 
         val store = store(zone = TOKYO)
@@ -154,8 +152,8 @@ class ReminderTimeStoreTest {
 
     @Test
     fun aStoredOpeningSurvivesAFreshStoreOnTheSameFile() = runTest {
-        // C'est la raison d'être du stockage : le rappel doit partir un jour où
-        // l'application n'a pas été rouverte, donc dans un autre processus.
+        // The storage's reason for being: the reminder must fire on a day
+        // the app was not reopened, hence in another process.
         val store = store()
         clockAt(2026, 3, 4, hour = 8, minute = 12)
         store.recordOpening()
@@ -165,9 +163,9 @@ class ReminderTimeStoreTest {
 
     @Test
     fun anOutOfBoundsMinuteOnDiskIsReadAsNoOpeningAtAll() = runTest {
-        // Écrite par une version antérieure, ou restaurée d'une sauvegarde :
-        // la relayer à `DailyMinute` ferait lever son constructeur, et le
-        // rappel resterait cassé jusqu'à une réinstallation.
+        // Written by an earlier version, or restored from a backup: passing
+        // it to `DailyMinute` would make its constructor throw, leaving the
+        // reminder broken until a reinstall.
         val store = store()
         dataStore.edit { it[intPreferencesKey("reminder.opening_minute")] = 5_000 }
 
@@ -176,9 +174,9 @@ class ReminderTimeStoreTest {
 
     @Test
     fun theReminderKeysDoNotCollideWithTheOtherOnes() = runTest {
-        // Quatre familles partagent le fichier — `session.`, `reading.`,
-        // `display.` et `reminder.` : une collision ferait disparaître la
-        // session à la première ouverture enregistrée.
+        // Four key families share the file (`session.`, `reading.`,
+        // `display.` and `reminder.`): a collision would wipe the session on
+        // the first recorded opening.
         val store = store()
         clockAt(2026, 3, 4, hour = 8, minute = 12)
         store.recordOpening()

@@ -23,11 +23,11 @@ import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
 
 /**
- * Graphe de navigation.
+ * Navigation graph.
  *
- * Chaque destination récupère son ViewModel ici (`hiltViewModel()`) et
- * transmet un état à un écran sans état : c'est ce qui garde les écrans
- * prévisualisables et testables sans injection.
+ * Each destination obtains its ViewModel here (`hiltViewModel()`) and passes
+ * state to a stateless screen, keeping screens previewable and testable
+ * without injection.
  */
 @Composable
 fun AppNavHost(
@@ -40,11 +40,10 @@ fun AppNavHost(
         startDestination = AppRoutes.DISCOVER,
         modifier = modifier,
     ) {
-        // Une seule destination pour les deux modes, et non deux routes : le
-        // flux est le même, seule sa présentation change (SPECS.md §4.8).
-        // Deux routes obligeraient à naviguer sur un changement de réglage,
-        // donc à décider ce que devient la pile de retour — pour un choix qui
-        // n'est pas un déplacement.
+        // One destination for both modes, not two routes: the feed is the
+        // same, only its presentation changes (SPECS.md §4.8). Two routes
+        // would force navigation on a settings change and thus a decision
+        // about the back stack, for a choice that is not a move.
         composable(AppRoutes.DISCOVER) {
             val presentationViewModel: FeedPresentationViewModel = hiltViewModel()
             val presentation by presentationViewModel.presentation.collectAsStateWithLifecycle()
@@ -69,17 +68,16 @@ private fun DiscoverRoute(
     val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // L'ouvreur est construit ici, sous `AppTheme` : il en lit la couleur de
-    // barre, et a besoin du `Context` de l'Activity pour que l'onglet reste
-    // dans la pile de l'application — sinon le retour ne ramènerait pas au flux.
+    // The opener is built here, under `AppTheme`: it reads the bar color from
+    // it, and needs the Activity `Context` so the tab stays in the app's task
+    // stack; otherwise back would not return to the feed.
     val articleOpener = rememberArticleOpener()
 
     /*
-     * Le partage ne passe **pas** par le ViewModel, à la différence de
-     * l'ouverture : il ne marque pas l'article lu — on n'a rien lu en
-     * l'envoyant — et il ne demande pas le réseau, puisque rien ne part
-     * d'ici : c'est l'application choisie qui décidera quoi en faire, quand
-     * elle le pourra. Il n'y a donc aucune décision à prendre en amont.
+     * Sharing does not go through the ViewModel, unlike opening: it does not
+     * mark the article as read (nothing was read by sending it) and it does
+     * not require the network, since nothing leaves from here; the chosen app
+     * decides what to do with it. There is no upstream decision to make.
      */
     val articleSharer = rememberArticleSharer()
 
@@ -95,8 +93,9 @@ private fun DiscoverRoute(
         uiState = uiState,
         onLoadMore = viewModel::loadMore,
         onRetry = viewModel::retry,
-        // Le ViewModel décide s'il y a lieu d'ouvrir : il marque l'article lu
-        // et refuse hors ligne, où l'ouverture échouerait sans rien expliquer.
+        // The ViewModel decides whether opening is allowed: it marks the
+        // article read and refuses offline, where opening would fail without
+        // any explanation.
         onArticleClick = { articleId ->
             if (viewModel.onArticleOpened(articleId)) {
                 articleOpener.open(uiState.articles.firstOrNull { it.id == articleId }?.url)
@@ -110,8 +109,8 @@ private fun DiscoverRoute(
         onRefresh = viewModel::refresh,
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
-        // Sans ce rappel, la mesure de visibilité ne s'arme pas : `null` signifie
-        // « personne n'écoute », et le marquage automatique resterait inerte.
+        // Without this callback, visibility measurement does not arm: `null`
+        // means nobody is listening, and automatic marking would stay inert.
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
@@ -158,21 +157,21 @@ private fun SwipeRoute(
 }
 
 /**
- * Prévient le ViewModel que son écran vient au premier plan (GOAL-025).
+ * Notifies the ViewModel that its screen comes to the foreground (GOAL-025).
  *
- * C'est ici, et non dans le ViewModel, que ce fait est connu : le cycle de vie
- * est une affaire de présentation, et un ViewModel qui l'observerait tiendrait
- * une référence à quelque chose qui lui survit mal.
+ * This fact is known here, not in the ViewModel: lifecycle is a presentation
+ * concern, and a ViewModel observing it would hold a reference to something
+ * with a shorter lifetime.
  *
- * `LifecycleResumeEffect` et non `LaunchedEffect` : ce dernier ne se déclenche
- * qu'à l'entrée en composition, et une application revenue de veille ou de
- * l'arrière-plan ne recompose pas — le cas le plus courant serait précisément
- * celui qu'on manquerait. `RESUMED` plutôt que `STARTED`, comme
- * l'échantillonnage de visibilité : c'est le seul état où l'écran est vraiment
- * devant l'utilisateur, et non derrière une boîte de dialogue.
+ * `LifecycleResumeEffect`, not `LaunchedEffect`: the latter only fires on
+ * entering composition, and an app returning from sleep or background does
+ * not recompose; the most common case is exactly the one that would be
+ * missed. `RESUMED` rather than `STARTED`, like the visibility sampling: it
+ * is the only state where the screen is truly in front of the user, not
+ * behind a dialog.
  *
- * Ce que le rappel décide, lui, appartient au ViewModel : l'écran dit ce qui
- * arrive, jamais ce qu'il faut en faire.
+ * What the callback decides belongs to the ViewModel: the screen reports what
+ * happens, never what to do about it.
  */
 @Composable
 private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
@@ -183,12 +182,12 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
 }
 
 /**
- * Publie le rechargement de la destination courante vers la barre de titre.
+ * Publishes the current destination's refresh action to the title bar.
  *
- * `DisposableEffect` et non `LaunchedEffect` : ce qui compte autant que la
- * publication, c'est le **retrait**. Sans `onDispose`, quitter le flux pour les
- * réglages y laisserait un bouton branché sur un ViewModel qu'on ne regarde
- * plus — et basculer de Liste à Balayage laisserait celui du mode précédent.
+ * `DisposableEffect`, not `LaunchedEffect`: removal matters as much as
+ * publication. Without `onDispose`, leaving the feed for settings would keep
+ * a button wired to a ViewModel no longer on screen, and switching from List
+ * to Swipe would keep the previous mode's.
  */
 @Composable
 private fun PublishFeedRefresh(

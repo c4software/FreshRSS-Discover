@@ -6,22 +6,21 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
 
 /**
- * Construit l'intention d'onglet personnalisé.
+ * Builds the Custom Tab intent.
  *
- * Extraite du lancement pour être vérifiable : le contenu de l'intention est
- * la seule chose qui distingue un onglet personnalisé d'un simple `ACTION_VIEW`.
+ * Extracted from the launch so it can be tested: the intent's contents are
+ * the only thing distinguishing a Custom Tab from a plain `ACTION_VIEW`.
  *
- * Aucune session n'y est attachée. Une session (`CustomTabsClient.warmup`,
- * `mayLaunchUrl`) ferait démarrer le navigateur et précharger la page dès
- * l'affichage de la liste, donc émettrait des requêtes vers des domaines tiers
- * que l'utilisateur n'a pas sollicités — SPECS.md §7.4. Le prix payé est une
- * ouverture un peu moins rapide ; c'est le bon prix.
+ * No session is attached. A session (`CustomTabsClient.warmup`,
+ * `mayLaunchUrl`) would start the browser and preload the page as soon as the
+ * list is shown, sending requests to third-party domains the user never asked
+ * for (SPECS.md §7.4). The cost is a slightly slower open.
  *
- * @param toolbarColor couleur de la barre, fournie par le thème de
- *   l'application pour que l'onglet ne rompe pas avec l'écran qu'il recouvre.
+ * @param toolbarColor toolbar color, taken from the app theme so the tab does
+ *   not clash with the screen it covers.
  */
 internal fun buildArticleCustomTabsIntent(toolbarColor: Int): CustomTabsIntent = CustomTabsIntent.Builder()
-    // Le titre de la page rassure sur la destination, le domaine seul non.
+    // The page title reassures about the destination; the domain alone does not.
     .setShowTitle(true)
     .setDefaultColorSchemeParams(
         CustomTabColorSchemeParams.Builder()
@@ -31,15 +30,15 @@ internal fun buildArticleCustomTabsIntent(toolbarColor: Int): CustomTabsIntent =
     .build()
 
 /**
- * Implémentation Android de [CustomTabLauncher].
+ * Android implementation of [CustomTabLauncher].
  *
- * Elle ne décide de rien : la validité du lien est tranchée en amont par
- * [ArticleOpener]. Elle laisse remonter `ActivityNotFoundException`, que
- * l'appelant sait traduire en résultat observable.
+ * Decides nothing: link validity is settled upstream by [ArticleOpener]. It
+ * lets `ActivityNotFoundException` propagate; the caller knows how to turn it
+ * into an observable result.
  *
- * @param context contexte d'`Activity` : un contexte d'application obligerait
- *   à poser `FLAG_ACTIVITY_NEW_TASK`, et l'onglet quitterait alors la pile de
- *   l'application — l'utilisateur ne reviendrait pas au flux par « retour ».
+ * @param context an `Activity` context: an application context would require
+ *   `FLAG_ACTIVITY_NEW_TASK`, and the tab would leave the app's task stack,
+ *   so back navigation would not return to the feed.
  */
 internal class AndroidCustomTabLauncher(
     private val context: Context,

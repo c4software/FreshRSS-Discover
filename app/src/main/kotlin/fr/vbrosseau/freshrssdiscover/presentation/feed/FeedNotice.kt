@@ -12,28 +12,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
-/** Cible tactile minimale (SPECS.md §7.1). */
+/** Minimum touch target (SPECS.md §7.1). */
 private val MinTouchTarget = 48.dp
 
 /**
- * Une bandelette posée sur le flux, qui ne l'interrompt pas.
+ * A strip laid over the feed that does not interrupt it.
  *
- * **Elle s'acquitte à la main, jamais par minuteur.** Un message qui s'efface
- * tout seul se rate, et ceux du flux expliquent tous quelque chose qu'on n'a
- * pas vu venir — une ouverture refusée, un flux qui date. C'est le choix déjà
- * fait pour l'avis hors ligne, et il vaut pour tous.
+ * Dismissed manually, never by timer: a message that fades on its own is
+ * missed, and the feed's messages all explain something unexpected, such as
+ * a refused open or a stale feed.
  *
- * La couleur des actions vient de `SnackbarDefaults` : un `TextButton`
- * ordinaire peindrait son libellé en `primary`, couleur pensée pour la surface
- * du fond et non pour celle, inversée, de la bandelette.
+ * The action colors come from `SnackbarDefaults`: a plain `TextButton` would
+ * paint its label in `primary`, a color designed for the background surface,
+ * not the strip's inverted one.
  *
- * Les repères de test restent **par écran** et arrivent par
- * [actionModifier]/[dismissModifier] : les deux modes ont les leurs, et les
- * absorber ici les confondrait dans les tests d'écran.
+ * Test tags stay per screen and arrive via [actionModifier]/[dismissModifier]:
+ * both modes have their own, and absorbing them here would conflate them in
+ * screen tests.
  *
- * @param dismissLabel seconde commande, facultative. Un avis dont la seule
- *   action est de réparer la situation doit pouvoir se taire quand même :
- *   l'utilisateur hors d'état de la réparer n'a sinon aucune issue.
+ * @param dismissLabel optional second command. A notice whose only action is
+ *   to fix the situation must still be dismissable: a user unable to fix it
+ *   would otherwise have no way out.
  */
 @Composable
 fun FeedNotice(

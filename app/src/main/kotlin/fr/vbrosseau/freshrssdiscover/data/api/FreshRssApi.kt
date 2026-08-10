@@ -21,31 +21,28 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Point de contact unique avec l'API compatible Google Reader de FreshRSS.
+ * Single point of contact with the Google Reader-compatible FreshRSS API.
  *
- * Tout ce qui est propre à cette API — chemins, en-têtes, forme des réponses,
- * jetons — s'arrête ici (ARCHITECTURE.md §2.1). Rien de tout cela ne doit
- * apparaître au-dessus.
+ * Everything specific to this API — paths, headers, response shapes, tokens —
+ * stops here (ARCHITECTURE.md §2.1). None of it must appear above this layer.
  *
- * Aucune méthode ne lève : les défaillances sont rapportées par [ApiOutcome].
- * Une exception qui traverserait cette couche obligerait chaque appelant à
- * connaître les exceptions de Ktor.
+ * No method throws: failures are reported through [ApiOutcome]. An exception
+ * crossing this layer would force every caller to know Ktor's exceptions.
  */
 @Singleton
 internal class FreshRssApi @Inject constructor(
     private val httpClient: HttpClient,
 ) {
     /**
-     * Vérifie que l'adresse désigne bien une instance FreshRSS.
+     * Verifies that the address designates a FreshRSS instance.
      *
-     * Le seul discriminant fiable est le corps `OK` renvoyé par un `GET` nu sur
-     * le point d'entrée (docs/freshrss-api.md §1.1). Deux pièges constatés : le
-     * `Content-Type` est `text/html`, et **la moindre chaîne de requête** fait
-     * répondre `400` au lieu de `OK`.
+     * The only reliable discriminant is the `OK` body returned by a bare `GET`
+     * on the entry point (docs/freshrss-api.md §1.1). Two observed pitfalls:
+     * the `Content-Type` is `text/html`, and any query string at all makes the
+     * server answer `400` instead of `OK`.
      *
-     * Cette sonde se passe avant toute tentative de connexion : sans elle, une
-     * faute de frappe dans l'adresse produirait un `401` que l'utilisateur
-     * imputerait à son mot de passe.
+     * This probe runs before any login attempt: without it, a typo in the
+     * address would produce a `401` the user would blame on their password.
      */
     suspend fun probe(address: ServerAddress): ApiOutcome<Unit> = call {
         val response = httpClient.get(address.apiEndpoint)
@@ -57,15 +54,15 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Vérifie que le serveur web transmet bien l'en-tête `Authorization`.
+     * Verifies that the web server forwards the `Authorization` header.
      *
-     * Certains reverse-proxies le suppriment ; toute connexion échouerait alors
-     * en `401`, accusant à tort les identifiants de l'utilisateur.
+     * Some reverse proxies strip it; every login would then fail with `401`,
+     * wrongly blaming the user's credentials.
      *
-     * Deux particularités constatées, sans lesquelles la sonde ne vaut rien :
-     * le statut est **toujours `200`** — le verdict est dans le corps — et la
-     * requête doit elle-même porter un en-tête `Authorization`, fût-il factice,
-     * puisque c'est sa présence en réception qui est constatée.
+     * Two observed particularities without which the probe is worthless: the
+     * status is always `200` — the verdict is in the body — and the request
+     * itself must carry an `Authorization` header, even a fake one, since it
+     * is its presence on reception that is checked.
      */
     suspend fun checkAuthorizationForwarding(address: ServerAddress): ApiOutcome<Boolean> = call {
         val response = httpClient.get(address.apiEndpoint + COMPATIBILITY_PATH) {
@@ -78,15 +75,14 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Ouvre une session.
+     * Opens a session.
      *
-     * Le mot de passe attendu est le **mot de passe API**, distinct de celui de
-     * connexion. Il part en `POST` : FreshRSS accepte aussi la méthode `GET`,
-     * mais journalise alors un avertissement — le mot de passe apparaîtrait
-     * dans les journaux du serveur.
+     * The expected password is the API password, distinct from the login
+     * password. It is sent via `POST`: FreshRSS also accepts `GET`, but then
+     * logs a warning — the password would appear in the server logs.
      *
-     * La réponse est du texte brut, une paire `clé=valeur` par ligne. Seule
-     * `Auth` est retenue ; `SID` porte la même valeur et `LSID` vaut `null`.
+     * The response is plain text, one `key=value` pair per line. Only `Auth`
+     * is kept; `SID` carries the same value and `LSID` is `null`.
      */
     suspend fun clientLogin(address: ServerAddress, credentials: Credentials): ApiOutcome<AuthToken> = call {
         val response = httpClient.submitForm(
@@ -103,24 +99,24 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Récupère une page du flux de lecture.
+     * Fetches one page of the reading list.
      *
-     * Trois précautions, chacune tirée d'un constat (docs/freshrss-api.md §3.4
-     * et §3.5) :
+     * Three precautions, each drawn from observation (docs/freshrss-api.md §3.4
+     * and §3.5):
      *
-     * - l'en-tête `Authorization` est **obligatoire** ici, contrairement à
-     *   `ClientLogin` : sans lui le serveur répond `401` ;
-     * - le paramètre `c` n'est ajouté **que** si un curseur existe. Un `c` vide
-     *   ou non numérique est silencieusement ramené au début du flux : la
-     *   requête réussit, et renvoie à nouveau la première page. Envoyer un `c`
-     *   vide produirait donc une boucle infinie muette, jamais une erreur ;
-     * - le corps est désérialisé à la main plutôt que par `response.body()` :
-     *   un JSON tronqué doit devenir [ApiOutcome.MalformedResponse], pas une
-     *   exception que chaque appelant devrait rattraper.
+     * - the `Authorization` header is mandatory here, unlike `ClientLogin`:
+     *   without it the server answers `401`;
+     * - the `c` parameter is added only when a cursor exists. An empty or
+     *   non-numeric `c` is silently reset to the start of the stream: the
+     *   request succeeds and returns the first page again. Sending an empty
+     *   `c` would therefore produce a silent infinite loop, never an error;
+     * - the body is deserialized manually rather than via `response.body()`:
+     *   truncated JSON must become [ApiOutcome.MalformedResponse], not an
+     *   exception every caller would have to catch.
      *
-     * Les articles déjà lus sont **toujours** exclus, via `xt` : le flux
-     * Discover ne montre que du non-lu (SPECS.md §4.1), et aucun appelant n'a
-     * jamais demandé autre chose.
+     * Already-read articles are always excluded, via `xt`: the Discover feed
+     * only shows unread items (SPECS.md §4.1), and no caller has ever asked
+     * for anything else.
      */
     suspend fun streamContents(
         address: ServerAddress,
@@ -141,18 +137,18 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Récupère le jeton exigé par toute opération modifiante.
+     * Fetches the token required by every modifying operation.
      *
-     * La réponse est du **texte brut** — un condensat de 57 caractères complété
-     * par des `Z`, suivi d'un saut de ligne (docs/freshrss-api.md §2.3). Cette
-     * longueur est constatée, non contractuelle : la vérifier ici ferait
-     * échouer l'application sur un jeton parfaitement valide le jour où
-     * FreshRSS en changerait la forme. Un jeton refusé se signale par un `401`
-     * lors de son emploi, jamais par sa taille. Seul un corps **vide** est
-     * rejeté : il ne pourrait produire qu'un `edit-tag` silencieusement inutile.
+     * The response is plain text — a 57-character digest padded with `Z`,
+     * followed by a newline (docs/freshrss-api.md §2.3). That length is
+     * observed, not contractual: checking it here would make the application
+     * fail on a perfectly valid token the day FreshRSS changes its shape. A
+     * rejected token signals itself with a `401` when used, never by its size.
+     * Only an empty body is rejected: it could only produce a silently useless
+     * `edit-tag`.
      *
-     * Le jeton est déterministe et réutilisable : l'appelant l'obtient une fois
-     * et le conserve, quitte à le redemander après un `401`.
+     * The token is deterministic and reusable: the caller obtains it once and
+     * keeps it, re-requesting it after a `401` if needed.
      */
     suspend fun modificationToken(address: ServerAddress, token: AuthToken): ApiOutcome<ModificationToken> = call {
         val response = httpClient.get(address.apiEndpoint + TOKEN_PATH) {
@@ -167,19 +163,19 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Marque un **lot** d'articles comme lus.
+     * Marks a batch of articles as read.
      *
-     * Le traitement par lot est ce qui rend la fonctionnalité tenable : un flux
-     * Discover marque des articles au fil du défilement, et une requête par
-     * article visible saturerait le réseau pour rien (SPECS.md §4.5).
+     * Batching is what makes the feature viable: a Discover feed marks
+     * articles as the user scrolls, and one request per visible article would
+     * saturate the network for nothing (SPECS.md §4.5).
      *
-     * Le corps est un formulaire (docs/freshrss-api.md §4.1) : `T` porte le
-     * jeton de modification, `a` l'état à ajouter, et `i` est **répété** une
-     * fois par article.
+     * The body is a form (docs/freshrss-api.md §4.1): `T` carries the
+     * modification token, `a` the state to add, and `i` is repeated once per
+     * article.
      *
-     * La réponse d'un succès est le texte `OK`, pas du JSON, et ne rend aucun
-     * compte par article — un identifiant inconnu du serveur n'y produit
-     * aucune erreur.
+     * A successful response is the text `OK`, not JSON, and gives no
+     * per-article report — an identifier unknown to the server produces no
+     * error.
      */
     suspend fun markAsRead(
         address: ServerAddress,
@@ -205,8 +201,8 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Les corps d'erreur de FreshRSS sont en texte brut ; un `2xx` illisible
-     * relève donc du corps malformé, pas du transport.
+     * FreshRSS error bodies are plain text; an unreadable `2xx` is therefore a
+     * malformed body, not a transport failure.
      */
     private fun streamContentsFrom(body: String): ApiOutcome<StreamContentsDto> = try {
         ApiOutcome.Success(FreshRssJson.decodeFromString(StreamContentsDto.serializer(), body))
@@ -228,11 +224,11 @@ internal class FreshRssApi @Inject constructor(
     }
 
     /**
-     * Rabat toute exception de transport sur [ApiOutcome.TransportError].
+     * Maps every transport exception to [ApiOutcome.TransportError].
      *
-     * `CancellationException` doit en revanche continuer à remonter : la
-     * rattraper ferait survivre une coroutine à l'annulation de sa portée, et
-     * l'écran qui l'attend a déjà disparu.
+     * `CancellationException` must keep propagating: catching it would let a
+     * coroutine outlive the cancellation of its scope, while the screen
+     * awaiting it is already gone.
      */
     private suspend fun <T> call(block: suspend () -> ApiOutcome<T>): ApiOutcome<T> = try {
         block()
@@ -258,27 +254,27 @@ internal class FreshRssApi @Inject constructor(
         const val PARAM_CONTINUATION = "c"
         const val PARAM_EXCLUDE_TARGET = "xt"
 
-        /** Seul état utile ici : `xt` l'exclut, ce qui ne laisse que les non-lus. */
+        /** The only state used here: `xt` excludes it, leaving only unread items. */
         const val READ_STATE = "user/-/state/com.google/read"
         const val PROBE_RESPONSE = "OK"
         const val COMPATIBILITY_PASS = "PASS"
 
         /**
-         * Jeton factice de la sonde de compatibilité : elle constate la
-         * *présence* de l'en-tête, jamais sa validité.
+         * Fake token for the compatibility probe: it checks the header's
+         * presence, never its validity.
          */
         const val COMPATIBILITY_PROBE_TOKEN = "x/y"
     }
 }
 
 /**
- * Rend l'identifiant tel que FreshRSS l'attend : en décimal **non signé**.
+ * Renders the identifier as FreshRSS expects it: unsigned decimal.
  *
- * Les identifiants d'articles sont des entiers 64 bits non signés, alors que
- * `Long` est signé en Kotlin. Passé `Long.MAX_VALUE`, la valeur est conservée
- * bit à bit mais se lit négative : `toString()` enverrait par exemple `-1` là
- * où le serveur attend `18446744073709551615`. Le marquage porterait alors sur
- * un article inexistant — et `edit-tag` répondrait `OK` sans rien faire
- * (docs/freshrss-api.md §4.1), de sorte que la perte serait totalement muette.
+ * Article identifiers are unsigned 64-bit integers, while Kotlin's `Long` is
+ * signed. Past `Long.MAX_VALUE`, the value is kept bit-for-bit but reads as
+ * negative: `toString()` would send e.g. `-1` where the server expects
+ * `18446744073709551615`. The mark would then target a nonexistent article,
+ * and `edit-tag` would answer `OK` without doing anything
+ * (docs/freshrss-api.md §4.1), making the loss completely silent.
  */
 private fun ArticleId.toUnsignedDecimal(): String = java.lang.Long.toUnsignedString(value)

@@ -12,17 +12,18 @@ import fr.vbrosseau.freshrssdiscover.presentation.settings.visibleFractionThresh
 import org.junit.Test
 
 /**
- * Références visuelles de l'écran de réglages.
+ * Visual references for the settings screen.
  *
- * Fichier distinct de `ScreensScreenshotTest` : l'écran a ses propres états —
- * dont une boîte de dialogue, qui n'existe nulle part ailleurs — et les
- * regrouper ici garde le rapport d'échec lisible.
+ * Separate file from `ScreensScreenshotTest`: the screen has its own states,
+ * including a dialog that exists nowhere else, and grouping them here keeps
+ * the failure report readable.
  */
 class SettingsScreenshotTest : ScreenshotTest() {
 
     /**
-     * Les seuils aux valeurs de SPECS.md §4.5 : la durée est alors sur le cran
-     * le plus à gauche, position où un curseur mal contraint déborde de sa piste.
+     * Thresholds at the values of SPECS.md §4.5: the duration sits on the
+     * leftmost step, the position where a poorly constrained slider overflows
+     * its track.
      */
     @Test
     fun settingsScreen() {
@@ -32,12 +33,12 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le cache vide, purge faite.
+     * The cache after a purge.
      *
-     * Deux défauts ne se voient que là : le bouton **désactivé**, dont le
-     * contraste dépend d'une couleur atténuée que le thème sombre traite
-     * autrement, et le compte rendu de purge, seule ligne de l'écran peinte en
-     * couleur primaire (SPECS.md §7.1).
+     * Two defects only show here: the disabled button, whose contrast depends
+     * on a dimmed color the dark theme treats differently, and the purge
+     * result, the only line on the screen painted in the primary color
+     * (SPECS.md §7.1).
      */
     @Test
     fun settingsScreenAfterPurgingTheCache() {
@@ -53,11 +54,11 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Les deux curseurs poussés à leur maximum.
+     * Both sliders pushed to their maximum.
      *
-     * C'est l'état où la piste est entièrement remplie : la couleur active
-     * couvre alors toute la largeur, et un contraste insuffisant entre elle et
-     * le fond ne se voit nulle part ailleurs (SPECS.md §7.1).
+     * The state where the track is fully filled: the active color covers the
+     * whole width, and insufficient contrast between it and the background
+     * shows nowhere else (SPECS.md §7.1).
      */
     @Test
     fun settingsScreenWithThresholdsAtTheirMaximum() {
@@ -75,11 +76,11 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * La confirmation de déconnexion, par-dessus l'écran.
+     * The sign-out confirmation over the screen.
      *
-     * C'est l'état le plus exposé aux défauts de contraste : le contenu passe
-     * sous un voile assombrissant, et le bouton destructeur porte une couleur
-     * qui lui est propre (SPECS.md §3.5, §7.1).
+     * The state most exposed to contrast defects: the content sits under a
+     * dimming scrim, and the destructive button carries its own color
+     * (SPECS.md §3.5, §7.1).
      */
     @Test
     fun settingsScreenAskingToConfirmSignOut() {
@@ -96,14 +97,14 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le mode Balayage sélectionné.
+     * The Swipe mode selected.
      *
-     * La capture par défaut ne montre que le premier segment actif : le second
-     * porte une **forme différente** (coin arrondi à droite) et, une fois
-     * sélectionné, un fond teinté que le thème sombre traite autrement. Un
-     * défaut de contraste entre le libellé et ce fond ne se verrait nulle part
-     * ailleurs (SPECS.md §7.1). La phrase de description change aussi, et c'est
-     * la plus longue des deux — donc la seule qui puisse passer à la ligne.
+     * The default capture only shows the first segment active: the second has
+     * a different shape (rounded right corner) and, once selected, a tinted
+     * background the dark theme treats differently. A contrast defect between
+     * the label and that background would show nowhere else (SPECS.md §7.1).
+     * The description sentence also changes, and it is the longer of the two,
+     * so the only one that can wrap.
      */
     @Test
     fun settingsScreenWithTheSwipePresentation() {
@@ -120,12 +121,11 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le rappel de lecture éteint.
+     * The reading reminder turned off.
      *
-     * La capture par défaut ne montre que la bascule allumée, qui porte la
-     * couleur primaire. Éteinte, elle repose sur une piste et une poignée
-     * atténuées, dont le contraste dépend de couleurs que le thème sombre
-     * traite autrement (SPECS.md §7.1).
+     * The default capture only shows the switch on, which carries the primary
+     * color. Off, it relies on a dimmed track and handle whose contrast
+     * depends on colors the dark theme treats differently (SPECS.md §7.1).
      */
     @Test
     fun settingsScreenWithTheReminderTurnedOff() {
@@ -142,13 +142,12 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le marquage automatique éteint, donc les deux curseurs grisés.
+     * Automatic marking off, so both sliders grayed out.
      *
-     * C'est le seul état où une piste **désactivée** et un chiffre atténué se
-     * jugent côte à côte : Material 3 les peint à des opacités différentes, et
-     * le thème sombre traite leurs couleurs autrement. Un seuil resté vif
-     * au-dessus d'une piste éteinte se lirait comme encore appliqué
-     * (SPECS.md §4.5, §7.1).
+     * The only state where a disabled track and a dimmed number sit side by
+     * side: Material 3 paints them at different opacities, and the dark theme
+     * treats their colors differently. A threshold left vivid above a disabled
+     * track would read as still applied (SPECS.md §4.5, §7.1).
      */
     @Test
     fun settingsScreenWithTheAutomaticMarkingTurnedOff() {
@@ -183,7 +182,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
     private companion object {
         val ACCOUNT = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice")
 
-        /** Des chiffres à quatre positions : c'est là que le séparateur de milliers peut déborder. */
+        /** Four-digit numbers: where the thousands separator can overflow. */
         val CACHE = SettingsCache(articleCount = 1_240, purgeableCount = 812)
         val MAXIMUM = ReadingSettings(
             visibleFraction = ReadingSettings.VisibleFractionRange.endInclusive,

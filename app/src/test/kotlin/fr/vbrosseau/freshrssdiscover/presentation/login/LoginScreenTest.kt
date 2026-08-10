@@ -17,17 +17,16 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
 /*
- * Langue figée au français, comme le harnais de capture (ARCHITECTURE.md §8.2).
+ * Locale pinned to French, like the screenshot harness (ARCHITECTURE.md §8.2).
  *
- * Ces cas affirment des libellés **littéraux**, et l'interface est bilingue
- * depuis GOAL-021-T02 : le français vit dans `values-fr/`, l'anglais dans
- * `values/`. Sans ce fanion, Robolectric rend la langue par défaut — l'anglais
- * — et chaque assertion tombe. Ce n'est pas une commodité de test : c'est la
- * même décision que pour les captures, dont les références sont françaises.
+ * These cases assert literal labels, and the UI is bilingual since
+ * GOAL-021-T02: French lives in `values-fr/`, English in `values/`. Without
+ * this qualifier, Robolectric renders the default language (English) and every
+ * assertion fails.
  *
- * Ce que `values/` contient est éprouvé ailleurs, par un cas dédié en `en-rUS`
- * (`EnglishStringsTest`) : sans lui, une chaîne oubliée à la traduction ne se
- * verrait que sur un appareil anglophone.
+ * The content of `values/` is covered elsewhere by a dedicated `en-rUS` case
+ * (`EnglishStringsTest`): without it, a string missed in translation would
+ * only show on an English-locale device.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -53,8 +52,8 @@ class LoginScreenTest {
 
     @Test
     fun theApiPasswordIsExplainedBeforeAnyFailure() {
-        // C'est la première cause de refus, et son existence n'est pas
-        // évidente : attendre l'échec pour la mentionner serait trop tard.
+        // The API password is the first cause of rejection and its existence
+        // is not obvious: mentioning it only after a failure would be too late.
         show(LoginUiState())
 
         composeRule.onNodeWithText("Profil → Mot de passe API", substring = true).assertExists()
@@ -93,7 +92,7 @@ class LoginScreenTest {
 
     @Test
     fun aDisabledApiTellsWhereToEnableIt() {
-        // Le message doit contenir le geste, pas seulement le constat.
+        // The message must contain the fix, not just the diagnosis.
         show(LoginUiState(failure = LoginFailure.Server(AuthError.ApiDisabled)))
 
         composeRule.onNodeWithTag(LoginTestTags.FAILURE).assertExists()
@@ -116,8 +115,8 @@ class LoginScreenTest {
 
     @Test
     fun anUnexpectedFailureNeverLeaksItsTechnicalMessage() {
-        // Il n'est ni traduit ni compréhensible : sa place est dans les
-        // journaux.
+        // The technical message is neither translated nor understandable; it
+        // belongs in the logs.
         show(LoginUiState(failure = LoginFailure.Server(AuthError.Unexpected("SSLHandshakeException"))))
 
         composeRule.onNodeWithText("SSLHandshakeException", substring = true).assertDoesNotExist()
@@ -143,15 +142,13 @@ class LoginScreenTest {
 
     @Test
     fun theApiPasswordCanBeRevealedAndMaskedAgain() {
-        // Un mot de passe API se recopie depuis un gestionnaire : pouvoir
-        // vérifier ce qui a été collé évite un échec dont la cause resterait
-        // invisible.
+        // An API password is typically pasted from a manager: being able to
+        // check what was pasted avoids a failure with an invisible cause.
         //
-        // Le masquage lui-même n'est pas assertable par le texte : une
-        // `VisualTransformation` ne change que le rendu, et la sémantique
-        // continue d'exposer la valeur brute. C'est donc l'état annoncé du
-        // bouton — sa description, celle que lit un lecteur d'écran — qui est
-        // vérifié ici.
+        // The masking itself cannot be asserted through text: a
+        // `VisualTransformation` only changes the rendering, and semantics
+        // still expose the raw value. What is verified is the button's
+        // announced state, the description a screen reader speaks.
         show(LoginUiState(apiPassword = "s3cr3t"))
 
         composeRule.onNodeWithContentDescription("Afficher le mot de passe").assertExists()

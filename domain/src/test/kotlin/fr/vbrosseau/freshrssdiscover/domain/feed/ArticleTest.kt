@@ -8,23 +8,23 @@ import kotlin.test.assertNull
 class ArticleTest {
     @Test
     fun anArticleWithoutAUsableLinkIsRepresentable() {
-        // Flux mal formé, contenu purement local : SPECS.md §4.7 demande de le
-        // rendre non cliquable plutôt que d'ouvrir une page vide.
+        // Malformed feed or purely local content: SPECS.md §4.7 requires
+        // making it non-clickable rather than opening an empty page.
         assertNull(article(url = null).url)
     }
 
     @Test
     fun anArticleWithoutAnIllustrationIsRepresentable() {
-        // Aucune image de remplacement : SPECS.md §4.3 demande qu'un article
-        // sans illustration reste lisible, pas qu'il affiche un cadre vide.
+        // No placeholder image: SPECS.md §4.3 requires an article without an
+        // illustration to stay readable, not to display an empty frame.
         assertNull(article(imageUrl = null).imageUrl)
     }
 
     @Test
     fun theSourceFeedTravelsWithTheArticle() {
-        // Dans un flux mélangé, la source est ce qui rend l'article
-        // intelligible. La résoudre à l'affichage la ferait apparaître après
-        // coup.
+        // In a shuffled feed, the source is what makes the article
+        // intelligible. Resolving it at display time would make it appear
+        // after the fact.
         val subject = article(feed = feedRef(id = "feed/42", title = "Le Monde"))
 
         assertEquals("Le Monde", subject.feed.title)
@@ -47,8 +47,8 @@ class ArticleTest {
 
     @Test
     fun readStateIsCarriedByTheArticleItself() {
-        // L'API ne fournit pas de champ « lu » : il se déduit de `categories`.
-        // Le domaine, lui, ne connaît qu'un booléen.
+        // The API provides no "read" field: it is derived from `categories`.
+        // The domain only knows a boolean.
         assertEquals(false, article().isRead)
         assertEquals(true, article(isRead = true).isRead)
     }

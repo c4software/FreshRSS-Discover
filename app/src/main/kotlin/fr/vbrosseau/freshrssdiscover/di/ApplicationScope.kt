@@ -3,10 +3,10 @@ package fr.vbrosseau.freshrssdiscover.di
 import javax.inject.Qualifier
 
 /**
- * Portée de coroutines vivant aussi longtemps que le processus.
+ * Coroutine scope living as long as the process.
  *
- * Réservée au travail qui ne doit pas être annulé avec un écran : un cycle de
- * synchronisation déclenché par une diffusion, notamment.
+ * Reserved for work that must not be cancelled with a screen: notably a sync
+ * cycle triggered by a broadcast.
  */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)

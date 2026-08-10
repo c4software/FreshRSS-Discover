@@ -7,30 +7,29 @@ import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
-/** Accès au cache des articles. */
+/** Article cache access. */
 @Dao
 internal interface ArticleDao {
     /**
-     * Les articles les plus récents, **lus compris**, du plus récent au plus
-     * ancien.
+     * The most recent articles, read ones included, newest first.
      *
-     * Trié sur la date de publication et non sur l'ordre d'insertion : le
-     * serveur peut renvoyer une page dans un ordre quelconque, et l'affichage
-     * doit rester chronologique inverse (SPECS.md §4.2, règle 2).
+     * Sorted on publication date, not insertion order: the server may return
+     * a page in any order, and the display must stay reverse-chronological
+     * (SPECS.md §4.2, rule 2).
      *
-     * **Les lus ne sont pas écartés, et c'est le cœur de la stabilité du
-     * lancement** (SPECS.md §5.1). Les écarter faisait changer l'ensemble entre
-     * deux ouvertures — le marquage en consomme à chaque session — et le
-     * mélange, qui choisit chaque position en regardant ses voisins, rendait
-     * alors un ordre différent : le flux paraissait se remélanger tout seul.
-     * Les articles lus restent donc affichés jusqu'au prochain rechargement
-     * demandé, qui seul renouvelle la liste.
+     * Read articles are not excluded, and that is the core of launch
+     * stability (SPECS.md §5.1). Excluding them made the set change between
+     * openings — marking consumes some each session — and the shuffle, which
+     * picks each position by looking at its neighbors, then produced a
+     * different order: the feed appeared to reshuffle itself. Read articles
+     * therefore stay displayed until the next user-requested reload, which
+     * alone renews the list.
      *
-     * Deux défauts sont morts avec ce choix. Le filtrage en Kotlin appliquait
-     * la borne aux articles toutes catégories : un cache dont les deux cents
-     * plus récents avaient été lus rendait une liste **vide** — l'écran le
-     * croyait vide et lançait le chargement de secours à chaque ouverture.
-     * Constaté sur appareil : 283 articles, 69 non lus, zéro affiché.
+     * This choice also fixed a real defect: filtering in Kotlin applied the
+     * limit before filtering, so a cache whose two hundred most recent
+     * articles had all been read returned an empty list — the screen believed
+     * the cache empty and triggered the fallback load on every opening.
+     * Observed on device: 283 articles, 69 unread, zero displayed.
      */
     @Query(
         "SELECT * FROM articles ORDER BY published_at_epoch_seconds DESC, id DESC LIMIT :limit",
@@ -41,28 +40,26 @@ internal interface ArticleDao {
     suspend fun insertAll(articles: List<ArticleEntity>)
 
     /**
-     * Parmi [ids], ceux déjà lus localement.
+     * Among [ids], those already read locally.
      *
-     * Borné aux identifiants demandés, et non « tous les lus » : l'appelant est
-     * l'upsert, invoqué à chaque page de 40 articles, et relire la table
-     * entière à chaque page ferait croître le coût avec l'historique plutôt
-     * qu'avec la page.
+     * Bounded to the requested identifiers, not "all read articles": the
+     * caller is the upsert, invoked for every 40-article page, and re-reading
+     * the whole table per page would make the cost grow with history rather
+     * than with the page.
      */
     @Query("SELECT id FROM articles WHERE is_read = 1 AND id IN (:ids)")
     suspend fun readArticleIdsAmong(ids: List<Long>): List<Long>
 
     /**
-     * Les articles non lus du cache, du plus récent au plus ancien.
+     * Unread cached articles, newest first.
      *
-     * Une **lecture ponctuelle** et non un `Flow` : l'appelant est le rappel de
-     * lecture (SPECS.md §4.9), qui s'exécute une fois hors de toute interface.
-     * Un flux l'obligerait à ouvrir puis refermer une souscription pour un seul
-     * relevé, et à maintenir un observateur de base dans un travailleur qui a
-     * vocation à se terminer.
+     * A one-shot read rather than a `Flow`: the caller is the reading reminder
+     * (SPECS.md §4.9), which runs once outside any UI. A flow would force it
+     * to open and close a subscription for a single reading, and to keep a
+     * database observer in a worker meant to terminate.
      *
-     * Le filtre est fait par SQLite plutôt qu'en Kotlin après coup : sans lui,
-     * une pile entièrement lue rapporterait deux cents lignes pour n'en garder
-     * aucune.
+     * The filter is done by SQLite rather than in Kotlin afterwards: without
+     * it, a fully read pile would fetch two hundred rows only to keep none.
      */
     @Query(
         "SELECT * FROM articles WHERE is_read = 0 " +
@@ -71,55 +68,53 @@ internal interface ArticleDao {
     suspend fun unreadArticles(limit: Int): List<ArticleEntity>
 
     /**
-     * Enregistre une page en **conservant l'état lu déjà connu localement**.
+     * Saves a page while preserving the locally known read state.
      *
-     * Un article lu sur l'appareil peut ne pas encore l'être côté serveur : le
-     * marquage part hors ligne et n'est transmis qu'au retour du réseau
-     * (SPECS.md §5.2). Une simple réécriture le ferait réapparaître comme non
-     * lu au premier rafraîchissement — l'utilisateur verrait ressurgir ce
-     * qu'il vient de lire. L'état local ne peut donc que progresser vers
-     * « lu » ; le retour serveur, lui, peut le poser mais jamais le retirer.
+     * An article read on the device may not yet be read server-side: the mark
+     * is queued offline and only transmitted once the network returns
+     * (SPECS.md §5.2). A plain overwrite would make it reappear as unread on
+     * the first refresh. The local state can therefore only progress toward
+     * "read"; the server can set it but never remove it.
      */
     @Transaction
     suspend fun upsertPreservingLocalReadState(articles: List<ArticleEntity>) {
-        // Garde du vide : Room n'engendre aucun paramètre pour une liste vide
-        // et `IN ()` n'est pas du SQL valide — même règle que `deleteExcept`.
+        // Empty guard: Room generates no parameter for an empty list and
+        // `IN ()` is not valid SQL — same rule as `deleteExcept`.
         if (articles.isEmpty()) return
         val locallyRead = readArticleIdsAmong(articles.map(ArticleEntity::id)).toSet()
         insertAll(articles.map { if (it.id in locallyRead) it.copy(isRead = true) else it })
     }
 
     /**
-     * Bascule des articles à « lu » **localement**, sans rien attendre du
-     * serveur.
+     * Switches articles to read locally, without waiting for the server.
      *
-     * C'est le geste optimiste de SPECS.md §4.5 : l'état local change tout de
-     * suite, la transmission suit. La mise à jour est volontairement partielle
-     * — seul `is_read` bouge — parce que le reste de l'article n'a pas changé
-     * et qu'une réécriture complète exigerait de le relire d'abord.
+     * The optimistic step of SPECS.md §4.5: the local state changes
+     * immediately, transmission follows. The update is deliberately partial —
+     * only `is_read` changes — because the rest of the article has not
+     * changed, and a full rewrite would require reading it first.
      *
-     * Un identifiant absent du cache ne produit rien : l'article part quand
-     * même vers le serveur, la file ne dépend pas de la présence en cache.
+     * An identifier absent from the cache does nothing: the article is still
+     * sent to the server, as the queue does not depend on cache presence.
      */
     @Query("UPDATE articles SET is_read = 1 WHERE id IN (:articleIds)")
     suspend fun markAsRead(articleIds: List<Long>)
 
     /**
-     * Ne garde que [keptIds], et ce dont le marquage attend encore de partir.
+     * Keeps only [keptIds], plus articles whose mark is still awaiting
+     * transmission.
      *
-     * C'est le renouvellement du rechargement (SPECS.md §4.6, GOAL-027) : la
-     * réponse du serveur devient le contenu du cache. Le critère est
-     * l'**absence de la page rendue**, et non l'état lu local — lequel ignore
-     * tout de ce qui a été lu ailleurs. Un article lu depuis l'interface web
-     * cesse d'être renvoyé, et c'est le seul signe que l'application en reçoive
-     * jamais : mesuré sur l'appareil de l'auteur, 31 articles « non lus »
-     * localement alors que le serveur n'en avait plus aucun.
+     * This is the reload renewal (SPECS.md §4.6, GOAL-027): the server
+     * response becomes the cache content. The criterion is absence from the
+     * returned page, not the local read state — which knows nothing of what
+     * was read elsewhere. An article read from the web UI stops being
+     * returned, and that is the only signal the application ever receives:
+     * measured on device, 31 articles "unread" locally while the server had
+     * none left.
      *
-     * La sous-requête sur `pending_marks` est la même garantie qu'en purge, et
-     * elle pèse plus lourd ici : ces lignes portent une vérité que le serveur
-     * **ne connaît pas encore**, et il ne les renvoie donc pas comme lues. Les
-     * effacer perdrait la mémoire locale du « déjà lu », et l'article
-     * reviendrait comme neuf.
+     * The `pending_marks` subquery is the same guarantee as in the purge, and
+     * weighs more here: those rows carry a truth the server does not yet know,
+     * so it does not return them as read. Deleting them would lose the local
+     * memory of "already read", and the article would come back as new.
      */
     @Query(
         "DELETE FROM articles WHERE id NOT IN (:keptIds) " +
@@ -128,33 +123,31 @@ internal interface ArticleDao {
     suspend fun deleteExcept(keptIds: List<Long>)
 
     /**
-     * Le même renouvellement quand la page rendue est **vide**.
+     * The same renewal when the returned page is empty.
      *
-     * Une requête distincte parce que `NOT IN ()` n'est pas du SQL valide :
-     * Room n'insère aucun paramètre pour une liste vide, et la requête
-     * échouerait à l'exécution — précisément dans le cas le plus courant, celui
-     * du lecteur qui a tout lu.
+     * A separate query because `NOT IN ()` is not valid SQL: Room inserts no
+     * parameter for an empty list, and the query would fail at runtime —
+     * precisely in the most common case, the reader who has read everything.
      */
     @Query("DELETE FROM articles WHERE id NOT IN (SELECT article_id FROM pending_marks)")
     suspend fun deleteAllExceptPendingMarks()
 
     /**
-     * Supprime les articles lus **et synchronisés** entrés dans le cache avant
+     * Deletes read and synchronized articles cached before
      * [thresholdEpochMillis].
      *
-     * La condition `is_read = 1` est la première garantie de SPECS.md §5.4 : un
-     * article non lu n'est jamais purgé, quelle que soit son ancienneté.
+     * The `is_read = 1` condition is the first guarantee of SPECS.md §5.4: an
+     * unread article is never purged, whatever its age.
      *
-     * La sous-requête sur `pending_marks` est la seconde, et elle corrige un
-     * défaut réel. Sans elle, un appareil resté hors ligne plus longtemps que le
-     * seuil voyait partir des articles lus dont le marquage n'était pas encore
-     * transmis. La file, elle, survivait — le marquage aurait fini par arriver —
-     * mais la **mémoire locale du « déjà lu »** disparaissait avec la ligne :
-     * `upsertPreservingLocalReadState` la lit dans cette table et nulle part
-     * ailleurs. Au rafraîchissement suivant, le serveur redécrivait l'article
-     * comme non lu, plus rien ne le contredisait, et il **réapparaissait dans le
-     * flux comme jamais lu**. Exactement la régression que tout le reste du
-     * cache s'emploie à empêcher.
+     * The `pending_marks` subquery is the second, and fixes a real defect.
+     * Without it, a device offline longer than the threshold lost read
+     * articles whose mark had not yet been transmitted. The queue survived —
+     * the mark would eventually arrive — but the local memory of "already
+     * read" disappeared with the row: `upsertPreservingLocalReadState` reads
+     * it from this table and nowhere else. On the next refresh, the server
+     * described the article as unread again, nothing contradicted it, and it
+     * reappeared in the feed as never read — exactly the regression the rest
+     * of the cache works to prevent.
      */
     @Query(
         "DELETE FROM articles WHERE is_read = 1 " +
@@ -163,21 +156,21 @@ internal interface ArticleDao {
     )
     suspend fun deleteReadCachedBefore(thresholdEpochMillis: Long): Int
 
-    /** Nombre d'articles conservés, observable : l'écran de réglages l'affiche (SPECS.md §6). */
+    /** Observable count of kept articles: shown on the settings screen (SPECS.md §6). */
     @Query("SELECT COUNT(*) FROM articles")
     fun observeArticleCount(): Flow<Int>
 
     /**
-     * Nombre d'articles que la purge emporterait **maintenant**.
+     * Number of articles a purge would remove right now.
      *
-     * La condition est celle de [deleteReadCachedBefore] amputée de
-     * l'ancienneté : c'est ce que le bouton de purge manuelle supprimerait. Elle
-     * est écrite deux fois plutôt que partagée parce qu'une `@Query` est une
-     * chaîne littérale — mais les deux doivent bouger ensemble, sinon l'écran
-     * annoncerait un nombre que la purge ne tiendrait pas.
+     * The condition is [deleteReadCachedBefore]'s minus the age check: what
+     * the manual purge button would delete. It is written twice rather than
+     * shared because a `@Query` is a string literal — but the two must change
+     * together, or the screen would announce a number the purge would not
+     * honor.
      *
-     * Room suit les deux tables citées : retirer un marquage de la file fait
-     * remonter ce compteur de lui-même.
+     * Room tracks both referenced tables: removing a mark from the queue
+     * makes this counter rise on its own.
      */
     @Query(
         "SELECT COUNT(*) FROM articles WHERE is_read = 1 " +

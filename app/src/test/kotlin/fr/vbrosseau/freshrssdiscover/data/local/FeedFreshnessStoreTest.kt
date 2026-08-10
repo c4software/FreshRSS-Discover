@@ -22,7 +22,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** Une heure en millisecondes, pour lire les attentes sans compter. */
+/** One hour in milliseconds, so expectations read without arithmetic. */
 private const val ONE_HOUR_MILLIS = 60L * 60L * 1_000L
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -95,8 +95,8 @@ class FeedFreshnessStoreTest {
 
         store.acknowledgeStale()
 
-        // Acquitter `null` puis obtenir une vraie date ne doit pas faire taire
-        // l'avis : les deux valeurs cessent de correspondre.
+        // Acknowledging `null` then getting a real date must not silence the
+        // notice: the two values stop matching.
         assertNull(store.observeFreshness().first().acknowledgedRefreshEpochMillis)
         store.recordRefresh()
         assertEquals(
@@ -124,8 +124,8 @@ class FeedFreshnessStoreTest {
     fun theFlowEmitsAgainAtEveryWrite() = runTest {
         val store = store()
 
-        // Le collecteur est ouvert avant les écritures : l'écran doit voir la
-        // date changer sans être reconstruit.
+        // The collector opens before the writes: the screen must see the
+        // date change without being rebuilt.
         val seen = mutableListOf<FeedFreshness>()
         val job = scope.launch { store.observeFreshness().toList(seen) }
         store.recordRefresh()
@@ -143,8 +143,8 @@ class FeedFreshnessStoreTest {
 
         store.acknowledgeStale()
 
-        // Deux observateurs, un seul dépôt : c'est ce qui fait qu'acquitter dans
-        // un mode de présentation fait taire l'autre (SPECS.md §4.8).
+        // Two observers, one store: acknowledging in one presentation mode
+        // silences the other (SPECS.md §4.8).
         assertEquals(
             store.observeFreshness().first(),
             store.observeFreshness().first(),

@@ -6,12 +6,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * La règle d'ancienneté du flux (SPECS.md §4.6).
+ * Feed staleness rule (SPECS.md §4.6).
  *
- * Les cas qui comptent ne sont pas les six heures elles-mêmes — une soustraction
- * ne surprend personne — mais les trois situations où le calcul naïf se
- * tromperait : aucun rafraîchissement enregistré, une horloge d'appareil qui
- * recule, et un avis déjà acquitté que le temps doit pouvoir rouvrir.
+ * The cases that matter are the three situations where a naive computation
+ * would go wrong: no recorded refresh, a device clock going backwards, and an
+ * already acknowledged notice that time must be able to reopen.
  */
 class FeedFreshnessTest {
     private val noon = 1_700_000_000_000L

@@ -6,10 +6,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * La règle de la demande de permission, éprouvée sans appareil.
+ * The permission-request rule, tested without a device.
  *
- * C'est tout ce que la demande contient de décision : le reste est
- * l'enregistrement d'un contrat de résultat, que seul le système sait exécuter.
+ * This is all the decision logic the request contains; the rest is registering
+ * a result contract that only the system can execute.
  */
 class NotificationPermissionTest {
 
@@ -27,9 +27,8 @@ class NotificationPermissionTest {
     }
 
     /**
-     * Sous Android 13 il n'existe aucune permission de notification : la
-     * demander serait refusée en silence, et laisserait croire à un refus de
-     * l'utilisateur.
+     * Below Android 13 there is no notification permission: requesting it
+     * would be silently denied and look like a user refusal.
      */
     @Test
     fun anOlderAndroidHasNothingToBeAskedFor() {
@@ -50,9 +49,8 @@ class NotificationPermissionTest {
     }
 
     /**
-     * Une rotation d'écran recrée l'activité sans que l'utilisateur ait rien
-     * demandé : redemander alors ferait réapparaître la boîte de dialogue à
-     * chaque changement de configuration.
+     * A screen rotation recreates the activity without any user action: asking
+     * again would bring the dialog back on every configuration change.
      */
     @Test
     fun aRecreatedActivityDoesNotAskAgain() {
@@ -65,7 +63,7 @@ class NotificationPermissionTest {
         )
     }
 
-    /** Un refus antérieur ne change rien ici : c'est le système qui cesse d'afficher la demande. */
+    /** A prior refusal changes nothing here: the system is what stops showing the dialog. */
     @Test
     fun aLaterAndroidVersionStillAsks() {
         assertTrue(

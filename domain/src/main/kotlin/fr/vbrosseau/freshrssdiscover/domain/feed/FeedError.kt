@@ -3,37 +3,37 @@ package fr.vbrosseau.freshrssdiscover.domain.feed
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 
 /**
- * Causes d'échec de la récupération d'articles.
+ * Failure causes when fetching articles.
  *
- * Volontairement plus court que `AuthError` : les causes de l'authentification
- * — API désactivée, hôte qui n'est pas FreshRSS, identifiants refusés — ne
- * peuvent plus survenir une fois la session ouverte. Les reprendre obligerait
- * chaque appelant à traiter des cas impossibles.
+ * Deliberately shorter than `AuthError`: authentication causes (API disabled,
+ * host that is not FreshRSS, rejected credentials) cannot occur once the
+ * session is open. Reusing them would force every caller to handle impossible
+ * cases.
  */
 sealed interface FeedError {
-    /** Aucune connectivité : la requête n'a pas quitté l'appareil. */
+    /** No connectivity: the request never left the device. */
     data object NoNetwork : FeedError
 
-    /** Le serveur ne répond pas : DNS, délai dépassé, TLS refusé. */
+    /** The server does not respond: DNS, timeout, TLS refused. */
     data object ServerUnreachable : FeedError
 
     /**
-     * Le serveur a refusé le jeton.
+     * The server rejected the token.
      *
-     * Arrive sans préavis lorsque l'utilisateur change son mot de passe API.
-     * Ce n'est pas une erreur de lecture mais une fin de session : le dépôt
-     * l'accompagne d'une invalidation, et l'aiguillage racine ramène de
-     * lui-même à l'écran de connexion (SPECS.md §3.4).
+     * Happens without notice when the user changes their API password. This is
+     * not a read error but the end of the session: the repository pairs it
+     * with an invalidation, and the root gate returns to the sign-in screen by
+     * itself (SPECS.md §3.4).
      */
     data object SessionExpired : FeedError
 
     /**
-     * Défaillance qu'aucun des cas ci-dessus ne décrit.
+     * Failure not described by any of the cases above.
      *
-     * [technicalMessage] va aux journaux, **jamais à l'affichage**.
+     * [technicalMessage] goes to logs, never to display.
      */
     data class Unexpected(val technicalMessage: String) : FeedError
 }
 
-/** Issue d'une lecture du flux. */
+/** Result of a feed read. */
 typealias FeedResult<T> = Outcome<T, FeedError>

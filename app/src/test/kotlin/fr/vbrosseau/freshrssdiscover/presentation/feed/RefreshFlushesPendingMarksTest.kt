@@ -17,29 +17,22 @@ import kotlin.test.assertEquals
 private const val NOW_MILLIS = 1_700_000_000_000L
 
 /**
- * Le rechargement dit au serveur ce qui a été lu **avant** de l'interroger
- * (GOAL-024).
+ * A refresh reports what was read to the server before querying it (GOAL-024).
  *
- * **Le défaut que ces deux cas verrouillent, et comment il se voyait.** Les
- * marquages sont regroupés pendant cinq secondes avant d'être transmis
- * (SPECS.md §8, question 4). Un rechargement demandé dans cette fenêtre
- * interrogeait donc un serveur qui croyait encore non lus les articles qu'on
- * venait de lire : il les renvoyait, ils reprenaient leur place dans la page de
- * quarante, et les nouveaux articles n'apparaissaient pas. **Il fallait
- * recharger deux fois.** Signalé par l'auteur, puis mesuré sur l'émulateur —
- * 162 non lus avant la lecture, 162 encore à l'instant du rechargement, 158
- * douze secondes plus tard.
+ * The defect these cases lock down: read marks are batched for five seconds
+ * before being transmitted (SPECS.md §8, question 4). A refresh requested
+ * inside that window queried a server that still considered the just-read
+ * articles unread; it returned them, they took their place in the page of
+ * forty, and new articles did not appear. Two refreshes were needed.
  *
- * **Pourquoi un crochet plutôt que deux compteurs.** `flushCallCount == 1` et
- * `refreshCallCount == 1` seraient tous deux vrais dans l'ordre fautif : deux
- * compteurs disent que deux choses ont eu lieu, jamais laquelle a précédé
- * l'autre. `FakeArticleRepository.onRefresh` observe l'état du monde **au
- * moment** où le rechargement part, ce qui est la seule façon d'éprouver un
- * ordre.
+ * Why a hook rather than two counters: `flushCallCount == 1` and
+ * `refreshCallCount == 1` would both hold in the faulty order; two counters
+ * say that two things happened, never which came first.
+ * `FakeArticleRepository.onRefresh` observes the state at the moment the
+ * refresh starts, the only way to test an ordering.
  *
- * Les deux modes ont leur cas : ils portent la même règle dans deux ViewModels
- * distincts, et un correctif appliqué d'un seul côté les ferait diverger — ce
- * qui est arrivé assez souvent dans ce dépôt pour qu'on ne s'y fie plus
+ * Both modes get a case: they carry the same rule in two distinct ViewModels,
+ * and a fix applied on one side only would make them diverge
  * (ARCHITECTURE.md §9.6).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,11 +47,10 @@ class RefreshFlushesPendingMarksTest {
     private val clock = FakeClock(NOW_MILLIS)
 
     /**
-     * Les marquages transmis **au moment** où le rechargement part.
+     * Flush count observed at the moment the refresh starts.
      *
-     * `-1` tant que le rechargement n'a pas eu lieu : une valeur qui ne peut
-     * pas être confondue avec « aucun envoi », qui est zéro et serait
-     * précisément le défaut.
+     * `-1` until the refresh has happened: a value that cannot be confused
+     * with "no flush", which is zero and would be exactly the defect.
      */
     private var flushesWhenRefreshStarted = -1
 
@@ -67,10 +59,9 @@ class RefreshFlushesPendingMarksTest {
     }
 
     /**
-     * Le ViewModel appelle déjà `flush()` à sa construction — le rejeu au
-     * démarrage de SPECS.md §4.5. C'est ce décompte-là qu'il faut retrancher,
-     * sans quoi le cas passerait sur un envoi qui n'a rien à voir avec le
-     * geste.
+     * The ViewModel already calls `flush()` in its constructor, the startup
+     * replay of SPECS.md §4.5. That count must be subtracted, or the case
+     * would pass on a flush unrelated to the gesture.
      */
     private fun flushesCausedByRefresh(atStartup: Int): Int = flushesWhenRefreshStarted - atStartup
 

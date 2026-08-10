@@ -3,26 +3,25 @@ package fr.vbrosseau.freshrssdiscover.domain.auth
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Accès à la session de l'utilisateur.
+ * Access to the user's session.
  *
- * Déclaré ici, implémenté dans `:app` : c'est ce qui permet au domaine
- * d'exprimer ce dont il a besoin sans rien connaître de HTTP ni du disque
- * (ARCHITECTURE.md §2).
+ * Declared here, implemented in `:app`: this lets the domain express what it
+ * needs without knowing anything about HTTP or storage (ARCHITECTURE.md §2).
  */
 interface AuthRepository {
     /**
-     * Session courante, `null` si l'utilisateur n'est pas connecté.
+     * Current session, `null` when the user is not signed in.
      *
-     * Un flux et non une lecture ponctuelle : c'est lui qui ramène
-     * l'utilisateur à l'écran de connexion lorsque le serveur refuse le jeton,
-     * sans que l'écran ait à interroger quoi que ce soit (SPECS.md §3.4).
+     * A flow rather than a one-shot read: it is what brings the user back to
+     * the sign-in screen when the server rejects the token, without the screen
+     * having to poll anything (SPECS.md §3.4).
      */
     fun observeSession(): Flow<AuthSession?>
 
     /**
-     * Ouvre une session et la conserve.
+     * Opens a session and persists it.
      *
-     * Le mot de passe API ne quitte pas cet appel : il n'est jamais enregistré.
+     * The API password does not leave this call: it is never stored.
      */
     suspend fun signIn(
         address: ServerAddress,
@@ -30,23 +29,23 @@ interface AuthRepository {
     ): AuthResult<AuthSession>
 
     /**
-     * Dernière adresse et dernier identifiant employés, même sans session.
+     * Last address and username used, even without a session.
      *
-     * Ils survivent à un jeton refusé : SPECS.md §3.4 demande de ramener
-     * l'utilisateur à l'écran de connexion **sans lui faire tout retaper**,
-     * alors qu'il n'a probablement qu'un mot de passe API à renouveler.
+     * They survive a rejected token: SPECS.md §3.4 requires returning the user
+     * to the sign-in screen without retyping everything, when they likely only
+     * have an API password to renew.
      */
     fun observeLastSignInHint(): Flow<SignInHint?>
 
     /**
-     * Le serveur a refusé le jeton : la session tombe, le rappel de saisie
-     * demeure.
+     * The server rejected the token: the session is dropped, the sign-in hint
+     * remains.
      *
-     * Distinct de [signOut], qui est un geste délibéré de l'utilisateur et
-     * n'a aucune raison de laisser une trace.
+     * Distinct from [signOut], which is a deliberate user action and has no
+     * reason to leave a trace.
      */
     suspend fun invalidateSession()
 
-    /** Efface la session **et** le rappel de saisie. Geste délibéré de l'utilisateur. */
+    /** Clears the session and the sign-in hint. Deliberate user action. */
     suspend fun signOut()
 }

@@ -9,10 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Point d'entrée unique du thème de l'application.
+ * Single entry point for the application theme.
  *
- * La couleur dynamique (Material You) est privilégiée quand la plateforme la
- * fournit ; sinon on retombe sur la palette définie dans `Color.kt`.
+ * Dynamic color (Material You) is preferred when the platform provides it;
+ * otherwise the palette defined in `Color.kt` is used.
  */
 @Composable
 fun AppTheme(

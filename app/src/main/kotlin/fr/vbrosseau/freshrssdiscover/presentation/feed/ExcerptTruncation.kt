@@ -1,19 +1,18 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
-/** Marque de troncature, ajoutée seulement lorsque du texte a été retiré. */
+/** Truncation mark, added only when text was removed. */
 private const val ELLIPSIS = "…"
 
 /**
- * Écourte un texte sans couper un mot en deux.
+ * Shortens a text without splitting a word.
  *
- * La coupure se fait sur la dernière espace avant la limite : une phrase
- * tranchée au milieu d'un mot se lit comme un défaut d'affichage, pas comme un
- * extrait. Un texte sans aucune espace — jeton, URL — est coupé net, faute de
- * mieux.
+ * The cut lands on the last space before the limit: a sentence sliced
+ * mid-word reads as a display defect, not an excerpt. A text without any
+ * space (token, URL) is cut hard, for lack of better.
  *
- * Écrite une fois pour les deux modes : seule la borne change entre la carte
- * de la Liste et le plein écran du Balayage (SPECS.md §8, questions 7 et 8) —
- * deux copies de l'algorithme divergeraient au premier correctif.
+ * Written once for both modes: only the bound changes between the List card
+ * and the full-screen swipe mode (SPECS.md §8, questions 7 and 8); two
+ * copies of the algorithm would diverge at the first fix.
  */
 internal fun String.truncatedAtWord(maxLength: Int): String {
     if (length <= maxLength) return this

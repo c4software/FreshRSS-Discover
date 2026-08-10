@@ -7,16 +7,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Fournit l'ouvreur d'article prêt à l'emploi pour un écran.
+ * Provides a ready-to-use article opener for a screen.
  *
- * La couleur de barre est lue dans le thème courant, et non figée : le schéma
- * de couleurs varie avec le mode sombre et avec la couleur dynamique
- * (`Theme.kt`). `surface` plutôt que `primary` — la barre prolonge l'arrière-plan
- * de l'écran recouvert, elle n'est pas un élément d'accentuation.
+ * The toolbar color is read from the current theme, not hardcoded: the color
+ * scheme varies with dark mode and dynamic color (`Theme.kt`). `surface`
+ * rather than `primary`: the toolbar extends the covered screen's background,
+ * it is not an accent element.
  *
- * L'ouvreur est mémorisé sur ses deux entrées : le recréer à chaque
- * recomposition serait sans effet observable, mais reconstruirait l'intention
- * pour rien.
+ * The opener is remembered on its two inputs: recreating it on each
+ * recomposition would have no observable effect but would rebuild the intent
+ * needlessly.
  */
 @Composable
 internal fun rememberArticleOpener(): ArticleOpener {

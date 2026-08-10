@@ -16,16 +16,15 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Base des tests de rendu visuel.
+ * Base class for visual rendering tests.
  *
- * Les tests d'interface existants vérifient **ce qui est affiché** ; ceux-ci
- * vérifient **à quoi cela ressemble**. Une régression de mise en page, de
- * contraste ou de thème sombre ne casse aucune assertion textuelle — seule une
- * comparaison d'image la révèle.
+ * UI tests verify what is displayed; these verify what it looks like. A
+ * regression in layout, contrast, or dark theme breaks no textual assertion
+ * and only shows in an image comparison.
  *
- * Le format d'écran est figé par `@Config(qualifiers)` : sans lui, la référence
- * dépendrait de la configuration par défaut de Robolectric, susceptible de
- * changer d'une version à l'autre.
+ * The screen format is pinned by `@Config(qualifiers)`: without it, the
+ * reference would depend on Robolectric's default configuration, which may
+ * change between versions.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -33,38 +32,37 @@ import org.robolectric.annotation.GraphicsMode
 abstract class ScreenshotTest {
 
     /**
-     * Capture un écran dans les deux thèmes.
+     * Captures a screen in both themes.
      *
-     * Le thème sombre n'est jamais celui qu'on regarde en développant : c'est
-     * donc là que les défauts de contraste s'installent sans être vus. Le
-     * capturer systématiquement coûte une image et les rend visibles.
+     * Dark theme is not the one looked at during development, so contrast
+     * defects settle there unseen. Capturing it systematically costs one image
+     * and makes them visible.
      *
-     * La couleur dynamique est désactivée : elle dépend du fond d'écran de
-     * l'utilisateur, ce qui rendrait toute référence instable.
+     * Dynamic color is disabled: it depends on the user's wallpaper, which
+     * would make any reference unstable.
      *
-     * @param name racine du nom de fichier ; le thème y est suffixé.
+     * @param name file name root; the theme is appended as a suffix.
      */
     @OptIn(ExperimentalTestApi::class)
     protected fun capture(name: String, content: @Composable () -> Unit) {
         listOf(THEME_LIGHT to false, THEME_DARK to true).forEach { (label, dark) ->
             runComposeUiTest {
-                // L'horloge n'avance que sur ordre. Sans cela, un indicateur de
-                // progression — animation sans fin — empêche l'interface
-                // d'atteindre le repos : la capture ne se termine jamais et le
-                // test tourne en boucle, processeur à fond. Constaté sur
-                // l'écran d'accueil en cours de synchronisation.
+                // The clock only advances on demand. Otherwise a progress
+                // indicator, an endless animation, keeps the UI from reaching
+                // idle: the capture never completes and the test spins at full
+                // CPU. Observed on the home screen while syncing.
                 mainClock.autoAdvance = false
 
                 setContent {
                     AppTheme(darkTheme = dark, dynamicColor = false) {
-                        // `Surface` plutôt qu'un simple `Box` : il peint le fond
-                        // du thème — sans quoi la capture serait transparente et
-                        // les deux thèmes paraîtraient identiques — mais surtout
-                        // il installe `LocalContentColor`. Un `Box` ne le fait
-                        // pas : le texte qui ne fixe pas sa couleur retombait
-                        // alors sur du noir, invisible en thème sombre. La
-                        // capture montrait donc un défaut que l'application, qui
-                        // rend ses écrans dans un `Scaffold`, n'a pas.
+                        // `Surface` rather than a plain `Box`: it paints the
+                        // theme background (otherwise the capture would be
+                        // transparent and both themes would look identical) and
+                        // above all installs `LocalContentColor`. A `Box` does
+                        // not: text without an explicit color fell back to
+                        // black, invisible in dark theme. The capture then
+                        // showed a defect the app, which renders its screens in
+                        // a `Scaffold`, does not have.
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.background,
@@ -74,9 +72,9 @@ abstract class ScreenshotTest {
                     }
                 }
 
-                // Une image suffit à composer et mesurer ; la figer ici rend
-                // aussi la référence reproductible, une animation capturée à un
-                // instant quelconque ne l'étant pas.
+                // One frame is enough to compose and measure; freezing it here
+                // also makes the reference reproducible, which an animation
+                // captured at an arbitrary instant is not.
                 mainClock.advanceTimeByFrame()
 
                 onRoot().captureRoboImage(filePath = "$SCREENSHOT_DIR/$name-$label.png")

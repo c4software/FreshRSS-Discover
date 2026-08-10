@@ -22,8 +22,8 @@ class SwipeExcerptTest {
 
     @Test
     fun theFullScreenExcerptIsLongerThanTheCardExcerpt() {
-        // C'est tout l'objet de SPECS.md §8 question 8 : le plein écran montre
-        // davantage que les trois lignes d'une carte.
+        // The whole point of SPECS.md §8 question 8: full screen shows more
+        // than the three lines of a card.
         assertTrue(SWIPE_EXCERPT_MAX_LENGTH > EXCERPT_MAX_LENGTH)
     }
 
@@ -39,7 +39,7 @@ class SwipeExcerptTest {
 
     @Test
     fun aSummaryWithoutAnySpaceIsCutOutright() {
-        // Jeton ou URL : faute de frontière de mot, la coupure est nette.
+        // Token or URL: with no word boundary, the cut is hard.
         val summary = "a".repeat(SWIPE_EXCERPT_MAX_LENGTH * 2)
 
         val excerpt = article(summary = summary).toSwipeUiModel(NOW_MILLIS).excerpt
@@ -50,7 +50,7 @@ class SwipeExcerptTest {
 
     @Test
     fun aSummaryExactlyAtTheLimitKeepsItsLastWord() {
-        // La borne est inclusive : rien n'est retiré, donc rien n'est signalé.
+        // The bound is inclusive: nothing is removed, so nothing is flagged.
         val summary = "a".repeat(SWIPE_EXCERPT_MAX_LENGTH)
 
         val excerpt = article(summary = summary).toSwipeUiModel(NOW_MILLIS).excerpt
@@ -61,8 +61,8 @@ class SwipeExcerptTest {
 
     @Test
     fun everythingElseComesFromTheListProjection() {
-        // Seule la longueur de l'extrait change : le reste doit rester d'une
-        // seule pièce entre les deux modes (SPECS.md §4.8).
+        // Only the excerpt length changes: everything else must stay identical
+        // between the two modes (SPECS.md §4.8).
         val model = article(
             id = 7L,
             title = "Un titre",

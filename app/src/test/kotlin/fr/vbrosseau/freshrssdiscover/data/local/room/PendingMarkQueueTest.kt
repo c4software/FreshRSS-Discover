@@ -21,9 +21,9 @@ private const val START_MILLIS = 1_000_000L
 
 @RunWith(RobolectricTestRunner::class)
 class PendingMarkQueueTest {
-    // Base en mémoire : la file s'éprouve avec le vrai moteur SQLite, seul
-    // capable de révéler une contrainte de clé primaire ou une requête invalide
-    // qu'un faux DAO laisserait passer.
+    // In-memory database: the queue is exercised against the real SQLite
+    // engine, the only thing that can reveal a primary-key constraint or
+    // invalid query a fake DAO would let through.
     private val database = Room
         .inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
@@ -43,7 +43,7 @@ class PendingMarkQueueTest {
     private suspend fun pendingIds(limit: Int = LARGE_LIMIT): List<Long> =
         queue.pending(limit).map { it.value }
 
-    // ----- Mise en file ------------------------------------------------------
+    // ----- Enqueueing --------------------------------------------------------
 
     @Test
     fun anEnqueuedArticleIsPending() = runTest {
@@ -63,9 +63,9 @@ class PendingMarkQueueTest {
 
     @Test
     fun enqueuingTheSameArticleTwiceLeavesASingleEntry() = runTest {
-        // Le flux repasse sur les mêmes articles au gré du défilement. La file
-        // décrit ce qui reste à dire au serveur, pas ce qui s'est passé à
-        // l'écran : un doublon n'apporterait rien et ferait grossir la file.
+        // Scrolling revisits the same articles. The queue describes what
+        // remains to tell the server, not what happened on screen: a
+        // duplicate adds nothing and grows the queue.
         queue.enqueue(listOf(ArticleId(7L)))
         clock.advanceBy(START_MILLIS)
 
@@ -76,8 +76,8 @@ class PendingMarkQueueTest {
 
     @Test
     fun anArticleSeenAgainKeepsItsOriginalPlaceInTheQueue() = runTest {
-        // Repousser l'horodatage à chaque nouvelle vue ferait reculer sans fin
-        // un article fréquemment revu : il pourrait ne jamais être transmis.
+        // Refreshing the timestamp on each new view would push a frequently
+        // revisited article back endlessly: it might never be transmitted.
         queue.enqueue(listOf(ArticleId(7L)))
         clock.advanceBy(START_MILLIS)
         queue.enqueue(listOf(ArticleId(8L)))
@@ -87,12 +87,12 @@ class PendingMarkQueueTest {
         assertEquals(listOf(7L), pendingIds(limit = 1))
     }
 
-    // ----- Lecture par lots --------------------------------------------------
+    // ----- Batched reads -----------------------------------------------------
 
     @Test
     fun pendingReturnsTheOldestMarksFirstAndNoMoreThanTheLimit() = runTest {
-        // L'envoi se fait par lots : une file accumulée hors ligne pendant des
-        // jours ne doit pas partir en une seule requête démesurée.
+        // Sending is batched: a queue accumulated over days offline must not
+        // leave in a single oversized request.
         queue.enqueue(listOf(ArticleId(3L)))
         clock.advanceBy(START_MILLIS)
         queue.enqueue(listOf(ArticleId(1L)))
@@ -104,9 +104,9 @@ class PendingMarkQueueTest {
 
     @Test
     fun readingTheQueueDoesNotEmptyIt() = runTest {
-        // Le point central : retirer à la lecture perdrait le marquage dès
-        // qu'une requête échoue, ce que cette file existe précisément pour
-        // empêcher (SPECS.md §4.5).
+        // The central point: removing on read would lose the mark as soon as
+        // a request fails, which this queue exists precisely to prevent
+        // (SPECS.md §4.5).
         queue.enqueue(listOf(ArticleId(1L), ArticleId(2L)))
 
         queue.pending(LARGE_LIMIT)
@@ -114,12 +114,12 @@ class PendingMarkQueueTest {
         assertEquals(listOf(1L, 2L), pendingIds())
     }
 
-    // ----- Acquittement ------------------------------------------------------
+    // ----- Acknowledgement ---------------------------------------------------
 
     @Test
     fun acknowledgingRemovesOnlyWhatWasTransmitted() = runTest {
-        // Un lot peut n'être transmis qu'en partie — une requête part, la
-        // suivante échoue. Le reste doit survivre pour être rejoué.
+        // A batch may only be partially transmitted (one request succeeds,
+        // the next fails). The rest must survive to be replayed.
         queue.enqueue(listOf(ArticleId(1L), ArticleId(2L), ArticleId(3L)))
 
         queue.acknowledge(listOf(ArticleId(1L), ArticleId(3L)))
@@ -129,8 +129,8 @@ class PendingMarkQueueTest {
 
     @Test
     fun acknowledgingAnArticleAbsentFromTheQueueIsHarmless() = runTest {
-        // Cas réel : deux tentatives de rejeu se recouvrent après un
-        // redémarrage. Le second acquittement ne doit pas échouer.
+        // Real case: two replay attempts overlap after a restart. The second
+        // acknowledgement must not fail.
         queue.enqueue(listOf(ArticleId(1L)))
 
         queue.acknowledge(listOf(ArticleId(1L), ArticleId(99L)))
@@ -138,7 +138,7 @@ class PendingMarkQueueTest {
         assertTrue(pendingIds().isEmpty())
     }
 
-    // ----- Effacement --------------------------------------------------------
+    // ----- Clearing ----------------------------------------------------------
 
     @Test
     fun clearingEmptiesTheQueue() = runTest {
@@ -153,11 +153,10 @@ class PendingMarkQueueTest {
 
     @Test
     fun theMigrationAddsTheQueueWithoutTouchingTheCachedArticles() = runTest {
-        // Une base en version 1 peut déjà exister sur un appareil : la détruire
-        // effacerait le cache d'articles, donc tout le contenu consultable hors
-        // ligne (SPECS.md §5.2). La migration est éprouvée à la main faute de
-        // `androidx.room:room-testing` au projet — y ajouter une dépendance
-        // sortirait du périmètre de cette tâche.
+        // A version-1 database may already exist on a device: destroying it
+        // would erase the article cache, hence all offline-readable content
+        // (SPECS.md §5.2). The migration is exercised by hand because the
+        // project lacks `androidx.room:room-testing`.
         val helper = FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(ApplicationProvider.getApplicationContext())
                 .name(null)
@@ -175,7 +174,7 @@ class PendingMarkQueueTest {
         }
     }
 
-    /** Reproduit la version 1 telle que `app/schemas/…/1.json` la décrit, avec une ligne à préserver. */
+    /** Reproduces version 1 as `app/schemas/…/1.json` describes it, with one row to preserve. */
     private object VersionOneSchema : SupportSQLiteOpenHelper.Callback(1) {
         override fun onCreate(db: SupportSQLiteDatabase) {
             db.execSQL(

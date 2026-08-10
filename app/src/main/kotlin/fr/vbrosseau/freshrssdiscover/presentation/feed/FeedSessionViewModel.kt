@@ -25,24 +25,21 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Le moteur du flux, commun aux modes Liste et Balayage (SPECS.md §4.8).
+ * The feed engine, shared by List and swipe modes (SPECS.md §4.8).
  *
- * SPECS.md §4.8 dit que les deux modes portent le même contenu, les mêmes
- * règles de lecture et de chargement — seule la présentation change. Ce moteur
- * en est la traduction : pagination, rechargement, amorçage par le cache,
- * marquage et avis vivent une seule fois ici, et chaque mode ne fournit que sa
- * **projection** ([project]), c'est-à-dire la longueur de son extrait.
+ * SPECS.md §4.8 says both modes carry the same content and the same reading
+ * and loading rules; only the presentation changes. Pagination, refresh,
+ * cache bootstrap, marking, and notices live once here, and each mode only
+ * provides its projection ([project]), that is, its excerpt length.
  *
- * Deux ViewModels jumeaux ont existé, transitions comprises, au motif que la
- * garde à mutualiser était petite. La divergence promise par ARCHITECTURE.md
- * §9.6 est arrivée deux fois : le `loadMore` du Balayage sans la garde
- * `isRefreshing` (repris en GOAL-028), puis un rechargement du Balayage qui
- * projetait des extraits à la longueur de la Liste. Chaque correctif devait
- * être porté deux fois, avec deux jeux de tests.
+ * Two twin ViewModels previously existed and diverged twice (ARCHITECTURE.md
+ * §9.6): the swipe mode's `loadMore` without the `isRefreshing` guard (fixed
+ * in GOAL-028), then a swipe refresh projecting excerpts at the List length.
+ * Each fix had to be ported twice, with two test suites.
  *
- * Une classe de base et non un objet délégué : les huit gestes publics de
- * l'écran sont le moteur lui-même, et une délégation méthode à méthode ne
- * ferait que les recopier dans chaque mode.
+ * A base class rather than a delegated object: the screen's eight public
+ * gestures are the engine itself, and method-by-method delegation would only
+ * copy them into each mode.
  */
 abstract class FeedSessionViewModel(
     private val articleRepository: ArticleRepository,
@@ -50,133 +47,130 @@ abstract class FeedSessionViewModel(
     settingsRepository: SettingsRepository,
     freshnessRepository: FeedFreshnessRepository,
     private val clock: Clock,
-    /** Projection d'un article du domaine vers sa carte — le seul point qui distingue les modes. */
+    /** Projection from a domain article to its card; the only point distinguishing the modes. */
     private val project: ArticleProjection,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
     /**
-     * Surveille l'ancienneté du flux (SPECS.md §4.6).
+     * Watches feed staleness (SPECS.md §4.6).
      *
-     * Construit ici plutôt qu'injecté : il a besoin de [viewModelScope], donc
-     * de vivre exactement aussi longtemps que cet écran. Ce qu'il observe, en
-     * revanche, est partagé — d'où l'acquittement commun aux deux modes.
+     * Built here rather than injected: it needs [viewModelScope], so it must
+     * live exactly as long as this screen. What it observes is shared, hence
+     * the acknowledgement common to both modes.
      */
     private val staleness = FeedStalenessWatcher(freshnessRepository, clock, viewModelScope)
 
     /**
-     * Position atteinte dans le flux. `null` demande le début — et seulement
-     * `null` : fabriquer un curseur vide relancerait la première page sans que
-     * rien ne le signale.
+     * Position reached in the feed. `null` requests the start, and only
+     * `null`: fabricating an empty cursor would silently re-request the
+     * first page.
      */
     private var cursor: PageCursor? = null
 
     /**
-     * Verrou d'un chargement en vol.
+     * Lock for an in-flight load.
      *
-     * Une propriété, et non l'état publié : le défilement demande la page
-     * suivante à chaque image, et attendre que `LoadingMore` soit visible dans
-     * le `StateFlow` laisserait passer plusieurs requêtes avant la première
-     * mise à jour. Le ViewModel n'étant touché que depuis le dispatcher
-     * principal, un booléen suffit — il n'y a pas de concurrence à arbitrer.
+     * A property, not the published state: scrolling requests the next page
+     * on every frame, and waiting for `LoadingMore` to be visible in the
+     * `StateFlow` would let several requests through before the first
+     * update. The ViewModel is only touched from the main dispatcher, so a
+     * boolean suffices; there is no concurrency to arbitrate.
      */
     private var isLoading: Boolean = false
 
     /**
-     * Le chargement de page en vol, pour que le rechargement puisse l'annuler
-     * (GOAL-028, remplacé en GOAL-029).
+     * The in-flight page load, so the refresh can cancel it (GOAL-028,
+     * replaced in GOAL-029).
      *
-     * Sans cela, une page demandée avant le tirage et revenue après lui
-     * s'ajoutait sous la liste rafraîchie et **écrasait le curseur du
-     * rechargement** : la pagination reprenait en silence le parcours
-     * abandonné. Depuis GOAL-027, son écriture au cache réinsérait de surcroît
-     * des lignes que `retainOnly` venait d'emporter.
+     * Without it, a page requested before the pull and returned after it was
+     * appended under the refreshed list and overwrote the refresh cursor:
+     * pagination silently resumed the abandoned traversal. Since GOAL-027,
+     * its cache write also reinserted rows that `retainOnly` had just
+     * removed.
      *
-     * L'**annulation** et non le compteur de génération de GOAL-028 : le
-     * compteur ne jetait que l'affichage, à l'arrivée — la requête courait
-     * jusqu'au bout, et son `cache.save()` s'exécutait quand même si la page
-     * atterrissait après le `retainOnly` du rechargement. L'annulation se
-     * propage à Ktor et au dépôt : la requête est abandonnée, pas seulement
-     * son résultat, et l'écriture au cache avec elle. Elle n'a rien d'une
-     * attente sur [isLoading] — le geste ne patiente jamais derrière une
-     * requête lente. La page en vol est perdue même si le rechargement
-     * **échoue** ensuite : le geste a désavoué l'ancien parcours, et
-     * « Réessayer » est le chemin du retour.
+     * Cancellation rather than the generation counter of GOAL-028: the
+     * counter only discarded the display on arrival; the request ran to
+     * completion and its `cache.save()` still executed if the page landed
+     * after the refresh's `retainOnly`. Cancellation propagates to Ktor and
+     * the repository: the request is abandoned, not just its result, and the
+     * cache write with it. It is not a wait on [isLoading]; the gesture
+     * never waits behind a slow request. The in-flight page is lost even if
+     * the refresh then fails: the gesture disowned the old traversal, and
+     * retry is the way back.
      */
     private var loadJob: Job? = null
 
     /**
-     * Fin de la dernière page rendue — son dernier article suffit, la
-     * monotonie ne se jugeant qu'entre voisins immédiats (SPECS.md §4.2,
-     * règle 4).
+     * Tail of the last rendered page. Its last article suffices, monotonicity
+     * being judged only between immediate neighbors (SPECS.md §4.2, rule 4).
      *
-     * Elle vit ici, avec le [cursor] : c'est le même état de continuité de
-     * pagination, et la loger dans le dépôt — un singleton partagé par les
-     * deux modes — faisait contaminer la jonction d'un mode par la pagination
-     * de l'autre.
+     * It lives here, with the [cursor]: it is the same pagination-continuity
+     * state, and housing it in the repository, a singleton shared by both
+     * modes, let one mode's junction be contaminated by the other's
+     * pagination.
      */
     private var paginationTail: List<Article> = emptyList()
 
     /**
-     * Vrai dès qu'une page du serveur a été fondue dans la liste.
+     * True once a server page has been merged into the list.
      *
-     * C'est ce qui referme la porte du cache. Le flux du cache réémet à
-     * **chaque écriture**, donc après chaque page reçue : continuer à le
-     * consommer ferait réapparaître, au fil de la pagination, des articles dans
-     * un ordre que le serveur n'a pas dicté — au milieu d'une liste que
-     * l'utilisateur est en train de parcourir. Le cache amorce l'affichage
-     * (SPECS.md §5.1), le serveur le poursuit ; jamais les deux à la fois.
+     * This is what closes the cache's door. The cache flow re-emits on every
+     * write, so after every received page: continuing to consume it would
+     * make articles reappear, as pagination proceeds, in an order the server
+     * did not dictate, in the middle of a list being browsed. The cache
+     * bootstraps the display (SPECS.md §5.1), the server continues it; never
+     * both at once.
      */
     private var hasServerContent: Boolean = false
 
     /**
-     * Décide de la lecture à partir des observations de visibilité.
+     * Decides read status from visibility observations.
      *
-     * Construit ici plutôt qu'injecté : son état — les chronomètres en cours et
-     * les articles déjà signalés — n'a de sens que pour **cette** session de
-     * lecture. Une instance partagée par Hilt survivrait à l'écran et
-     * signalerait comme lus des articles d'une session précédente. C'est aussi
-     * lui qui rend le retour en arrière inoffensif en Balayage (GOAL-012-T04) :
-     * un article déjà signalé ne l'est jamais deux fois.
+     * Built here rather than injected: its state, the running timers and the
+     * articles already reported, only makes sense for this reading session.
+     * A Hilt-shared instance would outlive the screen and report articles
+     * from a previous session as read. It is also what makes going back
+     * harmless in swipe mode (GOAL-012-T04): an already-reported article is
+     * never reported twice.
      *
-     * **Reconstruit à chaque changement de réglages**, ce qui remet ses
-     * chronomètres à zéro. C'est voulu : un seuil modifié en cours de lecture ne
-     * doit pas s'appliquer à un chronomètre démarré sous l'ancien. Les articles
-     * déjà signalés sont oubliés du même coup, mais sans conséquence — ils sont
-     * déjà `isRead` localement, et [markRead] les écarte avant transmission.
+     * Rebuilt on every settings change, which resets its timers. Deliberate:
+     * a threshold modified mid-reading must not apply to a timer started
+     * under the old one. Already-reported articles are forgotten at the same
+     * time, without consequence: they are already `isRead` locally, and
+     * [markRead] filters them before transmission.
      *
-     * **`null` quand le marquage automatique est éteint** (SPECS.md §4.5) :
-     * l'absence de détecteur dit mieux qu'un booléen à côté qu'il n'y a rien à
-     * alimenter — on ne peut pas oublier de le consulter.
+     * `null` when automatic marking is off (SPECS.md §4.5): the absence of a
+     * detector says better than a side boolean that there is nothing to
+     * feed; consulting it cannot be forgotten.
      */
     private var readDetector: ReadDetector? = ReadDetector(clock)
 
-    /** Articles déjà transmis au dépôt de synchronisation, sur la vie de l'écran. */
+    /** Articles already sent to the sync repository, over the screen's lifetime. */
     private val alreadyReported = mutableSetOf<ArticleId>()
 
     /**
-     * Vrai une fois la décision d'amorçage prise : elle ne se prend qu'une fois.
+     * True once the bootstrap decision has been made: it is made only once.
      *
-     * SPECS.md §5.1 : le lancement montre le cache et **s'y arrête**. La seule
-     * exception est un cache vide — première ouverture, retour après
-     * déconnexion — où ne rien demander laisserait une application morte. La
-     * décision se prend sur la **première** émission du cache, jamais après :
-     * une écriture ultérieure qui viderait la liste ne doit pas déclencher de
-     * requête dans le dos de l'utilisateur.
+     * SPECS.md §5.1: launch shows the cache and stops there. The only
+     * exception is an empty cache (first open, return after sign-out), where
+     * requesting nothing would leave a dead app. The decision is made on the
+     * cache's first emission, never after: a later write that empties the
+     * list must not trigger a request behind the user's back.
      */
     private var hasDecidedBootstrap = false
 
     init {
         /*
-         * Les seuils viennent des réglages, pas de constantes compilées : une
-         * modification s'applique **sans redémarrage**, ce pour quoi le dépôt
-         * expose un flux plutôt qu'une lecture ponctuelle (SPECS.md §6).
+         * Thresholds come from settings, not compiled constants: a change
+         * applies without a restart, which is why the repository exposes a
+         * flow rather than a one-shot read (SPECS.md §6).
          *
-         * L'interrupteur du marquage automatique emprunte le **même** chemin :
-         * ouvrir un second flux ferait observer deux sources à qui n'applique
-         * qu'une règle, et l'extinction n'arriverait pas forcément au même
-         * moment que le seuil.
+         * The automatic-marking switch takes the same path: opening a second
+         * flow would have a single rule observe two sources, and the
+         * switch-off would not necessarily arrive at the same time as the
+         * threshold.
          */
         settingsRepository.observeReadingSettings()
             .onEach { settings ->
@@ -193,32 +187,29 @@ abstract class FeedSessionViewModel(
             .launchIn(viewModelScope)
 
         /*
-         * Rejeu au démarrage : ce qui n'a pas pu partir à la session précédente
-         * — application fermée hors ligne, notamment — repart ici. Sans cela,
-         * un marquage attendrait la prochaine lecture pour être transmis
-         * (SPECS.md §4.5).
+         * Replay at startup: what could not be sent in the previous session,
+         * notably the app closed offline, goes out here. Otherwise a marking
+         * would wait for the next reading to be transmitted (SPECS.md §4.5).
          */
         viewModelScope.launch { readSyncRepository.flush() }
 
         /*
-         * Souscrit **avant** le premier `loadPage()`, et l'ordre est tout
-         * l'intérêt : SPECS.md §5.1 veut que le flux montre son contenu sans
-         * attendre le réseau. Souscrire après, c'est offrir au chargement la
-         * possibilité d'aboutir en premier — et un écran vide pendant une
-         * requête donne l'impression d'une application sans contenu, alors
-         * qu'elle en a.
+         * Subscribed before the first `loadPage()`, and the order is the
+         * whole point: SPECS.md §5.1 wants the feed to show its content
+         * without waiting for the network. Subscribing after would let the
+         * load finish first, and an empty screen during a request looks like
+         * an app with no content when it has some.
          */
         articleRepository.observeCachedArticles(CACHED_FEED_LIMIT)
             .onEach { cached ->
                 /*
-                 * Le cache **amorce** la liste, il ne la remplace jamais.
-                 * Réappliquer l'émission entière serait le défaut à ne pas
-                 * commettre : le flux réémet à chaque écriture, et l'ordre du
-                 * cache n'est pas celui des pages accumulées — la lecture en
-                 * cours sauterait. Seuls les articles absents s'ajoutent, à la
-                 * suite, sans rien réordonner ni retirer. Passé la première
-                 * page du serveur, plus rien ne s'ajoute (voir
-                 * [hasServerContent]).
+                 * The cache bootstraps the list, it never replaces it.
+                 * Reapplying the whole emission would be the flaw to avoid:
+                 * the flow re-emits on every write, and the cache's order is
+                 * not that of the accumulated pages; the ongoing reading
+                 * would jump. Only absent articles are appended, at the end,
+                 * without reordering or removing anything. Past the first
+                 * server page, nothing more is added (see [hasServerContent]).
                  */
                 val now = clock.nowEpochMillis()
                 if (!hasServerContent) {
@@ -237,30 +228,29 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * L'écran vient au premier plan (SPECS.md §5.1, GOAL-025).
+     * The screen comes to the foreground (SPECS.md §5.1, GOAL-025).
      *
-     * **Un écran sans article interroge le serveur.** SPECS.md §5.1 dit qu'aucune
-     * requête ne part tant qu'il y a quelque chose à montrer ; sa réciproque
-     * n'était appliquée qu'une fois, au premier échantillon du cache
-     * ([hasDecidedBootstrap]). Tout lire puis revenir laissait donc un écran
-     * vide et muet, dont on ne sortait qu'en trouvant le bouton de la barre de
-     * titre.
+     * A screen without articles queries the server. SPECS.md §5.1 says no
+     * request leaves while there is something to show; its converse was only
+     * applied once, at the cache's first sample ([hasDecidedBootstrap]).
+     * Reading everything and coming back thus left an empty, silent screen,
+     * escapable only via the title-bar button.
      *
-     * **Accroché à la venue au premier plan, jamais à l'état de vide.** Un
-     * serveur qui n'a rien à rendre laisse l'écran vide : réagir à cet état le
-     * ferait redemander sans fin. Ici, arriver sur le flux, revenir des
-     * réglages, sortir de veille valent chacun **une** tentative.
+     * Hooked to coming to the foreground, never to the empty state. A server
+     * with nothing to return leaves the screen empty: reacting to that state
+     * would re-request endlessly. Here, arriving on the feed, returning from
+     * settings, or waking from sleep each count as one attempt.
      *
-     * [refresh] et non [load] : le curseur d'une fin de flux ne mène nulle part,
-     * et le rechargement est le seul chemin qui transmette les marquages en
-     * attente avant d'interroger (GOAL-024) — ce qui est exactement la
-     * situation, puisqu'on arrive sur un écran vide en venant de tout lire.
+     * [refresh] rather than [load]: an end-of-feed cursor leads nowhere, and
+     * the refresh is the only path that transmits pending markings before
+     * querying (GOAL-024), which is exactly the situation, since the screen
+     * is empty because everything was just read.
      *
-     * Les phases écartées le sont chacune pour sa raison : un premier
-     * chargement est déjà en vol — c'est le cas du démarrage à cache vide, où
-     * doubler la requête serait le défaut le plus facile à commettre ici — un
-     * échec porte déjà sa reprise et la relancer à chaque retour martèlerait un
-     * réseau absent, et une session terminée est sur le point de rendre l'écran.
+     * Each excluded phase has its reason: an initial load is already in
+     * flight (the empty-cache startup case, where doubling the request would
+     * be the easiest mistake here), a failure already carries its retry and
+     * relaunching on every return would hammer an absent network, and a
+     * terminated session is about to leave the screen.
      */
     fun onScreenShown() {
         val state = _uiState.value
@@ -271,15 +261,14 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * Demande la page suivante.
+     * Requests the next page.
      *
-     * Idempotente et sans effet hors du cas utile : la fin de flux, un
-     * chargement en cours, un rafraîchissement, une erreur non acquittée et une
-     * session terminée l'ignorent. C'est ce qui permet à l'écran de l'appeler
-     * librement — au défilement comme au balayage — sans avoir à savoir ce
-     * qu'il en est. La garde `isRefreshing` est celle que le Balayage avait
-     * perdue (GOAL-028) : sans elle, une page pouvait **démarrer** pendant le
-     * rechargement, avec le curseur de l'ancien parcours.
+     * Idempotent and inert outside the useful case: end of feed, a load in
+     * progress, a refresh, an unacknowledged error, and a terminated session
+     * all ignore it. This lets the screen call it freely, on scroll or
+     * swipe, without knowing the current state. The `isRefreshing` guard is
+     * the one swipe mode had lost (GOAL-028): without it, a page could start
+     * during the refresh with the old traversal's cursor.
      */
     fun loadMore() {
         val state = _uiState.value
@@ -288,11 +277,11 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * Réessaie après un échec.
+     * Retries after a failure.
      *
-     * Distincte de [loadMore] : reprendre après une erreur est un geste de
-     * l'utilisateur, et le confondre avec le chargement anticipé relancerait la
-     * requête en boucle tant que le réseau reste absent.
+     * Distinct from [loadMore]: resuming after an error is a user gesture,
+     * and conflating it with prefetching would loop the request as long as
+     * the network is absent.
      */
     fun retry() {
         if (_uiState.value.phase !is DiscoverPhase.Failed) return
@@ -300,19 +289,19 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * Recharge le flux depuis le début (SPECS.md §4.6) — le tirage en Liste, le
-     * bouton en Balayage.
+     * Reloads the feed from the start (SPECS.md §4.6): pull in List mode,
+     * button in swipe mode.
      *
-     * Le geste **vide** l'affichage et repart du début : la liste est
-     * remplacée, pas complétée, et l'écran revient en tête. Ce que
-     * l'utilisateur regardait disparaît — c'est le prix d'un geste qui a un
-     * effet immédiat et lisible, assumé dans la spécification.
+     * The gesture clears the display and restarts from the top: the list is
+     * replaced, not extended, and the screen returns to the top. What the
+     * user was looking at disappears; the price of a gesture with an
+     * immediate, readable effect, accepted by the specification.
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
-        // Le geste désavoue le parcours en cours : la page encore en vol est
-        // annulée — requête, résultat et écriture au cache avec elle
-        // (GOAL-028, puis GOAL-029 pour la portée).
+        // The gesture disowns the ongoing traversal: the still-in-flight page
+        // is cancelled, request, result, and cache write with it (GOAL-028,
+        // then GOAL-029 for the scope).
         loadJob?.cancel()
         loadJob = null
         isLoading = false
@@ -320,33 +309,28 @@ abstract class FeedSessionViewModel(
 
         viewModelScope.launch {
             /*
-             * **Dire au serveur ce qui a été lu, avant de lui demander la
-             * suite.** Sans cela, le rechargement interroge un serveur qui
-             * ignore encore les lectures des dernières secondes : le
-             * regroupement des marquages retient jusqu'à 5 s (SPECS.md §8,
-             * question 4). Le serveur renvoie donc ces articles comme non lus,
-             * ils reprennent leur place dans la page de 40, et les nouveaux
-             * n'apparaissent pas — **il faut recharger une seconde fois**.
+             * Tell the server what has been read before asking it for more.
+             * Otherwise the refresh queries a server that does not yet know
+             * about the last seconds' readings: marking batching holds up to
+             * 5 s (SPECS.md §8, question 4). The server then returns those
+             * articles as unread, they retake their place in the 40-item
+             * page, and the new ones do not appear; a second refresh is
+             * needed.
              *
-             * Signalé par l'auteur, puis mesuré sur l'émulateur : 162 non lus
-             * avant lecture, 162 encore à l'instant du rechargement, 158 douze
-             * secondes plus tard.
-             *
-             * L'attente est délibérée, et c'est le seul endroit du code où
-             * `flush` est **attendu** avant autre chose : ailleurs il part sans
-             * qu'on en guette l'issue, le marquage étant optimiste. Ici son
-             * résultat conditionne la justesse de ce que le serveur va rendre.
-             * Un échec ne bloque rien pour autant — la file conserve, et le
-             * rechargement a lieu quand même, comme avant.
+             * This is the only place in the code where `flush` is awaited
+             * before anything else: elsewhere it is fire-and-forget, marking
+             * being optimistic. Here its result conditions the correctness
+             * of what the server will return. A failure blocks nothing: the
+             * queue retains, and the refresh proceeds anyway.
              */
             readSyncRepository.flush()
 
             when (val result = articleRepository.refresh()) {
                 is Outcome.Success -> {
                     cursor = result.value.nextCursor
-                    // La queue suit le parcours que suit le curseur : la
-                    // prochaine page prolonge la page rafraîchie, sa jonction
-                    // se juge contre elle.
+                    // The tail follows the traversal the cursor follows: the
+                    // next page extends the refreshed page, and its junction
+                    // is judged against it.
                     paginationTail = listOfNotNull(result.value.articles.lastOrNull())
                     hasServerContent = true
                     _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis(), project) }
@@ -359,18 +343,18 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * Prend en compte une observation de la visibilité.
+     * Processes a visibility observation.
      *
-     * Appelée périodiquement par l'écran, **y compris quand rien ne bouge** :
-     * la règle de SPECS.md §4.5 porte sur une **durée continue**, et le
-     * détecteur étant pur, cette durée ne s'écoule que d'une observation à
-     * l'autre. En Balayage, c'est le piège d'intégration principal — un article
-     * plein écran immobile ne produit aucun événement, et sans seconde
-     * observation il ne serait jamais signalé.
+     * Called periodically by the screen, including when nothing moves: the
+     * rule in SPECS.md §4.5 concerns a continuous duration, and the detector
+     * being pure, that duration only elapses between observations. In swipe
+     * mode this is the main integration trap: a still, full-screen article
+     * produces no event, and without a second observation it would never be
+     * reported.
      *
-     * **Sans effet quand le marquage automatique est éteint** : il n'y a alors
-     * pas de détecteur à alimenter. L'ouverture d'un article, elle, continue de
-     * le marquer lu (SPECS.md §4.7) — voir [onArticleOpened].
+     * No effect when automatic marking is off: there is then no detector to
+     * feed. Opening an article still marks it read (SPECS.md §4.7); see
+     * [onArticleOpened].
      */
     fun onVisibilityChanged(visibility: Map<ArticleId, Float>) {
         val justRead = readDetector?.onVisibilityChanged(visibility).orEmpty()
@@ -380,26 +364,25 @@ abstract class FeedSessionViewModel(
     }
 
     /**
-     * Ouvre un article : le marque comme lu, et dit si l'ouverture peut avoir
-     * lieu.
+     * Opens an article: marks it read and says whether the open can proceed.
      *
-     * **Lu quelle que soit sa visibilité passée** (SPECS.md §4.7) : toucher un
-     * article est un acte de lecture plus net que n'importe quelle durée
-     * d'affichage, et attendre le double seuil ferait revenir dans le flux
-     * l'article que l'utilisateur vient précisément d'ouvrir.
+     * Read regardless of past visibility (SPECS.md §4.7): touching an
+     * article is a clearer act of reading than any display duration, and
+     * waiting for the double threshold would bring back into the feed the
+     * article the user just opened.
      *
-     * **Y compris marquage automatique éteint** : l'interrupteur de SPECS.md
-     * §4.5 n'arrête que la détection par visibilité. Le faire porter aussi sur
-     * l'ouverture confondrait un geste délibéré avec un effet du défilement.
+     * Even with automatic marking off: the switch in SPECS.md §4.5 only
+     * stops visibility detection. Extending it to opening would conflate a
+     * deliberate gesture with a side effect of scrolling.
      *
-     * **Faux hors ligne** (SPECS.md §5.2) : l'onglet personnalisé n'afficherait
-     * que la page d'erreur du navigateur, sans dire pourquoi, et l'article
-     * passerait pour lu sans avoir pu l'être. Un avis explicite est publié à la
-     * place, et rien n'est marqué.
+     * False offline (SPECS.md §5.2): the Custom Tab would only show the
+     * browser's error page without saying why, and the article would pass
+     * for read without having been readable. An explicit notice is published
+     * instead, and nothing is marked.
      *
-     * @param articleId identifiant sous sa forme brute, celle que la liste
-     *   emploie comme clé.
-     * @return vrai si l'appelant doit ouvrir le lien.
+     * @param articleId identifier in its raw form, the one the list uses as
+     *   a key.
+     * @return true if the caller should open the link.
      */
     fun onArticleOpened(articleId: Long): Boolean {
         if (_uiState.value.isOffline) {
@@ -411,36 +394,37 @@ abstract class FeedSessionViewModel(
         return true
     }
 
-    /** Acquitte l'avis d'ouverture impossible : il a été lu, il disparaît. */
+    /** Dismisses the blocked-open notice: it has been read, it disappears. */
     fun dismissOfflineOpenNotice() {
         _uiState.update { it.copy(isOfflineOpenNoticeVisible = false) }
     }
 
     /**
-     * Fait taire l'invitation à rafraîchir, sans rafraîchir.
+     * Silences the refresh invitation without refreshing.
      *
-     * L'acquittement va au dépôt partagé : il vaut pour les deux modes à la
-     * fois, et il expirera de lui-même au prochain contact avec le serveur.
+     * The acknowledgement goes to the shared repository: it applies to both
+     * modes at once and will expire on its own at the next server contact.
      */
     fun dismissStaleNotice() {
         staleness.acknowledge()
     }
 
     /**
-     * Marque localement, puis transmet ce qui ne l'a pas déjà été.
+     * Marks locally, then transmits what has not already been transmitted.
      *
-     * L'état local passe à « lu » immédiatement, sans attendre le serveur
-     * (marquage optimiste, SPECS.md §4.5) — et l'article **reste à sa place**,
-     * seul son drapeau change : le retirer déplacerait le contenu sous le doigt.
+     * The local state switches to read immediately, without waiting for the
+     * server (optimistic marking, SPECS.md §4.5), and the article stays in
+     * place, only its flag changes: removing it would shift content under
+     * the finger.
      *
-     * Le filtre de transmission couvre la reconstruction du détecteur à un
-     * changement de réglages : il oublie alors les articles déjà signalés, et
-     * les resignalerait au prochain échantillon. Le marquage distant est
-     * idempotent, mais la requête, elle, serait inutile.
+     * The transmission filter covers the detector's reconstruction on a
+     * settings change: it then forgets already-reported articles and would
+     * re-report them at the next sample. Remote marking is idempotent, but
+     * the request would be useless.
      *
-     * `flush` suit immédiatement `markAsRead` : le marquage étant optimiste,
-     * l'état local est déjà à jour et l'échec éventuel de la transmission ne se
-     * voit pas — la file le conservera pour plus tard.
+     * `flush` immediately follows `markAsRead`: marking being optimistic,
+     * local state is already up to date and a transmission failure is not
+     * visible; the queue keeps it for later.
      */
     private fun markRead(ids: Set<ArticleId>) {
         _uiState.update { it.markingRead(ids) }
@@ -463,14 +447,14 @@ abstract class FeedSessionViewModel(
             it.copy(phase = if (isFirstPage) DiscoverPhase.InitialLoading else DiscoverPhase.LoadingMore)
         }
 
-        // Retenu pour que le rechargement puisse l'annuler : une page annulée
-        // ne revient jamais — ni état, ni curseur, ni écriture au cache.
+        // Kept so the refresh can cancel it: a cancelled page never comes
+        // back, neither state, nor cursor, nor cache write.
         loadJob = viewModelScope.launch {
             try {
                 val result = articleRepository.loadPage(cursor, paginationTail)
-                // Relâché **avant** le traitement : une page entièrement déjà
-                // affichée enchaîne sur la suivante, et le verrou encore posé
-                // ferait de cet enchaînement un appel sans effet.
+                // Released before processing: a page already entirely
+                // displayed chains onto the next one, and a still-held lock
+                // would make that chained call a no-op.
                 isLoading = false
 
                 when (result) {
@@ -478,8 +462,8 @@ abstract class FeedSessionViewModel(
                     is Outcome.Failure -> _uiState.update { it.failedWith(result.error) }
                 }
             } finally {
-                // Couvre l'annulation : sans cette levée, le verrou resterait
-                // posé et plus aucune page ne partirait après un rechargement.
+                // Covers cancellation: without this release, the lock would
+                // stay held and no page would ever leave after a refresh.
                 isLoading = false
             }
         }
@@ -491,12 +475,12 @@ abstract class FeedSessionViewModel(
 
         _uiState.update { state ->
             /*
-             * La toute première page arrive **par-dessus** le cache déjà
-             * affiché : ce sont les mêmes articles à quelques nouveautés près,
-             * et poser celles-ci en bas les montrerait très loin de leur date.
-             * Elle se fond donc comme un rafraîchissement — en tête, sans rien
-             * réordonner. Les suivantes prolongent le flux : leur place est à
-             * la suite.
+             * The very first page arrives on top of the already-displayed
+             * cache: they are the same articles plus a few new ones, and
+             * putting those at the bottom would show them far from their
+             * date. It therefore merges like a refresh, at the head, without
+             * reordering. Subsequent pages extend the feed: their place is
+             * at the end.
              */
             state.merging(page.articles, now, atHead = !hasServerContent, project = project)
                 .copy(
@@ -507,18 +491,18 @@ abstract class FeedSessionViewModel(
 
         hasServerContent = true
         cursor = page.nextCursor
-        // Le dernier article **tel que rendu** : la page arrive déjà mélangée,
-        // et c'est cet ordre-là que la jonction suivante doit prolonger.
+        // The last article as rendered: the page arrives already merged, and
+        // that order is what the next junction must extend.
         paginationTail = listOfNotNull(page.articles.lastOrNull())
 
         /*
-         * Une page dont tout était déjà affiché — le cas ordinaire au
-         * lancement, le cache ayant devancé le réseau sur plusieurs pages — ne
-         * fait rien grandir. S'arrêter là livrerait une liste qui cesse de
-         * s'allonger sans rien dire, indistinguable d'une panne (SPECS.md
-         * §4.4) : on enchaîne donc sur la page suivante, seule à pouvoir
-         * apporter du nouveau. La suite est finie, le curseur avançant à chaque
-         * tour jusqu'à la fin du flux.
+         * A page whose content was already entirely displayed (the ordinary
+         * launch case, the cache having outrun the network by several pages)
+         * grows nothing. Stopping there would deliver a list that stops
+         * growing silently, indistinguishable from a failure (SPECS.md
+         * §4.4): chain onto the next page, the only one that can bring
+         * anything new. The chain is finite, the cursor advancing each round
+         * until the end of the feed.
          */
         if (_uiState.value.articles.size == shownBefore && page.hasMore) load()
     }

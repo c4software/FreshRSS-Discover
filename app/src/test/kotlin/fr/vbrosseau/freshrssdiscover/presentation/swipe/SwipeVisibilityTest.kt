@@ -8,10 +8,9 @@ import kotlin.test.assertTrue
 private val ARTICLE_IDS = listOf(1L, 2L, 3L)
 
 /**
- * Les fractions sont comparées à une tolérance près : 0,4 n'est pas
- * représentable exactement en binaire, et `1 - 0,4` tombe à un demi-ulp de
- * 0,6 — exactement la raison pour laquelle SPECS.md §4.5 rend ses seuils
- * inclusifs.
+ * Fractions are compared with a tolerance: 0.4 is not exactly representable in
+ * binary, and `1 - 0.4` lands half an ulp from 0.6, exactly why SPECS.md §4.5
+ * makes its thresholds inclusive.
  */
 private const val TOLERANCE = 1e-4f
 
@@ -19,8 +18,8 @@ class SwipeVisibilityTest {
 
     @Test
     fun aSettledArticleFillsTheWholeScreen() {
-        // C'est la propriété qui fait basculer la règle de SPECS.md §4.5 : le
-        // seuil de surface est satisfait d'emblée, la durée décide seule.
+        // The property that switches the SPECS.md §4.5 rule: the surface
+        // threshold is met from the start, so duration alone decides.
         val visibility = pagerVisibility(ARTICLE_IDS, currentPage = 1, currentPageOffsetFraction = 0f)
 
         assertEquals(setOf(ArticleId(2L)), visibility.keys)
@@ -45,8 +44,8 @@ class SwipeVisibilityTest {
 
     @Test
     fun neitherArticleIsFullyVisibleHalfwayThroughAGesture() {
-        // Un balayage lent ne doit marquer ni l'un ni l'autre : à mi-course,
-        // aucun des deux n'atteint les 60 % de SPECS.md §4.5.
+        // A slow swipe must mark neither: halfway through, neither reaches the
+        // 60% of SPECS.md §4.5.
         val visibility = pagerVisibility(ARTICLE_IDS, currentPage = 0, currentPageOffsetFraction = 0.5f)
 
         assertTrue(visibility.values.all { it < 0.6f })
@@ -62,8 +61,8 @@ class SwipeVisibilityTest {
 
     @Test
     fun theEndOfFeedPageIsNotAnArticle() {
-        // Le rang au-delà du dernier article est la page de fin : rien n'y est
-        // chronométré, sans quoi on marquerait comme lu un message.
+        // The index beyond the last article is the end page: nothing is timed
+        // there, or a message would be marked as read.
         val visibility = pagerVisibility(ARTICLE_IDS, currentPage = 3, currentPageOffsetFraction = 0f)
 
         assertTrue(visibility.isEmpty())

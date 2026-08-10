@@ -8,16 +8,15 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
 /**
- * Seul endroit du projet où `kotlinx.coroutines.Dispatchers` est référencé.
+ * Only place in the project referencing `kotlinx.coroutines.Dispatchers`.
  *
- * Tout le reste reçoit un `CoroutineDispatcher` qualifié, ce qui rend les tests
- * déterministes : ils substituent un dispatcher de test et pilotent le temps.
+ * Everything else receives a qualified `CoroutineDispatcher`, which makes
+ * tests deterministic: they substitute a test dispatcher and control time.
  *
- * Pas de `Main` : les ViewModels vivent déjà sur le fil principal via
- * `viewModelScope`, et rien d'autre n'en a besoin. Le binding a existé « au
- * cas où » — son seul consommateur était le test qui le vérifiait lui-même.
- * Pas de `@Singleton` non plus : `Dispatchers.IO` et `Dispatchers.Default`
- * sont déjà des singletons de la plateforme.
+ * No `Main`: ViewModels already live on the main thread via `viewModelScope`,
+ * and nothing else needs it. The binding once existed "just in case" — its
+ * only consumer was the test that verified it. No `@Singleton` either:
+ * `Dispatchers.IO` and `Dispatchers.Default` are already platform singletons.
  */
 @Module
 @InstallIn(SingletonComponent::class)

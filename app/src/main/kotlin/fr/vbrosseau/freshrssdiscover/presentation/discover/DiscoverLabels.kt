@@ -6,15 +6,15 @@ import androidx.compose.ui.res.stringResource
 import fr.vbrosseau.freshrssdiscover.R
 
 /**
- * Met en mots une ancienneté calculée ailleurs.
+ * Puts into words an age computed elsewhere.
  *
- * Le calcul appartient au ViewModel, la traduction aux ressources : c'est la
- * seule façon de respecter à la fois « aucun calcul dans un Composable » et
- * « toute chaîne affichée est une ressource » (AGENTS.md §9).
+ * The computation belongs to the ViewModel, the wording to resources: the
+ * only way to satisfy both "no computation in a Composable" and "every
+ * displayed string is a resource" (AGENTS.md §9).
  *
- * Les unités sont abrégées — « min », « h », « j » — parce que la carte les
- * affiche sur la même ligne que le nom du flux, où la place manque. Les années
- * gardent leur forme longue : « il y a 2 a » ne se lit pas.
+ * Units are abbreviated ("min", "h", "j") because the card displays them on
+ * the same line as the feed name, where space is scarce. Years keep their
+ * long form, which stays readable.
  */
 @Composable
 internal fun RelativeTime.label(): String = when (this) {
@@ -27,10 +27,11 @@ internal fun RelativeTime.label(): String = when (this) {
 }
 
 /**
- * Un message par cause.
+ * One message per cause.
  *
- * Le `when` est exhaustif : ajouter une cause sans lui écrire de message ne
- * compilera pas, ce qui empêche l'écran de se dégrader en « échec » générique.
+ * The `when` is exhaustive: adding a cause without writing its message will
+ * not compile, which prevents the screen from degrading into a generic
+ * failure.
  */
 @Composable
 internal fun DiscoverFailure.message(): String = when (this) {

@@ -1,11 +1,10 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 /**
- * Repères de test du bouton de rechargement.
+ * Test tags for the refresh button.
  *
- * Communs aux deux modes de présentation, comme le bouton lui-même : c'est la
- * même commande, et lui donner un repère par mode obligerait chaque test à
- * savoir dans lequel il se trouve.
+ * Shared by both presentation modes, like the button itself: a per-mode tag
+ * would force every test to know which mode it runs in.
  */
 object RefreshTestTags {
     const val BUTTON = "feed:refresh"

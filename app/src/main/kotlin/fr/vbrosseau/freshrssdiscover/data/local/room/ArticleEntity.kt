@@ -5,17 +5,17 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Un article tel qu'il est conservé sur l'appareil.
+ * An article as stored on the device.
  *
- * La clé primaire est l'identifiant **décimal** de l'article, celui que le
- * domaine manipule (`ArticleId`). L'API expose aussi une forme hexadécimale ;
- * la laisser entrer en base rendrait possibles deux lignes pour un même
- * article, et le marquage comme lu échouerait alors en silence.
+ * The primary key is the article's decimal identifier, the one the domain
+ * handles (`ArticleId`). The API also exposes a hexadecimal form; letting it
+ * into the database would allow two rows for the same article, and
+ * mark-as-read would then fail silently.
  *
- * Le titre du flux est dupliqué sur chaque ligne plutôt que rangé dans une
- * table de flux : le cache n'a qu'un seul lecteur, l'affichage, et une jointure
- * pour un unique libellé coûterait plus qu'elle n'économise (AGENTS.md §2 —
- * pas d'abstraction avant son deuxième usage).
+ * The feed title is duplicated on each row rather than moved to a feed table:
+ * the cache has a single reader, the display, and a join for one label would
+ * cost more than it saves (AGENTS.md §2 — no abstraction before its second
+ * use).
  */
 @Entity(tableName = "articles")
 internal data class ArticleEntity(
@@ -41,12 +41,12 @@ internal data class ArticleEntity(
     @ColumnInfo(name = "is_read")
     val isRead: Boolean,
     /**
-     * Date d'entrée — ou de rafraîchissement — de l'article dans le cache.
+     * When the article entered — or was refreshed in — the cache.
      *
-     * Distincte de la date de publication : la purge (SPECS.md §5.4) borne
-     * l'ancienneté **dans le cache**, pas celle de l'article. Purger sur la
-     * publication ferait disparaître dans la seconde un vieil article qu'on
-     * vient de lire, alors qu'il est encore visible à l'écran.
+     * Distinct from the publication date: the purge (SPECS.md §5.4) bounds age
+     * in the cache, not the article's age. Purging on publication would
+     * instantly remove an old article the user just read while it is still
+     * visible on screen.
      */
     @ColumnInfo(name = "cached_at_epoch_millis")
     val cachedAtEpochMillis: Long,

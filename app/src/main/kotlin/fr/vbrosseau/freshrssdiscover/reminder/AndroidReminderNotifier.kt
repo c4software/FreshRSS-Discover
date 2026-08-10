@@ -16,31 +16,29 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Identifiant du canal. Il est **gravé** : le changer ferait apparaître un
- * second canal dans les réglages Android et ramènerait à ses valeurs par défaut
- * un rappel que l'utilisateur avait pris la peine de régler — Android ne
- * réapplique jamais les préférences d'un canal à un autre.
+ * Channel id. Frozen: changing it would create a second channel in Android
+ * settings and reset a reminder the user had configured, since Android never
+ * carries channel preferences over to another channel.
  */
 private const val CHANNEL_ID = "rappel-de-lecture"
 
 /**
- * Identifiant de la notification, **constant à dessein**.
+ * Notification id, deliberately constant.
  *
- * Un rappel du jour remplace donc celui de la veille au lieu de s'empiler à
- * côté. Une pile de rappels quotidiens ne dit rien de plus qu'un seul — le
- * dernier est le seul à jour — et se balaie d'un geste sans être lue. C'est
- * aussi ce qui rend [ReminderNotifier.dismiss] possible sans tenir de registre.
+ * Today's reminder replaces yesterday's instead of stacking beside it: only
+ * the latest is up to date. This is also what makes
+ * [ReminderNotifier.dismiss] possible without keeping a registry.
  */
 private const val REMINDER_NOTIFICATION_ID = 1
 
-/** Aucune donnée à distinguer d'un rappel à l'autre : un seul code de requête suffit. */
+/** No data varies between reminders: a single request code suffices. */
 private const val OPEN_APPLICATION_REQUEST_CODE = 0
 
 /**
- * Le rappel de lecture, tel qu'Android le montre (SPECS.md §4.9).
+ * The reading reminder as Android displays it (SPECS.md §4.9).
  *
- * `@Singleton` pour que le canal ne soit décrit qu'une fois par processus, et
- * non parce que la classe porte un état : elle n'en a aucun.
+ * `@Singleton` so the channel is described once per process, not because the
+ * class holds state: it has none.
  */
 @Singleton
 class AndroidReminderNotifier @Inject constructor(
@@ -50,15 +48,15 @@ class AndroidReminderNotifier @Inject constructor(
     private val notifications = NotificationManagerCompat.from(context)
 
     override fun show(plan: ReminderPlan) {
-        // Le refus se constate ici plutôt qu'au moment de programmer le rappel :
-        // il peut être retiré depuis les réglages Android à tout instant, et
-        // entre la programmation et l'échéance il s'écoule une journée entière.
+        // Checked here rather than when scheduling: permission can be revoked
+        // from Android settings at any time, and a full day passes between
+        // scheduling and delivery.
         if (!notifications.areNotificationsEnabled()) return
 
-        // Créé à chaque envoi, et non une fois pour toutes au démarrage :
-        // l'appel est idempotent — Android ignore un canal déjà décrit, sans en
-        // écraser les réglages de l'utilisateur — et l'application n'a alors
-        // aucune raison de décrire un canal qu'elle n'utilisera peut-être jamais.
+        // Created on each send rather than once at startup: the call is
+        // idempotent (Android ignores an already-described channel without
+        // overwriting the user's settings), and the app avoids describing a
+        // channel it may never use.
         createChannel()
 
         val body = bodyOf(plan)
@@ -67,9 +65,9 @@ class AndroidReminderNotifier @Inject constructor(
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(plan.tone.titleRes()))
             .setContentText(body)
-            // Le corps cite des titres réels : replié, il est coupé à une ligne
-            // et un titre d'article y tient rarement. `BigTextStyle` est ce qui
-            // le rend lisible une fois la notification dépliée.
+            // The body quotes real titles: collapsed, it is cut to one line
+            // where an article title rarely fits. `BigTextStyle` makes it
+            // readable once expanded.
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
@@ -80,22 +78,21 @@ class AndroidReminderNotifier @Inject constructor(
     }
 
     override fun dismiss() {
-        // Sans effet s'il n'y a rien d'affiché : `cancel` sur un identifiant
-        // inconnu ne lève pas. L'appelant n'a donc pas à savoir si un rappel est
-        // parti, ni si l'utilisateur l'a déjà écarté.
+        // No-op when nothing is shown: `cancel` on an unknown id does not
+        // throw, so the caller need not know whether a reminder was posted or
+        // already dismissed by the user.
         notifications.cancel(REMINDER_NOTIFICATION_ID)
     }
 
     /**
-     * Décrit le canal du rappel.
+     * Describes the reminder channel.
      *
-     * Obligatoire depuis Android 8 : une notification postée sans canal n'est
-     * pas affichée, et l'échec est silencieux. Le `minSdk` du projet étant 26,
-     * il n'y a aucune version à laquelle s'en dispenser.
+     * Mandatory since Android 8: a notification posted without a channel is
+     * silently dropped, and the project's `minSdk` of 26 leaves no version
+     * exempt.
      *
-     * Importance moyenne : le rappel s'annonce dans le volet et la barre
-     * d'état, sans surgir par-dessus ce que l'utilisateur est en train de faire.
-     * Un rappel de lecture n'est pas une urgence.
+     * Default importance: the reminder appears in the shade and status bar
+     * without a heads-up popup. A reading reminder is not urgent.
      */
     private fun createChannel() {
         val channel = NotificationChannelCompat
@@ -108,23 +105,22 @@ class AndroidReminderNotifier @Inject constructor(
     }
 
     /**
-     * L'ouverture de l'application au toucher.
+     * Opens the application on tap.
      *
-     * `FLAG_IMMUTABLE` : depuis Android 12, un `PendingIntent` doit déclarer
-     * s'il est modifiable, et l'omettre lève à la construction. Immuable est le
-     * bon choix ici — rien n'a à compléter cette intention, et une intention
-     * modifiable confiée au système laisserait une autre application en changer
-     * la destination.
+     * `FLAG_IMMUTABLE`: since Android 12 a `PendingIntent` must declare its
+     * mutability, and omitting it throws at construction. Immutable is right
+     * here: nothing needs to fill in this intent, and a mutable intent handed
+     * to the system would let another app change its destination.
      *
-     * `FLAG_UPDATE_CURRENT` parce que l'identifiant est constant : sans lui, le
-     * rappel du jour rouvrirait l'intention du premier rappel jamais posté.
+     * `FLAG_UPDATE_CURRENT` because the id is constant: without it, today's
+     * reminder would reuse the intent of the first reminder ever posted.
      */
     private fun openApplication(): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
-            // Le rappel part hors de toute pile d'activités : sans
-            // `NEW_TASK`, il n'y aurait aucune tâche où placer l'écran.
-            // `CLEAR_TOP` ramène l'application déjà lancée au premier plan au
-            // lieu d'en empiler une seconde instance.
+            // The reminder fires outside any activity stack: without
+            // `NEW_TASK` there would be no task to place the screen in.
+            // `CLEAR_TOP` brings an already-running app to the foreground
+            // instead of stacking a second instance.
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
         return PendingIntent.getActivity(
@@ -136,11 +132,11 @@ class AndroidReminderNotifier @Inject constructor(
     }
 
     /**
-     * Les titres cités, puis ce qu'il reste à lire.
+     * Quoted titles, then the remaining-unread count.
      *
-     * Assemblé par une ressource de format et non par une concaténation Kotlin
-     * (AGENTS.md §9) : l'ordre des deux parties et leur séparateur appartiennent
-     * à la langue.
+     * Assembled through a format resource rather than Kotlin concatenation
+     * (AGENTS.md §9): the order of the two parts and their separator belong
+     * to the language.
      */
     private fun bodyOf(plan: ReminderPlan): String {
         val remaining = context.resources.getQuantityString(
@@ -155,15 +151,15 @@ class AndroidReminderNotifier @Inject constructor(
     }
 
     /**
-     * Les titres d'articles, cités tels quels.
+     * Article titles, quoted verbatim.
      *
-     * Ils ne sont ni traduits ni tronqués : c'est du contenu, et `BigTextStyle`
-     * les affiche en entier. Le domaine en a déjà retenu deux au plus
-     * (`REMINDER_TITLE_COUNT`) ; au-delà, seuls les deux premiers seraient dits,
-     * ce que le `else` assume plutôt que d'échouer.
+     * Neither translated nor truncated: they are content, and `BigTextStyle`
+     * shows them in full. The domain already keeps at most two
+     * (`REMINDER_TITLE_COUNT`); beyond that, only the first two are cited,
+     * which the `else` accepts rather than failing.
      *
-     * `null` lorsqu'il n'y a aucun titre : le corps se réduit alors au compte,
-     * ce qui vaut mieux qu'une paire de guillemets vides.
+     * `null` when there is no title: the body then reduces to the count,
+     * which beats an empty pair of quotes.
      */
     private fun quotedTitles(titles: List<String>): String? = when (titles.size) {
         0 -> null
@@ -173,12 +169,11 @@ class AndroidReminderNotifier @Inject constructor(
 }
 
 /**
- * La formulation du jour, mise en mots.
+ * Maps the day's tone to its title resource.
  *
- * Le `when` est exhaustif : ajouter un ton sans lui écrire de titre ne
- * compilera pas, ce qui empêche le rappel de retomber en silence sur une
- * formulation générique — c'est-à-dire sur le message quotidien identique que
- * SPECS.md §4.9 cherche précisément à éviter.
+ * The `when` is exhaustive: adding a tone without a title fails to compile,
+ * preventing a silent fallback to the identical daily message that
+ * SPECS.md §4.9 exists to avoid.
  */
 @StringRes
 private fun ReminderTone.titleRes(): Int = when (this) {

@@ -1,28 +1,25 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 /**
- * Une illustration doit-elle être **agrandie** pour remplir son créneau ?
+ * Decides whether an illustration would be upscaled to fill its slot.
  *
- * C'est la définition exacte du défaut que ce module corrige : une image plus
- * étroite que le créneau, étirée pour le remplir, sort floue ou pixelisée
- * (SPECS.md §4.3). Le seuil n'est donc pas un réglage — il se **mesure**, en
- * comparant la largeur de la source à celle qu'on lui demande d'occuper. Un
- * seuil chiffré (« en dessous de 400 px ») aurait dû être défendu, et se
- * serait démenti au premier écran d'une autre densité.
+ * This is the exact defect this module fixes: an image narrower than the slot,
+ * stretched to fill it, renders blurry or pixelated (SPECS.md §4.3). The
+ * threshold is measured, not configured, by comparing the source width with
+ * the width it is asked to occupy. A hard-coded pixel threshold would break on
+ * screens of another density.
  *
- * Fonction pure, hors de tout `Composable` : elle s'éprouve sans rendu, là où
- * une décision prise au milieu d'un `Box` demanderait une capture pour être
- * vérifiée.
+ * Pure function, outside any `Composable`, so it can be tested without
+ * rendering.
  *
- * **La hauteur ne participe pas.** Le créneau est en 16/9 et le rognage se fait
- * horizontalement dans l'écrasante majorité des cas ; une image assez large est
- * assez définie, quelle que soit sa hauteur. Ajouter la hauteur ferait traiter
- * comme « petites » des bannières parfaitement nettes.
+ * Height is deliberately ignored: the slot is 16/9 and cropping is horizontal
+ * in the vast majority of cases; a wide enough image is defined enough
+ * regardless of its height. Including height would treat perfectly sharp
+ * banners as "small".
  *
- * @param sourceWidthPx largeur de l'image reçue. Zéro ou négatif — taille
- *   inconnue, image encore en vol — ne déclenche rien : on ne floute pas sur
- *   une supposition.
- * @param slotWidthPx largeur mesurée du créneau, en pixels de l'écran.
+ * @param sourceWidthPx width of the received image. Zero or negative (unknown
+ *   size, image still loading) triggers nothing: never blur on a guess.
+ * @param slotWidthPx measured slot width, in screen pixels.
  */
 internal fun needsUpscaling(sourceWidthPx: Int, slotWidthPx: Int): Boolean =
     sourceWidthPx > 0 && slotWidthPx > 0 && sourceWidthPx < slotWidthPx

@@ -21,24 +21,22 @@ import kotlin.test.assertEquals
 private const val NOW_MILLIS = 1_700_000_000_000L
 
 /**
- * Un écran sans article interroge le serveur quand il vient au premier plan
+ * A screen without articles queries the server when it comes to the foreground
  * (SPECS.md §5.1, GOAL-025).
  *
- * **Le cul-de-sac que ces cas ferment.** SPECS.md §5.1 veut qu'aucune requête ne
- * parte tant qu'il y a quelque chose à montrer ; la réciproque — s'il n'y a rien,
- * demander — n'était appliquée qu'une fois, au premier échantillon du cache. Tout
- * lire puis revenir sur le flux laissait donc un écran vide qui ne demandait
- * plus rien, et dont on ne sortait qu'en trouvant le bouton de la barre de titre.
- * Signalé par l'auteur.
+ * SPECS.md §5.1 wants no request while there is something to show; the
+ * converse (if there is nothing, ask) was only applied once, on the first
+ * cache sample. Reading everything and returning to the feed left an empty
+ * screen that no longer asked for anything.
  *
- * **Ce que les gardes empêchent compte autant que ce que la règle déclenche**, et
- * c'est pourquoi les trois refus ont leur cas. Celui du premier chargement en vol
- * est le plus important des trois : au démarrage à cache vide, l'amorçage lance
- * déjà une requête, et l'écran vient au premier plan dans le même souffle — sans
- * la garde, chaque lancement d'application partirait en double.
+ * What the guards prevent matters as much as what the rule triggers, hence a
+ * case for each of the three refusals. The in-flight first load is the most
+ * important: at startup with an empty cache, the bootstrap already launches a
+ * request and the screen comes to the foreground at the same moment; without
+ * the guard, every application launch would go out twice.
  *
- * Les deux modes ont chacun leurs cas : la règle vit dans deux ViewModels, et un
- * correctif appliqué d'un seul côté les ferait diverger (ARCHITECTURE.md §9.6).
+ * Both modes have their own cases: the rule lives in two ViewModels, and a
+ * fix applied on one side only would make them diverge (ARCHITECTURE.md §9.6).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EmptyFeedAsksServerWhenShownTest {
@@ -67,12 +65,12 @@ class EmptyFeedAsksServerWhenShownTest {
         clock = clock,
     )
 
-    // ----- La règle -----------------------------------------------------------
+    // ----- The rule -----------------------------------------------------------
 
     @Test
     fun listModeAsksTheServerWhenItComesBackWithNothingToShow() {
-        // Cache vide, serveur sans rien à rendre : l'amorçage aboutit sur une
-        // fin de flux sans article — l'écran du lecteur qui a tout lu.
+        // Empty cache, server with nothing to return: bootstrap ends in an
+        // end-of-feed without articles, the screen of a reader who read it all.
         val viewModel = discoverViewModel()
         assertEquals(DiscoverPhase.EndOfFeed, viewModel.uiState.value.phase, "état de départ attendu")
 
@@ -99,9 +97,9 @@ class EmptyFeedAsksServerWhenShownTest {
     }
 
     /**
-     * Deux venues au premier plan valent deux tentatives, et c'est voulu : la
-     * règle est accrochée à un fait ponctuel, pas à l'état de vide — lequel
-     * subsiste quand le serveur n'a rien rendu, et redemanderait sans fin.
+     * Two foreground arrivals are worth two attempts, deliberately: the rule
+     * is attached to a punctual event, not to the empty state, which persists
+     * when the server returned nothing and would ask again forever.
      */
     @Test
     fun eachReturnToTheForegroundIsWorthOneAttempt() {
@@ -113,7 +111,7 @@ class EmptyFeedAsksServerWhenShownTest {
         assertEquals(2, repository.refreshCallCount)
     }
 
-    // ----- Les trois refus ----------------------------------------------------
+    // ----- The three refusals -------------------------------------------------
 
     @Test
     fun aFeedWithSomethingToShowAsksNothing() {
@@ -131,9 +129,9 @@ class EmptyFeedAsksServerWhenShownTest {
 
     @Test
     fun aFirstLoadAlreadyInFlightIsNotDoubled() {
-        // Le démarrage à cache vide : l'amorçage a lancé sa requête, et l'écran
-        // vient au premier plan avant qu'elle ne réponde. Sans la garde, chaque
-        // lancement d'application partirait en double.
+        // Startup with an empty cache: bootstrap launched its request, and the
+        // screen comes to the foreground before it answers. Without the guard,
+        // every application launch would go out twice.
         repository.pendingLoad = CompletableDeferred()
         val viewModel = discoverViewModel()
         assertEquals(DiscoverPhase.InitialLoading, viewModel.uiState.value.phase, "état de départ attendu")
@@ -145,8 +143,8 @@ class EmptyFeedAsksServerWhenShownTest {
 
     @Test
     fun aFailedLoadKeepsItsOwnRetry() {
-        // Sans cette garde, un réseau absent serait martelé à chaque retour sur
-        // l'écran, alors que la reprise est déjà offerte à l'utilisateur.
+        // Without this guard, an absent network would be hammered on every
+        // return to the screen, while a retry is already offered to the user.
         repository.enqueueFailure(FeedError.NoNetwork)
         val viewModel = discoverViewModel()
 

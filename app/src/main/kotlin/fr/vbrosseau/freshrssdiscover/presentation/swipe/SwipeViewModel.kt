@@ -10,14 +10,13 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedSessionViewModel
 import javax.inject.Inject
 
 /**
- * Le flux, un article par écran (SPECS.md §4.8).
+ * The feed, one article per screen (SPECS.md §4.8).
  *
- * Tout le moteur vit dans [FeedSessionViewModel] : mêmes pages, même marquage,
- * même fin de flux explicite qu'en Liste — c'est la promesse de SPECS.md §4.8.
- * Ce type ne fournit que le câblage Hilt et la projection du Balayage, dont
- * l'extrait plein écran monte à 1 400 caractères (SPECS.md §8, question 7). La
- * source d'observation de la visibilité, elle, est l'affaire de l'écran
- * ([pagerVisibility]).
+ * The entire engine lives in [FeedSessionViewModel]: same pages, same marking,
+ * same explicit end of feed as List mode, as SPECS.md §4.8 promises. This type
+ * only provides the Hilt wiring and the Swipe projection, whose full-screen
+ * excerpt goes up to 1,400 characters (SPECS.md §8, question 7). The
+ * visibility observation source belongs to the screen ([pagerVisibility]).
  */
 @HiltViewModel
 class SwipeViewModel @Inject constructor(

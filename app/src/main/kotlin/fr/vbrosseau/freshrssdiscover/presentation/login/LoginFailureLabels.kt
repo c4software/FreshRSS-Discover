@@ -6,11 +6,11 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
 
 /**
- * Traduit une cause d'échec en message affichable.
+ * Maps a failure cause to a displayable message.
  *
- * Le `when` est exhaustif sur des types scellés : ajouter une cause sans lui
- * écrire de message ne compilera pas. C'est ce qui empêche SPECS.md §3.3 de se
- * dégrader silencieusement en « échec de connexion » générique.
+ * The `when` is exhaustive over sealed types: adding a cause without a
+ * message fails to compile. This prevents SPECS.md §3.3 from silently
+ * degrading into a generic "login failed" message.
  */
 @Composable
 internal fun LoginFailure.message(): String = when (this) {
@@ -30,12 +30,12 @@ private fun AuthError.message(): String = when (this) {
     AuthError.AuthorizationHeaderNotForwarded -> stringResource(R.string.login_error_header_not_forwarded)
 
     /*
-     * Le message technique n'est **pas** affiché : il n'est ni traduit ni
-     * compréhensible. Il vit dans les journaux, où il sert au diagnostic.
+     * The technical message is not displayed: it is neither translated nor
+     * understandable. It lives in the logs, where it serves diagnostics.
      */
     is AuthError.Unexpected -> stringResource(R.string.login_error_unexpected)
 }
 
-/** Vrai lorsque l'échec porte sur le champ « adresse » plutôt que sur le formulaire. */
+/** True when the failure concerns the address field rather than the form. */
 internal val LoginFailure.concernsAddressField: Boolean
     get() = this is LoginFailure.Address

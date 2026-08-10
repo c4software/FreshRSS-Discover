@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.settings
 
-/** Repères de test de l'écran de réglages. */
+/** Test tags for the settings screen. */
 object SettingsTestTags {
     const val SERVER_ADDRESS = "settings:server"
     const val USERNAME = "settings:username"

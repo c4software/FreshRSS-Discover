@@ -21,32 +21,31 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Nombre d'articles transmis par requête `edit-tag`.
+ * Number of articles transmitted per `edit-tag` request.
  *
- * Deux bornes, et la valeur est choisie entre elles :
+ * Two bounds, and the value is chosen between them:
  *
- * - **par le bas**, une page du flux fait 40 articles : un lot plus petit
- *   ferait plusieurs requêtes pour une seule page parcourue, ce que le
- *   traitement par lots existe précisément pour éviter (SPECS.md §4.5) ;
- * - **par le haut**, chaque article est un champ `i` du formulaire, et PHP
- *   n'accepte par défaut que 1 000 champs par requête (`max_input_vars`).
- *   Au-delà, les champs excédentaires sont **silencieusement ignorés** — et
- *   `edit-tag` répond `OK` sans rendre aucun compte par article
- *   (docs/freshrss-api.md §4.1). La perte serait donc totalement muette.
+ * - lower bound: a feed page is 40 articles, so a smaller batch would make
+ *   several requests for a single page read — what batching exists precisely
+ *   to avoid (SPECS.md §4.5);
+ * - upper bound: each article is an `i` form field, and PHP by default
+ *   accepts only 1,000 fields per request (`max_input_vars`). Beyond that,
+ *   excess fields are silently dropped — and `edit-tag` answers `OK` with no
+ *   per-article report (docs/freshrss-api.md §4.1). The loss would be
+ *   completely silent.
  *
- * 100 laisse un ordre de grandeur sous cette limite, couvre plus de deux pages
- * de lecture d'une seule requête, et pèse environ 2 ko de corps.
+ * 100 stays an order of magnitude under that limit, covers more than two
+ * pages of reading in a single request, and weighs about 2 KB of body.
  */
 private const val BATCH_SIZE = 100
 
 /**
- * Marquage optimiste, et transmission par lots de ce qui attend.
+ * Optimistic marking, and batched transmission of what is pending.
  *
- * Le partage des rôles est celui de SPECS.md §4.5 : `ArticleCache` porte l'état
- * lu **local**, `PendingMarkQueue` porte ce qui reste à dire au serveur. Les
- * deux écritures se font ensemble à la lecture d'un article, et rien d'autre ne
- * les relie — c'est ce qui permet à la transmission d'échouer sans que la
- * lecture s'en aperçoive.
+ * The role split is that of SPECS.md §4.5: `ArticleCache` holds the local
+ * read state, `PendingMarkQueue` holds what remains to tell the server. Both
+ * writes happen together when an article is read, and nothing else links them
+ * — which is what lets transmission fail without reading noticing.
  */
 @Singleton
 internal class DefaultReadSyncRepository @Inject constructor(
@@ -58,16 +57,16 @@ internal class DefaultReadSyncRepository @Inject constructor(
     @param:ApplicationScope applicationScope: CoroutineScope,
 ) : ReadSyncRepository {
     /**
-     * Regroupe les transmissions dans le temps (SPECS.md §4.5).
+     * Groups transmissions over time (SPECS.md §4.5).
      *
-     * La portée est l'applicative, et non celle de l'appelant : une fenêtre
-     * ouverte pendant la lecture doit survivre à la disparition de l'écran qui
-     * l'a ouverte, sans quoi le marquage attendrait le lancement suivant pour
-     * partir.
+     * The scope is the application's, not the caller's: a window opened during
+     * reading must survive the disappearance of the screen that opened it,
+     * otherwise the mark would wait for the next launch to leave.
      *
-     * La file est consultée **avant** la session : sans rien à transmettre, il
-     * n'y a ni requête à faire ni session à exiger. C'est le cas courant du
-     * démarrage, où `flush()` est appelée sans savoir s'il reste quelque chose.
+     * The queue is consulted before the session: with nothing to transmit,
+     * there is no request to make and no session to require. This is the
+     * common startup case, where `flush()` is called without knowing whether
+     * anything remains.
      */
     private val scheduler = ReadTransmissionScheduler(scope = applicationScope) {
         withContext(ioDispatcher) {
@@ -77,19 +76,18 @@ internal class DefaultReadSyncRepository @Inject constructor(
     }
 
     /**
-     * Bascule l'état local, met en file, **puis** ouvre la fenêtre de
-     * regroupement. L'ordre compte deux fois :
+     * Flips the local state, enqueues, then opens the grouping window. The
+     * order matters twice:
      *
-     * - l'état local d'abord, parce que c'est ce que l'utilisateur voit et que
-     *   la file n'est qu'un moyen. Si le processus était tué entre les deux,
-     *   l'article resterait lu à l'écran — une conséquence sans gravité — là où
-     *   l'ordre inverse laisserait un marquage en file pour un article affiché
-     *   comme non lu ;
-     * - la fenêtre en dernier, parce que c'est cet ordre qui garantit qu'une
-     *   fenêtre déjà ouverte emportera bien ce qui vient d'être mis en file.
+     * - local state first, because it is what the user sees and the queue is
+     *   only a means. If the process were killed between the two, the article
+     *   would stay read on screen — a harmless outcome — whereas the reverse
+     *   order would leave a queued mark for an article displayed as unread;
+     * - the window last, because this order guarantees an already open window
+     *   will carry what was just enqueued.
      *
-     * Rien ici n'attend le réseau : la fenêtre s'ouvre et cet appel rend la
-     * main.
+     * Nothing here waits for the network: the window opens and this call
+     * returns.
      */
     override suspend fun markAsRead(ids: Set<ArticleId>) = withContext(ioDispatcher) {
         if (ids.isNotEmpty()) {
@@ -101,17 +99,17 @@ internal class DefaultReadSyncRepository @Inject constructor(
     }
 
     /**
-     * Force la transmission, sans attendre la fenêtre en cours.
+     * Forces the transmission without waiting for the current window.
      *
-     * C'est le sens que `flush()` avait déjà — le rejeu au démarrage — et le
-     * regroupement ne le change pas : ce qui est différé, c'est le marquage
-     * ordinaire, pas la demande explicite d'envoyer.
+     * This is the meaning `flush()` already had — the startup replay — and
+     * grouping does not change it: what is deferred is ordinary marking, not
+     * an explicit request to send.
      */
     override suspend fun flush() = scheduler.transmitNow()
 
     /**
-     * La fenêtre en cours est abandonnée avec la file : à la déconnexion, elle
-     * n'aurait plus rien à dire au serveur.
+     * The current window is abandoned along with the queue: after a logout it
+     * would have nothing left to tell the server.
      */
     override suspend fun clearPending() = withContext(ioDispatcher) {
         scheduler.cancelScheduled()
@@ -119,16 +117,15 @@ internal class DefaultReadSyncRepository @Inject constructor(
     }
 
     /**
-     * Vide la file lot par lot, en acquittant chaque lot confirmé.
+     * Drains the queue batch by batch, acknowledging each confirmed batch.
      *
-     * La file est relue à chaque tour plutôt que découpée d'avance : un
-     * marquage peut s'y ajouter pendant la transmission, et l'acquittement
-     * partiel doit rester la seule chose qui en retire des lignes.
+     * The queue is re-read on each iteration rather than split upfront: a
+     * mark can be added during transmission, and partial acknowledgement must
+     * remain the only thing that removes rows.
      *
-     * Le jeton de modification obtenu sert à tous les lots suivants — le
-     * redemander à chaque requête doublerait le nombre d'allers-retours pour
-     * rien, puisqu'il est déterministe et réutilisable (docs/freshrss-api.md
-     * §2.3).
+     * The obtained modification token serves all subsequent batches —
+     * re-requesting it per request would double the round trips for nothing,
+     * as it is deterministic and reusable (docs/freshrss-api.md §2.3).
      */
     private suspend fun transmit(session: AuthSession) {
         var token = session.modificationToken
@@ -142,37 +139,37 @@ internal class DefaultReadSyncRepository @Inject constructor(
             }
             when (val outcome = sendBatch(session, batch, token)) {
                 is BatchOutcome.Sent -> {
-                    // L'acquittement suit la confirmation, jamais l'envoi : une
-                    // ligne retirée trop tôt serait un article perdu.
+                    // Acknowledgement follows confirmation, never the send: a
+                    // row removed too early would be a lost article.
                     queue.acknowledge(batch)
                     token = outcome.token
                 }
 
                 /*
-                 * Seuls les jetons tombent, et l'aiguillage racine ramène de
-                 * lui-même à l'écran de connexion, prérempli (SPECS.md §3.4).
-                 * La file, elle, est intacte : ces marquages doivent survivre à
-                 * la reconnexion, sinon l'utilisateur reverrait comme non lu ce
-                 * qu'il a lu avant l'expiration.
+                 * Only the tokens fall, and the root router returns to the
+                 * sign-in screen on its own, prefilled (SPECS.md §3.4). The
+                 * queue is left intact: these marks must survive the
+                 * reconnection, otherwise the user would see as unread what
+                 * they read before the expiry.
                  */
                 BatchOutcome.SessionLost -> {
                     sessionStore.invalidateTokens()
                     done = true
                 }
 
-                // Rien n'est parti, rien n'est perdu : la file conserve, et le
-                // prochain passage retentera (SPECS.md §4.5).
+                // Nothing was sent, nothing is lost: the queue keeps the rows
+                // and the next pass will retry (SPECS.md §4.5).
                 BatchOutcome.Deferred -> done = true
             }
         }
     }
 
     /**
-     * Envoie un lot avec le jeton connu, et n'en redemande un qu'en cas de `401`.
+     * Sends a batch with the known token, and only requests a new one on `401`.
      *
-     * Le jeton connu peut venir d'un lancement précédent : il est enregistré
-     * avec la session. Le supposer valide est le bon pari — il est déterministe
-     * — et le `401` est le seul signal fiable de son invalidation.
+     * The known token may come from a previous launch: it is stored with the
+     * session. Assuming it valid is the right bet — it is deterministic — and
+     * the `401` is the only reliable signal of its invalidation.
      */
     private suspend fun sendBatch(
         session: AuthSession,
@@ -190,11 +187,11 @@ internal class DefaultReadSyncRepository @Inject constructor(
     }
 
     /**
-     * Redemande le jeton de modification, puis retente — **une seule fois**.
+     * Re-requests the modification token, then retries exactly once.
      *
-     * C'est la conduite prescrite par docs/freshrss-api.md §2.3. Boucler
-     * au-delà n'apporterait rien : un jeton fraîchement obtenu et déjà refusé
-     * ne désigne plus le jeton mais la session elle-même.
+     * This is the behavior prescribed by docs/freshrss-api.md §2.3. Looping
+     * further would gain nothing: a freshly obtained token that is already
+     * rejected no longer indicts the token but the session itself.
      */
     private suspend fun renewThenSend(session: AuthSession, batch: List<ArticleId>): BatchOutcome =
         when (val renewed = requestModificationToken(session)) {
@@ -203,7 +200,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
             else -> BatchOutcome.Deferred
         }
 
-    /** Dernière tentative : un `401` ici n'est plus imputable au jeton. */
+    /** Last attempt: a `401` here can no longer be blamed on the token. */
     private suspend fun sendWithRenewedToken(
         session: AuthSession,
         batch: List<ArticleId>,
@@ -216,9 +213,9 @@ internal class DefaultReadSyncRepository @Inject constructor(
         }
 
     /**
-     * Le jeton obtenu est enregistré avec la session : il survit ainsi au
-     * redémarrage, et le rejeu au lancement suivant part directement sur
-     * `edit-tag` (docs/freshrss-api.md §2.3).
+     * The obtained token is stored with the session: it survives a restart,
+     * and the replay at the next launch goes straight to `edit-tag`
+     * (docs/freshrss-api.md §2.3).
      */
     private suspend fun requestModificationToken(session: AuthSession): ApiOutcome<ModificationToken> {
         val outcome = api.modificationToken(session.server, session.token)
@@ -229,27 +226,27 @@ internal class DefaultReadSyncRepository @Inject constructor(
     }
 
     /**
-     * Un statut autre que `401` est un incident du serveur, pas un refus : il
-     * relève du report, comme une coupure réseau. Rien n'est retiré de la file.
+     * A status other than `401` is a server incident, not a rejection: it is
+     * deferred, like a network outage. Nothing is removed from the queue.
      */
     private fun unauthorizedOrDeferred(status: Int): BatchOutcome =
         if (status == HTTP_UNAUTHORIZED) BatchOutcome.SessionLost else BatchOutcome.Deferred
 }
 
 /**
- * Sort d'un lot, à l'usage interne de la boucle de transmission.
+ * Fate of a batch, internal to the transmission loop.
  *
- * Un sort par **requête**, pas par file entière : conclure la boucle de
- * transmission sur le sort du premier lot ferait passer un envoi partiel pour
- * une synchronisation complète.
+ * One outcome per request, not per whole queue: concluding the transmission
+ * loop on the first batch's fate would make a partial send pass for a
+ * complete synchronization.
  */
 private sealed interface BatchOutcome {
-    /** Confirmé par le serveur. [token] est celui qui a fonctionné : les lots suivants le réutilisent. */
+    /** Confirmed by the server. [token] is the one that worked: subsequent batches reuse it. */
     data class Sent(val token: ModificationToken) : BatchOutcome
 
-    /** Le serveur refuse la session, jeton renouvelé compris. */
+    /** The server rejects the session, renewed token included. */
     data object SessionLost : BatchOutcome
 
-    /** Rien n'est parti, rien n'est perdu : ce lot repartira plus tard. */
+    /** Nothing was sent, nothing is lost: this batch will leave later. */
     data object Deferred : BatchOutcome
 }

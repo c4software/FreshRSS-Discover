@@ -50,9 +50,8 @@ class SettingsStoreTest {
 
     @Test
     fun withoutAnythingStoredTheSpecifiedDefaultsApply() = runTest {
-        // Le point qui rendait la duplication dangereuse : ce que l'écran
-        // affiche à la première ouverture doit être ce que le détecteur
-        // applique réellement (SPECS.md §4.5).
+        // What made duplication dangerous: what the screen shows on first
+        // opening must be what the detector actually applies (SPECS.md §4.5).
         assertEquals(ReadingSettings.Default, store().observeReadingSettings().first())
     }
 
@@ -88,9 +87,9 @@ class SettingsStoreTest {
 
     @Test
     fun aStoredValueSurvivesAFreshStoreOnTheSameFile() = runTest {
-        // C'est la raison d'être de la tâche : un réglage qui ne survit pas à
-        // la fermeture est pire qu'un réglage absent. Un second `SettingsStore`
-        // construit sur le même `DataStore` rejoue la relecture au démarrage.
+        // A setting that does not survive closing is worse than no setting.
+        // A second `SettingsStore` built on the same `DataStore` replays the
+        // startup read.
         val store = store()
         store.setVisibleFraction(0.4f)
 
@@ -99,9 +98,9 @@ class SettingsStoreTest {
 
     @Test
     fun aCorruptedVisibleFractionOnDiskIsBroughtBackWithinBounds() = runTest {
-        // Écrit par une version antérieure, ou restauré d'une sauvegarde :
-        // refuser de démarrer pour un réglage secondaire serait pire que
-        // corriger la valeur.
+        // Written by an earlier version, or restored from a backup: refusing
+        // to start over a secondary setting would be worse than correcting
+        // the value.
         val store = store()
         dataStore.edit { it[floatPreferencesKey("reading.visible_fraction")] = 5f }
 
@@ -118,8 +117,8 @@ class SettingsStoreTest {
 
     @Test
     fun aNotANumberVisibleFractionOnDiskFallsBackToTheDefault() = runTest {
-        // `NaN` ne se compare à rien : sans traitement propre il traverserait
-        // le bornage et rendrait le seuil inatteignable.
+        // `NaN` compares to nothing: untreated, it would pass through the
+        // clamping and make the threshold unreachable.
         val store = store()
         dataStore.edit { it[floatPreferencesKey("reading.visible_fraction")] = Float.NaN }
 
@@ -128,8 +127,8 @@ class SettingsStoreTest {
 
     @Test
     fun writingAVisibleFractionOutOfBoundsIsRefused() = runTest {
-        // Aucun contrôle de l'interface ne peut produire cette valeur : elle
-        // signale un défaut de programmation, et l'enregistrer le figerait.
+        // No UI control can produce this value: it signals a programming
+        // fault, and storing it would freeze the fault in place.
         assertFailsWith<IllegalArgumentException> { store().setVisibleFraction(1.5f) }
     }
 
@@ -140,8 +139,8 @@ class SettingsStoreTest {
 
     @Test
     fun theReadingKeysDoNotCollideWithTheSessionOnes() = runTest {
-        // Les deux stockages partagent le même fichier : une collision de clé
-        // ferait disparaître la session au premier réglage modifié.
+        // Both stores share the same file: a key collision would wipe the
+        // session on the first modified setting.
         val store = store()
         store.setVisibleFraction(0.4f)
 
@@ -151,8 +150,8 @@ class SettingsStoreTest {
 
     @Test
     fun withoutAnythingStoredTheAutomaticMarkingIsOn() = runTest {
-        // Le cas d'une installation antérieure au réglage : la clé manque, et
-        // le marquage doit rester celui que SPECS.md §1 décrit.
+        // An installation predating the setting: the key is missing, and the
+        // marking must remain what SPECS.md §1 describes.
         assertTrue(store().observeReadingSettings().first().autoMarkAsReadEnabled)
     }
 
@@ -167,7 +166,7 @@ class SettingsStoreTest {
 
     @Test
     fun theAutomaticMarkingSwitchSurvivesAFreshStoreOnTheSameFile() = runTest {
-        // Un réglage qu'il faut rééteindre à chaque lancement n'en est pas un.
+        // A setting that must be turned off again at every launch is not one.
         val store = store()
         store.setAutoMarkAsReadEnabled(false)
 
@@ -176,8 +175,8 @@ class SettingsStoreTest {
 
     @Test
     fun turningTheAutomaticMarkingOffLeavesTheThresholdsStored() = runTest {
-        // Les seuils sont grisés, pas oubliés : ils doivent se retrouver tels
-        // quels au rallumage.
+        // The thresholds are grayed out, not forgotten: they must reappear
+        // unchanged when re-enabled.
         val store = store()
         store.setVisibleFraction(0.8f)
         store.setContinuousVisibilityMillis(3_000L)
@@ -200,9 +199,9 @@ class SettingsStoreTest {
 
     @Test
     fun switchingTheAutomaticMarkingComesThroughAsANewEmission() = runTest {
-        // `distinctUntilChanged` porte sur l'ensemble des réglages : le
-        // troisième champ doit y participer, faute de quoi l'extinction
-        // n'atteindrait jamais les ViewModels du flux.
+        // `distinctUntilChanged` covers the whole settings object: the third
+        // field must participate, otherwise turning it off would never reach
+        // the feed ViewModels.
         val store = store()
         val seen = mutableListOf<ReadingSettings>()
         val job = scope.launch { store.observeReadingSettings().toList(seen) }
@@ -216,7 +215,7 @@ class SettingsStoreTest {
 
     @Test
     fun withoutAnythingStoredTheFeedIsPresentedAsAList() = runTest {
-        // SPECS.md §4.8 : Liste est le mode par défaut.
+        // SPECS.md §4.8: List is the default mode.
         assertEquals(FeedPresentation.List, store().observeFeedPresentation().first())
     }
 
@@ -231,8 +230,8 @@ class SettingsStoreTest {
 
     @Test
     fun theFeedPresentationSurvivesAFreshStoreOnTheSameFile() = runTest {
-        // SPECS.md §4.8 : « l'application rouvre dans le mode que l'utilisateur
-        // a quitté ». Un second store sur le même fichier rejoue ce démarrage.
+        // SPECS.md §4.8: the app reopens in the mode the user left. A second
+        // store on the same file replays that startup.
         val store = store()
         store.setFeedPresentation(FeedPresentation.Swipe)
 
@@ -241,8 +240,8 @@ class SettingsStoreTest {
 
     @Test
     fun aCorruptedFeedPresentationOnDiskFallsBackToTheList() = runTest {
-        // Un mode illisible ne doit pas empêcher le démarrage : le flux
-        // s'ouvre en Liste, et le prochain choix réécrira la valeur.
+        // An unreadable mode must not block startup: the feed opens in List,
+        // and the next choice rewrites the value.
         val store = store()
         dataStore.edit { it[stringPreferencesKey("display.feed_presentation")] = "Carrousel" }
 
@@ -262,9 +261,9 @@ class SettingsStoreTest {
 
     @Test
     fun theFeedPresentationKeyDoesNotCollideWithTheOtherOnes() = runTest {
-        // Trois familles de clés partagent le fichier — `session.`, `reading.`
-        // et `display.` : une collision ferait disparaître l'une au premier
-        // changement d'une autre.
+        // Three key families share the file (`session.`, `reading.` and
+        // `display.`): a collision would wipe one on the first change of
+        // another.
         val store = store()
         store.setFeedPresentation(FeedPresentation.Swipe)
 
@@ -274,12 +273,11 @@ class SettingsStoreTest {
 
     @Test
     fun writingAnUnrelatedPreferenceDoesNotReEmitTheSettings() = runTest {
-        // DataStore émet à chaque écriture du **fichier**, pas de la clé. Sans
-        // `distinctUntilChanged`, la date du dernier contact serveur — écrite à
-        // chaque page reçue — ferait réémettre ces réglages inchangés, et les
-        // ViewModels du flux reconstruiraient leur détecteur de lecture, donc
-        // remettraient à zéro les chronomètres de visibilité en cours
-        // (SPECS.md §4.5) au milieu d'une lecture.
+        // DataStore emits on every write to the file, not the key. Without
+        // `distinctUntilChanged`, the last-server-contact date (written on
+        // every received page) would re-emit unchanged settings, and the
+        // feed ViewModels would rebuild their read detector, resetting the
+        // in-flight visibility timers (SPECS.md §4.5) mid-read.
         val store = store()
         val seen = mutableListOf<ReadingSettings>()
         val job = scope.launch { store.observeReadingSettings().toList(seen) }

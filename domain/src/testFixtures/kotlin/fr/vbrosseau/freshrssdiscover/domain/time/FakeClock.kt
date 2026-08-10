@@ -1,15 +1,15 @@
 package fr.vbrosseau.freshrssdiscover.domain.time
 
 /**
- * Horloge pilotée, pour les tests.
+ * Controlled clock for tests.
  *
- * Elle n'avance que sur ordre : un test qui vérifie un ordre chronologique doit
- * pouvoir produire des horodatages distincts sans attendre réellement.
+ * Only advances on demand: a test verifying chronological order must be able
+ * to produce distinct timestamps without actually waiting.
  */
 class FakeClock(private var nowMillis: Long = 0L) : Clock {
     override fun nowEpochMillis(): Long = nowMillis
 
-    /** Avance l'horloge et renvoie la nouvelle valeur. */
+    /** Advances the clock and returns the new value. */
     fun advanceBy(millis: Long): Long {
         nowMillis += millis
         return nowMillis

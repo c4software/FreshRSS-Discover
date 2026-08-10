@@ -3,32 +3,32 @@ package fr.vbrosseau.freshrssdiscover.domain.auth
 import java.net.URI
 
 /**
- * Adresse d'une instance FreshRSS, sous forme normalisée.
+ * Address of a FreshRSS instance, in normalized form.
  *
- * L'utilisateur saisit son serveur tel qu'il le connaît — `rss.exemple.org`,
- * `https://exemple.org/freshrss/`, parfois l'URL complète de l'API qu'il a
- * trouvée dans une documentation. Lui demander une forme canonique reviendrait
- * à lui faire porter un détail d'implémentation (SPECS.md §3.1).
+ * Users type their server as they know it: `rss.exemple.org`,
+ * `https://exemple.org/freshrss/`, sometimes the full API URL found in some
+ * documentation. Requiring a canonical form would push an implementation
+ * detail onto the user (SPECS.md §3.1).
  *
- * Le type ne s'obtient que par [parse] : une instance existe donc toujours sous
- * forme valide et normalisée, et aucune couche supérieure n'a à revalider.
+ * The type can only be obtained through [parse]: an instance always exists in
+ * valid, normalized form, so no upper layer needs to revalidate.
  */
 class ServerAddress private constructor(
-    /** Racine de l'instance, sans barre oblique finale. Ex. `https://exemple.org/freshrss`. */
+    /** Instance root, without a trailing slash. E.g. `https://exemple.org/freshrss`. */
     val baseUrl: String,
     /**
-     * `false` pour une instance servie en clair.
+     * `false` for an instance served over plain HTTP.
      *
-     * `http://` reste accepté — les instances auto-hébergées sur réseau local
-     * sont un cas réel — mais l'interface doit le signaler (SPECS.md §3.1).
+     * `http://` remains accepted, since self-hosted instances on a local
+     * network are a real case, but the UI must flag it (SPECS.md §3.1).
      */
     val isSecure: Boolean,
 ) {
     /**
-     * Point d'entrée de l'API compatible Google Reader.
+     * Endpoint of the Google Reader-compatible API.
      *
-     * Dérivé, jamais saisi : c'est ce qui permet à l'utilisateur d'ignorer
-     * l'existence de `greader.php`.
+     * Derived, never typed: this lets the user ignore the existence of
+     * `greader.php`.
      */
     val apiEndpoint: String get() = baseUrl + API_PATH
 
@@ -47,18 +47,18 @@ class ServerAddress private constructor(
         private const val DEFAULT_HTTPS_PORT = 443
         private const val DEFAULT_HTTP_PORT = 80
 
-        /** `URI.getPort()` vaut ceci lorsque l'adresse ne précise pas de port. */
+        /** `URI.getPort()` returns this when the address specifies no port. */
         private const val NO_PORT = -1
 
-        /** Reconnaît un schéma déjà présent : `https://`, `http://`, `ftp://`… */
+        /** Matches an explicit scheme: `https://`, `http://`, `ftp://`, etc. */
         private val EXPLICIT_SCHEME = Regex("^[A-Za-z][A-Za-z0-9+.-]*://")
 
         /**
-         * Normalise une adresse saisie.
+         * Normalizes a typed address.
          *
-         * Traite, dans cet ordre : espaces superflus, schéma implicite,
-         * majuscules de l'hôte, barres obliques finales, et suffixe
-         * `/api/greader.php` que l'utilisateur aurait recopié.
+         * Handles, in this order: surrounding whitespace, implicit scheme,
+         * uppercase host, trailing slashes, and a copied `/api/greader.php`
+         * suffix.
          */
         fun parse(raw: String): ServerAddressResult {
             val trimmed = raw.trim()
@@ -66,9 +66,8 @@ class ServerAddress private constructor(
         }
 
         private fun parseNonBlank(input: String): ServerAddressResult {
-            // `URI` refuse une entrée sans schéma : sans ce préfixe, `host`
-            // serait null pour la saisie la plus courante — un simple nom de
-            // domaine.
+            // `URI` rejects input without a scheme: without this prefix, `host`
+            // would be null for the most common input, a bare domain name.
             val candidate = if (EXPLICIT_SCHEME.containsMatchIn(input)) input else "$HTTPS://$input"
             val uri = runCatching { URI(candidate) }.getOrNull()
             val scheme = uri?.scheme?.lowercase()
@@ -93,9 +92,9 @@ class ServerAddress private constructor(
             host: String,
             uri: URI,
         ): String {
-            // Le port par défaut du schéma est omis : `https://exemple.org` et
-            // `https://exemple.org:443` désignent la même instance, et deux
-            // formes distinctes produiraient deux sessions distinctes.
+            // The scheme's default port is omitted: `https://exemple.org` and
+            // `https://exemple.org:443` name the same instance, and two
+            // distinct forms would produce two distinct sessions.
             val port =
                 when (uri.port) {
                     NO_PORT, defaultPortOf(scheme) -> ""
@@ -107,11 +106,11 @@ class ServerAddress private constructor(
         private fun defaultPortOf(scheme: String): Int = if (scheme == HTTPS) DEFAULT_HTTPS_PORT else DEFAULT_HTTP_PORT
 
         /**
-         * Retire les barres obliques finales et le suffixe de l'API.
+         * Strips trailing slashes and the API suffix.
          *
-         * Recopier l'URL complète de l'API est un geste naturel : elle figure
-         * dans la documentation de FreshRSS et dans la configuration des autres
-         * clients. La refuser serait gratuitement hostile.
+         * Pasting the full API URL is natural: it appears in the FreshRSS
+         * documentation and in other clients' configuration, so it is
+         * accepted.
          */
         private fun normalizePath(path: String): String {
             val withoutTrailingSlashes = path.trimEnd('/')
@@ -121,16 +120,16 @@ class ServerAddress private constructor(
     }
 }
 
-/** Issue de [ServerAddress.parse]. */
+/** Result of [ServerAddress.parse]. */
 sealed interface ServerAddressResult {
     data class Valid(val address: ServerAddress) : ServerAddressResult
 
-    /** Rien n'a été saisi. */
+    /** Nothing was entered. */
     data object Blank : ServerAddressResult
 
-    /** Aucun hôte exploitable n'a pu être extrait. */
+    /** No usable host could be extracted. */
     data object Malformed : ServerAddressResult
 
-    /** Schéma autre que `http` ou `https` — `ftp://`, `file://`… */
+    /** Scheme other than `http` or `https`, e.g. `ftp://` or `file://`. */
     data class UnsupportedScheme(val scheme: String) : ServerAddressResult
 }

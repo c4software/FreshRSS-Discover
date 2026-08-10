@@ -19,13 +19,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 
-/**
- * Les liaisons interface du domaine → implémentation de la couche data.
- *
- * Un seul module pour tous les dépôts, réseau ou local : le critère est la
- * nature de la liaison, pas le sujet. Un module par binding a existé — les
- * réglages avaient le leur — et n'achetait que de la navigation en plus.
- */
+/** Bindings from domain interfaces to their data-layer implementations. */
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class RepositoryModule {

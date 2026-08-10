@@ -6,22 +6,23 @@ import kotlin.test.assertEquals
 class FeedPresentationTest {
     @Test
     fun theListIsTheModeAFreshInstallationOpensIn() {
-        // SPECS.md §4.8 : c'est le mode par défaut, et il l'est parce qu'il
-        // montre de quoi le flux est fait avant d'exiger un geste.
+        // SPECS.md §4.8: the default mode, chosen because it shows what the
+        // feed contains before requiring a gesture.
         assertEquals(FeedPresentation.List, FeedPresentation.Default)
     }
 
     @Test
     fun eachModeIsStoredUnderItsOwnName() {
-        // Ces chaînes sont écrites sur disque : les renommer casserait la
-        // relecture des préférences existantes, et ce test le rend visible.
+        // These strings are written to disk: renaming them would break
+        // reading back existing preferences, and this test makes that
+        // visible.
         assertEquals("List", FeedPresentation.List.name)
         assertEquals("Swipe", FeedPresentation.Swipe.name)
     }
 
     @Test
     fun aStoredNameIsReadBackAsTheSameMode() {
-        // La garantie qui compte : l'application rouvre dans le mode quitté.
+        // The guarantee that matters: the app reopens in the mode it left.
         FeedPresentation.entries.forEach { mode ->
             assertEquals(mode, FeedPresentation.fromStoredName(mode.name))
         }
@@ -34,18 +35,18 @@ class FeedPresentationTest {
 
     @Test
     fun anUnknownStoredNameFallsBackToTheDefaultMode() {
-        // Un fichier de préférences abîmé, restauré d'une sauvegarde, ou écrit
-        // par une version qui connaissait un mode retiré depuis : aucun de ces
-        // cas ne doit empêcher l'application de démarrer.
+        // A damaged preferences file, one restored from backup, or one
+        // written by a version that knew a since-removed mode: none of these
+        // may prevent the app from starting.
         assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName("Carrousel"))
         assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName(""))
     }
 
     @Test
     fun theStoredNameIsCaseSensitiveRatherThanApproximated() {
-        // Deviner une correspondance approchée reviendrait à accepter une
-        // valeur que l'application n'a jamais écrite : mieux vaut retomber sur
-        // le défaut, visible, qu'inventer une intention.
+        // Guessing an approximate match would mean accepting a value the app
+        // never wrote: better to fall back to the visible default than to
+        // invent an intent.
         assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName("swipe"))
     }
 }

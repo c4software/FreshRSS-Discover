@@ -9,98 +9,93 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 
 /**
- * Ce que les deux modes du flux affichent (SPECS.md §4.8).
+ * State displayed by both feed modes (SPECS.md §4.8).
  *
- * Un seul état pour la Liste et le Balayage, et c'est le point : SPECS.md §4.8
- * dit que le contenu et les règles de chargement sont **les mêmes**, seule la
- * présentation change. Deux états jumeaux ont existé, avec leurs transitions
- * copiées — et ils ont divergé exactement comme ARCHITECTURE.md §9.6 le
- * prédit : le rechargement du Balayage projetait des extraits à la longueur de
- * la Liste. Ce que les deux modes gardent en propre — la longueur d'extrait, la
- * page de fin du pagineur — passe par la projection et par des dérivations,
- * jamais par un second état.
+ * A single state serves both List and Swipe: SPECS.md §4.8 states that content
+ * and loading rules are identical, only the presentation differs. Two twin
+ * states with copied transitions previously diverged, exactly as
+ * ARCHITECTURE.md §9.6 predicts. Mode-specific data (excerpt length, the
+ * pager's end page) goes through the projection and derivations, never through
+ * a second state.
  *
- * Les articles et l'état du chargement sont **séparés** : SPECS.md §4.4 exige
- * qu'un échec de page suivante ne vide pas ce qui est déjà affiché, ce qui
- * serait impossible si la liste ne vivait que dans le cas « chargé » d'un type
- * scellé.
+ * Articles and loading state are separate: SPECS.md §4.4 requires that a
+ * failed next-page load does not clear what is already displayed, which a
+ * sealed type carrying the list only in its "loaded" case could not satisfy.
  */
 data class FeedUiState(
     val articles: List<ArticleUiModel> = emptyList(),
     val phase: DiscoverPhase = DiscoverPhase.InitialLoading,
     /**
-     * Rechargement demandé par l'utilisateur (SPECS.md §4.6) — le tirage en
-     * Liste, le bouton en Balayage.
+     * User-requested refresh (SPECS.md §4.6): pull in List mode, button in
+     * Swipe mode.
      *
-     * Hors de [phase], et c'est délibéré : le rechargement se fait
-     * **par-dessus** un flux qui a déjà son état — au repos, terminé, en échec
-     * — et le fondre dans la phase obligerait à mémoriser celle à laquelle
-     * revenir.
+     * Kept outside [phase] deliberately: a refresh happens on top of a feed
+     * that already has a state (idle, ended, failed), and folding it into the
+     * phase would require remembering which phase to restore.
      */
     val isRefreshing: Boolean = false,
     /**
-     * La dernière requête a échoué faute de réseau (SPECS.md §5.2).
+     * The last request failed for lack of network (SPECS.md §5.2).
      *
-     * Distinct de `DiscoverPhase.Failed(NoNetwork)`, qui dit qu'un *chargement*
-     * a échoué : celui-ci dit dans quel **régime** est l'application, et c'est
-     * lui qui décide du bandeau.
+     * Distinct from `DiscoverPhase.Failed(NoNetwork)`, which reports that a
+     * *load* failed: this flag describes the regime the app is in, and it is
+     * what drives the offline banner.
      */
     val isOffline: Boolean = false,
     /**
-     * Une ouverture d'article a été refusée faute de réseau (SPECS.md §5.2).
+     * An article open was refused for lack of network (SPECS.md §5.2).
      *
-     * Un booléen plutôt qu'un type de message : c'est le seul avis transitoire
-     * de ces écrans, et une abstraction arrive avec son deuxième cas d'usage
+     * A boolean rather than a message type: it is the only transient notice on
+     * these screens, and an abstraction should wait for its second use case
      * (AGENTS.md §2).
      */
     val isOfflineOpenNoticeVisible: Boolean = false,
     /**
-     * Le serveur n'a plus répondu depuis assez longtemps pour qu'on le dise
-     * (SPECS.md §4.6). Décidé par le domaine ; ce champ rapporte le verdict.
+     * The server has been unreachable long enough to say so (SPECS.md §4.6).
+     * Decided by the domain; this field reports the verdict.
      */
     val isStaleNoticeAvailable: Boolean = false,
 ) {
     /**
-     * Le bandeau hors ligne ne s'affiche qu'**au-dessus de quelque chose à
-     * lire** : sans article, l'absence de réseau n'est plus un régime dégradé
-     * mais la seule chose à dire, et c'est alors le message plein cadre qui
-     * l'explique.
+     * The offline banner only shows on top of readable content: with no
+     * articles, the lack of network is not a degraded regime but the only
+     * thing to say, and the full-screen message explains it instead.
      */
     val showsOfflineBanner: Boolean
         get() = isOffline && articles.isNotEmpty()
 
     /**
-     * L'invitation à rafraîchir est-elle à l'écran ?
-     *
-     * Trois retenues, et chacune évite un message qui aurait tort : hors
-     * ligne, le bandeau dit déjà pourquoi le flux est ancien ; pendant un
-     * rafraîchissement, la demande est déjà partie ; sans article, il n'y a
-     * pas de flux ancien mais un écran vide, qui a son propre message.
+     * Whether the refresh invitation is shown. Suppressed when a message would
+     * be wrong: offline, the banner already explains why the feed is stale;
+     * while refreshing, the request is already in flight; with no articles,
+     * there is no stale feed but an empty screen with its own message.
      */
     val showsStaleNotice: Boolean
         get() = isStaleNoticeAvailable && !isOffline && !isRefreshing && articles.isNotEmpty()
 }
 
 /**
- * Projette un article du domaine dans sa forme affichable.
+ * Projects a domain article into its displayable form.
  *
- * C'est **la seule** chose qui distingue les deux modes dans les transitions
- * ci-dessous : la longueur de l'extrait (SPECS.md §8, question 7). La passer en
- * paramètre est ce qui permet d'écrire ces transitions une fois.
+ * The only thing distinguishing the two modes in the transitions below is the
+ * excerpt length (SPECS.md §8, question 7). Passing it as a parameter is what
+ * lets these transitions be written once.
  */
 typealias ArticleProjection = (Article, Long) -> ArticleUiModel
 
 /**
- * Remplace la liste par la page rendue, et repart du début (SPECS.md §4.6).
+ * Replaces the list with the delivered page and restarts from the top
+ * (SPECS.md §4.6).
  *
- * Rien n'est remis à zéro côté ViewModel, et il faut le dire parce que ce
- * serait le réflexe : ni le détecteur de lecture, dont `onVisibilityChanged`
- * écarte de lui-même les chronomètres des articles absents ; ni les articles
- * déjà signalés au serveur — les resignaler ferait une requête pour rien.
+ * Nothing is reset on the ViewModel side: the read detector's
+ * `onVisibilityChanged` already discards timers of absent articles, and
+ * articles already reported to the server must not be reported again (that
+ * would issue a useless request).
  *
- * La phase suit la page rendue : `Idle` s'il reste un curseur, `EndOfFeed`
- * sinon. Elle lève donc aussi l'échec précédent — le réseau vient de répondre —
- * et rouvre un flux qui s'était terminé si le serveur a du neuf.
+ * The phase follows the delivered page: `Idle` if a cursor remains,
+ * `EndOfFeed` otherwise. This also clears a previous failure (the network
+ * just responded) and reopens a feed that had ended if the server has new
+ * content.
  */
 internal fun FeedUiState.refreshedWith(
     page: ArticlePage,
@@ -113,15 +108,15 @@ internal fun FeedUiState.refreshedWith(
 )
 
 /**
- * Ajoute les articles absents de la liste, sans toucher à ceux qui y sont.
+ * Appends articles missing from the list without touching those already in it.
  *
- * Ce qui est déjà affiché n'est jamais réordonné : la règle 3 de SPECS.md §4.2
- * veut qu'un même ensemble d'articles se présente toujours dans le même ordre.
- * En Balayage l'enjeu est plus aigu encore — réordonner sous le doigt
- * changerait l'article que le geste suivant va montrer.
+ * Displayed articles are never reordered: rule 3 of SPECS.md §4.2 requires a
+ * given set of articles to always appear in the same order. In Swipe mode,
+ * reordering under the finger would change which article the next gesture
+ * reveals.
  *
- * @param atHead vrai pour insérer les inconnus **en tête**, ce que fait la
- *   première page du serveur par-dessus le cache déjà affiché.
+ * @param atHead true to insert unknown articles at the head, as the server's
+ *   first page does on top of the already displayed cache.
  */
 internal fun FeedUiState.merging(
     articles: List<Article>,
@@ -137,17 +132,17 @@ internal fun FeedUiState.merging(
 }
 
 /**
- * Le drapeau change, l'article ne bouge pas : le retirer déplacerait la
- * lecture. **Et il ne repasse jamais à faux** (GOAL-012-T04) : il n'existe pas
- * de transition inverse.
+ * Flips the read flag without moving the article: removing it would shift the
+ * reading position. The flag never returns to false (GOAL-012-T04); there is
+ * no inverse transition.
  */
 internal fun FeedUiState.markingRead(ids: Set<ArticleId>): FeedUiState =
     copy(articles = articles.map { if (ArticleId(it.id) in ids) it.copy(isRead = true) else it })
 
 /**
- * Les articles déjà chargés sont **conservés** (SPECS.md §4.4) : les effacer
- * parce que la page suivante a échoué punirait l'utilisateur de s'être approché
- * du bas du flux. Hors ligne, ils sont même l'essentiel de ce qui reste.
+ * Already loaded articles are kept (SPECS.md §4.4): clearing them because the
+ * next page failed would punish the user for nearing the bottom of the feed.
+ * Offline, they are most of what remains.
  */
 internal fun FeedUiState.failedWith(error: FeedError): FeedUiState = copy(
     phase = when (error) {
@@ -160,9 +155,9 @@ internal fun FeedUiState.failedWith(error: FeedError): FeedUiState = copy(
 )
 
 /**
- * Cache garni au lancement : rien à demander, le flux est celui qu'on a laissé
- * (SPECS.md §5.1). La phase passe au repos — sans elle, l'écran annoncerait un
- * chargement qui n'existe pas.
+ * Cache populated at launch: nothing to request, the feed is the one left
+ * behind (SPECS.md §5.1). The phase moves to idle; otherwise the screen would
+ * announce a load that does not exist.
  */
 internal fun FeedUiState.settledFromCache(): FeedUiState =
     if (phase == DiscoverPhase.InitialLoading) copy(phase = DiscoverPhase.Idle) else this

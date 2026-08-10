@@ -1,21 +1,18 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
 /**
- * Jeton d'authentification renvoyé par le serveur.
+ * Authentication token returned by the server.
  *
- * Sa forme — `<utilisateur>/<condensat>` — et la façon dont il se transporte
- * dans un en-tête sont des détails de l'API FreshRSS, qui restent confinés à la
- * couche `data` (ARCHITECTURE.md §2.1). Le domaine ne voit qu'une valeur
- * opaque.
+ * Its shape (`<user>/<digest>`) and how it travels in a header are FreshRSS
+ * API details confined to the `data` layer (ARCHITECTURE.md §2.1). The domain
+ * only sees an opaque value.
  *
- * Il **n'expire pas** : c'est un condensat déterministe du mot de passe API
- * (docs/freshrss-api.md §2.1). Il est donc conservé entre deux lancements. En
- * revanche il devient invalide sans préavis si l'utilisateur change son mot de
- * passe API — d'où [AuthError.InvalidCredentials] sur une requête qui
- * fonctionnait la veille.
+ * It does not expire: it is a deterministic digest of the API password
+ * (docs/freshrss-api.md §2.1), so it is kept across launches. It does become
+ * invalid without notice if the user changes their API password, hence
+ * [AuthError.InvalidCredentials] on a request that worked the day before.
  *
- * `toString` masque la valeur : c'est un secret au même titre qu'un mot de
- * passe.
+ * `toString` masks the value: it is a secret, like a password.
  */
 class AuthToken(val value: String) {
     override fun toString(): String = "AuthToken(***)"
@@ -26,11 +23,11 @@ class AuthToken(val value: String) {
 }
 
 /**
- * Jeton exigé par les opérations modifiantes de l'API.
+ * Token required by the API's modifying operations.
  *
- * Distinct de [AuthToken] : il ne s'obtient qu'une fois authentifié, et se
- * transmet autrement. Les confondre produirait un `401` difficile à
- * diagnostiquer, d'où deux types plutôt qu'un alias de `String`.
+ * Distinct from [AuthToken]: it can only be obtained once authenticated, and
+ * it is transmitted differently. Confusing the two would produce a `401` that
+ * is hard to diagnose, hence two types rather than a `String` alias.
  */
 class ModificationToken(val value: String) {
     override fun toString(): String = "ModificationToken(***)"

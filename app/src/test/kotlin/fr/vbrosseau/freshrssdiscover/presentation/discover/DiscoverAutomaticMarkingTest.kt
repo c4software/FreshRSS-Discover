@@ -18,16 +18,16 @@ import kotlin.test.assertTrue
 
 private const val NOW_MILLIS = 1_700_000_000_000L
 
-/** Durée d'affichage continu exigée par SPECS.md §4.5, reprise pour la lisibilité des cas. */
+/** Continuous display duration required by SPECS.md §4.5, repeated for case readability. */
 private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
 
 /**
- * Ce que l'interrupteur du marquage automatique arrête, et ce qu'il n'arrête
- * pas (SPECS.md §4.5, §4.7), en mode Liste.
+ * What the automatic-marking switch stops, and what it does not
+ * (SPECS.md §4.5, §4.7), in List mode.
  *
- * Fichier distinct de `DiscoverViewModelTest` : celui-ci a atteint la taille
- * que Detekt refuse de dépasser, et le réglage forme un sujet à lui — un état
- * de départ commun à tous ses cas, que les autres n'emploient jamais.
+ * Kept separate from `DiscoverViewModelTest`: that file reached the size
+ * Detekt refuses to exceed, and the setting forms its own subject with a
+ * starting state shared by all its cases and used by no other.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiscoverAutomaticMarkingTest {
@@ -40,7 +40,7 @@ class DiscoverAutomaticMarkingTest {
     private val freshnessRepository = FakeFeedFreshnessRepository()
     private val clock = FakeClock(NOW_MILLIS)
 
-    /** Paresseux : le ViewModel charge dès sa création, sur `Dispatchers.Main`. */
+    /** Lazy: the ViewModel loads on creation, on `Dispatchers.Main`. */
     private val viewModel: DiscoverViewModel by lazy {
         DiscoverViewModel(
             articleRepository = repository,
@@ -55,7 +55,7 @@ class DiscoverAutomaticMarkingTest {
 
     private val readArticles: Set<ArticleId> get() = readSyncRepository.markCalls.flatten().toSet()
 
-    /** Amène [id] au-delà des deux seuils, en deux observations séparées d'une seconde. */
+    /** Takes [id] past both thresholds, with two observations one second apart. */
     private fun watch(id: Long) {
         viewModel.onVisibilityChanged(mapOf(ArticleId(id) to 1f))
         clock.advanceBy(VISIBILITY_THRESHOLD_MILLIS)
@@ -64,8 +64,8 @@ class DiscoverAutomaticMarkingTest {
 
     @Test
     fun withAutomaticMarkingOnAVisibleArticleBecomesRead() {
-        // Le témoin : sans lui, les cas suivants passeraient aussi bien si le
-        // marquage était cassé pour tout le monde.
+        // Control case: without it, the following cases would pass just as
+        // well if marking were broken for everyone.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         watch(id = 1L)
@@ -75,7 +75,7 @@ class DiscoverAutomaticMarkingTest {
 
     @Test
     fun withAutomaticMarkingOffAVisibleArticleStaysUnread() {
-        // C'est l'objet du réglage : parcourir son flux sans le consommer.
+        // The purpose of the setting: browsing the feed without consuming it.
         settingsRepository.setAutomaticMarking(enabled = false)
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
@@ -87,9 +87,9 @@ class DiscoverAutomaticMarkingTest {
 
     @Test
     fun withAutomaticMarkingOffOpeningAnArticleStillMarksItRead() {
-        // Le piège de ce Goal : l'interrupteur n'arrête que la détection par
-        // visibilité. Ouvrir un article reste un geste délibéré (SPECS.md §4.7)
-        // et le marque, sans quoi le flux le représenterait indéfiniment.
+        // The switch only stops visibility-based detection. Opening an article
+        // remains a deliberate gesture (SPECS.md §4.7) and marks it, otherwise
+        // the feed would show it again indefinitely.
         settingsRepository.setAutomaticMarking(enabled = false)
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
@@ -101,8 +101,8 @@ class DiscoverAutomaticMarkingTest {
 
     @Test
     fun turningAutomaticMarkingBackOnResumesWithoutARestart() {
-        // SPECS.md §6 : le réglage s'applique sans redémarrage, par le flux des
-        // réglages déjà observé — et non par une seconde source à surveiller.
+        // SPECS.md §6: the setting applies without a restart, through the
+        // already observed settings flow, not through a second source to watch.
         settingsRepository.setAutomaticMarking(enabled = false)
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
         watch(id = 1L)
@@ -115,9 +115,9 @@ class DiscoverAutomaticMarkingTest {
 
     @Test
     fun turningAutomaticMarkingOffMidWatchDropsTheRunningCountdown() {
-        // Le chronomètre démarré sous l'ancien réglage ne survit pas à
-        // l'extinction : le laisser aboutir marquerait un article après que
-        // l'utilisateur a demandé que cela cesse.
+        // A timer started under the old setting does not survive the switch-off:
+        // letting it complete would mark an article after the user asked for
+        // this to stop.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
         clock.advanceBy(VISIBILITY_THRESHOLD_MILLIS)

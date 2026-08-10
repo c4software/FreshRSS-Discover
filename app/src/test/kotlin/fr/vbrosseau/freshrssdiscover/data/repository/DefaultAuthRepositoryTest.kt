@@ -61,10 +61,9 @@ class DefaultAuthRepositoryTest {
 
     private var online = true
 
-    /** Constate que la déconnexion vide bien la file de marquages (SPECS.md §3.5). */
+    /** Verifies that signing out empties the pending mark queue (SPECS.md §3.5). */
     private val readSyncRepository = FakeReadSyncRepository()
 
-    /** Constate que la déconnexion oublie aussi la position de lecture. */
     private val requestedPaths = mutableListOf<String>()
 
     private lateinit var dataStore: DataStore<Preferences>
@@ -73,7 +72,7 @@ class DefaultAuthRepositoryTest {
     @After
     fun stopWriting() = scope.cancel()
 
-    /** Répond à chaque chemin d'après [routes] ; un chemin non prévu échoue le test. */
+    /** Answers each path according to [routes]; an unexpected path fails the test. */
     private fun repository(vararg routes: Pair<String, MockResponse>): DefaultAuthRepository {
         val byPath = routes.toMap()
         dataStore = PreferenceDataStoreFactory.create(scope = scope) {
@@ -126,7 +125,7 @@ class DefaultAuthRepositoryTest {
         "/check/compatibility" to ok("PASS"),
     )
 
-    // ----- Chemin nominal ----------------------------------------------------
+    // ----- Nominal path ------------------------------------------------------
 
     @Test
     fun aSuccessfulSignInReturnsAndPersistsTheSession() = runTest {
@@ -141,9 +140,9 @@ class DefaultAuthRepositoryTest {
 
     @Test
     fun theInstanceIsRecognizedBeforeAnyCredentialIsSent() = runTest {
-        // Sans cette sonde, une faute de frappe dans l'adresse enverrait le mot
-        // de passe API à un serveur qui n'est pas celui de l'utilisateur, et
-        // produirait un 401 qu'il imputerait à ses identifiants.
+        // Without this probe, a typo in the address would send the API password
+        // to a server that is not the user's, and produce a 401 the user would
+        // blame on their credentials.
         repository(*validLogin).signIn(address, credentials)
 
         val probeIndex = requestedPaths.indexOfFirst { it.endsWith("/greader.php") }
@@ -161,7 +160,7 @@ class DefaultAuthRepositoryTest {
         assertTrue(requestedPaths.none { it.contains("ClientLogin") }, "identifiants envoyés malgré tout")
     }
 
-    // ----- Échecs de connexion ----------------------------------------------
+    // ----- Sign-in failures --------------------------------------------------
 
     @Test
     fun refusedCredentialsAreReportedAsSuch() = runTest {
@@ -175,13 +174,11 @@ class DefaultAuthRepositoryTest {
 
     @Test
     fun aDisabledApiIsDiagnosedEvenThoughTheProbeStillAnswersOk() = runTest {
-        // Constaté sur une instance réelle, API désactivée : la sonde de
-        // reconnaissance répond « OK » et 200, **inchangée**. Le court-circuit
-        // qui la sert est placé avant la vérification `api_enabled` dans le
-        // routeur de FreshRSS.
-        //
-        // Conclure « serveur valide » sur cette seule sonde afficherait donc un
-        // diagnostic faux : c'est ClientLogin qui révèle le 503.
+        // Observed on a real instance with the API disabled: the recognition
+        // probe still answers "OK" with 200, unchanged, because the shortcut
+        // serving it sits before the `api_enabled` check in FreshRSS's router.
+        // Concluding "valid server" from the probe alone would produce a wrong
+        // diagnosis: ClientLogin is what reveals the 503.
         val repository = repository(
             "/greader.php" to ok("OK"),
             "/accounts/ClientLogin" to error(HttpStatusCode.ServiceUnavailable, "Service Unavailable!"),
@@ -192,8 +189,8 @@ class DefaultAuthRepositoryTest {
 
     @Test
     fun aDisabledApiIsAlsoDiagnosedWhenItAnswersOnTheProbeItself() = runTest {
-        // Cas d'un serveur configuré autrement, ou d'une version future : si le
-        // 503 remonte dès la sonde, le diagnostic doit rester le même.
+        // A differently configured server, or a future version: if the 503
+        // surfaces on the probe itself, the diagnosis must stay the same.
         val repository = repository("/greader.php" to error(HttpStatusCode.ServiceUnavailable, "Service Unavailable!"))
 
         assertEquals(AuthError.ApiDisabled, repository.signIn(address, credentials).errorOrNull())
@@ -211,12 +208,12 @@ class DefaultAuthRepositoryTest {
         assertEquals(AuthError.NoNetwork, offline.signIn(address, credentials).errorOrNull())
     }
 
-    // ----- En-tête non transmis ---------------------------------------------
+    // ----- Header not forwarded ----------------------------------------------
 
     @Test
     fun aProxyStrippingTheAuthorizationHeaderIsNamedRatherThanBlamedOnCredentials() = runTest {
-        // Sans ce cas, la connexion réussirait puis chaque appel suivant
-        // échouerait en 401 : l'utilisateur changerait son mot de passe en vain.
+        // Without this case, sign-in would succeed and every subsequent call
+        // would fail with 401: the user would change their password in vain.
         val repository = repository(
             "/greader.php" to ok("OK"),
             "/accounts/ClientLogin" to ok("Auth=alice/c0ffee"),
@@ -230,8 +227,8 @@ class DefaultAuthRepositoryTest {
 
     @Test
     fun noSessionIsStoredWhenTheHeaderIsNotForwarded() = runTest {
-        // Conserver une session vouée à échouer à chaque appel ferait entrer
-        // l'application dans une boucle de 401 sans explication.
+        // Keeping a session doomed to fail on every call would put the app in
+        // an unexplained 401 loop.
         val repository = repository(
             "/greader.php" to ok("OK"),
             "/accounts/ClientLogin" to ok("Auth=alice/c0ffee"),
@@ -245,9 +242,9 @@ class DefaultAuthRepositoryTest {
 
     @Test
     fun theForwardingCheckHappensOnlyAfterTheTokenIsObtained() = runTest {
-        // ClientLogin n'exige aucun en-tête d'autorisation : vérifier avant
-        // aurait coûté un aller-retour à chaque connexion, y compris aux
-        // tentatives vouées à échouer sur les identifiants.
+        // ClientLogin requires no authorization header: checking beforehand
+        // would cost a round trip on every sign-in, including attempts bound to
+        // fail on the credentials.
         repository(*validLogin).signIn(address, credentials)
 
         val loginIndex = requestedPaths.indexOfFirst { it.endsWith("/accounts/ClientLogin") }
@@ -265,13 +262,13 @@ class DefaultAuthRepositoryTest {
         assertTrue(requestedPaths.none { it.contains("compatibility") })
     }
 
-    // ----- Déconnexion -------------------------------------------------------
+    // ----- Sign-out ----------------------------------------------------------
 
     @Test
     fun signingOutAlsoEmptiesThePendingMarkQueue() = runTest {
-        // Ces marquages désignent des articles qui n'existent plus localement :
-        // les transmettre après une reconnexion sur un autre compte serait pire
-        // que de les perdre.
+        // These marks reference articles that no longer exist locally:
+        // transmitting them after reconnecting on another account would be
+        // worse than losing them.
         val repository = repository(*validLogin)
         repository.signIn(address, credentials)
 

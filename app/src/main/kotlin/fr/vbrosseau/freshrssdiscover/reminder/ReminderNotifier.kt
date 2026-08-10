@@ -3,34 +3,32 @@ package fr.vbrosseau.freshrssdiscover.reminder
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderPlan
 
 /**
- * Ce qui affiche le rappel de lecture (SPECS.md §4.9).
+ * Displays the reading reminder (SPECS.md §4.9).
  *
- * Une interface, alors qu'il n'y a qu'une implémentation : elle est la
- * frontière entre ce qui **décide** d'un rappel — éprouvable sans Android — et
- * ce qui le **montre**, qui demande un `NotificationManager`. Sans elle, le
- * travailleur serait intestable autrement qu'en instrumentation.
+ * An interface despite a single implementation: it is the boundary between
+ * deciding a reminder, testable without Android, and showing it, which
+ * requires a `NotificationManager`. Without it the worker could only be
+ * tested through instrumentation.
  */
 interface ReminderNotifier {
 
     /**
-     * Affiche le rappel décrit par [plan].
+     * Shows the reminder described by [plan].
      *
-     * Silencieux si le système refuse les notifications : l'utilisateur a déjà
-     * dit non, et le travailleur n'a rien à en faire — échouer le ferait
-     * réessayer pour un refus qui ne changera pas.
+     * Silent if the system refuses notifications: the user already said no,
+     * and failing would make the worker retry a refusal that will not change.
      */
     fun show(plan: ReminderPlan)
 
     /**
-     * Retire le rappel affiché.
+     * Removes the displayed reminder.
      *
-     * Appelée à l'ouverture de l'application : le rappel a rempli son office au
-     * moment où l'utilisateur arrive, et le laisser dans le volet en ferait un
-     * reliquat que l'on balaie sans y penser — puis, le jour suivant, un
-     * deuxième à côté du premier.
+     * Called when the app opens: the reminder has served its purpose once the
+     * user arrives, and leaving it in the shade would let a second one stack
+     * beside it the next day.
      *
-     * Sans effet s'il n'y a rien d'affiché : l'appelant n'a pas à savoir si un
-     * rappel est parti, ni si l'utilisateur l'a déjà écarté lui-même.
+     * No-op when nothing is shown: the caller need not know whether a
+     * reminder was posted or already dismissed by the user.
      */
     fun dismiss()
 }

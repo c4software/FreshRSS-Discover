@@ -2,55 +2,53 @@ package fr.vbrosseau.freshrssdiscover.presentation.browser
 
 import android.content.ActivityNotFoundException
 
-/** Séparateur entre le schéma et l'autorité d'une URL absolue. */
+/** Separator between the scheme and the authority of an absolute URL. */
 private const val SCHEME_SEPARATOR = "://"
 
 /**
- * Les seuls schémas ouverts.
+ * The only schemes that get opened.
  *
- * Un flux RSS est du contenu tiers non maîtrisé : son `link` peut porter
- * n'importe quoi. `javascript:`, `file:` ou `intent:` ne désignent pas une page
- * web mais une exécution locale, un fichier de l'appareil ou une intention
- * arbitraire adressée à une autre application — trois façons de laisser un
- * serveur distant décider de ce que fait le téléphone. Seul le web est ouvert.
+ * An RSS feed is untrusted third-party content: its `link` can carry
+ * anything. `javascript:`, `file:` or `intent:` do not designate a web page
+ * but local execution, a device file, or an arbitrary intent aimed at another
+ * app, each letting a remote server decide what the phone does. Only the web
+ * is opened.
  */
 private val ALLOWED_SCHEMES = setOf("http", "https")
 
 /**
- * Lance l'onglet personnalisé.
+ * Launches the Custom Tab.
  *
- * L'interface est réduite à ce seul geste, volontairement : elle isole la
- * partie non éprouvable (un `Context`, une `Activity` qui démarre) pour que la
- * *décision* — quelle URL mérite d'être ouverte — reste testable en JVM, à la
- * manière de `NetworkAvailability`.
+ * The interface is deliberately reduced to this one action: it isolates the
+ * untestable part (a `Context`, an `Activity` start) so that the decision of
+ * which URL deserves to be opened stays testable on the JVM, like
+ * `NetworkAvailability`.
  *
- * Elle **n'expose ni préconnexion, ni préchargement, ni « warmup »** du service
- * Custom Tabs. Ces appels émettraient des requêtes vers un domaine tiers avant
- * même que l'utilisateur ait touché l'article : ce serait une connexion
- * sortante qu'il n'a pas demandée, contraire à SPECS.md §7.4. L'ouverture d'un
- * lien reste une action à son initiative, et rien ne part avant son geste.
+ * It exposes no preconnect, preload, or warmup of the Custom Tabs service.
+ * Those calls would send requests to a third-party domain before the user
+ * even touched the article: an outgoing connection the user never asked for,
+ * contrary to SPECS.md §7.4. Nothing leaves before the user's gesture.
  *
- * @throws ActivityNotFoundException si aucune application ne gère l'intention.
+ * @throws ActivityNotFoundException if no app handles the intent.
  */
 internal fun interface CustomTabLauncher {
     fun launch(url: String)
 }
 
 /**
- * Décide si un lien d'article doit être ouvert, et l'ouvre le cas échéant.
+ * Decides whether an article link should be opened, and opens it if so.
  *
- * L'écran rend déjà non cliquable un article sans lien (SPECS.md §4.7), mais
- * cette classe ne fait pas confiance à son appelant : la règle de sécurité ne
- * vaut que si elle est appliquée au dernier moment, là où l'ouverture a lieu.
+ * The screen already makes an article without a link non-clickable
+ * (SPECS.md §4.7), but this class does not trust its caller: the security
+ * rule only holds if applied at the last moment, where the open happens.
  */
 internal class ArticleOpener(private val launcher: CustomTabLauncher) {
     /**
-     * Ne rend rien : aucun appelant n'a de conduite à tenir selon l'issue — un
-     * lien refusé se tait, et l'écran a déjà rendu non cliquable ce qui n'a pas
-     * de lien. Une issue détaillée a existé ici, que tous les appelants
-     * jetaient (AGENTS.md §2).
+     * Returns nothing: no caller has any behavior to adopt based on the
+     * outcome. A rejected link stays silent, and the screen has already made
+     * link-less articles non-clickable (AGENTS.md §2).
      *
-     * @param url le lien d'origine de l'article, éventuellement absent.
+     * @param url the article's original link, possibly absent.
      */
     fun open(url: String?) {
         val target = url?.trim().orEmpty()
@@ -59,29 +57,28 @@ internal class ArticleOpener(private val launcher: CustomTabLauncher) {
     }
 
     /**
-     * Un appareil dépouillé — image système minimale, navigateur désactivé par
-     * une politique d'entreprise — n'a rien pour afficher une page web, et
-     * `startActivity` lève alors une exception. Planter sur un lien invalide
-     * serait la pire réponse possible : le geste est sans conséquence, l'échec
-     * doit l'être aussi.
+     * A stripped-down device (minimal system image, browser disabled by
+     * enterprise policy) has nothing to display a web page, and
+     * `startActivity` then throws. Crashing would be the worst response: the
+     * gesture is inconsequential, so its failure must be too.
      */
     private fun launchIgnoringAbsentBrowser(url: String) {
         try {
             launcher.launch(url)
         } catch (ignored: ActivityNotFoundException) {
-            // Rien à afficher : le geste est sans conséquence, l'échec aussi.
+            // Nothing to show: the gesture is inconsequential, so is the failure.
         }
     }
 }
 
 /**
- * L'autorité est exigée en plus du schéma : `https:` seul est une URL valide au
- * sens de la syntaxe, mais ne désigne aucune page. La comparaison est
- * insensible à la casse, un schéma l'étant par définition (RFC 3986 §3.1).
+ * The authority is required in addition to the scheme: `https:` alone is
+ * syntactically valid but designates no page. The comparison is
+ * case-insensitive, as schemes are by definition (RFC 3986 §3.1).
  *
- * `internal` et non `private` : [ArticleSharer] applique **la même** règle, et
- * la dupliquer laisserait les deux copies diverger. Un lien qu'on refuse
- * d'ouvrir est aussi un lien qu'on refuse d'envoyer à une autre application.
+ * `internal` rather than `private`: [ArticleSharer] applies the same rule,
+ * and duplicating it would let the two copies diverge. A link refused for
+ * opening is also refused for handing to another app.
  */
 internal fun String.isSupportedWebLink(): Boolean {
     val separator = indexOf(SCHEME_SEPARATOR)

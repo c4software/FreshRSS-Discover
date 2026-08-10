@@ -17,7 +17,7 @@ class RelativeTimeTest {
 
     @Test
     fun anArticleOfTheLastMinuteHasNoNumber() {
-        // « il y a 0 min » serait absurde.
+        // "0 min ago" would be absurd.
         assertEquals(RelativeTime.JustNow, ago(0))
         assertEquals(RelativeTime.JustNow, ago(MINUTE - 1))
     }
@@ -55,8 +55,8 @@ class RelativeTimeTest {
 
     @Test
     fun aFutureDateIsShownAsJustNow() {
-        // Horloge de serveur en avance, article postdaté : « il y a -3 min »
-        // serait faux *et* illisible.
+        // Server clock ahead, or a postdated article: "-3 min ago" would be
+        // both wrong and unreadable.
         assertEquals(RelativeTime.JustNow, ago(-HOUR))
     }
 }

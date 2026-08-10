@@ -64,25 +64,21 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/** La version courante d'`AppDatabase`, telle que `app/schemas/…/2.json` la décrit. */
+/** Current `AppDatabase` version, as described by `app/schemas/…/2.json`. */
 private const val EXPECTED_DATABASE_VERSION = 2
 
 /**
- * Éprouve la construction **complète** du graphe d'injection.
+ * Exercises the complete construction of the injection graph.
  *
- * Hilt vérifie beaucoup à la compilation : un binding manquant ne compile pas.
- * Il ne vérifie rien de ce qui arrive à l'**instanciation** — un `@Provides`
- * qui lève, une base qu'on n'arrive pas à ouvrir, un cycle qui ne se referme
- * qu'à l'exécution. Or, jusqu'ici, aucun test ne demandait au graphe autre
- * chose que trois dispatchers ([DispatcherModuleTest]) : le reste n'était
- * fabriqué que par l'application réelle, chez l'utilisateur.
+ * Hilt checks a lot at compile time: a missing binding does not compile. It
+ * checks nothing about instantiation: a throwing `@Provides`, a database that
+ * fails to open, a cycle that only closes at runtime. This test therefore
+ * actually requests every piece of the graph.
  *
- * Ce test demande donc effectivement chaque pièce du graphe.
- *
- * Il vérifie de plus **vers quelle implémentation** chaque `@Binds` pointe.
- * C'est le pendant de l'inversion de qualifiers que couvre
- * [DispatcherModuleTest] : lier `AuthRepository` à la mauvaise classe compile
- * parfaitement, seule une vérification à l'exécution le voit.
+ * It also verifies which implementation each `@Binds` points to, the
+ * counterpart of the qualifier inversion covered by [DispatcherModuleTest]:
+ * binding `AuthRepository` to the wrong class compiles fine, and only a
+ * runtime check can see it.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -163,14 +159,13 @@ class AppGraphTest {
     lateinit var applicationScope: CoroutineScope
 
     /**
-     * `WorkManager` est initialisé **avant** l'injection, et pas seulement pour
-     * faire passer ce test.
+     * `WorkManager` must be initialized before injection.
      *
-     * Le graphe fournit le `WorkManager` de l'application, qui n'existe pas
-     * sous `HiltTestApplication` : sans cette amorce, l'injection échoue avant
-     * même qu'un ViewModel soit construit, et le planificateur réel doit être
-     * remplacé par un double. Or ce test n'a de valeur que si **tout** vient du
-     * graphe réel — un double y est un trou, pas une commodité.
+     * The graph provides the application's `WorkManager`, which does not exist
+     * under `HiltTestApplication`: without this bootstrap, injection fails
+     * before any ViewModel is built and the real scheduler would have to be
+     * replaced by a fake. This test only has value if everything comes from
+     * the real graph.
      */
     @Before
     fun injectDependencies() {
@@ -182,15 +177,15 @@ class AppGraphTest {
     }
 
     /**
-     * La base vient du graphe, donc d'un vrai fichier : la refermer évite de
-     * laisser une connexion SQLite ouverte d'un test à l'autre.
+     * The database comes from the graph, hence a real file: closing it avoids
+     * leaking an open SQLite connection from one test to the next.
      */
     @After
     fun closeDatabase() {
         database.close()
     }
 
-    // ----- Résolution ---------------------------------------------------------
+    // ----- Resolution ---------------------------------------------------------
 
     @Test
     fun everyRepositoryResolvesToItsProductionImplementation() {
@@ -205,19 +200,19 @@ class AppGraphTest {
 
     @Test
     fun theSecretCipherResolvesToTheKeystoreImplementation() {
-        // Le seul composant que les tests ne peuvent pas exercer — Robolectric
-        // ne simule pas `AndroidKeyStore`. Sa *construction* par le graphe, en
-        // revanche, se vérifie : c'est elle qui échouerait si le `@Binds`
-        // désignait un jour une implémentation de test.
+        // The only component tests cannot exercise, since Robolectric does not
+        // simulate `AndroidKeyStore`. Its construction by the graph is
+        // verifiable, and would fail if the `@Binds` ever pointed to a test
+        // implementation.
         assertIs<KeystoreSecretCipher>(secretCipher)
     }
 
     @Test
     fun everyPersistenceComponentIsBuiltByTheGraph() = runTest {
-        // Room, DataStore et leurs enveloppes sont demandés ensemble, et
-        // réellement interrogés : chacun n'exécute son code d'ouverture qu'au
-        // premier accès, ce que ni le processeur Hilt ni la simple fourniture
-        // de l'objet ne déclenchent.
+        // Room, DataStore and their wrappers are requested together and
+        // actually queried: each only runs its opening code on first access,
+        // which neither the Hilt processor nor merely providing the object
+        // triggers.
         assertEquals(EXPECTED_DATABASE_VERSION, database.openHelper.writableDatabase.version)
         assertTrue(articleDao.readArticleIdsAmong(listOf(1L)).isEmpty())
         assertTrue(pendingMarkDao.pending(limit = 1).isEmpty())
@@ -229,8 +224,8 @@ class AppGraphTest {
 
     @Test
     fun theHttpClientAndTheApiAreBuiltByTheGraph() {
-        // `createFreshRssHttpClient` installe négociation de contenu et
-        // journalisation ; une configuration invalide ne se voit qu'ici.
+        // `createFreshRssHttpClient` installs content negotiation and logging;
+        // an invalid configuration only shows up here.
         assertTrue(httpClient.isActive)
         assertIs<FreshRssApi>(api)
     }
@@ -241,13 +236,12 @@ class AppGraphTest {
         assertTrue(clock.nowEpochMillis() > 0L)
     }
 
-    // ----- Portées ------------------------------------------------------------
+    // ----- Scopes -------------------------------------------------------------
 
     @Test
     fun singletonBindingsAreSharedRatherThanRebuilt() {
-        // Une portée oubliée compile : elle produit seulement deux bases, deux
-        // clients HTTP, deux caches — et deux vérités là où l'application en
-        // suppose une.
+        // A forgotten scope compiles: it just produces two databases, two HTTP
+        // clients, two caches, and two truths where the application assumes one.
         assertSame(database, databaseProvider.get())
         assertSame(httpClient, httpClientProvider.get())
         assertSame(articleCache, articleCacheProvider.get())
@@ -257,11 +251,11 @@ class AppGraphTest {
 
     @Test
     fun everyViewModelIsBuiltFromRealGraphDependencies() {
-        // Hilt **interdit** d'injecter directement une `@HiltViewModel` : leur
-        // graphe vit dans un composant propre à l'écran, et le compilateur
-        // rejette la demande. Ce qui s'établit sans démarrer d'Activity, c'est
-        // que leurs dépendances viennent toutes du graphe réel et suffisent à
-        // les construire — un `init` qui lèverait apparaîtrait ici.
+        // Hilt forbids injecting a `@HiltViewModel` directly: their graph lives
+        // in a screen-scoped component and the compiler rejects the request.
+        // What can be established without starting an Activity is that their
+        // dependencies all come from the real graph and suffice to build them;
+        // a throwing `init` would surface here.
         val sessionGate = SessionGateViewModel(authRepository)
         val login = LoginViewModel(authRepository)
         val discover = DiscoverViewModel(
@@ -283,9 +277,9 @@ class AppGraphTest {
             assertEquals(DiscoverPhase.InitialLoading, discover.uiState.value.phase)
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {
-            // Les travaux lancés dans un `init` vivraient sinon plus longtemps
-            // que le test et retomberaient sur un environnement Robolectric
-            // démonté — le piège décrit par `TestApplication`.
+            // Jobs launched in an `init` would otherwise outlive the test and
+            // land on a torn-down Robolectric environment, the trap described
+            // by `TestApplication`.
             listOf(sessionGate, login, discover, settings).forEach(ViewModel::cancelScope)
         }
     }

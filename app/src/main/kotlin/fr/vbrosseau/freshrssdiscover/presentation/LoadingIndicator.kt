@@ -11,12 +11,12 @@ import androidx.compose.ui.platform.testTag
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
 /**
- * Indicateur affiché tant qu'un écran n'a pas reçu son premier état constaté.
+ * Indicator shown until a screen receives its first observed state.
  *
- * Rendre l'état par défaut d'un `UiState` ferait apparaître un écran « vide »
- * — liste sans entrée, tunnel inconnu, réglages d'usine — le temps que Room,
- * DataStore ou le système livrent leur première valeur. Ce vide se lirait
- * comme une donnée, pas comme une attente.
+ * Rendering a `UiState`'s default values would show an "empty" screen (list
+ * with no entries, factory settings) while Room, DataStore, or the system
+ * deliver their first value. That emptiness would read as data, not as
+ * waiting.
  */
 @Composable
 fun LoadingIndicator(modifier: Modifier = Modifier) {

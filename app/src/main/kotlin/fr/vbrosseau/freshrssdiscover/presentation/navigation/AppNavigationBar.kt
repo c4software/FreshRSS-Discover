@@ -13,10 +13,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavHostController
 
 /**
- * Barre de navigation entre les destinations principales.
+ * Navigation bar between top-level destinations.
  *
- * Elle est pilotée par l'énumération [AppDestination] : ajouter une destination
- * ne demande aucune modification ici.
+ * Driven by the [AppDestination] enum: adding a destination requires no
+ * change here.
  */
 @Composable
 fun AppNavigationBar(
@@ -51,11 +51,10 @@ fun AppNavigationBar(
 }
 
 /**
- * Navigue vers une destination de la barre.
+ * Navigates to a bar destination.
  *
- * `launchSingleTop` et le retour à la racine évitent d'empiler indéfiniment les
- * destinations : sans eux, dix allers-retours produiraient dix entrées dans la
- * pile de retour.
+ * `launchSingleTop` and popping to the root prevent unbounded stacking: without
+ * them, ten round trips would produce ten back-stack entries.
  */
 fun NavHostController.navigateToTopLevel(destination: AppDestination) {
     navigate(destination.route) {

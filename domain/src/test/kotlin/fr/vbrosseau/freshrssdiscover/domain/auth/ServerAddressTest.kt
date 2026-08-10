@@ -6,10 +6,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Cette normalisation est le premier contact de l'utilisateur avec
- * l'application, et le plus exposé aux fautes de frappe. Elle est pure : la
- * couvrir exhaustivement ne coûte rien et évite un aller-retour réseau par cas
- * limite.
+ * This normalization is the user's first contact with the app and the most
+ * exposed to typos. It is pure: covering it exhaustively costs nothing and
+ * avoids a network round trip per edge case.
  */
 class ServerAddressTest {
     private fun parsed(raw: String): ServerAddress {
@@ -20,8 +19,8 @@ class ServerAddressTest {
 
     @Test
     fun aBareDomainNameGetsHttps() {
-        // La saisie la plus courante. Sans schéma implicite, `URI` n'y voit
-        // aucun hôte et tout échouerait dès le premier essai.
+        // The most common input. Without an implicit scheme, `URI` sees no
+        // host and everything would fail on the first attempt.
         val address = parsed("rss.exemple.org")
 
         assertEquals("https://rss.exemple.org", address.baseUrl)
@@ -43,8 +42,8 @@ class ServerAddressTest {
 
     @Test
     fun httpIsAcceptedButFlaggedAsInsecure() {
-        // Les instances auto-hébergées sur réseau local sont un cas réel :
-        // les refuser rendrait l'application inutilisable pour elles.
+        // Self-hosted instances on a local network are a real case; rejecting
+        // them would make the app unusable there.
         val address = parsed("http://192.168.1.20:8080")
 
         assertEquals("http://192.168.1.20:8080", address.baseUrl)
@@ -53,7 +52,7 @@ class ServerAddressTest {
 
     @Test
     fun surroundingWhitespaceIsIgnored() {
-        // Un copier-coller depuis un courriel emporte souvent une espace.
+        // Copy-pasting from an email often carries whitespace along.
         assertEquals("https://exemple.org", parsed("  https://exemple.org \n").baseUrl)
     }
 
@@ -64,8 +63,8 @@ class ServerAddressTest {
 
     @Test
     fun aSubdirectoryInstallationIsPreserved() {
-        // FreshRSS s'installe couramment dans un sous-répertoire ; le perdre
-        // ferait répondre 404 à tous les appels.
+        // FreshRSS is commonly installed in a subdirectory; losing it would
+        // make every call return 404.
         assertEquals("https://exemple.org/freshrss", parsed("exemple.org/freshrss/").baseUrl)
         assertEquals(
             "https://exemple.org/freshrss/api/greader.php",
@@ -75,9 +74,9 @@ class ServerAddressTest {
 
     @Test
     fun aPastedApiUrlIsAcceptedAndReducedToItsRoot() {
-        // Cette URL figure dans la documentation de FreshRSS et dans la
-        // configuration des autres clients : la recopier est un geste naturel.
-        // La concaténer telle quelle donnerait `…/greader.php/api/greader.php`.
+        // This URL appears in the FreshRSS documentation and in other
+        // clients' configuration, so pasting it is natural. Concatenating it
+        // as-is would yield `…/greader.php/api/greader.php`.
         val address = parsed("https://exemple.org/api/greader.php")
 
         assertEquals("https://exemple.org", address.baseUrl)
@@ -99,16 +98,15 @@ class ServerAddressTest {
 
     @Test
     fun theHostIsLowercasedButThePathIsNot() {
-        // Un nom d'hôte est insensible à la casse ; un chemin ne l'est pas, et
-        // le mettre en minuscules casserait `/FreshRSS`.
+        // A hostname is case-insensitive; a path is not, and lowercasing it
+        // would break `/FreshRSS`.
         assertEquals("https://exemple.org/FreshRSS", parsed("HTTPS://Exemple.ORG/FreshRSS").baseUrl)
     }
 
     @Test
     fun theDefaultPortOfTheSchemeIsDropped() {
-        // Sans cela, `exemple.org` et `exemple.org:443` produiraient deux
-        // adresses distinctes, donc deux sessions distinctes pour un même
-        // serveur.
+        // Otherwise `exemple.org` and `exemple.org:443` would produce two
+        // distinct addresses, hence two distinct sessions for one server.
         assertEquals("https://exemple.org", parsed("https://exemple.org:443").baseUrl)
         assertEquals("http://exemple.org", parsed("http://exemple.org:80").baseUrl)
     }
@@ -120,7 +118,7 @@ class ServerAddressTest {
 
     @Test
     fun theDefaultPortOfTheOtherSchemeIsNotDropped() {
-        // 80 n'est pas le port par défaut de https : le retirer changerait la
+        // 80 is not the default port for https: removing it would change the
         // destination.
         assertEquals("https://exemple.org:80", parsed("https://exemple.org:80").baseUrl)
     }
@@ -133,8 +131,8 @@ class ServerAddressTest {
 
     @Test
     fun anUnsupportedSchemeIsNamedInTheResult() {
-        // Le nommer permet d'écrire un message utile plutôt qu'« adresse
-        // invalide ».
+        // Naming the scheme allows a useful message instead of a generic
+        // "invalid address".
         assertEquals(
             ServerAddressResult.UnsupportedScheme("ftp"),
             ServerAddress.parse("ftp://exemple.org"),
@@ -153,16 +151,16 @@ class ServerAddressTest {
 
     @Test
     fun anInputThatIsNotAUriAtAllIsMalformed() {
-        // Les espaces internes et les crochets déséquilibrés font lever `URI`,
-        // que `parse` rattrape plutôt que de la laisser remonter.
+        // Internal spaces and unbalanced brackets make `URI` throw; `parse`
+        // catches that instead of letting it propagate.
         assertEquals(ServerAddressResult.Malformed, ServerAddress.parse("ex emple.org"))
         assertEquals(ServerAddressResult.Malformed, ServerAddress.parse("http://[oups"))
     }
 
     @Test
     fun twoAddressesAreEqualWhenTheyDesignateTheSameInstance() {
-        // C'est cette égalité qui décide si une session enregistrée correspond
-        // au serveur saisi.
+        // This equality decides whether a stored session matches the server
+        // the user typed.
         assertEquals(parsed("exemple.org"), parsed("HTTPS://Exemple.org:443/"))
         assertEquals(parsed("exemple.org").hashCode(), parsed("https://exemple.org").hashCode())
     }
@@ -179,7 +177,7 @@ class ServerAddressTest {
 
     @Test
     fun toStringShowsTheNormalizedAddress() {
-        // Sans secret à masquer ici : voir l'adresse en journal est utile.
+        // No secret to mask here: seeing the address in logs is useful.
         assertTrue("https://exemple.org" in parsed("exemple.org").toString())
     }
 }

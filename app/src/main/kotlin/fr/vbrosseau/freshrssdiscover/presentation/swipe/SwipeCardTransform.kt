@@ -1,40 +1,40 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
 /**
- * Inclinaison maximale d'une carte qui s'en va, en degrés.
+ * Maximum tilt of a departing card, in degrees.
  *
- * Douze, et pas davantage : la carte occupe presque toute la hauteur de
- * l'écran, et le pivot est placé sous elle — un degré de rotation y déplace le
- * coin supérieur de bien plus que sur la vignette carrée d'où vient ce motif.
- * À vingt degrés, le titre sortait du cadre avant que la carte n'ait parcouru
- * la moitié de l'écran.
+ * Twelve and no more: the card fills nearly the whole screen height and the
+ * pivot sits below it, so one degree of rotation moves the top corner much
+ * farther than on the square thumbnail this pattern comes from. At twenty
+ * degrees, the title left the frame before the card had crossed half the
+ * screen.
  */
 private const val MAX_ROTATION_DEGREES = 12f
 
 /**
- * Échelle de la carte du dessous quand elle est encore entièrement couverte.
+ * Scale of the card underneath while still fully covered.
  *
- * Elle doit se voir comme une carte **en attente**, pas comme la même carte
- * rendue floue : 0,92 se distingue nettement au bord sans que le texte ne
- * paraisse rapetissé au moment où elle prend la place de la précédente.
+ * It must read as a waiting card, not the same card blurred: 0.92 is clearly
+ * distinct at the edge without the text looking shrunk when it takes the
+ * previous card's place.
  */
 private const val DECK_MIN_SCALE = 0.92f
 
 /**
- * Opacité résiduelle d'une carte parvenue au bord de l'écran.
+ * Residual opacity of a card reaching the screen edge.
  *
- * Elle ne descend pas à zéro : une carte qui s'efface complètement avant
- * d'avoir quitté le cadre donne l'impression de se dissoudre sur place, alors
- * que le geste dit qu'on la met de côté.
+ * It does not drop to zero: a card fully fading before leaving the frame
+ * looks like it dissolves in place, whereas the gesture says it is being set
+ * aside.
  */
 private const val EXIT_MIN_ALPHA = 0.4f
 
 /**
- * Ce qu'il faut appliquer à une carte pour la faire tenir dans la pile.
+ * Transform to apply to a card so it fits in the stack.
  *
- * @property translationXFraction décalage horizontal **à ajouter** à celui que
- *   le pagineur applique déjà, exprimé en fraction de la largeur d'une page.
- * @property drawOrder ordre de dessin : la plus grande valeur passe devant.
+ * @property translationXFraction horizontal offset to add to the one the
+ *   pager already applies, as a fraction of a page width.
+ * @property drawOrder draw order: the highest value is drawn in front.
  */
 data class SwipeCardTransform(
     val translationXFraction: Float,
@@ -45,32 +45,30 @@ data class SwipeCardTransform(
 )
 
 /**
- * La pile de cartes, à partir de la seule position du pagineur.
+ * Computes the card stack from the pager position alone.
  *
- * [pageOffset] vaut 0 pour la carte posée, devient **positif** quand elle part
- * vers la gauche, et négatif pour celle qui attend derrière — c'est la
- * convention du pagineur, `(currentPage - page) + currentPageOffsetFraction`.
+ * [pageOffset] is 0 for the settled card, positive as it leaves to the left,
+ * and negative for the one waiting behind; this is the pager convention,
+ * `(currentPage - page) + currentPageOffsetFraction`.
  *
- * Une seule règle, et elle est symétrique : **la carte au décalage positif est
- * celle qui vole**, l'autre est la pile. En avant, la carte courante s'en va
- * vers la gauche et la suivante monte derrière ; en arrière, c'est la
- * précédente qui revient par la gauche et se repose sur le dessus, pendant que
- * la courante redescend dans la pile. Le même calcul rend les deux sens sans
- * qu'aucun n'ait à être traité à part.
+ * One symmetric rule: the card with a positive offset is the flying one, the
+ * other is the deck. Going forward, the current card leaves left and the next
+ * rises behind; going back, the previous one returns from the left onto the
+ * top while the current one sinks back into the deck. The same computation
+ * renders both directions with no special case.
  *
- * La carte qui vole **garde le déplacement du pagineur** : c'est lui qui la
- * sort de l'écran, et le doigt doit la sentir suivre. Celle du dessous
- * l'**annule** au contraire, pour rester centrée — sans quoi elle glisserait
- * depuis le bord comme une page ordinaire, et il n'y aurait pas de pile mais un
- * défilement de plus.
+ * The flying card keeps the pager's translation: the pager moves it off
+ * screen, and the finger must feel it follow. The card underneath cancels it
+ * instead, to stay centered; otherwise it would slide in from the edge like
+ * an ordinary page and there would be no stack, just more scrolling.
  *
- * Fonction pure, hors de tout `Composable` : c'est ce qui permet d'éprouver la
- * géométrie sans rendre quoi que ce soit, et d'affirmer qu'aucune carte ne
- * devient invisible ou renversée à mi-geste (AGENTS.md §9).
+ * Pure function, outside any `Composable`: the geometry can be tested without
+ * rendering, asserting that no card becomes invisible or flipped mid-gesture
+ * (AGENTS.md §9).
  */
 fun swipeCardTransform(pageOffset: Float): SwipeCardTransform {
     if (pageOffset < 0f) {
-        // La pile : centrée, à l'échelle, et derrière.
+        // The deck: centered, scaled, and behind.
         val revealed = (1f + pageOffset).coerceIn(0f, 1f)
         return SwipeCardTransform(
             translationXFraction = pageOffset,
@@ -84,8 +82,8 @@ fun swipeCardTransform(pageOffset: Float): SwipeCardTransform {
     val travelled = pageOffset.coerceIn(0f, 1f)
     return SwipeCardTransform(
         translationXFraction = 0f,
-        // Négatif : la carte part vers la gauche, donc son sommet penche à
-        // gauche — une inclinaison inverse la ferait paraître retenue.
+        // Negative: the card leaves to the left, so its top tilts left; the
+        // opposite tilt would make it look held back.
         rotationDegrees = -travelled * MAX_ROTATION_DEGREES,
         scale = 1f,
         alpha = 1f - (1f - EXIT_MIN_ALPHA) * travelled,

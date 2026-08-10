@@ -9,22 +9,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
-/**
- * Le chiffrement des secrets au repos, éprouvé pour de bon.
- *
- * Il ne l'était pas : `AndroidKeyStore` n'était pas simulé, et la classe était
- * restée le seul composant de production sans test — celui-là même qui protège
- * le jeton FreshRSS. `SecretCipher` permettait de tester *autour* d'elle ; ce
- * fichier teste **elle**.
- */
+/** Tests the encryption of secrets at rest. */
 @RunWith(RobolectricTestRunner::class)
 class KeystoreSecretCipherTest {
     /**
-     * Une clé AES ordinaire, en mémoire.
+     * An ordinary in-memory AES key.
      *
-     * Elle tient exactement le rôle de celle du magasin matériel du point de
-     * vue du chiffreur : c'est le partage introduit par `SecretKeySource` qui
-     * rend cette substitution possible, et donc ce fichier possible.
+     * From the cipher's point of view it plays exactly the role of the hardware
+     * keystore key; the `SecretKeySource` indirection is what makes this
+     * substitution, and therefore this test, possible.
      */
     private val key: SecretKey = KeyGenerator.getInstance("AES")
         .apply { init(AES_KEY_BITS) }
@@ -49,9 +42,9 @@ class KeystoreSecretCipherTest {
 
     @Test
     fun theSameSecretEncryptedTwiceGivesTwoDifferentTexts() {
-        // Le vecteur d'initialisation change à chaque chiffrement : deux jetons
-        // identiques ne doivent pas produire deux écritures identiques, faute
-        // de quoi la seule lecture du fichier trahirait leur égalité.
+        // The initialization vector changes on every encryption: two identical
+        // tokens must not produce identical writes, otherwise merely reading
+        // the file would betray their equality.
         assertNotEquals(cipher.encrypt("un secret"), cipher.encrypt("un secret"))
     }
 
@@ -64,9 +57,9 @@ class KeystoreSecretCipherTest {
 
     @Test
     fun aTextThatIsNotOneIsReadAsAnAbsentSecret() {
-        // Cas réel : verrouillage d'écran changé, sauvegarde restaurée ailleurs.
-        // La clé est perdue et le secret illisible — la session doit alors être
-        // traitée comme absente, jamais faire tomber l'application.
+        // Real-world case: screen lock changed, backup restored elsewhere. The
+        // key is lost and the secret unreadable; the session must then be
+        // treated as absent, never crash the application.
         assertNull(cipher.decrypt("n'importe quoi"))
     }
 
@@ -79,8 +72,8 @@ class KeystoreSecretCipherTest {
 
     @Test
     fun aTamperedPayloadIsRefused() {
-        // GCM authentifie le message : un octet modifié doit faire échouer le
-        // déchiffrement plutôt que rendre un texte approchant.
+        // GCM authenticates the message: a modified byte must make decryption
+        // fail rather than return an approximate text.
         val (iv, payload) = cipher.encrypt("un secret").split(":")
         val tampered = payload.replaceFirst(payload.first(), if (payload.first() == 'A') 'B' else 'A')
 
@@ -94,9 +87,9 @@ class KeystoreSecretCipherTest {
 
     @Test
     fun aSecondInstanceReadsWhatTheFirstWrote() {
-        // La clé vit dans le magasin, pas dans l'objet : un nouveau chiffreur
-        // — ce qu'est chaque lancement de l'application — doit relire les
-        // secrets déjà écrits.
+        // The key lives in the store, not in the object: a new cipher, which is
+        // what every application launch creates, must read back secrets already
+        // written.
         val encrypted = cipher.encrypt("alice/c0ffee")
 
         assertEquals("alice/c0ffee", KeystoreSecretCipher { key }.decrypt(encrypted))

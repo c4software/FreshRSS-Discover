@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 
 private const val NOW_SECONDS = 1_700_000_000L
 
-/** Durée d'affichage continu exigée par SPECS.md §4.5, reprise ici pour la lisibilité des cas. */
+/** Continuous display duration required by SPECS.md §4.5, repeated here for case readability. */
 private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
 
 private const val ONE_HOUR_MILLIS = 60L * 60L * 1_000L
@@ -36,8 +36,8 @@ private const val TWELVE_HOURS_MILLIS = 12L * ONE_HOUR_MILLIS
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiscoverViewModelTest {
     /**
-     * Gardé sous la main : les cas d'ancienneté font avancer son ordonnanceur
-     * virtuel, faute de quoi le réveil périodique attendrait réellement.
+     * Kept at hand: the staleness cases advance its virtual scheduler,
+     * otherwise the periodic wake-up would really wait.
      */
     private val dispatcher = UnconfinedTestDispatcher()
 
@@ -48,9 +48,9 @@ class DiscoverViewModelTest {
     private val clock = FakeClock(NOW_SECONDS * 1_000L)
 
     /**
-     * Construit **paresseusement** : le ViewModel charge sa première page dès
-     * sa création, sur `Dispatchers.Main`. Un initialiseur de propriété
-     * s'exécuterait avant que [MainDispatcherRule] ne l'ait substitué.
+     * Built lazily: the ViewModel loads its first page on creation, on
+     * `Dispatchers.Main`. A property initializer would run before
+     * [MainDispatcherRule] has substituted it.
      */
     private val viewModel: DiscoverViewModel by lazy {
         DiscoverViewModel(
@@ -64,25 +64,24 @@ class DiscoverViewModelTest {
 
     private val freshnessRepository = FakeFeedFreshnessRepository()
 
-    /** Reçoit les lots de marquage : c'est lui qui remplace l'ancien rappel. */
+    /** Receives the mark batches. */
     private val readSyncRepository = FakeReadSyncRepository()
 
     private val settingsRepository = FakeSettingsRepository()
 
     private val state get() = viewModel.uiState.value
 
-    /** Un élément par appel du rappel : c'est le lotissement lui-même qui est vérifié. */
-    /** Les lots transmis au dépôt de synchronisation, dans l'ordre d'émission. */
+    /** Batches sent to the sync repository, in emission order; batching itself is verified. */
     private val reportedBatches: List<Set<ArticleId>> get() = readSyncRepository.markCalls
 
     private val readArticles: Set<ArticleId> get() = reportedBatches.flatten().toSet()
 
-    // ----- Premier chargement -------------------------------------------------
+    // ----- First load ---------------------------------------------------------
 
     @Test
     fun theFirstPageIsRequestedWithoutAnyCursor() {
-        // Seul `null` demande le début du flux : un curseur vide relancerait la
-        // première page sans que rien ne le signale.
+        // Only `null` requests the start of the feed: an empty cursor would
+        // re-request the first page without anything signalling it.
         repository.enqueuePage(listOf(article(id = 1L)))
 
         viewModel.loadMore()
@@ -112,8 +111,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun theRelativeDateComesFromTheInjectedClock() {
-        // Jamais de `System.currentTimeMillis()` : sans horloge injectée, la
-        // date affichée dépendrait de l'heure de la machine.
+        // Never `System.currentTimeMillis()`: without an injected clock, the
+        // displayed date would depend on the machine time.
         repository.enqueuePage(listOf(article(id = 1L, publishedAtEpochSeconds = NOW_SECONDS - 7_200L)))
 
         assertEquals(RelativeTime.Hours(2), state.articles.single().publishedAt)
@@ -144,11 +143,11 @@ class DiscoverViewModelTest {
 
     @Test
     fun twoLoadMoreCallsInFlightTriggerASingleRequest() {
-        // Le défilement appelle `loadMore()` à chaque image : sans idempotence,
-        // une même page serait demandée plusieurs fois.
+        // Scrolling calls `loadMore()` on every frame: without idempotence,
+        // the same page would be requested several times.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        // Force la construction du ViewModel : sa première page doit aboutir
-        // avant qu'un chargement suspendu ne soit armé.
+        // Forces ViewModel construction: its first page must complete before a
+        // suspended load is armed.
         assertEquals(DiscoverPhase.Idle, state.phase)
         repository.pendingLoad = CompletableDeferred()
 
@@ -165,8 +164,7 @@ class DiscoverViewModelTest {
 
     @Test
     fun theArticlesAlreadyShownStayVisibleWhileTheNextPageLoads() {
-        // Un indicateur qui remplacerait la liste ferait perdre la lecture en
-        // cours.
+        // An indicator replacing the list would lose the reading in progress.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(DiscoverPhase.Idle, state.phase)
         repository.pendingLoad = CompletableDeferred()
@@ -179,11 +177,11 @@ class DiscoverViewModelTest {
         repository.completeLoad(Outcome.Success(ArticlePage(emptyList(), null)))
     }
 
-    // ----- Fin de flux --------------------------------------------------------
+    // ----- End of feed --------------------------------------------------------
 
     @Test
     fun anAbsentCursorEndsTheFeed() {
-        // C'est le seul signal de fin : l'API ne renvoie aucun compteur total.
+        // The only end signal: the API returns no total count.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         assertEquals(DiscoverPhase.EndOfFeed, state.phase)
@@ -200,8 +198,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun anEmptyFirstPageIsAnEmptyFeedRatherThanAnEnd() {
-        // « Vous avez tout lu » sous une liste vide n'explique rien : l'écran
-        // distingue le cas sur la liste vide et la phase, comme il l'affiche.
+        // "You have read everything" under an empty list explains nothing: the
+        // screen distinguishes the case from the empty list and the phase.
         repository.enqueuePage(emptyList(), nextCursor = null)
 
         assertTrue(state.articles.isEmpty())
@@ -218,7 +216,7 @@ class DiscoverViewModelTest {
         assertEquals(1, repository.loadCallCount)
     }
 
-    // ----- Échecs -------------------------------------------------------------
+    // ----- Failures -----------------------------------------------------------
 
     @Test
     fun aFailedFirstPageIsReportedWithItsCause() {
@@ -230,8 +228,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun aFailedNextPageDoesNotClearWhatIsAlreadyShown() {
-        // SPECS.md §4.4 : effacer la liste punirait l'utilisateur de s'être
-        // approché du bas du flux.
+        // SPECS.md §4.4: clearing the list would punish the user for having
+        // approached the bottom of the feed.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueueFailure(FeedError.ServerUnreachable)
 
@@ -244,8 +242,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun theTechnicalMessageOfAnUnexpectedFailureNeverReachesTheState() {
-        // Il n'est ni traduit ni compréhensible : sa place est dans les
-        // journaux.
+        // It is neither translated nor understandable: its place is in the
+        // logs.
         repository.enqueueFailure(FeedError.Unexpected("SSLHandshakeException"))
 
         val failed = assertIs<DiscoverPhase.Failed>(state.phase)
@@ -286,13 +284,12 @@ class DiscoverViewModelTest {
         assertEquals(1, repository.loadCallCount)
     }
 
-    // ----- Fin de session -----------------------------------------------------
+    // ----- End of session -----------------------------------------------------
 
     @Test
     fun anExpiredSessionIsNotAnErrorMessage() {
-        // Le dépôt invalide la session et l'aiguillage racine bascule de
-        // lui-même : commenter un écran sur le point de disparaître n'aiderait
-        // personne.
+        // The repository invalidates the session and the root gate switches on
+        // its own: annotating a screen about to disappear would help no one.
         repository.enqueueFailure(FeedError.SessionExpired)
 
         assertEquals(DiscoverPhase.SessionEnded, state.phase)
@@ -311,12 +308,12 @@ class DiscoverViewModelTest {
         assertEquals(1, state.articles.size)
     }
 
-    // ----- Marquage automatique comme lu --------------------------------------
+    // ----- Automatic marking as read ------------------------------------------
 
     @Test
     fun anArticleIsNotReadBeforeItHasStayedLongEnoughOnScreen() {
-        // La seule surface ne suffit pas : un défilement rapide traverse
-        // plusieurs articles à pleine hauteur sans qu'aucun soit lu.
+        // Area alone is not enough: a fast scroll crosses several articles at
+        // full height without any of them being read.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
@@ -340,8 +337,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun aReadArticleStaysInPlaceAndOnlyItsFlagChanges() {
-        // SPECS.md §4.5 : le faire disparaître déplacerait le contenu sous le
-        // doigt de qui est en train de lire.
+        // SPECS.md §4.5: making it disappear would move the content under the
+        // finger of whoever is reading.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = null)
 
         markAsRead(ArticleId(2L))
@@ -352,8 +349,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun anArticleThatLeavesTheScreenRestartsItsCountdownFromZero() {
-        // « Continue » se lit littéralement : dix passages de 100 ms ne font pas
-        // une seconde de lecture.
+        // "Continuous" is read literally: ten passes of 100 ms do not make one
+        // second of reading.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
@@ -380,9 +377,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun anArticleAlreadyReportedIsNeverReportedAgain() {
-        // Un article reste visible pendant des dizaines d'observations après
-        // avoir franchi le seuil : le resignaler multiplierait les appels
-        // réseau pour rien.
+        // An article stays visible for dozens of observations after crossing
+        // the threshold: reporting it again would multiply network calls for
+        // nothing.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         markAsRead(ArticleId(1L))
@@ -395,7 +392,7 @@ class DiscoverViewModelTest {
 
     @Test
     fun articlesCrossingTheThresholdTogetherAreReportedAsASingleBatch() {
-        // SPECS.md §4.5 : le marquage part par lots, pas un appel par article.
+        // SPECS.md §4.5: marks leave in batches, not one call per article.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = null)
 
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f, ArticleId(2L) to 0.8f))
@@ -407,8 +404,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun anObservationThatChangesNothingIsNotEvenReported() {
-        // L'observation est périodique : sans ce filtre, le rappel partirait
-        // cinq fois par seconde avec un lot vide.
+        // Observation is periodic: without this filter, the callback would
+        // fire five times per second with an empty batch.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
@@ -417,13 +414,13 @@ class DiscoverViewModelTest {
         assertTrue(reportedBatches.isEmpty())
     }
 
-    // ----- Cache local (SPECS.md §5.1) ----------------------------------------
+    // ----- Local cache (SPECS.md §5.1) ----------------------------------------
 
     @Test
     fun theCachedArticlesAreShownWithoutAnyNetworkRequest() {
-        // SPECS.md §5.1 : le lancement montre le cache et s'y arrête. La
-        // requête automatique créait une course entre le disque et le réseau,
-        // dont l'issue décidait de l'écran.
+        // SPECS.md §5.1: launch shows the cache and stops there. The automatic
+        // request created a race between disk and network whose outcome
+        // decided the screen.
         repository.cachedArticles.value = listOf(article(id = 1L, title = "Du cache"))
 
         assertEquals(listOf("Du cache"), state.articles.map { it.title })
@@ -433,9 +430,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun anEmptyCacheTriggersTheOnlyAutomaticLoad() {
-        // L'unique exception : rien à montrer — première ouverture, retour
-        // après déconnexion. Une application sans requête ni contenu serait
-        // morte.
+        // The single exception: nothing to show (first open, return after
+        // sign-out). An application with neither request nor content would be
+        // dead.
         repository.enqueuePage(listOf(article(id = 1L)))
 
         assertEquals(listOf(1L), state.articles.map { it.id })
@@ -444,9 +441,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun aCacheEmptiedLaterDoesNotTriggerAnyRequest() {
-        // La décision d'amorçage se prend une fois, sur la première émission :
-        // une purge qui viderait le cache ensuite ne doit pas lancer de
-        // requête dans le dos de l'utilisateur.
+        // The bootstrap decision is made once, on the first emission: a purge
+        // emptying the cache later must not launch a request behind the
+        // user's back.
         repository.cachedArticles.value = listOf(article(id = 1L))
         assertEquals(DiscoverPhase.Idle, state.phase)
 
@@ -457,8 +454,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun aCacheThatGrowsBeforeTheNetworkAnswersOnlyAddsWhatIsMissing() {
-        // Le flux du cache réémet à chaque écriture : réappliquer la liste
-        // entière remplacerait ce qui est affiché, et la lecture sauterait.
+        // The cache flow re-emits on every write: reapplying the whole list
+        // would replace what is displayed, and the reading position would jump.
         repository.pendingLoad = CompletableDeferred()
         repository.cachedArticles.value = listOf(article(id = 1L))
         assertEquals(listOf(1L), state.articles.map { it.id })
@@ -470,9 +467,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun theFirstPageDoesNotDuplicateWhatTheCacheHasAlreadyShown() {
-        // La page réseau — demandée par le défilement, plus jamais toute
-        // seule — contient les mêmes articles que le cache : seuls les
-        // inconnus s'ajoutent, et en tête — ce sont les plus récents.
+        // The network page, requested by scrolling and never on its own,
+        // contains the same articles as the cache: only unknown ones are
+        // added, and at the top, since they are the most recent.
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
         repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)), nextCursor = null)
 
@@ -483,8 +480,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun aPageAlreadyEntirelyShownDoesNotStopTheFeed() {
-        // Sans enchaînement, la liste cesserait de s'allonger sans rien dire —
-        // indistinguable d'une panne (SPECS.md §4.4).
+        // Without chaining, the list would stop growing without a word,
+        // indistinguishable from a breakdown (SPECS.md §4.4).
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L))
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
@@ -497,8 +494,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun theCacheStopsFeedingTheListOnceTheServerHasAnswered() {
-        // Passé la première page, l'ordre appartient au serveur : une écriture
-        // de cache ne doit plus insérer d'article dans une liste parcourue.
+        // Past the first page, order belongs to the server: a cache write must
+        // no longer insert an article into a list being browsed.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(listOf(1L), state.articles.map { it.id })
 
@@ -507,7 +504,7 @@ class DiscoverViewModelTest {
         assertEquals(listOf(1L), state.articles.map { it.id })
     }
 
-    // ----- Hors ligne (SPECS.md §5.2) -----------------------------------------
+    // ----- Offline (SPECS.md §5.2) --------------------------------------------
 
     @Test
     fun beingOfflineWithCachedArticlesKeepsThemAndRaisesTheBanner() {
@@ -523,8 +520,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun beingOfflineWithoutAnyCacheShowsNoBannerToHangOn() {
-        // Sans article, l'absence de réseau n'est plus un régime dégradé mais
-        // la seule chose à dire : le message plein cadre s'en charge.
+        // Without articles, the absence of network is no longer a degraded
+        // regime but the only thing to say: the full-frame message handles it.
         repository.enqueueFailure(FeedError.NoNetwork)
 
         assertTrue(state.isOffline)
@@ -534,8 +531,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun anUnreachableServerIsNotTheOfflineRegime() {
-        // Le serveur qui ne répond pas est un incident, pas une absence de
-        // réseau : le bandeau mentirait sur l'état de l'appareil.
+        // A server that does not answer is an incident, not an absence of
+        // network: the banner would lie about the device's state.
         repository.enqueueFailure(FeedError.ServerUnreachable)
 
         assertFalse(state.isOffline)
@@ -551,12 +548,12 @@ class DiscoverViewModelTest {
         assertFalse(state.isOffline)
     }
 
-    // ----- Rafraîchissement (SPECS.md §4.6) -----------------------------------
+    // ----- Refresh (SPECS.md §4.6) --------------------------------------------
 
     @Test
     fun refreshingReplacesTheListWithTheFreshPage() {
-        // SPECS.md §4.6 : le tirage vide l'affichage plutôt que de le compléter.
-        // L'ordre rendu est celui du dépôt, sans réarrangement.
+        // SPECS.md §4.6: the pull empties the display rather than completing
+        // it. The rendered order is the repository's, with no rearrangement.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(
             listOf(article(id = 2L), article(id = 3L), article(id = 1L)),
@@ -571,8 +568,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun refreshingDropsArticlesThatAreNoLongerInTheFeed() {
-        // Un article devenu lu entre-temps disparaît : la liste est remplacée,
-        // pas complétée, donc rien ne le maintient à l'écran.
+        // An article read in the meantime disappears: the list is replaced,
+        // not completed, so nothing keeps it on screen.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = null)
 
@@ -594,9 +591,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun refreshingRestartsThePaginationFromTheFreshPage() {
-        // La liste ayant été remplacée, l'ancien curseur désignerait un endroit
-        // qui n'est plus affiché : la suite se redéroule à partir de la page
-        // que le tirage vient de rendre.
+        // The list having been replaced, the old cursor would point to a place
+        // no longer displayed: continuation resumes from the page the pull
+        // just returned.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
         repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
@@ -638,8 +635,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun noPageIsRequestedWhileARefreshIsInFlight() {
-        // Les deux requêtes portent sur les deux bouts du flux : les mener de
-        // front mêlerait leurs insertions.
+        // The two requests target the two ends of the feed: running them
+        // concurrently would interleave their insertions.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         assertEquals(DiscoverPhase.Idle, state.phase)
         repository.pendingRefresh = CompletableDeferred()
@@ -666,8 +663,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun aRefreshThatReturnsTheWholeFeedEndsIt() {
-        // La phase suit la page rendue, et non l'état précédent : une page sans
-        // curseur est une fin de flux, quel que soit l'endroit d'où l'on tire.
+        // The phase follows the returned page, not the previous state: a page
+        // without a cursor is an end of feed, wherever the pull came from.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = null)
 
@@ -678,7 +675,7 @@ class DiscoverViewModelTest {
 
     @Test
     fun aRefreshThatFindsMoreReopensTheFeed() {
-        // Symétrique : le flux s'était terminé, le serveur a du neuf.
+        // Symmetric case: the feed had ended, the server has something new.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
 
@@ -699,11 +696,11 @@ class DiscoverViewModelTest {
         assertFalse(state.isRefreshing)
     }
 
-    // ----- Ouverture d'un article (SPECS.md §4.7 et §5.2) ----------------------
+    // ----- Opening an article (SPECS.md §4.7 and §5.2) -------------------------
 
     @Test
     fun openingAnArticleMarksItReadWhateverItsPastVisibility() {
-        // Aucune observation de visibilité n'a eu lieu : le geste suffit.
+        // No visibility observation happened: the gesture suffices.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = null)
 
         val opened = viewModel.onArticleOpened(2L)
@@ -725,8 +722,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun openingAnArticleOfflineIsRefusedAndExplained() {
-        // Ouvrir l'onglet n'afficherait que la page d'erreur du navigateur, et
-        // l'article passerait pour lu sans avoir pu l'être (SPECS.md §5.2).
+        // Opening the tab would only show the browser's error page, and the
+        // article would pass as read without having been readable (SPECS.md §5.2).
         repository.cachedArticles.value = listOf(article(id = 1L))
         repository.enqueueFailure(FeedError.NoNetwork)
         viewModel.loadMore()
@@ -749,14 +746,14 @@ class DiscoverViewModelTest {
         assertFalse(state.isOfflineOpenNoticeVisible)
     }
 
-    // ----- Le flux ne se mélange pas au lancement (SPECS.md §4.2, règle 3) ----
+    // ----- The feed does not shuffle at launch (SPECS.md §4.2, rule 3) --------
 
     @Test
     fun theFirstServerPageDoesNotReorderWhatTheCacheShowed() {
-        // La règle 3 de SPECS.md §4.2 : un même ensemble d'articles se présente
-        // toujours dans le même ordre. Le cache affiche d'abord (§5.1), et la
-        // page réseau qui suit porte les **mêmes** articles dans l'ordre du
-        // serveur — les réappliquer ferait sauter la lecture sous le doigt.
+        // Rule 3 of SPECS.md §4.2: a given set of articles always appears in
+        // the same order. The cache displays first (§5.1), and the following
+        // network page carries the same articles in server order; reapplying
+        // them would make the reading position jump under the finger.
         repository.cachedArticles.value = listOf(article(id = 1L), article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 3L), article(id = 1L), article(id = 2L)))
 
@@ -767,9 +764,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun theFirstServerPageAddsWhatIsNewWithoutMovingTheRest() {
-        // Les inconnus vont en tête — ils sont plus récents, et les poser en bas
-        // les montrerait très loin de leur date. Mais ce qui était déjà affiché
-        // garde son ordre, à sa place relative.
+        // Unknown articles go on top: they are more recent, and placing them
+        // at the bottom would show them far from their date. What was already
+        // displayed keeps its order and relative place.
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L), article(id = 3L)))
 
@@ -780,8 +777,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun theFirstServerPageRemovesNothingThatWasShown() {
-        // Un article du cache absent de la page réseau reste affiché : le faire
-        // disparaître retirerait sous les yeux ce qu'on était en train de lire.
+        // A cached article absent from the network page stays displayed:
+        // making it disappear would remove what was being read.
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L)))
 
@@ -792,9 +789,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun aSecondCacheEmissionDoesNotShuffleTheFeedEither() {
-        // Le flux du cache réémet à chaque écriture, donc après chaque page
-        // reçue. Le consommer à nouveau replacerait des articles dans un ordre
-        // que le serveur n'a pas dicté, au milieu d'une lecture.
+        // The cache flow re-emits on every write, hence after each received
+        // page. Consuming it again would reposition articles in an order the
+        // server did not dictate, in the middle of a reading session.
         repository.cachedArticles.value = listOf(article(id = 2L), article(id = 3L))
         repository.enqueuePage(listOf(article(id = 1L)))
         viewModel.loadMore()
@@ -807,15 +804,15 @@ class DiscoverViewModelTest {
 
     @Test
     fun aLoadedPageDoesNotResetTheReadingTimers() {
-        // Le comportement que la régression de GOAL-014-T13 cassait en
-        // production : un article regardé pendant un chargement doit rester
-        // marqué lu, sans quoi le serveur le renvoie à l'ouverture suivante et
-        // le flux paraît changer tout seul.
+        // Behavior the GOAL-014-T13 regression broke in production: an article
+        // watched during a load must stay marked read, otherwise the server
+        // returns it on the next open and the feed appears to change on its
+        // own.
         //
-        // ⚠️ Ce test ne **reproduit** pas la régression : le dépôt de réglages
-        // factice est un `StateFlow`, qui ne réémet jamais une valeur égale.
-        // C'est `SettingsStoreTest` qui tient la cause — il échoue si l'on
-        // retire `distinctUntilChanged`, vérifié. Celui-ci garde l'effet.
+        // This test does not reproduce the regression: the fake settings
+        // repository is a `StateFlow`, which never re-emits an equal value.
+        // `SettingsStoreTest` covers the cause (it fails if
+        // `distinctUntilChanged` is removed); this one keeps the effect.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         viewModel.onVisibilityChanged(mapOf(ArticleId(1L) to 1f))
         clock.advanceBy(VISIBILITY_THRESHOLD_MILLIS)
@@ -827,7 +824,7 @@ class DiscoverViewModelTest {
         assertEquals(setOf(ArticleId(1L)), readArticles)
     }
 
-    // ----- Ancienneté du flux (SPECS.md §4.6) ---------------------------------
+    // ----- Feed staleness (SPECS.md §4.6) -------------------------------------
 
     @Test
     fun aFeedOlderThanSixHoursInvitesToRefresh() {
@@ -854,8 +851,8 @@ class DiscoverViewModelTest {
 
     @Test
     fun offlineTheOfflineBannerSpeaksAloneAboutAnOldFeed() {
-        // Proposer « Rafraîchir » ouvrirait une porte qui ne mène nulle part,
-        // et empilerait une seconde bandelette sur celle de l'ouverture refusée.
+        // Offering "Refresh" would open a door leading nowhere, and stack a
+        // second strip on top of the refused-opening one.
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = staleSince()))
         repository.cachedArticles.value = listOf(article(id = 1L))
         repository.enqueueFailure(FeedError.NoNetwork)
@@ -916,8 +913,8 @@ class DiscoverViewModelTest {
         repository.enqueuePage(listOf(article(id = 1L)))
         viewModel.dismissStaleNotice()
 
-        // Le contact serveur est noté par le dépôt d'articles (GOAL-014-T03) ;
-        // ici on le pose directement, puis on laisse passer six heures.
+        // Server contact is recorded by the article repository (GOAL-014-T03);
+        // here it is set directly, then six hours pass.
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
         clock.advanceBy(SIX_HOURS_MILLIS)
         dispatcher.scheduler.advanceTimeBy(SIX_HOURS_MILLIS)
@@ -927,8 +924,9 @@ class DiscoverViewModelTest {
 
     @Test
     fun theFeedGrowsOldWithoutAnyEventAtAll() {
-        // Le seuil se franchit application ouverte et écran éteint : sans
-        // réveil périodique, l'avis n'apparaîtrait qu'au prochain geste.
+        // The threshold is crossed with the app open and the screen off:
+        // without a periodic wake-up, the notice would only appear at the next
+        // gesture.
         freshnessRepository.set(FeedFreshness(lastRefreshEpochMillis = clock.nowEpochMillis()))
         repository.enqueuePage(listOf(article(id = 1L)))
         assertFalse(state.showsStaleNotice)
@@ -945,8 +943,8 @@ class DiscoverViewModelTest {
         repository.enqueuePage(listOf(article(id = 1L)))
         repository.enqueuePage(listOf(article(id = 2L)))
 
-        // L'action de la bandelette n'a pas de chemin à elle : c'est le
-        // rafraîchissement de SPECS.md §4.6, sans quoi les deux divergeraient.
+        // The strip's action has no path of its own: it is the refresh of
+        // SPECS.md §4.6, otherwise the two would diverge.
         viewModel.refresh()
 
         assertEquals(1, repository.refreshCallCount)
@@ -963,10 +961,10 @@ class DiscoverViewModelTest {
         assertFalse(state.showsStaleNotice)
     }
 
-    /** Un horodatage de contact serveur assez vieux pour que l'avis soit dû. */
+    /** A server contact timestamp old enough for the notice to be due. */
     private fun staleSince(): Long = clock.nowEpochMillis() - SEVEN_HOURS_MILLIS
 
-    /** Amène [id] au-delà des deux seuils, en deux observations séparées d'une seconde. */
+    /** Takes [id] past both thresholds, with two observations one second apart. */
     private fun markAsRead(id: ArticleId) {
         viewModel.onVisibilityChanged(mapOf(id to 1f))
         clock.advanceBy(VISIBILITY_THRESHOLD_MILLIS)

@@ -3,22 +3,22 @@ package fr.vbrosseau.freshrssdiscover.data.api
 import kotlinx.serialization.Serializable
 
 /**
- * Réponse de `stream/contents`, telle que FreshRSS la produit.
+ * `stream/contents` response as FreshRSS produces it.
  *
- * **Presque tout est facultatif.** `Entry::toGReader` n'émet `author` ou
- * `enclosure` que s'ils existent, et leur présence dépend du flux RSS source,
- * pas de FreshRSS. Une valeur par défaut sur chaque champ est donc la seule
- * façon de ne pas échouer sur un flux parfaitement normal.
+ * Almost everything is optional. `Entry::toGReader` only emits `author` or
+ * `enclosure` when they exist, and their presence depends on the source RSS
+ * feed, not on FreshRSS. A default value on every field is the only way not to
+ * fail on a perfectly normal feed.
  *
- * Seuls les champs **consommés** sont déclarés : `ignoreUnknownKeys` fait
- * passer les autres, et docs/freshrss-api.md décrit la réponse entière. Un
- * champ déclaré « pour mémoire » serait du code mort (AGENTS.md §2).
+ * Only consumed fields are declared: `ignoreUnknownKeys` lets the others
+ * through, and docs/freshrss-api.md describes the full response. A field
+ * declared "for the record" would be dead code (AGENTS.md §2).
  */
 @Serializable
 internal data class StreamContentsDto(
     val items: List<ItemDto> = emptyList(),
     /**
-     * Absent lorsque le flux est épuisé — c'est le **seul** signal de fin
+     * Absent when the stream is exhausted — the only end-of-stream signal
      * (docs/freshrss-api.md §3.5).
      */
     val continuation: String? = null,
@@ -26,23 +26,23 @@ internal data class StreamContentsDto(
 
 @Serializable
 internal data class ItemDto(
-    /** Hexadécimal, préfixé de `tag:google.com,2005:reader/item/`. */
+    /** Hexadecimal, prefixed with `tag:google.com,2005:reader/item/`. */
     val id: String = "",
     val title: String = "",
-    /** Secondes depuis l'époque Unix. */
+    /** Seconds since the Unix epoch. */
     val published: Long = 0L,
     /**
-     * Porte l'état lu : `user/-/state/com.google/read` y figure ou non.
+     * Carries the read state: `user/-/state/com.google/read` is present or not.
      *
-     * Il n'existe **aucun** champ booléen pour cela, et l'absence de la
-     * catégorie signifie « non lu » — `…/unread` n'est jamais émis dans ce mode.
+     * There is no boolean field for this, and the category's absence means
+     * unread — `…/unread` is never emitted in this mode.
      */
     val categories: List<String> = emptyList(),
     val canonical: List<LinkDto> = emptyList(),
     val alternate: List<LinkDto> = emptyList(),
-    /** Contenu **tronqué** par le serveur dans ce mode. */
+    /** Content truncated by the server in this mode. */
     val summary: ContentDto? = null,
-    /** Contenu entier ; absent du mode employé par `stream/contents`. */
+    /** Full content; absent from the mode used by `stream/contents`. */
     val content: ContentDto? = null,
     val origin: OriginDto = OriginDto(),
     val author: String? = null,
@@ -69,8 +69,8 @@ internal data class OriginDto(
 internal data class EnclosureDto(
     val href: String = "",
     /**
-     * Peut valoir `image` tout court, et non un type MIME complet : quand le
-     * flux source ne précise rien, FreshRSS se rabat sur cette valeur.
+     * May be just `image` rather than a full MIME type: when the source feed
+     * specifies nothing, FreshRSS falls back to this value.
      */
     val type: String? = null,
 )

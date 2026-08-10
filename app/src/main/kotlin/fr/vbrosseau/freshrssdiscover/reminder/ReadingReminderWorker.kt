@@ -18,16 +18,15 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 /**
- * Décide du rappel du jour et le réarme (SPECS.md §4.9).
+ * Decides on the day's reminder and re-arms it (SPECS.md §4.9).
  *
- * Séparé du travailleur qui le porte, et ce n'est pas une précaution de style :
- * un `CoroutineWorker` reçoit déjà deux paramètres assistés, et tout ce dont la
- * décision a besoin devrait s'y ajouter. La décision est ici, dans une classe
- * ordinaire qu'un test construit directement, et le travailleur n'a plus qu'à
- * l'appeler.
+ * Separated from the worker that hosts it: a `CoroutineWorker` already takes
+ * two assisted parameters, and everything the decision needs would have to
+ * be added there. The decision lives in a plain class a test can construct
+ * directly; the worker only calls it.
  *
- * **Aucun accès réseau, jamais.** SPECS.md §2 exclut toujours la synchronisation
- * en arrière-plan : seul le cache est lu, par `unreadFromCache`.
+ * No network access, ever. SPECS.md §2 excludes background synchronization:
+ * only the cache is read, via `unreadFromCache`.
  */
 internal class ReadingReminder @Inject constructor(
     private val authRepository: AuthRepository,
@@ -39,21 +38,18 @@ internal class ReadingReminder @Inject constructor(
     private val zone: ZoneId,
 ) {
     /**
-     * Notifie s'il y a lieu, puis réarme le rappel du lendemain.
+     * Notifies if warranted, then re-arms the next day's reminder.
      *
-     * L'ordre des trois refus n'est pas interchangeable :
+     * The order of the three refusals is not interchangeable:
      *
-     * 1. **Pas de session** — on ne notifie pas, et on **ne réarme pas**. Un
-     *    utilisateur déconnecté n'a pas d'articles à lire ; laisser la chaîne
-     *    tourner ferait revenir le travailleur tous les jours pour ne rien
-     *    faire. La prochaine connexion la relancera depuis l'ouverture de
-     *    l'application.
-     * 2. **Réglage éteint** — même traitement, et pour la même raison : réarmer
-     *    un rappel que l'utilisateur a coupé, c'est ne pas l'avoir coupé.
-     * 3. **Rien à lire** — on ne notifie pas, mais on **réarme**. Un cache vide
-     *    aujourd'hui ne dit rien de demain, et s'arrêter là éteindrait le rappel
-     *    définitivement au premier jour où l'utilisateur a tout lu — c'est-à-dire
-     *    au meilleur des jours.
+     * 1. No session: no notification and no re-arm. A logged-out user has no
+     *    articles to read; keeping the chain running would wake the worker
+     *    daily for nothing. The next login restarts it from app opening.
+     * 2. Setting off: same treatment, same reason: re-arming a reminder the
+     *    user disabled amounts to not having disabled it.
+     * 3. Nothing to read: no notification, but re-arm. An empty cache today
+     *    says nothing about tomorrow, and stopping here would permanently
+     *    kill the reminder on the first day the user has read everything.
      */
     suspend fun remind() {
         if (authRepository.observeSession().first() == null) return
@@ -67,14 +63,14 @@ internal class ReadingReminder @Inject constructor(
 }
 
 /**
- * Le travailleur que WorkManager réveille à l'heure du rappel.
+ * Worker WorkManager wakes at reminder time.
  *
- * `CoroutineWorker` et non `Worker` : la décision lit le cache et le `DataStore`,
- * qui sont l'un et l'autre suspendus.
+ * `CoroutineWorker` rather than `Worker`: the decision reads the cache and
+ * the `DataStore`, both suspending.
  *
- * Il rend toujours `Result.success()`. Il n'y a rien à réessayer — le cache est
- * local, et un rappel repoussé d'un quart d'heure par une reprise arriverait de
- * toute façon après le moment auquel il servait.
+ * Always returns `Result.success()`. There is nothing to retry: the cache is
+ * local, and a reminder delayed fifteen minutes by a retry would arrive
+ * after the moment it was for.
  */
 @HiltWorker
 internal class ReadingReminderWorker @AssistedInject constructor(

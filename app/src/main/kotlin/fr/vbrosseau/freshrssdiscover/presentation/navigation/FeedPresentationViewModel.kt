@@ -11,26 +11,24 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * Le mode de présentation choisi (SPECS.md §4.8), pour la navigation seule.
+ * The chosen presentation mode (SPECS.md §4.8), for navigation only.
  *
- * `SettingsViewModel` l'expose déjà, mais l'instancier depuis la destination du
- * flux ferait entrer dans celle-ci la déconnexion, la purge du cache et les
- * seuils de lecture — un écran qui n'en a que faire, et un objet dont la
- * destruction emporterait des états sans rapport. Ce ViewModel-ci n'observe
- * qu'une valeur et n'en modifie aucune : le changement de mode reste l'affaire
- * des réglages.
+ * `SettingsViewModel` already exposes it, but instantiating it from the feed
+ * destination would pull sign-out, cache purge, and read thresholds into a
+ * screen that needs none of them, and destroying it would take unrelated
+ * state along. This ViewModel observes a single value and modifies none: mode
+ * changes remain the settings screen's job.
  */
 @HiltViewModel
 class FeedPresentationViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
     /**
-     * Démarre sur [FeedPresentation.Default] plutôt que sur un `null` d'attente.
+     * Starts on [FeedPresentation.Default] rather than a waiting `null`.
      *
-     * La lecture du DataStore est quasi immédiate, mais elle n'est pas
-     * synchrone : attendre afficherait un écran vide au lancement, alors que le
-     * mode Liste est le bon pari — c'est le défaut, et c'est ce que voit
-     * quiconque n'a jamais ouvert les réglages.
+     * Reading the DataStore is near-immediate but not synchronous: waiting
+     * would show an empty screen at launch, whereas List mode is the right
+     * bet; it is the default and what anyone who never opened settings sees.
      */
     val presentation: StateFlow<FeedPresentation> =
         settingsRepository.observeFeedPresentation()
@@ -41,7 +39,7 @@ class FeedPresentationViewModel @Inject constructor(
             )
 
     private companion object {
-        /** Le temps d'une rotation, pour ne pas relire le disque à chaque recréation. */
+        /** Long enough to span a rotation, avoiding a disk re-read on each recreation. */
         const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

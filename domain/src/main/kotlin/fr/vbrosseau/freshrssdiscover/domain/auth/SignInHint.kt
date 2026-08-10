@@ -1,10 +1,10 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
 /**
- * De quoi préremplir l'écran de connexion.
+ * Data used to prefill the sign-in screen.
  *
- * Ne contient **aucun secret** : c'est ce qui permet de le conserver après un
- * jeton refusé, là où le jeton lui-même est effacé.
+ * Contains no secret: this is what allows keeping it after a rejected token,
+ * while the token itself is erased.
  */
 data class SignInHint(
     val server: ServerAddress,

@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.login
 
-/** Repères de test de l'écran de connexion. */
+/** Test tags for the login screen. */
 object LoginTestTags {
     const val SERVER_FIELD = "login:server"
     const val USERNAME_FIELD = "login:username"

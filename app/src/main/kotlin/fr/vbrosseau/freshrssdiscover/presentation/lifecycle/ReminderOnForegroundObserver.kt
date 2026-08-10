@@ -12,35 +12,29 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Ce que l'ouverture de l'application déclenche côté rappel (SPECS.md §4.9).
+ * Reminder-side effects of the app coming to the foreground (SPECS.md §4.9).
  *
- * Deux gestes, et ils vont ensemble parce qu'ils répondent au même événement :
- * l'utilisateur est là.
+ * The displayed reminder is dismissed: it has served its purpose once the
+ * user arrives, and leaving it in the shade would make it stale clutter. Done
+ * unconditionally: the caller need not know whether a reminder was showing or
+ * already dismissed.
  *
- * **Le rappel affiché est retiré.** Il a rempli son office au moment où
- * l'utilisateur arrive ; le laisser dans le volet en ferait un reliquat que
- * l'on balaie sans y penser. Fait sans condition : l'appelant n'a pas à savoir
- * si un rappel était affiché, ni si l'utilisateur l'a déjà écarté.
+ * The opening time is recorded and the next day's reminder scheduled. This is
+ * the core of the §4.9 rule: the reminder fires at the hour the user
+ * habitually opens the app, not at a developer-chosen time.
  *
- * **L'heure d'ouverture est retenue, et le rappel du lendemain programmé.**
- * C'est là que se joue toute la règle de §4.9 : le rappel tombe à l'heure où
- * l'utilisateur ouvre habituellement l'application, et non à une heure choisie
- * par le développeur.
+ * `ON_START`, not `ON_RESUME`: `ON_RESUME` also fires on return from a system
+ * dialog or from the custom tab showing an article, where the app never left.
+ * Counting those returns as openings would drift the recorded time toward the
+ * moment articles are closed. `ON_START` marks arrival on screen.
  *
- * **`ON_START` et non `ON_RESUME`.** `ON_RESUME` survient aussi au retour d'une
- * boîte de dialogue système ou de l'onglet personnalisé qui affiche un article
- * — l'application n'a jamais cessé d'être là, et compter ces retours comme des
- * ouvertures ferait dériver l'heure retenue vers le moment où l'on referme un
- * article. `ON_START` marque l'arrivée à l'écran.
+ * Application scope: recording the time and scheduling the work survive
+ * screen destruction, e.g. a rotation right after launch.
  *
- * **La portée est celle de l'application.** L'enregistrement de l'heure et la
- * programmation du travail survivent ainsi à la destruction de l'écran, par
- * exemple lors d'une rotation immédiatement après le lancement.
- *
- * Le tri entre première et énième ouverture du jour n'est **pas** fait ici :
- * il appartient au magasin, seul à savoir quel jour la dernière heure
- * enregistrée concernait. Le décider ici obligerait cet observateur à tenir un
- * état, alors qu'il ne fait que relayer un événement.
+ * Distinguishing the first opening of the day from later ones is not done
+ * here: it belongs to the store, the only component that knows which day the
+ * last recorded time was for. Deciding it here would force this observer to
+ * hold state when it only relays an event.
  */
 @Singleton
 class ReminderOnForegroundObserver @Inject constructor(

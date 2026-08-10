@@ -23,9 +23,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * Les réponses décrites ici sont **littérales** : elles reproduisent ce que
- * `https://demo.freshrss.org/` a réellement renvoyé (docs/freshrss-api.md §1
- * et §2), pas ce qu'une lecture de la source laissait supposer.
+ * The responses here are literal: they reproduce what
+ * `https://demo.freshrss.org/` actually returned (docs/freshrss-api.md §1
+ * and §2), not what a reading of the source suggested.
  */
 class FreshRssApiTest {
     private val address = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
@@ -50,12 +50,12 @@ class FreshRssApiTest {
             headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=UTF-8"),
         )
 
-    // ----- Sonde de reconnaissance -------------------------------------------
+    // ----- Recognition probe -------------------------------------------------
 
     @Test
     fun theProbeAcceptsTheTwoLetterBody() = runTest {
-        // Constaté : le Content-Type est text/html, pas text/plain. Se fier au
-        // type MIME rejetterait une instance parfaitement valide.
+        // Observed: the Content-Type is text/html, not text/plain. Trusting
+        // the MIME type would reject a perfectly valid instance.
         val outcome = api {
             respond("OK", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html; charset=UTF-8"))
         }.probe(address)
@@ -65,8 +65,8 @@ class FreshRssApiTest {
 
     @Test
     fun theProbeTargetsTheApiEndpointWithoutAnyQueryString() = runTest {
-        // Constaté : la moindre chaîne de requête fait répondre 400 au lieu de
-        // OK. Une sonde qui en ajouterait une échouerait sur tout serveur.
+        // Observed: any query string makes the server answer 400 instead of
+        // OK. A probe adding one would fail on every server.
         api { text("OK") }.probe(address)
 
         assertEquals("https://exemple.org/api/greader.php", lastRequest?.url.toString())
@@ -75,9 +75,9 @@ class FreshRssApiTest {
 
     @Test
     fun aServerAnsweringSomethingElseIsReportedAsMalformedNotAsAnHttpError() = runTest {
-        // Cas réel : portail captif, page de maintenance, proxy qui répond 200
-        // à tout. Le traiter comme une erreur HTTP afficherait un faux
-        // diagnostic.
+        // Real case: captive portal, maintenance page, proxy answering 200
+        // to anything. Treating it as an HTTP error would show a false
+        // diagnosis.
         val outcome = api {
             respond("<html>Bienvenue</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html"))
         }.probe(address)
@@ -92,13 +92,13 @@ class FreshRssApiTest {
         assertEquals(HttpStatusCode.NotFound.value, assertIs<ApiOutcome.HttpError>(outcome).status)
     }
 
-    // ----- Sonde de transmission de l'en-tête --------------------------------
+    // ----- Header-forwarding probe -------------------------------------------
 
     @Test
     fun theCompatibilityProbeSendsAnAuthorizationHeaderOfItsOwn() = runTest {
-        // Constaté : sans en-tête dans la requête, la sonde répond FAIL même
-        // sur un serveur correctement configuré. Elle constate la présence de
-        // l'en-tête qu'elle reçoit, pas sa validité.
+        // Observed: without a header in the request, the probe answers FAIL
+        // even on a correctly configured server. It checks the presence of
+        // the header it receives, not its validity.
         api { text("PASS") }.checkAuthorizationForwarding(address)
 
         assertTrue(lastRequest?.headers?.contains(HttpHeaders.Authorization) == true)
@@ -106,8 +106,8 @@ class FreshRssApiTest {
 
     @Test
     fun theCompatibilityProbeReadsTheBodyNotTheStatus() = runTest {
-        // Constaté : le statut est 200 dans les deux cas. Tester le code HTTP
-        // ne vérifierait rien du tout.
+        // Observed: the status is 200 in both cases. Testing the HTTP code
+        // would verify nothing.
         val failing = api { text("FAIL get HTTP Authorization header! Wrong Web server configuration.") }
             .checkAuthorizationForwarding(address)
 
@@ -125,16 +125,16 @@ class FreshRssApiTest {
             text("SID=alice/c0ffee\nLSID=null\nAuth=alice/c0ffee\n")
         }.clientLogin(address, credentials)
 
-        // `SID` porte la même valeur et `LSID` vaut `null` : seule `Auth`
-        // compte, et la retenir par sa clé plutôt que par son rang protège
-        // d'un changement d'ordre des lignes.
+        // `SID` carries the same value and `LSID` is `null`: only `Auth`
+        // matters, and selecting it by key rather than by position protects
+        // against a change in line order.
         assertEquals("alice/c0ffee", assertIs<ApiOutcome.Success<AuthToken>>(outcome).value.value)
     }
 
     @Test
     fun clientLoginPostsTheCredentialsRatherThanPuttingThemInTheUrl() = runTest {
-        // FreshRSS accepte aussi GET, mais journalise alors un avertissement :
-        // le mot de passe apparaîtrait dans les journaux du serveur.
+        // FreshRSS also accepts GET but then logs a warning: the password
+        // would appear in the server logs.
         api { text("Auth=alice/c0ffee") }.clientLogin(address, credentials)
 
         assertEquals(HttpMethod.Post, lastRequest?.method)
@@ -154,9 +154,9 @@ class FreshRssApiTest {
 
     @Test
     fun aRefusedLoginSurfacesItsStatusAndPlainTextBody() = runTest {
-        // Constaté : identifiant inconnu et mot de passe faux répondent tous
-        // deux 401 « Unauthorized! ». La couche API ne les distingue pas — elle
-        // n'a pas à le faire, ils sont indistinguables.
+        // Observed: unknown username and wrong password both answer 401
+        // "Unauthorized!". The API layer does not distinguish them; they are
+        // indistinguishable.
         val outcome = api { text("Unauthorized!", HttpStatusCode.Unauthorized) }
             .clientLogin(address, credentials)
 
@@ -175,9 +175,9 @@ class FreshRssApiTest {
 
     @Test
     fun aSuccessfulStatusWithoutAnAuthLineIsMalformed() = runTest {
-        // Un portail captif répondant 200 à tout tomberait ici. Le confondre
-        // avec un succès produirait un jeton vide, et un 401 inexplicable au
-        // premier appel suivant.
+        // A captive portal answering 200 to anything would land here.
+        // Mistaking it for success would produce an empty token, then an
+        // inexplicable 401 on the next call.
         val outcome = api { text("SID=alice/c0ffee\nLSID=null\n") }.clientLogin(address, credentials)
 
         assertIs<ApiOutcome.MalformedResponse>(outcome)
@@ -199,7 +199,7 @@ class FreshRssApiTest {
 
     @Test
     fun aJsonResponseWhereTextWasExpectedIsMalformed() = runTest {
-        // Un serveur mal configuré, ou une passerelle d'API interposée.
+        // A misconfigured server, or an interposed API gateway.
         val outcome = api {
             respond(
                 ByteReadChannel("""{"error":"nope"}"""),
@@ -215,7 +215,7 @@ class FreshRssApiTest {
 
     @Test
     fun aNetworkFailureIsReportedRatherThanThrown() = runTest {
-        // Sans cela, chaque appelant devrait connaître les exceptions de Ktor.
+        // Otherwise every caller would have to know Ktor's exceptions.
         val outcome = api { throw IOException("hôte inconnu") }.probe(address)
 
         assertIs<ApiOutcome.TransportError>(outcome)

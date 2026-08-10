@@ -1,68 +1,65 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
 /**
- * Causes d'échec d'une authentification, telles que l'utilisateur doit pouvoir
- * les distinguer.
+ * Authentication failure causes, as the user must be able to distinguish them.
  *
- * Un type unique — « échec de connexion » — rendrait SPECS.md §3.3
- * inapplicable : la spécification exige un message par cause, parce que les
- * gestes de correction sont différents. Vérifier son mot de passe API et
- * activer l'API dans l'administration du serveur n'ont rien à voir.
+ * A single "sign-in failed" type would make SPECS.md §3.3 inapplicable: the
+ * spec requires one message per cause, because the corrective actions differ.
+ * Checking the API password and enabling the API in the server admin are
+ * unrelated fixes.
  *
- * L'énumération est volontairement fermée : la couche `data` doit traduire
- * *toute* défaillance technique vers l'un de ces cas, et le compilateur
- * l'oblige à ne rien laisser passer.
+ * The enumeration is deliberately closed: the `data` layer must translate
+ * every technical failure into one of these cases, and the compiler enforces
+ * exhaustiveness.
  */
 sealed interface AuthError {
-    /** Aucune connectivité : la requête n'a pas quitté l'appareil. */
+    /** No connectivity: the request never left the device. */
     data object NoNetwork : AuthError
 
-    /** L'adresse ne répond pas : DNS, port fermé, délai dépassé, TLS refusé. */
+    /** The address does not respond: DNS, closed port, timeout, TLS refused. */
     data object ServerUnreachable : AuthError
 
     /**
-     * L'adresse répond, mais ce n'est pas une instance FreshRSS.
+     * The address responds, but it is not a FreshRSS instance.
      *
-     * Cas réel et fréquent : l'utilisateur saisit l'adresse de son serveur
-     * personnel sans le sous-chemin où FreshRSS est installé.
+     * Common real-world case: the user enters their server address without the
+     * sub-path where FreshRSS is installed.
      */
     data object NotAFreshRssServer : AuthError
 
     /**
-     * L'API est désactivée sur le serveur.
+     * The API is disabled on the server.
      *
-     * FreshRSS répond alors `503` sur **tous** les points d'entrée. C'est une
-     * case à cocher dans l'administration, pas un problème d'identifiants — le
-     * message doit le dire, sans quoi l'utilisateur vérifiera son mot de passe
-     * indéfiniment.
+     * FreshRSS then responds `503` on every endpoint. This is a checkbox in
+     * the server admin, not a credentials problem; the message must say so,
+     * otherwise the user will keep re-checking their password.
      */
     data object ApiDisabled : AuthError
 
     /**
-     * Identifiant ou mot de passe API refusé.
+     * Username or API password rejected.
      *
-     * Rappel pour le message affiché : c'est le **mot de passe API** qui est
-     * attendu, pas celui de connexion (SPECS.md §3.2).
+     * The displayed message must ask for the API password, not the login
+     * password (SPECS.md §3.2).
      */
     data object InvalidCredentials : AuthError
 
     /**
-     * Les identifiants sont bons, mais le serveur web ne transmet pas l'en-tête
-     * `Authorization` jusqu'à FreshRSS.
+     * Credentials are valid, but the web server does not forward the
+     * `Authorization` header to FreshRSS.
      *
-     * Certains reverse-proxies le suppriment. Sans ce cas distinct, la
-     * connexion réussirait puis **chaque appel suivant** échouerait en `401` :
-     * l'utilisateur verrait « identifiants refusés » alors qu'ils sont
-     * corrects, et changerait son mot de passe en vain. La correction est dans
-     * la configuration du serveur, pas dans l'application.
+     * Some reverse proxies strip it. Without this distinct case, sign-in would
+     * succeed and then every subsequent call would fail with `401`: the user
+     * would see "invalid credentials" despite correct ones. The fix lives in
+     * the server configuration, not in the app.
      */
     data object AuthorizationHeaderNotForwarded : AuthError
 
     /**
-     * Défaillance qu'aucun des cas ci-dessus ne décrit.
+     * Failure not described by any of the cases above.
      *
-     * [technicalMessage] est destiné aux journaux, **jamais à l'affichage** :
-     * il n'est ni traduit ni compréhensible. Il ne doit contenir aucun secret.
+     * [technicalMessage] is for logs only, never for display: it is neither
+     * translated nor user-readable. It must not contain any secret.
      */
     data class Unexpected(val technicalMessage: String) : AuthError
 }

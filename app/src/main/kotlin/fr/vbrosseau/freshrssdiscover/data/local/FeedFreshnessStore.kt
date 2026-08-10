@@ -16,21 +16,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Fraîcheur du flux : la date persistée, l'acquittement en mémoire vive.
+ * Feed freshness: the timestamp is persisted, the acknowledgement kept in memory.
  *
- * **Deux supports, et ce n'est pas une inconséquence.** La date du dernier
- * contact serveur est un scalaire à conserver d'un lancement à l'autre — donc
- * DataStore, par ARCHITECTURE.md §5.1. L'acquittement, lui, n'a aucun sens à
- * survivre au processus : à la réouverture, ou bien une requête aboutit et la
- * date se remet à jour, ou bien elle échoue et c'est le bandeau hors ligne qui
- * parle. Le persister ajouterait une clé pour une situation qui ne se présente
- * pas.
+ * Two storage media, deliberately. The last server contact date is a scalar to
+ * keep across launches — hence DataStore, per ARCHITECTURE.md §5.1. The
+ * acknowledgement has no reason to survive the process: on reopening, either a
+ * request succeeds and the date is updated, or it fails and the offline banner
+ * takes over. Persisting it would add a key for a situation that never occurs.
  *
- * **`@Singleton` est ici une nécessité, pas une habitude.** C'est cet
- * acquittement en mémoire qui doit être partagé : les deux modes de
- * présentation (SPECS.md §4.8) ont chacun leur ViewModel, et basculer de l'un
- * à l'autre en détruit un pour en construire un autre. Un acquittement porté
- * par le ViewModel ferait reparaître la bandelette à chaque bascule.
+ * `@Singleton` is a necessity here, not a habit: the in-memory acknowledgement
+ * must be shared. The two presentation modes (SPECS.md §4.8) each have their
+ * own ViewModel, and switching between them destroys one to build the other.
+ * An acknowledgement held by the ViewModel would make the banner reappear on
+ * every switch.
  */
 @Singleton
 internal class FeedFreshnessStore @Inject constructor(
@@ -56,11 +54,11 @@ internal class FeedFreshnessStore @Inject constructor(
     }
 
     /**
-     * Acquitte l'horodatage **tel qu'il est écrit**, et non l'instant courant.
+     * Acknowledges the timestamp as written, not the current instant.
      *
-     * C'est ce qui fait expirer l'acquittement tout seul : le prochain contact
-     * serveur change la date, l'acquittement cesse de lui correspondre, et
-     * l'avis pourra reparaître six heures plus tard (voir [FeedFreshness]).
+     * This is what makes the acknowledgement expire on its own: the next
+     * server contact changes the date, the acknowledgement no longer matches
+     * it, and the notice can reappear six hours later (see [FeedFreshness]).
      */
     override suspend fun acknowledgeStale() {
         acknowledged.value = dataStore.data.first()[LastRefreshAtKey]
@@ -68,9 +66,9 @@ internal class FeedFreshnessStore @Inject constructor(
 
     private companion object {
         /**
-         * Préfixe `feed.`, distinct de `session.`, `reading.` et des réglages :
-         * les quatre cohabitent dans le même fichier, et un effacement ciblé ne
-         * doit emporter que ce qu'il vise.
+         * Prefix `feed.`, distinct from `session.`, `reading.` and the
+         * settings: all four share the same file, and a targeted wipe must
+         * only remove what it aims at.
          */
         val LastRefreshAtKey = longPreferencesKey("feed.last_refresh_at")
     }

@@ -35,19 +35,19 @@ internal class DefaultAuthRepository @Inject constructor(
     override fun observeSession(): Flow<AuthSession?> = sessionStore.observeSession()
 
     /**
-     * Trois étapes, dans cet ordre, et l'ordre est raisonné.
+     * Three steps, in a deliberate order.
      *
-     * 1. **Reconnaître l'instance** avant d'envoyer quoi que ce soit. Une faute
-     *    de frappe dans l'adresse produirait sinon un `401` que l'utilisateur
-     *    imputerait à son mot de passe — et le mot de passe serait parti sur un
-     *    serveur qui n'est pas le sien.
-     * 2. **Ouvrir la session.** `ClientLogin` n'exige aucun en-tête
-     *    d'autorisation : un `401` ici désigne réellement les identifiants.
-     * 3. **Vérifier que l'en-tête sera transmis**, seulement une fois le jeton
-     *    obtenu. C'est le seul moment où l'échec est constatable sans être
-     *    confondu avec un refus d'identifiants — et le faire *avant*
-     *    d'enregistrer évite de conserver une session qui échouerait à chaque
-     *    appel suivant.
+     * 1. Recognize the instance before sending anything. A typo in the address
+     *    would otherwise produce a `401` the user would blame on their
+     *    password — and the password would have been sent to a server that is
+     *    not theirs.
+     * 2. Open the session. `ClientLogin` requires no authorization header: a
+     *    `401` here genuinely designates the credentials.
+     * 3. Verify that the header will be forwarded, only once the token is
+     *    obtained. This is the only moment the failure can be observed without
+     *    being confused with a credentials rejection — and doing it before
+     *    saving avoids keeping a session that would fail every subsequent
+     *    call.
      */
     override suspend fun signIn(
         address: ServerAddress,
@@ -90,17 +90,17 @@ internal class DefaultAuthRepository @Inject constructor(
     }
 
     /**
-     * Efface la session, le cache, les marquages en attente **et la position de
-     * lecture**.
+     * Wipes the session, the cache, the pending marks, and the reading
+     * position.
      *
-     * SPECS.md §3.5 : la déconnexion est destructrice et assumée comme telle.
-     * Laisser les articles derrière soi exposerait ce que l'utilisateur lisait
-     * au prochain compte connecté sur l'appareil.
+     * SPECS.md §3.5: logout is destructive by design. Leaving the articles
+     * behind would expose what the user was reading to the next account
+     * signed in on the device.
      *
-     * La file de marquages part avec eux, et c'est le seul cas où elle est vidée
-     * sans confirmation du serveur : ces marquages désignent des articles qui
-     * n'existent plus localement, et les transmettre après une reconnexion sur
-     * un **autre** compte serait pire que de les perdre.
+     * The mark queue goes with them, and this is the only case where it is
+     * emptied without server confirmation: these marks designate articles
+     * that no longer exist locally, and transmitting them after reconnecting
+     * on a different account would be worse than losing them.
      */
     override suspend fun signOut() = withContext(ioDispatcher) {
         sessionStore.clear()
@@ -109,9 +109,9 @@ internal class DefaultAuthRepository @Inject constructor(
     }
 
     /**
-     * La connectivité n'est lue qu'ici, au moment de l'échec : la constater
-     * d'avance donnerait une réponse périmée — le réseau peut disparaître
-     * pendant la requête, ce qui est exactement le cas à diagnostiquer.
+     * Connectivity is only read here, at the moment of failure: checking it
+     * beforehand would give a stale answer — the network can vanish during
+     * the request, which is exactly the case to diagnose.
      */
     private fun failure(outcome: ApiOutcome<*>): AuthResult<Nothing> =
         Outcome.Failure(outcome.toAuthError(isOnline = network.isOnline()))

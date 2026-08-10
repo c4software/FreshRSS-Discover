@@ -29,17 +29,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /*
- * Langue figée au français, comme le harnais de capture (ARCHITECTURE.md §8.2).
+ * Locale pinned to French, like the capture harness (ARCHITECTURE.md §8.2).
  *
- * Ces cas affirment des libellés **littéraux**, et l'interface est bilingue
- * depuis GOAL-021-T02 : le français vit dans `values-fr/`, l'anglais dans
- * `values/`. Sans ce fanion, Robolectric rend la langue par défaut — l'anglais
- * — et chaque assertion tombe. Ce n'est pas une commodité de test : c'est la
- * même décision que pour les captures, dont les références sont françaises.
+ * These cases assert literal labels, and the UI is bilingual since
+ * GOAL-021-T02: French lives in `values-fr/`, English in `values/`. Without
+ * this qualifier, Robolectric renders the default language (English) and every
+ * assertion fails. Same decision as for the captures, whose references are
+ * French.
  *
- * Ce que `values/` contient est éprouvé ailleurs, par un cas dédié en `en-rUS`
- * (`EnglishStringsTest`) : sans lui, une chaîne oubliée à la traduction ne se
- * verrait que sur un appareil anglophone.
+ * The content of `values/` is tested elsewhere by a dedicated `en-rUS` case
+ * (`EnglishStringsTest`): without it, a string missed in translation would
+ * only show on an English-speaking device.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -76,11 +76,11 @@ class DiscoverScreenTest {
         }
     }
 
-    // ----- Présentation d'un article ------------------------------------------
+    // ----- Article presentation -----------------------------------------------
 
     @Test
     fun anArticleShowsItsTitleItsSourceAndItsAge() {
-        // Sans le nom du flux, le mélange des sources serait déroutant.
+        // Without the feed name, the mix of sources would be confusing.
         show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.EndOfFeed))
 
         composeRule.onNodeWithText("Un titre").assertExists()
@@ -91,7 +91,7 @@ class DiscoverScreenTest {
 
     @Test
     fun anArticleWithoutIllustrationLeavesNoEmptySpace() {
-        // SPECS.md §4.3 : ni cadre vide, ni image de remplacement générique.
+        // SPECS.md §4.3: no empty frame, no generic placeholder image.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle(imageUrl = null)),
@@ -117,9 +117,8 @@ class DiscoverScreenTest {
 
     @Test
     fun anIllustrationThatFailsToLoadLeavesNoHole() {
-        // Une image qu'on ne peut pas obtenir ne se distingue en rien, pour le
-        // lecteur, d'un article qui n'en a pas : le créneau se referme
-        // (SPECS.md §4.3).
+        // An image that cannot be fetched is, to the reader, indistinguishable
+        // from an article that has none: the slot closes (SPECS.md §4.3).
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle(imageUrl = UNREACHABLE_IMAGE_URL)),
@@ -133,8 +132,8 @@ class DiscoverScreenTest {
 
     @Test
     fun anArticleAnnouncingAnIllustrationWithoutUrlShowsNothing() {
-        // Cas dégradé : le flux annonce une image sans en donner l'adresse. Il
-        // n'y a rien à charger, donc rien à réserver.
+        // Degraded case: the feed announces an image without giving its
+        // address. There is nothing to load, so nothing to reserve.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle(imageUrl = null, hasIllustration = true)),
@@ -147,9 +146,9 @@ class DiscoverScreenTest {
 
     @Test
     fun theIllustrationHeightComesFromTheCardWidthAndNotFromTheImage() {
-        // L'image factice est carrée : si la hauteur du créneau en dépendait,
-        // le rapport mesuré vaudrait 1. Le voir tenir à 16/9 prouve que la
-        // liste ne se décalera pas au moment où l'image arrive.
+        // The fake image is square: if the slot height depended on it, the
+        // measured ratio would be 1. Seeing it hold at 16/9 proves the list
+        // will not shift when the image arrives.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle(imageUrl = LOADABLE_IMAGE_URL)),
@@ -167,9 +166,9 @@ class DiscoverScreenTest {
 
     @Test
     fun theIllustrationIsMarkedAsDecorative() {
-        // SPECS.md §7.1 laisse le choix entre une description et un marquage
-        // décoratif : c'est le second qui est retenu, et l'absence de
-        // description sémantique est ce qui le matérialise.
+        // SPECS.md §7.1 allows either a description or a decorative marking:
+        // the latter is chosen, and the absence of a semantic description is
+        // what materializes it.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle(imageUrl = LOADABLE_IMAGE_URL)),
@@ -197,8 +196,8 @@ class DiscoverScreenTest {
 
     @Test
     fun anArticleWithoutLinkIsNotClickableAndSaysSo() {
-        // SPECS.md §4.7 : ouvrir une page vide serait pire que ne rien
-        // proposer, mais un clic sans effet le serait tout autant.
+        // SPECS.md §4.7: opening an empty page would be worse than offering
+        // nothing, but so would a click with no effect.
         val clicked = mutableListOf<Long>()
         show(
             DiscoverUiState(
@@ -214,12 +213,12 @@ class DiscoverScreenTest {
         assertTrue(clicked.isEmpty())
     }
 
-    // ----- Partage de la carte (SPECS.md §4.3) --------------------------------
+    // ----- Card sharing (SPECS.md §4.3) ---------------------------------------
 
     /**
-     * Point d'entrée propre au partage plutôt qu'un [show] élargi : lui seul a
-     * besoin des **deux** commandes de la carte à la fois, et les ajouter à
-     * `show` en aurait fait une fonction à huit paramètres.
+     * Share-specific entry point rather than a widened [show]: only sharing
+     * needs both card commands at once, and adding them to `show` would have
+     * made it an eight-parameter function.
      */
     private fun showArticle(
         article: ArticleUiModel,
@@ -249,8 +248,8 @@ class DiscoverScreenTest {
 
     @Test
     fun anArticleWithoutLinkCarriesNoShareButton() {
-        // Partager un titre seul enverrait un message sans objet : même règle
-        // que l'ouverture (SPECS.md §4.7).
+        // Sharing a title alone would send a pointless message: same rule as
+        // opening (SPECS.md §4.7).
         showArticle(uiArticle(id = 7L, isOpenable = false))
 
         composeRule.onNodeWithTag(DiscoverTestTags.share(7L)).assertDoesNotExist()
@@ -258,8 +257,8 @@ class DiscoverScreenTest {
 
     @Test
     fun theShareButtonDoesNotOpenTheArticle() {
-        // Les deux commandes vivent sur la même carte, et la carte entière est
-        // cliquable : sans cette garde, partager ouvrirait aussi le navigateur.
+        // Both commands live on the same card, and the whole card is
+        // clickable: without this guard, sharing would also open the browser.
         val clicked = mutableListOf<Long>()
         val shared = mutableListOf<Long>()
         showArticle(
@@ -286,7 +285,7 @@ class DiscoverScreenTest {
         assertTrue(bounds.height >= MIN_TOUCH_TARGET, "hauteur ${bounds.height}")
     }
 
-    // ----- États du flux ------------------------------------------------------
+    // ----- Feed states --------------------------------------------------------
 
     @Test
     fun theFirstLoadShowsAProgressIndicatorRatherThanAnEmptyList() {
@@ -306,8 +305,8 @@ class DiscoverScreenTest {
 
     @Test
     fun theEndOfTheFeedIsStated() {
-        // Une liste qui cesse simplement de s'allonger est indistinguable
-        // d'une panne (SPECS.md §4.4).
+        // A list that simply stops growing is indistinguishable from a
+        // breakdown (SPECS.md §4.4).
         show(DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.EndOfFeed))
 
         composeRule.onNodeWithTag(DiscoverTestTags.END_OF_FEED).assertExists()
@@ -360,19 +359,19 @@ class DiscoverScreenTest {
 
     @Test
     fun anEndedSessionShowsNoErrorMessage() {
-        // La session disparaît et l'aiguillage racine bascule tout seul.
+        // The session disappears and the root gate switches on its own.
         show(DiscoverUiState(phase = DiscoverPhase.SessionEnded))
 
         composeRule.onNodeWithTag(DiscoverTestTags.FAILURE).assertDoesNotExist()
         composeRule.onNodeWithTag(DiscoverTestTags.EMPTY).assertDoesNotExist()
     }
 
-    // ----- Hors ligne (SPECS.md §5.2) -----------------------------------------
+    // ----- Offline (SPECS.md §5.2) --------------------------------------------
 
     @Test
     fun beingOfflineOverSomeContentShowsABannerAndNotAFullScreenError() {
-        // Un écran d'erreur plein cadre par-dessus un cache utilisable ferait
-        // croire à une application vide.
+        // A full-screen error over a usable cache would suggest an empty
+        // application.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle()),
@@ -388,8 +387,8 @@ class DiscoverScreenTest {
 
     @Test
     fun theOfflineBannerReplacesTheErrorBlockButNotItsRetry() {
-        // Deux messages pour une seule cause, dont un en rouge, feraient une
-        // alarme là où le bandeau suffit (SPECS.md §5.2).
+        // Two messages for a single cause, one of them in red, would make an
+        // alarm where the banner suffices (SPECS.md §5.2).
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle()),
@@ -444,15 +443,15 @@ class DiscoverScreenTest {
         composeRule.onNodeWithTag(DiscoverTestTags.OFFLINE_NOTICE).assertDoesNotExist()
     }
 
-    // ----- Le lancement ne demande rien (SPECS.md §5.1) -----------------------
+    // ----- Launch requests nothing (SPECS.md §5.1) ----------------------------
 
     @Test
     fun aShortFeedDoesNotLoadMoreWithoutAScroll() {
-        // Le cache filtré de ses articles lus tient parfois entièrement à
-        // l'écran : le bas est alors atteint sans que personne n'ait bougé le
-        // doigt. Sans cette garde, la requête retirée du lancement revenait
-        // par le défilement infini — constaté sur appareil, la date du dernier
-        // contact serveur changeait encore à chaque ouverture.
+        // The cache, filtered of its read articles, sometimes fits entirely on
+        // screen: the bottom is then reached without anyone moving a finger.
+        // Without this guard, the request removed from launch came back through
+        // infinite scrolling; observed on device, the last server contact date
+        // still changed on every open.
         var loads = 0
         show(
             DiscoverUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle),
@@ -466,7 +465,7 @@ class DiscoverScreenTest {
 
     @Test
     fun scrollingAShortFeedDoesLoadMore() {
-        // Défiler est une action : la pagination reprend ses droits.
+        // Scrolling is an action: pagination resumes.
         var loads = 0
         show(
             DiscoverUiState(
@@ -482,7 +481,7 @@ class DiscoverScreenTest {
         assertTrue(loads > 0, "la pagination doit suivre le défilement")
     }
 
-    // ----- Flux ancien (SPECS.md §4.6) ----------------------------------------
+    // ----- Stale feed (SPECS.md §4.6) -----------------------------------------
 
     @Test
     fun anOldFeedInvitesToReloadIt() {
@@ -523,8 +522,8 @@ class DiscoverScreenTest {
 
     @Test
     fun offlineOnlyOneStripOccupiesTheBottomOfTheScreen() {
-        // Hors ligne, le bandeau explique déjà pourquoi le flux est ancien, et
-        // « Recharger » n'ouvrirait qu'une porte vide.
+        // Offline, the banner already explains why the feed is stale, and
+        // "Reload" would only open an empty door.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle()),
@@ -539,14 +538,14 @@ class DiscoverScreenTest {
         composeRule.onNodeWithTag(DiscoverTestTags.STALE_NOTICE).assertDoesNotExist()
     }
 
-    /** Un flux ancien, avec de quoi lire : l'invitation y est due. */
+    /** A stale feed with something to read: the invitation is due there. */
     private fun staleState() = DiscoverUiState(
         articles = listOf(uiArticle()),
         phase = DiscoverPhase.Idle,
         isStaleNoticeAvailable = true,
     )
 
-    // ----- Rafraîchissement (SPECS.md §4.6) -----------------------------------
+    // ----- Refresh (SPECS.md §4.6) --------------------------------------------
 
     @Test
     fun pullingTheFeedDownAsksForARefresh() {
@@ -565,9 +564,8 @@ class DiscoverScreenTest {
     }
 
     /**
-     * Le cul-de-sac de GOAL-025 : un lecteur qui a tout lu n'a pas d'erreur à
-     * reprendre, seulement un écran vide, et c'est le tirage qu'il y tente
-     * d'abord. Signalé par l'auteur.
+     * A reader who has read everything has no error to retry, only an empty
+     * screen, and pulling down is what they try there first (GOAL-025).
      */
     @Test
     fun anEmptyFeedCanBePulledDownToo() {
@@ -582,7 +580,7 @@ class DiscoverScreenTest {
         assertEquals(1, refreshed)
     }
 
-    /** L'échec sans article aussi : « Réessayer » demeure, le geste s'y ajoute. */
+    /** Failure without articles too: "Retry" remains, the gesture adds to it. */
     @Test
     fun aFailureWithNoArticleCanBePulledDown() {
         var refreshed = 0
@@ -600,8 +598,8 @@ class DiscoverScreenTest {
     }
 
     /**
-     * Le premier chargement n'est pas tirable : sa requête est déjà en vol, et
-     * un second départ ne rendrait rien de plus tôt.
+     * The first load is not pullable: its request is already in flight, and a
+     * second start would deliver nothing sooner.
      */
     @Test
     fun theFirstLoadOffersNoPull() {
@@ -612,8 +610,8 @@ class DiscoverScreenTest {
 
     @Test
     fun aRefreshInProgressLeavesTheArticlesInPlace() {
-        // Le rafraîchissement se fait **par-dessus** le flux : il ne le
-        // remplace pas par un indicateur, sinon la lecture serait perdue.
+        // The refresh happens over the feed: it does not replace it with an
+        // indicator, otherwise the reading position would be lost.
         show(
             DiscoverUiState(
                 articles = listOf(uiArticle()),
@@ -625,7 +623,7 @@ class DiscoverScreenTest {
         composeRule.onNodeWithText("Un titre").assertExists()
     }
 
-    // ----- Chargement anticipé ------------------------------------------------
+    // ----- Anticipated loading ------------------------------------------------
 
     @Test
     fun theNextPageIsRequestedBeforeTheBottomIsReached() {
@@ -636,8 +634,8 @@ class DiscoverScreenTest {
             onLoadMore = { requested++ },
         )
 
-        // La liste n'est pas défilée jusqu'au bout : le seuil se franchit
-        // quelques articles avant.
+        // The list is not scrolled to the very end: the threshold is crossed a
+        // few articles earlier.
         composeRule.onNodeWithTag(DiscoverTestTags.LIST).performScrollToIndex(articles.size - 3)
         composeRule.waitForIdle()
 
@@ -658,10 +656,10 @@ class DiscoverScreenTest {
     }
 }
 
-/** Écart toléré sur un rapport d'aspect mesuré en dp arrondis au pixel. */
+/** Tolerated deviation on an aspect ratio measured in pixel-rounded dp. */
 private const val RATIO_TOLERANCE = 0.05f
 
-/** Cible tactile minimale exigée par SPECS.md §7.1. */
+/** Minimum touch target required by SPECS.md §7.1. */
 private val MIN_TOUCH_TARGET = 48.dp
 
 private fun uiArticle(

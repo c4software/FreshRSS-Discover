@@ -19,12 +19,11 @@ private fun at(
 ): Long = ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone).toInstant().toEpochMilli()
 
 /**
- * L'heure du rappel, éprouvée là où elle peut mentir.
+ * Reminder time, tested where it can go wrong.
  *
- * Les cas qui suivent ne sont pas des variantes d'un même calcul : ce sont les
- * quatre façons dont une date se comporte autrement qu'une soustraction —
- * l'instant déjà passé, le changement d'heure, le fuseau du lecteur, et une
- * horloge d'appareil manifestement fausse.
+ * These cases are not variants of one computation: they are the four ways a
+ * date behaves unlike a subtraction: an instant already past, daylight saving
+ * changes, the reader's time zone, and a blatantly wrong device clock.
  */
 class ReminderScheduleTest {
     @Test
@@ -47,10 +46,9 @@ class ReminderScheduleTest {
 
     @Test
     fun theExactSameMinuteGoesToTomorrowRatherThanFiringNow() {
-        // C'est **le** cas de cette fonction. L'heure enregistrée est celle de
-        // l'ouverture ; à l'instant où on programme, elle vient de sonner.
-        // Retenir « aujourd'hui » ferait partir la notification pendant que
-        // l'utilisateur lit.
+        // The defining case of this function. The recorded time is the app
+        // opening time; at the moment of scheduling, it has just struck.
+        // Choosing "today" would fire the notification while the user reads.
         val now = at(PARIS, 2026, 3, 10, 20, 0)
 
         val next = nextReminderAt(DailyMinute(20 * 60), now, PARIS)
@@ -69,9 +67,9 @@ class ReminderScheduleTest {
 
     @Test
     fun theHourSurvivesTheSpringClockChange() {
-        // Nuit du 28 au 29 mars 2026 à Paris : 2 h devient 3 h. Un calcul par
-        // « maintenant + 24 h » décalerait le rappel d'une heure, et il
-        // dériverait deux fois par an. Le rappel doit rester à 8 h.
+        // Night of March 28-29, 2026 in Paris: 2 a.m. becomes 3 a.m. A
+        // "now + 24 h" computation would shift the reminder by one hour and
+        // it would drift twice a year. The reminder must stay at 8 a.m.
         val now = at(PARIS, 2026, 3, 28, 9, 0)
 
         val next = nextReminderAt(DailyMinute(8 * 60), now, PARIS)
@@ -81,8 +79,8 @@ class ReminderScheduleTest {
 
     @Test
     fun theHourSurvivesTheAutumnClockChange() {
-        // Nuit du 24 au 25 octobre 2026 : 3 h redevient 2 h, la journée dure
-        // vingt-cinq heures.
+        // Night of October 24-25, 2026: 3 a.m. becomes 2 a.m. again, the day
+        // lasts twenty-five hours.
         val now = at(PARIS, 2026, 10, 24, 9, 0)
 
         val next = nextReminderAt(DailyMinute(8 * 60), now, PARIS)
@@ -102,8 +100,8 @@ class ReminderScheduleTest {
 
     @Test
     fun theMomentOfAnInstantIsReadInTheReaderZone() {
-        // 23 h à Paris est le lendemain 7 h à Tokyo : le même instant n'est pas
-        // le même moment de la journée, et c'est la zone du lecteur qui trie.
+        // 11 p.m. in Paris is 7 a.m. the next day in Tokyo: the same instant
+        // is not the same moment of the day, and the reader's zone decides.
         val instant = at(PARIS, 2026, 3, 10, 23, 0)
 
         assertEquals(DailyMinute(23 * 60), DailyMinute.of(instant, PARIS))
@@ -112,9 +110,9 @@ class ReminderScheduleTest {
 
     @Test
     fun aMomentOutsideTheDayIsRefusedAtConstruction() {
-        // Une valeur hors bornes vient du code ou d'un disque corrompu, jamais
-        // de l'utilisateur : la taire programmerait un rappel à une heure qui
-        // n'existe pas.
+        // An out-of-bounds value comes from code or a corrupted disk, never
+        // from the user: silencing it would schedule a reminder at an hour
+        // that does not exist.
         assertFailsWith<IllegalArgumentException> { DailyMinute(MINUTES_PER_DAY) }
         assertFailsWith<IllegalArgumentException> { DailyMinute(-1) }
     }

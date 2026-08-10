@@ -3,15 +3,15 @@ package fr.vbrosseau.freshrssdiscover.data.api
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthError
 
 /**
- * Traduit une issue technique en cause diagnosticable pour l'utilisateur.
+ * Translates a technical outcome into a diagnosable cause for the user.
  *
- * C'est le seul endroit du projet où un code HTTP prend un sens. Au-dessus, on
- * ne raisonne plus que sur [AuthError] (ARCHITECTURE.md §7).
+ * This is the only place in the project where an HTTP status code takes on
+ * meaning. Above this layer, only [AuthError] is used (ARCHITECTURE.md §7).
  *
- * @param isOnline connectivité constatée au moment de l'échec. Elle seule
- *   permet de distinguer « pas de réseau » de « serveur injoignable », que la
- *   pile HTTP rapporte de façon identique — et dont les gestes de correction
- *   n'ont rien à voir : attendre le réseau, ou corriger l'adresse.
+ * @param isOnline connectivity observed at the time of failure. It is the only
+ *   way to distinguish "no network" from "server unreachable", which the HTTP
+ *   stack reports identically, and whose fixes differ: wait for the network,
+ *   or correct the address.
  */
 internal fun ApiOutcome<*>.toAuthError(isOnline: Boolean): AuthError = when (this) {
     is ApiOutcome.Success -> AuthError.Unexpected("toAuthError appelé sur un succès")
@@ -20,10 +20,10 @@ internal fun ApiOutcome<*>.toAuthError(isOnline: Boolean): AuthError = when (thi
         if (isOnline) AuthError.ServerUnreachable else AuthError.NoNetwork
 
     /*
-     * Le serveur a répondu `2xx` mais son corps n'a pas la forme attendue :
-     * portail captif, page de maintenance, proxy qui répond 200 à tout. Du
-     * point de vue de l'utilisateur, l'adresse ne désigne pas une instance
-     * FreshRSS — c'est exactement ce qu'il doit corriger.
+     * The server answered `2xx` but the body does not have the expected shape:
+     * captive portal, maintenance page, proxy answering 200 to everything.
+     * From the user's point of view, the address does not designate a FreshRSS
+     * instance, which is exactly what they must fix.
      */
     is ApiOutcome.MalformedResponse -> AuthError.NotAFreshRssServer
 
@@ -32,30 +32,30 @@ internal fun ApiOutcome<*>.toAuthError(isOnline: Boolean): AuthError = when (thi
 
 private fun httpStatusToAuthError(status: Int, body: String): AuthError = when (status) {
     /*
-     * Constaté : identifiant inconnu et mot de passe faux répondent tous deux
-     * `401`. Les distinguer permettrait d'énumérer les comptes, et FreshRSS s'y
-     * refuse à raison — le message doit donc couvrir les deux hypothèses.
+     * Observed: an unknown username and a wrong password both answer `401`.
+     * Distinguishing them would allow account enumeration, which FreshRSS
+     * rightly refuses, so the message must cover both hypotheses.
      *
-     * Un `401` sur un chemin inexistant tombe aussi ici : l'autorisation est
-     * vérifiée avant le routage. C'est sans conséquence, la sonde de
-     * reconnaissance ayant déjà écarté ce cas.
+     * A `401` on a nonexistent path also lands here: authorization is checked
+     * before routing. This is harmless, as the recognition probe has already
+     * ruled that case out.
      */
     HTTP_UNAUTHORIZED -> AuthError.InvalidCredentials
 
     /*
-     * `400` désigne un identifiant syntaxiquement invalide — vide, espaces,
-     * `../`. Ce n'est pas une faute sur le mot de passe, mais du point de vue
-     * de l'utilisateur le geste est le même : reprendre ses identifiants.
+     * `400` means a syntactically invalid username: empty, whitespace, `../`.
+     * Not a password error, but from the user's point of view the fix is the
+     * same: re-enter the credentials.
      */
     HTTP_BAD_REQUEST -> AuthError.InvalidCredentials
 
-    /** Une case à cocher dans l'administration, pas un problème d'identifiants. */
+    /** A checkbox in the admin panel, not a credentials problem. */
     HTTP_SERVICE_UNAVAILABLE -> AuthError.ApiDisabled
 
     /*
-     * Constaté : un chemin inconnu **sous** l'API répond `401`, jamais `404`.
-     * Un `404` désigne donc l'hôte — mauvaise adresse, ou installation dans un
-     * sous-répertoire non indiqué.
+     * Observed: an unknown path *under* the API answers `401`, never `404`.
+     * A `404` therefore designates the host: wrong address, or an installation
+     * in an unspecified subdirectory.
      */
     HTTP_NOT_FOUND -> AuthError.NotAFreshRssServer
 
@@ -67,7 +67,7 @@ private const val HTTP_NOT_FOUND = 404
 private const val HTTP_SERVICE_UNAVAILABLE = 503
 
 /**
- * Le corps d'erreur part dans les journaux : le tronquer évite qu'une page
- * HTML entière — celle d'un portail captif, typiquement — s'y déverse.
+ * The error body goes to the logs: truncating it prevents a full HTML page,
+ * typically a captive portal's, from being dumped there.
  */
 private const val MAX_TECHNICAL_MESSAGE_LENGTH = 200

@@ -9,24 +9,20 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertTrue
 
 /**
- * SPECS.md §3.1 accepte `http://`, et ce test est la seule chose qui l'empêche
- * de redevenir une promesse vide.
+ * SPECS.md §3.1 accepts `http://`, and this test is the only thing keeping
+ * that from becoming an empty promise.
  *
- * **Ce que ce test rattrape, et que rien d'autre ne rattrapait.** L'application
- * a vécu quatorze Goals sans autoriser le trafic en clair : depuis
- * `targetSdk 28`, Android le refuse par défaut, et le manifeste ne disait rien.
- * Toute instance FreshRSS auto-hébergée en `http://` était donc injoignable, et
- * l'échec se présentait sous le pire déguisement possible — « le serveur ne
- * répond pas », un diagnostic qui envoie chercher la panne du mauvais côté.
- * Aucun test ne pouvait le voir : `MockEngine` n'a pas de politique réseau, et
- * les captures ne franchissent aucune couche de transport. Il a fallu une
- * exécution réelle, sur émulateur, contre un conteneur FreshRSS servi en clair
- * (GOAL-022).
+ * Since `targetSdk 28`, Android refuses cleartext traffic by default; without
+ * an explicit allowance, every self-hosted FreshRSS instance on `http://` is
+ * unreachable, and the failure shows up as "the server does not respond", a
+ * diagnosis pointing the wrong way. No other test can see it: `MockEngine`
+ * has no network policy, and screenshots cross no transport layer. It took a
+ * real run on an emulator against a cleartext FreshRSS container (GOAL-022).
  *
- * Le test porte sur la **politique effective**, telle que la plateforme la
- * calcule à partir du manifeste et de `network_security_config.xml`, et non sur
- * la présence d'un attribut. C'est ce qui le rend insensible à la façon dont
- * l'autorisation est écrite, et sensible à sa disparition.
+ * The test checks the effective policy, as the platform computes it from the
+ * manifest and `network_security_config.xml`, not the presence of an
+ * attribute. That makes it insensitive to how the allowance is written and
+ * sensitive to its disappearance.
  */
 @RunWith(RobolectricTestRunner::class)
 class CleartextTrafficTest {

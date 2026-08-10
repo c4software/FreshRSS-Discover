@@ -17,21 +17,21 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Références visuelles de la vue Balayage (SPECS.md §4.8, GOAL-012-T08).
+ * Visual references for the Swipe view (SPECS.md §4.8, GOAL-012-T08).
  *
- * Trois situations, et elles ne sont pas interchangeables :
+ * Three non-interchangeable situations:
  *
- * - **un article illustré**, où se joue le contraste du bandeau contre le texte
- *   qui le suit ;
- * - **un article sans illustration**, qui doit remplir l'écran sans laisser de
- *   trou en haut (SPECS.md §4.3) ;
- * - **la fin du flux**, qui doit se lire — un balayage qui cesse de répondre est
- *   indistinguable d'une panne (SPECS.md §4.4).
+ * - an illustrated article, where the contrast of the banner against the
+ *   following text is at stake;
+ * - an article without illustration, which must fill the screen without
+ *   leaving a hole at the top (SPECS.md §4.3);
+ * - the end of the feed, which must be readable: a swipe that stops
+ *   responding is indistinguishable from a failure (SPECS.md §4.4).
  *
- * La barre de navigation figure sur les trois : c'est l'alternative au geste
- * (GOAL-012-T07), et son bouton désactivé est précisément le genre d'élément
- * qu'une assertion textuelle ne juge pas — ce dépôt a déjà livré un indicateur
- * invisible sur bouton désactivé.
+ * The navigation bar appears on all three: it is the alternative to the
+ * gesture (GOAL-012-T07), and its disabled button is exactly the kind of
+ * element a textual assertion does not judge; this repo has already shipped
+ * an invisible indicator on a disabled button.
  */
 class SwipeScreenshotTest : ScreenshotTest() {
 
@@ -61,11 +61,11 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Sans illustration, l'écran commence par le texte.
+     * Without an illustration, the screen starts with the text.
      *
-     * C'est aussi la capture qui montre l'extrait long retenu pour ce mode
-     * (SPECS.md §8, question 8) : il doit remplir l'écran, pas le déborder de
-     * dix pages.
+     * Also the capture showing the long excerpt chosen for this mode
+     * (SPECS.md §8, question 8): it must fill the screen, not overflow it by
+     * ten pages.
      */
     @Test
     fun anArticleWithoutIllustrationFullScreen() {
@@ -87,11 +87,11 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * La fin du flux, atteinte d'un balayage de plus.
+     * The end of the feed, reached by one more swipe.
      *
-     * Le bouton « Suivant » y est désactivé : il n'y a plus rien après. C'est
-     * là qu'on vérifie qu'un libellé indisponible reste **lisible** dans les
-     * deux thèmes, et ne disparaît pas dans le fond.
+     * The "Next" button is disabled there: nothing comes after. This is where
+     * a disabled label is checked for readability in both themes, so it does
+     * not vanish into the background.
      */
     @Test
     fun theEndOfTheFeed() {
@@ -107,14 +107,14 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * L'invitation à recharger un flux ancien, posée sur une carte plein écran.
+     * The stale-feed reload notice, over a full-screen card.
      *
-     * Deux situations et pas une : en mode Liste la bandelette repose sur un
-     * fond de liste, ici sur une **illustration**. Le contraste ne se juge donc
-     * pas au même endroit, et ce dépôt a déjà livré un indicateur invisible sur
-     * un fond mal choisi. On y regarde aussi qu'elle ne recouvre pas le bouton
-     * de partage — seule commande de ce mode depuis que la carte entière ouvre
-     * l'article.
+     * Two situations, not one: in List mode the strip sits on a list
+     * background, here on an illustration. Contrast is therefore judged in a
+     * different place, and this repo has already shipped an invisible
+     * indicator on a badly chosen background. Also checks that it does not
+     * cover the share button, the only control of this mode since the whole
+     * card opens the article.
      */
     @Test
     fun anOldFeedInvitingToReload() {
@@ -136,12 +136,12 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Un article sans lien exploitable (SPECS.md §4.7).
+     * An article without a usable link (SPECS.md §4.7).
      *
-     * La seule capture où l'on voit ce que le mode Balayage devient quand il
-     * n'y a **rien à faire** : pas de bouton de partage, et la mention qui
-     * remplace toute commande. Sans elle, rien n'attesterait par l'image que le
-     * retrait du bouton d'ouverture n'a pas emporté cette explication avec lui.
+     * The only capture showing what Swipe mode becomes when there is nothing
+     * to do: no share button, and the note that replaces every control.
+     * Without it, no image would attest that removing the open button did not
+     * take that explanation with it.
      */
     @Test
     fun anArticleWithoutAnyLinkFullScreen() {
@@ -162,8 +162,8 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * La même comparaison en plein écran, où le défaut crève les yeux : le
-     * créneau y occupe la moitié de la hauteur (SPECS.md §4.3).
+     * The same comparison full screen, where the defect is glaring: the slot
+     * occupies half the height (SPECS.md §4.3).
      */
     @Test
     fun aTinyIllustrationFullScreenSitsOnItsBackdrop() {
@@ -197,10 +197,10 @@ class SwipeScreenshotTest : ScreenshotTest() {
 }
 
 /**
- * Un extrait à la longueur retenue pour ce mode (SPECS.md §8, question 8).
+ * An excerpt at the length chosen for this mode (SPECS.md §8, question 8).
  *
- * Volontairement au plafond : c'est la seule façon de vérifier sur une image
- * que 1 400 caractères remplissent l'écran sans le déborder de plusieurs pages.
+ * Deliberately at the cap: the only way to verify on an image that 1,400
+ * characters fill the screen without overflowing it by several pages.
  */
 private const val LONG_EXCERPT =
     "Après six mois de calibrage, l'instrument a transmis une série de clichés d'une précision inédite, " +

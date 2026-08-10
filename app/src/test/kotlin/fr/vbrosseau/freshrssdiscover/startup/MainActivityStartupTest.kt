@@ -16,17 +16,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Éprouve le démarrage de l'activité de lancement.
+ * Exercises launcher-activity startup.
  *
- * C'est le seul test qui parcourt le chemin réel : `MainActivity` est
- * `@AndroidEntryPoint`, elle réclame donc son propre composant, lequel réclame
- * à son tour le graphe applicatif entier — et, par `hiltViewModel()`, la
- * fabrique de ViewModels que rien d'autre n'exerce.
+ * This is the only test that walks the real path: `MainActivity` is
+ * `@AndroidEntryPoint`, so it requests its own component, which in turn
+ * requests the whole application graph and, through `hiltViewModel()`, the
+ * ViewModel factory that nothing else exercises.
  *
- * Ce qu'il **n'établit pas** : que l'écran affiche quoi que ce soit de juste.
- * La composition n'est pas pilotée ici, aucune assertion ne porte sur le rendu.
- * Il répond à une seule question, celle qui n'avait pas de réponse : est-ce que
- * l'application démarre.
+ * It does not establish that the screen renders correct content: composition
+ * is not driven here and no assertion covers rendering. It only answers
+ * whether the application starts.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -41,24 +40,24 @@ class MainActivityStartupTest {
         val controller = Robolectric.buildActivity(MainActivity::class.java)
         try {
             val activity = controller.setup().get()
-            // `setContent` ne compose pas sur-le-champ : il poste sur la boucle
-            // principale, que Robolectric laisse en pause. Sans cette relance,
-            // aucun ViewModel ne serait demandé et le test ne prouverait que
-            // l'entrée dans `onCreate`.
+            // `setContent` does not compose immediately: it posts to the main
+            // looper, which Robolectric leaves paused. Without this idle, no
+            // ViewModel would be requested and the test would only prove that
+            // `onCreate` was entered.
             shadowOf(Looper.getMainLooper()).idle()
 
             assertFalse(activity.isFinishing, "L'activité de lancement ne doit pas se refermer d'elle-même")
-            // La racine obtient son `SessionGateViewModel` par `hiltViewModel()`
-            // : un magasin non vide établit que la fabrique de ViewModels de
-            // Hilt a réellement construit un ViewModel du graphe.
+            // The root obtains its `SessionGateViewModel` via `hiltViewModel()`:
+            // a non-empty store establishes that Hilt's ViewModel factory
+            // actually built a ViewModel from the graph.
             assertTrue(
                 activity.viewModelStore.keys().isNotEmpty(),
                 "Aucun ViewModel n'a été construit : la racine n'a pas été composée",
             )
         } finally {
-            // Détruire relâche le `ViewModelStore` : sans cela, l'observation
-            // de session lancée par `SessionGateViewModel` survivrait au test et
-            // retomberait sur un environnement démonté (voir `TestApplication`).
+            // Destroying releases the `ViewModelStore`: otherwise the session
+            // observation started by `SessionGateViewModel` would outlive the
+            // test and hit a torn-down environment (see `TestApplication`).
             controller.destroy()
         }
     }

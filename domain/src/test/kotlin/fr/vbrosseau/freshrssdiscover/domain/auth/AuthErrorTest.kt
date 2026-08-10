@@ -6,13 +6,12 @@ import kotlin.test.assertTrue
 
 class AuthErrorTest {
     /**
-     * Constate que chaque cause de SPECS.md §3.3 a bien son cas, et qu'aucune
-     * n'a été fusionnée avec une autre au fil des refontes.
+     * Verifies that each cause from SPECS.md §3.3 has its own case and that
+     * none was merged with another during refactorings.
      *
-     * Le test paraît trivial ; ce qu'il protège ne l'est pas. Ramener deux
-     * causes à une seule compile parfaitement, et la spécification exige un
-     * message distinct par cause — l'utilisateur ne saurait alors plus s'il
-     * doit corriger son mot de passe ou activer l'API sur son serveur.
+     * Collapsing two causes into one compiles fine, but the specification
+     * requires a distinct message per cause; otherwise the user cannot tell
+     * whether to fix their password or enable the API on their server.
      */
     @Test
     fun everyDiagnosableCauseHasItsOwnCase() {
@@ -32,10 +31,9 @@ class AuthErrorTest {
 
     @Test
     fun theTechnicalMessageIsNotPartOfTheIdentityOfOtherCases() {
-        // Deux `Unexpected` de messages différents sont deux erreurs
-        // différentes ; les cas diagnosticables, eux, sont des singletons
-        // comparables par égalité — c'est ce dont dépend le `when` de la
-        // couche présentation.
+        // Two `Unexpected` with different messages are two different errors;
+        // the diagnosable cases are singletons comparable by equality, which
+        // the presentation layer's `when` depends on.
         assertEquals(AuthError.ApiDisabled, AuthError.ApiDisabled)
         assertTrue(AuthError.Unexpected("a") != AuthError.Unexpected("b"))
     }

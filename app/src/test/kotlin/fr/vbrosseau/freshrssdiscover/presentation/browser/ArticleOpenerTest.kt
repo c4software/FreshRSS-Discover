@@ -7,12 +7,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Robolectric, uniquement pour que `ActivityNotFoundException` soit une vraie
- * classe et non le talon de `android.jar` qui lève « Stub! » à la construction.
- * La décision testée, elle, ne dépend d'aucune API Android.
+ * Robolectric is used only so that `ActivityNotFoundException` is a real class
+ * rather than the `android.jar` stub that throws "Stub!" on construction. The
+ * decision under test depends on no Android API.
  *
- * La décision s'observe sur le **lanceur** — ce qui a été lancé, ou rien :
- * `open` ne rend aucune issue, aucun appelant n'en ayant l'usage.
+ * The decision is observed on the launcher (what was launched, or nothing):
+ * `open` returns no outcome, as no caller has any use for one.
  */
 @RunWith(RobolectricTestRunner::class)
 class ArticleOpenerTest {
@@ -105,9 +105,8 @@ class ArticleOpenerTest {
 
     @Test
     fun anAbsentBrowserDoesNotCrash() {
-        // Image système minimale, ou navigateur désactivé par une politique
-        // d'entreprise : `startActivity` lève, et le geste doit rester sans
-        // conséquence.
+        // Minimal system image, or browser disabled by an enterprise policy:
+        // `startActivity` throws, and the gesture must have no consequence.
         val strippedDevice = ArticleOpener(FakeCustomTabLauncher(browserInstalled = false))
 
         strippedDevice.open("https://example.org/article")

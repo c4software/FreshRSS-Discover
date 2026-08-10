@@ -37,7 +37,7 @@ class ArticleUiModelTest {
 
     @Test
     fun aVeryLongSummaryIsShortened() {
-        // Un résumé réel atteint 34 777 caractères (SPECS.md §8, question 7).
+        // A real summary reaches 34,777 characters (SPECS.md §8, question 7).
         val model = article(summary = "mot ".repeat(10_000)).toUiModel(NOW_MILLIS)
 
         assertTrue(model.excerpt.length <= EXCERPT_MAX_LENGTH + 1)
@@ -48,15 +48,15 @@ class ArticleUiModelTest {
     fun theCutFallsOnAWordBoundary() {
         val model = article(summary = "mot ".repeat(10_000)).toUiModel(NOW_MILLIS)
 
-        // Aucun mot tronqué : la coupure se lit comme un extrait, pas comme un
-        // défaut d'affichage.
+        // No truncated word: the cut reads as an excerpt, not as a display
+        // defect.
         assertTrue(model.excerpt.removeSuffix("…").endsWith("mot"))
     }
 
     @Test
     fun aSummaryWithoutAnySpaceIsCutAnyway() {
-        // Un jeton ou une URL très longue n'offre aucune frontière de mot :
-        // mieux vaut couper net que tout afficher.
+        // A token or a very long URL offers no word boundary: better a hard
+        // cut than displaying everything.
         val model = article(summary = "a".repeat(1_000)).toUiModel(NOW_MILLIS)
 
         assertEquals(EXCERPT_MAX_LENGTH + 1, model.excerpt.length)
@@ -70,8 +70,8 @@ class ArticleUiModelTest {
 
     @Test
     fun theIllustrationUrlTravelsToTheCard() {
-        // Sans l'URL, la carte ne pouvait que réserver la place : c'est elle
-        // qui rend l'affichage possible (SPECS.md §4.3).
+        // Without the URL, the card could only reserve the slot: the URL is
+        // what makes display possible (SPECS.md §4.3).
         val model = article(imageUrl = "https://exemple.org/i.png").toUiModel(NOW_MILLIS)
 
         assertEquals("https://exemple.org/i.png", model.imageUrl)
@@ -86,11 +86,11 @@ class ArticleUiModelTest {
 
     @Test
     fun anArticleAlreadyReadArrivesRead() {
-        // Constaté sur appareil : la projection perdait cet état, si bien qu'un
-        // article lu la veille revenait du cache comme neuf. Son fanion
-        // (SPECS.md §4.5) n'apparaissait qu'après une seconde de visibilité, le
-        // temps que le marquage de la session le rétablisse — un délai visible
-        // au chargement, et un état faux entre-temps.
+        // Observed on device: the projection lost this state, so an article
+        // read the day before came back from the cache as new. Its badge
+        // (SPECS.md §4.5) only appeared after one second of visibility, once
+        // the session's marking restored it: a visible delay at load, and a
+        // wrong state in between.
         val projected = article(id = 1L, isRead = true).toUiModel(nowEpochMillis = 0L)
 
         assertTrue(projected.isRead)

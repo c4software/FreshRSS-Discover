@@ -11,19 +11,19 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Hauteur de fenêtre de référence, en pixels : une valeur ronde rend les fractions lisibles. */
+/** Reference viewport height in pixels: a round value keeps fractions readable. */
 private const val VIEWPORT_HEIGHT = 1_000
 
 /**
- * Un cran d'horloge d'une période, plus une milliseconde.
+ * One period of clock advance, plus one millisecond.
  *
- * `advanceTimeBy` est **exclusif** de l'instant atteint : avancer exactement
- * d'une période n'exécuterait pas la tâche programmée à cet instant précis, et
- * le test compterait une observation de moins qu'il n'en survient réellement.
+ * `advanceTimeBy` is exclusive of the reached instant: advancing by exactly
+ * one period would not run the task scheduled at that precise instant, and the
+ * test would count one observation fewer than actually occurs.
  */
 private const val ONE_PERIOD = VISIBILITY_SAMPLING_PERIOD_MILLIS + 1
 
-/** Fraction mesurée dans une fenêtre standard, pour alléger les cas de test. */
+/** Fraction measured in a standard viewport, to keep test cases light. */
 private fun fractionOf(
     offset: Int,
     size: Int,
@@ -33,7 +33,7 @@ private fun fractionOf(
 
 class ArticleVisibilityTest {
 
-    // ----- Fraction visible ---------------------------------------------------
+    // ----- Visible fraction ---------------------------------------------------
 
     @Test
     fun anArticleEntirelyInsideTheViewportIsFullyVisible() {
@@ -42,7 +42,7 @@ class ArticleVisibilityTest {
 
     @Test
     fun anArticleCutByTheTopEdgeCountsOnlyWhatRemainsBelowIt() {
-        // Moitié haute hors écran : 200 px visibles sur 400.
+        // Top half off screen: 200 px visible out of 400.
         assertEquals(0.5f, fractionOf(offset = -200, size = 400))
     }
 
@@ -53,16 +53,16 @@ class ArticleVisibilityTest {
 
     @Test
     fun anArticleTallerThanTheViewportIsFullyVisibleOnceItFillsIt() {
-        // SPECS.md §4.5 : la référence est la part visible de l'écran, pas la
-        // hauteur propre de l'article. Mesuré sur lui-même, cet article
-        // plafonnerait à 40 % et ne deviendrait donc jamais lu.
+        // SPECS.md §4.5: the reference is the visible share of the screen, not
+        // the article's own height. Measured against itself, this article would
+        // cap at 40% and thus never become read.
         assertEquals(1f, fractionOf(offset = -600, size = 2_500))
     }
 
     @Test
     fun anArticleTallerThanTheViewportIsMeasuredAgainstTheViewportWhileItEnters() {
-        // 300 px de ses 2 500 sont à l'écran : 30 % de la fenêtre, donc sous le
-        // seuil, là où la mesure sur sa propre hauteur donnerait 12 %.
+        // 300 px of its 2,500 are on screen: 30% of the viewport, thus below
+        // the threshold, where measuring against its own height would give 12%.
         assertEquals(0.3f, fractionOf(offset = 700, size = 2_500))
     }
 
@@ -78,15 +78,15 @@ class ArticleVisibilityTest {
 
     @Test
     fun theContentPaddingOfTheListShiftsTheViewportWithoutDistortingTheFraction() {
-        // Une `LazyColumn` à marge de contenu a un `viewportStartOffset` négatif :
-        // ignorer cette origine décalerait toutes les fractions.
+        // A `LazyColumn` with content padding has a negative `viewportStartOffset`:
+        // ignoring that origin would shift every fraction.
         assertEquals(1f, fractionOf(offset = -100, size = 400, viewportStart = -100, viewportEnd = 900))
     }
 
     @Test
     fun anArticleWithoutHeightHasNoDefinedFraction() {
-        // Le zéro protège d'un NaN transmis au détecteur, qui comparerait alors
-        // faux à tous les seuils sans que rien ne le signale.
+        // Zero guards against a NaN reaching the detector, which would then
+        // compare false against every threshold without anything reporting it.
         assertEquals(0f, fractionOf(offset = 0, size = 0))
     }
 
@@ -95,12 +95,12 @@ class ArticleVisibilityTest {
         assertEquals(0f, fractionOf(offset = 0, size = 400, viewportEnd = 0))
     }
 
-    // ----- Échantillonnage périodique -----------------------------------------
+    // ----- Periodic sampling --------------------------------------------------
 
     @Test
     fun visibilityIsObservedOnceImmediatelyThenAtEachPeriod() = runTest {
-        // Sans cette cadence, un article immobile ne produirait qu'une seule
-        // observation et son chronomètre n'atteindrait jamais la seconde.
+        // Without this cadence, a motionless article would produce a single
+        // observation and its timer would never reach the one-second mark.
         val observations = mutableListOf<Map<ArticleId, Float>>()
         val sampling = startSampling(observations)
 
@@ -117,9 +117,9 @@ class ArticleVisibilityTest {
 
     @Test
     fun theSamplingPeriodIsFineEnoughToKeepTheOneSecondThresholdPrecise() = runTest {
-        // Le retard maximal du franchissement vaut une période : la maintenir
-        // sous le quart du seuil de 1 s (SPECS.md §4.5) garde l'écart invisible
-        // à l'usage. C'est ce qui interdit de la relâcher « pour économiser ».
+        // The maximum crossing delay is one period: keeping it under a quarter
+        // of the 1 s threshold (SPECS.md §4.5) keeps the gap invisible in use.
+        // This is what forbids loosening it to save cycles.
         assertTrue(VISIBILITY_SAMPLING_PERIOD_MILLIS <= 250L)
 
         val observations = mutableListOf<Map<ArticleId, Float>>()
@@ -133,8 +133,8 @@ class ArticleVisibilityTest {
 
     @Test
     fun cancellingTheSamplingStopsTheObservations() = runTest {
-        // C'est ainsi que le passage en arrière-plan interrompt la mesure :
-        // `repeatOnLifecycle` annule la coroutine qui porte cette boucle.
+        // This is how going to the background stops the measurement:
+        // `repeatOnLifecycle` cancels the coroutine carrying this loop.
         val observations = mutableListOf<Map<ArticleId, Float>>()
         val sampling = startSampling(observations)
 
@@ -149,8 +149,8 @@ class ArticleVisibilityTest {
 
     @Test
     fun eachSampleReReadsTheLayoutRatherThanReplayingTheFirstOne() = runTest {
-        // La disposition change sans prévenir : capturer le relevé une fois
-        // ferait chronométrer un article qui a déjà quitté l'écran.
+        // The layout changes without notice: capturing the reading once would
+        // keep timing an article that has already left the screen.
         val observations = mutableListOf<Map<ArticleId, Float>>()
         var fraction = 1f
         val sampling = startSampling(observations) { fraction }
@@ -164,11 +164,11 @@ class ArticleVisibilityTest {
 }
 
 /**
- * Arme la boucle d'échantillonnage sur le fil du test.
+ * Arms the sampling loop on the test thread.
  *
- * `UNDISPATCHED` la fait démarrer sans attendre que le test rende la main :
- * l'observation immédiate — celle qui précède la première attente — fait partie
- * du comportement vérifié, et un démarrage différé la rendrait invisible.
+ * `UNDISPATCHED` starts it without waiting for the test to yield: the
+ * immediate observation, the one preceding the first wait, is part of the
+ * verified behavior, and a deferred start would make it invisible.
  */
 private fun TestScope.startSampling(
     observations: MutableList<Map<ArticleId, Float>>,

@@ -21,11 +21,11 @@ private const val ACTION_TAG = "notice:action"
 private const val DISMISS_TAG = "notice:dismiss"
 
 /**
- * La bandelette du flux, éprouvée seule.
+ * The feed strip, tested on its own.
  *
- * Les deux modes en posaient chacun une copie ; elle vit désormais ici, et
- * c'est ici qu'on vérifie ce qu'ils tenaient tous les deux pour acquis — une
- * cible tactile assez grande, et une seconde commande facultative.
+ * Both modes each carried a copy; it now lives here, where what both took for
+ * granted is verified: a large enough touch target, and an optional second
+ * command.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -89,7 +89,7 @@ class FeedNoticeTest {
 
     @Test
     fun bothCommandsAreLargeEnoughToTouch() {
-        // SPECS.md §7.1 : 48 dp, quelle que soit la hauteur du libellé.
+        // SPECS.md §7.1: 48 dp, whatever the label height.
         show(dismissLabel = "Fermer", onDismiss = {})
 
         composeRule.onNodeWithTag(ACTION_TAG).assertHeightIsAtLeast(48.dp)

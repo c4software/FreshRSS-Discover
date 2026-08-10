@@ -6,14 +6,14 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Références visuelles des illustrations d'articles.
+ * Visual references for article illustrations.
  *
- * Elles vivent à part des captures d'écrans : ce qu'on y regarde n'est pas la
- * mise en page mais le **rendu de l'image** — sa présence, sa disparition en cas
- * d'échec, et le contraste du créneau réservé, qui était le défaut à corriger.
+ * Kept apart from the screen captures: what is examined here is not the layout
+ * but the image rendering — its presence, its disappearance on failure, and
+ * the contrast of the reserved slot.
  *
- * Le chargeur d'images est remplacé par un moteur déterministe : sans lui la
- * référence dépendrait du réseau, donc ne serait pas une référence.
+ * The image loader is replaced by a deterministic engine: without it the
+ * reference would depend on the network and would not be a reference.
  */
 class DiscoverMediaScreenshotTest : ScreenshotTest() {
 
@@ -24,11 +24,11 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
     fun restoreImageLoader() = resetImageLoader()
 
     /**
-     * Les trois issues côte à côte, volontairement sur une seule image.
+     * The three outcomes side by side, deliberately in a single image.
      *
-     * C'est leur juxtaposition qui montre l'essentiel : ni l'article sans image
-     * ni celui dont l'image a échoué ne laissent de trou dans la colonne
-     * (SPECS.md §4.3).
+     * Their juxtaposition shows the essential point: neither the article
+     * without an image nor the one whose image failed leaves a hole in the
+     * column (SPECS.md §4.3).
      */
     @Test
     fun illustrationsInTheirThreeOutcomes() {
@@ -59,12 +59,11 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le créneau réservé, image non encore arrivée.
+     * The reserved slot, image not yet arrived.
      *
-     * C'est la capture qui expose le défaut corrigé : la teinte du réservé doit
-     * se distinguer du conteneur de la carte en thème **clair** autant qu'en
-     * sombre. L'ancienne, tirée de `surfaceVariant`, ne s'en distinguait qu'en
-     * sombre.
+     * The reserved tint must stand out from the card container in the light
+     * theme as much as in the dark one. The previous tint, drawn from
+     * `surfaceVariant`, only stood out in dark.
      */
     @Test
     fun theReservedSlotIsVisibleBeforeTheImageArrives() {
@@ -89,12 +88,13 @@ class DiscoverMediaScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Une illustration **plus petite que le créneau**, à côté d'une grande.
+     * An illustration smaller than the slot, next to a large one.
      *
-     * C'est la comparaison qui juge le procédé (SPECS.md §4.3) : la petite doit
-     * apparaître à sa taille, centrée sur un fond flouté tiré d'elle-même,
-     * plutôt qu'étirée et pixelisée. La grande, elle, ne doit **pas** avoir
-     * changé — c'est ce qui établit que le fond ne s'applique qu'au cas visé.
+     * The comparison judges the technique (SPECS.md §4.3): the small one must
+     * appear at its own size, centered on a blurred backdrop drawn from
+     * itself, rather than stretched and pixelated. The large one must not have
+     * changed, which establishes that the backdrop only applies to the
+     * targeted case.
      */
     @Test
     fun aTinyIllustrationSitsOnItsOwnBlurredBackdrop() {

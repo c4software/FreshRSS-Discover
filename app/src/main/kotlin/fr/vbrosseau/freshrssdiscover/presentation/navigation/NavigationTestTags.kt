@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
-/** Repères de test de la barre de navigation. */
+/** Test tags for the navigation bar. */
 object NavigationTestTags {
     fun item(destination: AppDestination) = "nav:${destination.route}"
 }

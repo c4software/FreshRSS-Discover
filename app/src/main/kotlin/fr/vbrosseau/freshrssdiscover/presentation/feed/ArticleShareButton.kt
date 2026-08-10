@@ -11,51 +11,47 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
 
-/** Cible tactile minimale (SPECS.md §7.1) : Material s'arrête à 40 dp. */
+/** Minimum touch target (SPECS.md §7.1): Material stops at 40 dp. */
 private val MinTouchTarget = 48.dp
 
 /**
- * Taille du **dessin**, distincte de celle de la cible.
+ * Glyph size, distinct from the target size.
  *
- * 16 dp, en deux temps et à la demande de l'auteur : 24 dp d'origine, puis 18,
- * puis ceci. Le bouton n'est le sujet d'aucune des deux cartes — il côtoie la
- * ligne de source et de date en mode Liste, celle du titre en Balayage — et à
- * chaque palier il pesait encore trop lourd à l'écran. 16 dp reste au-dessus de
- * la hauteur d'une capitale de `labelMedium`, donc lisible.
+ * 16 dp: the button is not the subject of either card, and larger sizes
+ * weighed too heavily on screen. 16 dp stays above the cap height of
+ * `labelMedium`, so it remains legible.
  *
- * **La cible tactile ne suit pas.** SPECS.md §7.1 fixe 48 dp, et « plus
- * compact » ne peut pas vouloir dire « plus difficile à toucher » : ce que le
- * resserrement gagne est la ligne entière que le bouton occupait, pas les
- * pixels de sa surface sensible. Les deux mesures sont donc séparées, et c'est
- * exactement ce que `IconButton` permet — il centre son contenu dans sa cible.
+ * The touch target does not follow. SPECS.md §7.1 fixes 48 dp, and "more
+ * compact" cannot mean "harder to touch". The two measures are therefore
+ * separated, which is exactly what `IconButton` allows: it centers its
+ * content within its target.
  */
 private val GlyphSize = 16.dp
 
 /**
- * Partager le lien de l'article (SPECS.md §4.3).
+ * Shares the article's link (SPECS.md §4.3).
  *
- * Un seul composant pour les deux modes, comme [RefreshButton] et pour la même
- * raison : c'est la même action, et deux implémentations divergeraient au
- * premier ajustement fait d'un seul côté.
+ * A single component for both modes, like [RefreshButton] and for the same
+ * reason: it is the same action, and two implementations would diverge at
+ * the first one-sided adjustment.
  *
- * **L'appelant ne le pose pas quand l'article n'a pas de lien.** Le bouton ne
- * décide pas de sa propre absence : il n'y a rien à annoncer à un lecteur
- * d'écran, et une commande grisée dirait « pas maintenant » là où la réponse
- * est « jamais pour cet article ».
+ * The caller does not place it when the article has no link. The button does
+ * not decide its own absence: there is nothing to announce to a screen
+ * reader, and a grayed-out command would say "not now" where the answer is
+ * "never for this article".
  *
- * **Une icône seule, avec sa description.** Le libellé serait redondant sur une
- * carte qui n'a qu'une commande, et en mode Liste il prendrait la place d'une
- * ligne de texte sur chaque article. La description est ce qui rend la commande
- * annonçable (SPECS.md §7.1).
+ * An icon alone, with its description. A label would be redundant on a card
+ * with a single command, and in List mode it would take the place of a line
+ * of text on every article. The description is what makes the command
+ * announceable (SPECS.md §7.1).
  *
- * **Deux tailles, et elles ne mesurent pas la même chose** : [MinTouchTarget]
- * pour ce que le doigt atteint, [GlyphSize] pour ce que l'œil voit. Les
- * confondre ferait choisir entre une icône qui écrase le pied de carte et une
- * cible trop petite ; séparées, le bouton se fait discret sans rien céder.
+ * Two sizes measuring different things: [MinTouchTarget] for what the finger
+ * reaches, [GlyphSize] for what the eye sees. Conflating them would force a
+ * choice between an icon crushing the card footer and a target too small.
  *
- * @param testTag propre à l'article, comme pour [ArticleIllustration] : en mode
- *   Liste il y a autant de boutons que de cartes affichées, et un repère
- *   partagé ne désignerait rien.
+ * @param testTag specific to the article, as for [ArticleIllustration]: in
+ *   List mode there are as many buttons as displayed cards, and a shared tag
+ *   would designate nothing.
  */
 @Composable
 fun ArticleShareButton(

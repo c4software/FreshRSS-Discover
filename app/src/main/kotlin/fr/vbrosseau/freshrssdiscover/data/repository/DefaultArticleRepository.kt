@@ -27,12 +27,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Nombre d'articles demandés par page.
+ * Number of articles requested per page.
  *
- * Tranche SPECS.md §8 question 1. Mesuré sur un flux réel : résumé médian de
- * 1 324 caractères, 90ᵉ centile à 4 379 — une page de 40 pèse donc environ
- * 55 ko. Assez d'avance pour que le défilement ne s'interrompe pas, sans
- * retarder le premier affichage.
+ * Settles SPECS.md §8 question 1. Measured on a real feed: median summary of
+ * 1,324 characters, 90th percentile at 4,379 — a page of 40 therefore weighs
+ * about 55 KB. Enough lookahead to keep scrolling uninterrupted without
+ * delaying the first display.
  */
 private const val PAGE_SIZE = 40
 
@@ -49,52 +49,51 @@ internal class DefaultArticleRepository @Inject constructor(
         cursor: PageCursor?,
         previousTail: List<Article>,
     ): FeedResult<ArticlePage> = withContext(ioDispatcher) {
-        // Rien ne précède le début du flux : un rechargement complet doit
-        // produire exactement le même ordre que le premier affichage (règle 3).
+        // Nothing precedes the start of the stream: a full reload must produce
+        // exactly the same order as the first display (rule 3).
         val tail = if (cursor == null) emptyList() else previousTail
         fetchPage(cursor, previousTail = tail, renewsCache = false)
     }
 
     /**
-     * Le mélange repart de zéro : la page rendue est la tête du flux, rien ne
-     * la précède.
+     * The shuffle starts from scratch: the returned page is the head of the
+     * feed, nothing precedes it.
      *
-     * **Et le cache est renouvelé**, ce qu'il n'était pas (GOAL-026) : le
-     * rechargement vidait l'affichage sans toucher à la base, si bien qu'une
-     * application tuée puis relancée ressuscitait le flux qu'on venait
-     * d'épuiser. Voir [renewCache].
+     * The cache is also renewed, which it previously was not (GOAL-026): the
+     * reload cleared the display without touching the database, so killing and
+     * relaunching the application resurrected the feed that had just been
+     * exhausted. See [renewCache].
      */
     override suspend fun refresh(): FeedResult<ArticlePage> = withContext(ioDispatcher) {
         fetchPage(cursor = null, previousTail = emptyList(), renewsCache = true)
     }
 
     /**
-     * Les articles lus sont écartés ici, faute de pouvoir l'être par la requête.
+     * Read articles are filtered out here, since the query cannot do it.
      *
-     * Le cache les conserve jusqu'à la purge (SPECS.md §5.4) alors que le flux
-     * ne présente que des non-lus (§4.1). La borne s'applique donc avant le
-     * filtrage : un cache chargé d'articles lus rend une liste plus courte que
-     * demandée — sans conséquence, la première page réseau la complète aussitôt.
+     * The cache keeps them until the purge (SPECS.md §5.4) while the feed only
+     * shows unread items (§4.1). The limit therefore applies before filtering:
+     * a cache loaded with read articles returns a list shorter than requested
+     * — harmless, as the first network page immediately completes it.
      */
     override suspend fun unreadFromCache(limit: Int): List<Article> =
-        // Mélangés comme le flux (SPECS.md §4.2) : le rappel cite les premiers
-        // titres, et les prendre dans l'ordre brut de la base ferait toujours
-        // citer la source la plus bavarde.
+        // Shuffled like the feed (SPECS.md §4.2): the reminder quotes the first
+        // titles, and taking them in raw database order would always quote the
+        // most talkative source.
         interleaveBySource(cache.unreadArticles(limit))
 
     /**
-     * Le cache mélangé (SPECS.md §4.2), **articles lus compris**.
+     * The shuffled cache (SPECS.md §4.2), read articles included.
      *
-     * C'est ce qui rend le lancement stable : l'ensemble ne bouge pas entre
-     * deux ouvertures, donc le mélange rend le même ordre. Écarter les lus
-     * faisait changer cet ensemble à chaque session — le marquage en consomme —
-     * et le flux paraissait se remélanger tout seul, sans qu'aucune requête ne
-     * soit partie. Les lus restent affichés, grisés à leur place, jusqu'au
-     * prochain rechargement demandé (SPECS.md §4.6), qui seul renouvelle la
-     * liste.
+     * This is what makes the launch stable: the set does not change between
+     * openings, so the shuffle yields the same order. Excluding read articles
+     * changed that set every session — marking consumes some — and the feed
+     * appeared to reshuffle itself with no request sent. Read articles stay
+     * displayed, grayed in place, until the next user-requested reload
+     * (SPECS.md §4.6), which alone renews the list.
      *
-     * Le rappel de lecture, lui, ne veut que les non-lus : c'est
-     * [unreadFromCache], et son filtre est fait par SQLite.
+     * The reading reminder only wants unread items: that is
+     * [unreadFromCache], whose filter is done by SQLite.
      */
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cache.observeArticles(limit).map(::interleaveBySource)
@@ -105,9 +104,9 @@ internal class DefaultArticleRepository @Inject constructor(
         renewsCache: Boolean,
     ): FeedResult<ArticlePage> {
         /*
-         * Aucune session : l'aiguillage racine a déjà dû basculer vers l'écran
-         * de connexion. Le signaler quand même plutôt que de renvoyer une page
-         * vide, qui se lirait comme « plus d'articles ».
+         * No session: the root router should already have switched to the
+         * sign-in screen. Still report it rather than returning an empty page,
+         * which would read as "no more articles".
          */
         val session = sessionStore.observeSession().first() ?: return Outcome.Failure(FeedError.SessionExpired)
 
@@ -120,68 +119,63 @@ internal class DefaultArticleRepository @Inject constructor(
     }
 
     /**
-     * Le rechargement renouvelle le cache : **la réponse du serveur devient son
-     * contenu** (SPECS.md §4.6, GOAL-027).
+     * The reload renews the cache: the server response becomes its content
+     * (SPECS.md §4.6, GOAL-027).
      *
-     * **Le défaut, signalé deux fois par l'auteur.** Le rechargement vidait
-     * l'affichage et laissait la base intacte : tout lire, recharger — l'écran
-     * annonçait qu'il n'y avait plus rien — puis tuer l'application et la
-     * relancer ressuscitait le jeu précédent. Depuis GOAL-020 il n'y a plus de
-     * fanion de lecture : ces revenants étaient **indiscernables** de vrais non
-     * lus.
+     * Without this, the reload cleared the display but left the database
+     * intact: reading everything, reloading — the screen said there was
+     * nothing left — then killing and relaunching the application resurrected
+     * the previous set. Since GOAL-020 there is no read flag: those ghosts
+     * were indistinguishable from genuinely unread articles.
      *
-     * GOAL-026 avait purgé ce qui était **lu localement**, et ne suffisait pas.
-     * Mesuré sur l'appareil de l'auteur, base à l'appui : après un rechargement
-     * qui affichait « rien à lire », le cache gardait 31 lignes **non lues
-     * localement** que le serveur ne renvoyait plus. Il les avait lues ailleurs
-     * — interface web, autre client — et `upsertPreservingLocalReadState` ne
-     * propage l'état lu que pour les articles que le serveur **renvoie** :
-     * l'absence, elle, ne disait rien. C'est pourtant le seul signe que
-     * l'application reçoive jamais d'une lecture faite ailleurs.
+     * GOAL-026 purged what was locally read, and that was not enough. Measured
+     * on device: after a reload showing "nothing to read", the cache kept 31
+     * rows unread locally that the server no longer returned. They had been
+     * read elsewhere — web UI, another client — and
+     * `upsertPreservingLocalReadState` only propagates the read state for
+     * articles the server returns: absence said nothing. Yet absence is the
+     * only signal the application ever receives of a reading made elsewhere.
      *
-     * Le critère est donc l'appartenance à la page rendue, jamais l'état lu
-     * local. Sont épargnées les lignes dont le marquage **attend encore de
-     * partir** : elles portent une vérité que le serveur ignore, il ne peut donc
-     * pas la renvoyer, et les effacer ferait revenir comme neuf ce que
-     * l'utilisateur vient de lire.
+     * The criterion is therefore membership in the returned page, never the
+     * local read state. Rows whose mark is still awaiting transmission are
+     * spared: they carry a truth the server does not know, so it cannot return
+     * it, and deleting them would bring back as new what the user just read.
      *
-     * **Après l'enregistrement, jamais avant** : `upsertPreservingLocalReadState`
-     * lit l'état lu dans ces mêmes lignes.
+     * After the save, never before: `upsertPreservingLocalReadState` reads the
+     * read state from these very rows.
      *
-     * **La pagination ne renouvelle rien** : ce serait effacer le flux sous les
-     * yeux de qui le parcourt, puisqu'une page suivante ne contient jamais ce
-     * qui précède. Seul un rechargement demandé renouvelle, comme SPECS.md §4.6
-     * le dit — et le prix, assumé, est que la réserve hors ligne retombe alors à
-     * la page de tête.
+     * Pagination renews nothing: that would erase the feed under the reader's
+     * eyes, since a next page never contains what precedes it. Only a
+     * user-requested reload renews, as SPECS.md §4.6 states — the accepted
+     * cost being that the offline reserve then falls back to the head page.
      */
     private suspend fun renewCache(returned: List<Article>) {
         cache.retainOnly(returned.map(Article::id))
     }
 
     /**
-     * Ramène la page à l'ordre de publication, puis applique le mélange
+     * Restores the page to publication order, then applies the shuffle
      * (SPECS.md §4.2).
      *
-     * **Le tri n'est pas une précaution, c'est le correctif d'un défaut vu à
-     * l'écran.** Le serveur trie sa liste par date de récupération, pas de
-     * publication : constaté sur une instance réelle, un article publié deux
-     * jours plus tôt ouvrait la première page. Affichée telle quelle, cette
-     * page installait un ordre différent de celui du cache — trié par
-     * publication — et l'écran du lancement dépendait alors de qui, du disque
-     * ou du réseau, répondait en premier : chaque démarrage tirait son ordre
-     * au sort. La reprise de lecture (SPECS.md §5.3), qui cherche « le premier
-     * article pas plus récent », tombait de surcroît n'importe où dans une
-     * liste non chronologique.
+     * The sort is not a precaution; it fixes a defect seen on screen. The
+     * server sorts its list by retrieval date, not publication: observed on a
+     * real instance, an article published two days earlier opened the first
+     * page. Displayed as-is, that page installed an order different from the
+     * cache's — sorted by publication — and the launch screen then depended on
+     * whether disk or network answered first: each startup drew its order at
+     * random. Resume-reading (SPECS.md §5.3), which looks for "the first
+     * article no more recent", also landed anywhere in a non-chronological
+     * list.
      *
-     * Le départage à date égale est celui du tri SQL du cache — id décroissant —
-     * pour que les deux sources produisent exactement le même ordre. Le mélange
-     * attend d'ailleurs du chronologique inverse : c'est son contrat, que
-     * l'ordre de récupération violait.
+     * The tie-break on equal dates matches the cache's SQL sort — descending
+     * id — so both sources produce exactly the same order. The shuffle expects
+     * reverse-chronological input: that is its contract, which retrieval order
+     * violated.
      *
-     * Le cache, lui, reçoit l'ordre du serveur : il est relu trié par date, et
-     * le mélange y est réappliqué à la lecture. Persister un ordre déjà mélangé
-     * n'apporterait rien et le figerait alors que de nouveaux articles doivent
-     * pouvoir s'y insérer.
+     * The cache receives the server order: it is re-read sorted by date, and
+     * the shuffle is reapplied on read. Persisting an already shuffled order
+     * would gain nothing and would freeze it while new articles must be able
+     * to slot in.
      */
     private fun ArticlePage.interleaved(previousTail: List<Article>): ArticlePage {
         val chronological = articles.sortedWith(
@@ -192,24 +186,23 @@ internal class DefaultArticleRepository @Inject constructor(
     }
 
     /**
-     * Chaque page obtenue est déposée au cache **avant** d'être rendue.
+     * Every fetched page is written to the cache before being returned.
      *
-     * C'est ce qui permettra au flux de s'afficher immédiatement au prochain
-     * lancement, sans attendre le réseau (SPECS.md §5.1). L'écriture est faite
-     * ici plutôt que par l'appelant : un appelant qui l'oublierait produirait un
-     * cache incomplet, et le défaut ne se verrait qu'au lancement suivant.
+     * This is what lets the feed display immediately at the next launch,
+     * without waiting for the network (SPECS.md §5.1). The write happens here
+     * rather than in the caller: a caller forgetting it would produce an
+     * incomplete cache, and the defect would only show at the next launch.
      *
-     * **La date du contact serveur est notée au même endroit, et pour la même
-     * raison.** C'est elle qui dira plus tard si le flux affiché est ancien
-     * (SPECS.md §4.6). Deux ViewModels demandent des pages ; la noter chez eux
-     * ferait vivre deux fois la même règle, et laisserait les deux modes de
-     * présentation diverger. La couche qui a parlé au serveur est la seule à
-     * savoir qu'il a répondu.
+     * The server contact date is recorded in the same place, for the same
+     * reason. It is what will later say whether the displayed feed is stale
+     * (SPECS.md §4.6). Two ViewModels request pages; recording it in each
+     * would duplicate the rule and let the two presentation modes diverge.
+     * The layer that talked to the server is the only one that knows it
+     * answered.
      *
-     * Une page **valide mais vide** compte comme une réponse : le serveur a
-     * parlé, c'est le flux qui n'a rien de neuf. Un échec, lui, ne note rien —
-     * sans quoi une application ouverte hors ligne toute la journée
-     * paraîtrait fraîche.
+     * A valid but empty page counts as a response: the server spoke, the feed
+     * simply has nothing new. A failure records nothing — otherwise an
+     * application left open offline all day would appear fresh.
      */
     private suspend fun ApiOutcome<StreamContentsDto>.toFeedResult(
         previousTail: List<Article>,
@@ -228,9 +221,9 @@ internal class DefaultArticleRepository @Inject constructor(
         is ApiOutcome.MalformedResponse -> Outcome.Failure(FeedError.Unexpected(detail))
 
         /*
-         * La connectivité n'est lue qu'ici, au moment de l'échec : la constater
-         * d'avance donnerait une réponse périmée, le réseau pouvant disparaître
-         * pendant la requête — ce qui est exactement le cas à diagnostiquer.
+         * Connectivity is only read here, at the moment of failure: checking
+         * it beforehand would give a stale answer, as the network can vanish
+         * during the request — exactly the case to diagnose.
          */
         is ApiOutcome.TransportError -> Outcome.Failure(
             if (network.isOnline()) FeedError.ServerUnreachable else FeedError.NoNetwork,
@@ -238,13 +231,12 @@ internal class DefaultArticleRepository @Inject constructor(
     }
 
     /**
-     * Un `401` sur une lecture signifie que le serveur refuse le jeton —
-     * l'utilisateur a changé son mot de passe API.
+     * A `401` on a read means the server rejects the token — the user changed
+     * their API password.
      *
-     * La session est effacée **ici**, ce qui fait basculer l'aiguillage racine
-     * de lui-même : aucun écran n'a de redirection à déclencher (SPECS.md
-     * §3.4). Le rappel de saisie, lui, survit : adresse et identifiant restent
-     * préremplis.
+     * The session is wiped here, which makes the root router switch on its
+     * own: no screen has a redirect to trigger (SPECS.md §3.4). The sign-in
+     * hint survives: address and username remain prefilled.
      */
     private suspend fun httpFailure(status: Int): FeedResult<ArticlePage> = when (status) {
         HTTP_UNAUTHORIZED -> {

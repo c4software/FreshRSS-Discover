@@ -3,60 +3,59 @@ package fr.vbrosseau.freshrssdiscover.presentation.discover
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedUiState
 
 /**
- * Ce que l'écran Liste affiche : l'état commun des deux modes, sous le nom que
- * cet écran a toujours employé.
+ * What the List screen displays: the state shared by both modes, under the
+ * name this screen has always used.
  *
- * Un alias et non une classe : les deux modes portent le même contenu et les
- * mêmes règles (SPECS.md §4.8), et deux états jumeaux ont réellement divergé —
- * voir [FeedUiState], qui documente l'état lui-même.
+ * An alias rather than a class: both modes carry the same content and the
+ * same rules (SPECS.md §4.8). See [FeedUiState], which documents the state
+ * itself.
  */
 typealias DiscoverUiState = FeedUiState
 
 /**
- * Où en est le flux.
+ * Where the feed stands.
  *
- * Les quatre issues d'un chargement — il continue, il travaille, il s'est
- * terminé, il a échoué — sont des cas distincts et non des booléens croisés :
- * SPECS.md §4.4 demande qu'une liste qui cesse de s'allonger ne soit jamais
- * confondue avec une panne, et deux drapeaux indépendants autoriseraient
- * justement l'état ambigu « ni en cours, ni fini, ni en erreur ».
+ * The outcomes of a load (ongoing, working, finished, failed) are distinct
+ * cases rather than crossed booleans: SPECS.md §4.4 requires that a list
+ * which stops growing is never confused with a failure, and two independent
+ * flags would allow exactly the ambiguous "neither loading, nor done, nor in
+ * error" state.
  */
 sealed interface DiscoverPhase {
-    /** Première page en cours : rien n'est encore affichable. */
+    /** First page in flight: nothing is displayable yet. */
     data object InitialLoading : DiscoverPhase
 
-    /** Des articles sont affichés, et une page reste à demander. */
+    /** Articles are displayed and a page remains to be requested. */
     data object Idle : DiscoverPhase
 
-    /** Page suivante en cours, sous les articles déjà affichés. */
+    /** Next page in flight, below the articles already displayed. */
     data object LoadingMore : DiscoverPhase
 
-    /** Plus aucun article : le flux se termine par un message explicite. */
+    /** No articles left: the feed ends with an explicit message. */
     data object EndOfFeed : DiscoverPhase
 
-    /** Un chargement a échoué ; [failure] porte le message et l'action de reprise. */
+    /** A load failed; [failure] carries the message and the retry action. */
     data class Failed(val failure: DiscoverFailure) : DiscoverPhase
 
     /**
-     * Le serveur a refusé le jeton.
+     * The server rejected the token.
      *
-     * Ce n'est pas une erreur de lecture mais une fin de session : le dépôt
-     * l'accompagne d'une invalidation et l'aiguillage racine ramène de lui-même
-     * à l'écran de connexion (SPECS.md §3.4). L'écran n'affiche donc **rien**
-     * de particulier — il est sur le point de disparaître — mais il cesse de
-     * demander des pages, faute de quoi le défilement en réclamerait une à
-     * chaque image jusqu'à la bascule.
+     * Not a read error but the end of the session: the repository pairs it
+     * with an invalidation and the root switch returns to the login screen on
+     * its own (SPECS.md §3.4). The screen therefore displays nothing special,
+     * being about to disappear, but it stops requesting pages; otherwise
+     * scrolling would request one on every frame until the switch.
      */
     data object SessionEnded : DiscoverPhase
 }
 
 /**
- * Ce qui a empêché le chargement, réduit à ce qui se dit à l'utilisateur.
+ * What prevented the load, reduced to what is told to the user.
  *
- * `FeedError.SessionExpired` n'y figure pas : il n'appelle aucun message, et
- * l'inclure obligerait l'écran à traiter un cas qu'il ne doit pas afficher.
- * `FeedError.Unexpected` y perd son message technique — il va aux journaux,
- * jamais à l'affichage.
+ * `FeedError.SessionExpired` is absent: it calls for no message, and
+ * including it would force the screen to handle a case it must not display.
+ * `FeedError.Unexpected` loses its technical message here: it goes to the
+ * logs, never to the display.
  */
 enum class DiscoverFailure {
     NoNetwork,

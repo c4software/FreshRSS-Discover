@@ -7,51 +7,49 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 /**
- * Cadence d'échantillonnage de la visibilité, en millisecondes.
+ * Visibility sampling period, in milliseconds.
  *
- * `ReadDetector` est pur : il ne se réveille pas tout seul et ne mesure une
- * durée qu'entre deux observations qu'on lui donne. Sans cadence propre, un
- * article resté dix secondes à l'écran ne serait **jamais** signalé, faute d'une
- * seconde observation après celle qui a armé le chronomètre (SPECS.md §4.5).
+ * `ReadDetector` is pure: it never wakes on its own and only measures time
+ * between two observations it is given. Without a sampling cadence, an
+ * article on screen for ten seconds would never be reported, lacking a second
+ * observation after the one that armed the timer (SPECS.md §4.5).
  *
- * 200 ms est le compromis entre deux erreurs opposées :
+ * 200 ms balances two opposite errors:
  *
- * - **Trop lent.** L'instant du franchissement n'est connu qu'à une période
- *   près : le seuil de 1 seconde se déclenche en réalité entre 1,0 s et
- *   1,0 s + période. À 200 ms l'erreur reste sous 20 %, ce qui est invisible à
- *   l'usage ; à 1 s, un article lu pourrait n'être signalé qu'au bout de 2 s,
- *   soit le double du seuil annoncé.
- * - **Trop rapide.** Échantillonner à la fréquence d'affichage (16 ms à 60 Hz)
- *   réveillerait la coroutine soixante fois par seconde pour parcourir les
- *   éléments visibles et allouer une table, alors que la précision gagnée ne
- *   change rien à une règle dont le seuil est la seconde. C'est de la batterie
- *   dépensée pour rien, en continu, pendant toute la lecture.
+ * - Too slow: the crossing instant is known only to within one period, so the
+ *   1-second threshold actually fires between 1.0 s and 1.0 s + period. At
+ *   200 ms the error stays under 20%, invisible in practice; at 1 s, a read
+ *   article could be reported only after 2 s, double the stated threshold.
+ * - Too fast: sampling at display frequency (16 ms at 60 Hz) would wake the
+ *   coroutine sixty times per second to walk visible items and allocate a
+ *   map, while the extra precision changes nothing for a rule whose
+ *   threshold is one second. That is battery spent continuously for nothing.
  *
- * 5 Hz suffit également à ne rien manquer d'un défilement : un article qui passe
- * à l'écran en moins de 200 ms ne peut de toute façon pas y rester une seconde.
+ * 5 Hz is also enough to miss nothing during a scroll: an article that
+ * crosses the screen in under 200 ms cannot stay visible for a second anyway.
  */
 internal const val VISIBILITY_SAMPLING_PERIOD_MILLIS = 200L
 
 /**
- * Fraction de l'article réellement affichée, entre 0 et 1.
+ * Fraction of the article actually displayed, between 0 and 1.
  *
- * SPECS.md §4.5 précise que « 60 % de sa hauteur » se mesure **sur la part
- * visible de l'écran**, et non sur la hauteur propre de l'article : pris au pied
- * de la lettre, un article plus haut que la fenêtre ne pourrait jamais en
- * montrer 60 % de lui-même, et ne deviendrait donc jamais lu. La référence est
- * donc `min(hauteur de l'article, hauteur de la fenêtre)` : un article plus haut
- * que l'écran atteint 1,0 dès qu'il occupe toute la fenêtre, ce qui est
- * exactement la situation où on le lit.
+ * SPECS.md §4.5 states that "60% of its height" is measured against the
+ * visible part of the screen, not the article's own height: taken literally,
+ * an article taller than the viewport could never show 60% of itself and
+ * would never become read. The reference is therefore
+ * `min(article height, viewport height)`: an article taller than the screen
+ * reaches 1.0 as soon as it fills the viewport, exactly the situation where
+ * it is being read.
  *
- * Fonction pure sur des entiers plutôt que méthode sur `LazyListLayoutInfo` :
- * c'est le seul calcul délicat de la mesure, et il doit être éprouvé sans
- * Compose ni Android.
+ * A pure function over integers rather than a method on `LazyListLayoutInfo`:
+ * this is the only delicate computation of the measurement, and it must be
+ * testable without Compose or Android.
  *
- * @param itemOffset position du haut de l'article, dans le repère de la fenêtre.
- * @param itemSize hauteur totale de l'article, y compris sa part hors écran.
- * @param viewportStart bord haut de la fenêtre, négatif quand la liste a une
- *   marge de contenu.
- * @param viewportEnd bord bas de la fenêtre.
+ * @param itemOffset position of the article's top, in viewport coordinates.
+ * @param itemSize total article height, including its off-screen part.
+ * @param viewportStart top edge of the viewport, negative when the list has
+ *   content padding.
+ * @param viewportEnd bottom edge of the viewport.
  */
 internal fun visibleFraction(
     itemOffset: Int,
@@ -59,25 +57,24 @@ internal fun visibleFraction(
     viewportStart: Int,
     viewportEnd: Int,
 ): Float {
-    // Un article de hauteur nulle, ou une fenêtre pas encore mesurée, n'a pas
-    // de fraction définie : la division serait un NaN transmis au détecteur.
+    // A zero-height article, or a viewport not yet measured, has no defined
+    // fraction: the division would produce a NaN passed to the detector.
     val reference = minOf(itemSize, viewportEnd - viewportStart)
     if (reference <= 0) return 0f
 
-    // Bornage des deux côtés : l'intersection de l'article et de la fenêtre est
-    // vide — et non négative — dès que l'article est entièrement au-dessus ou
-    // au-dessous.
+    // Clamp on both sides: the intersection of article and viewport is empty,
+    // not negative, once the article is entirely above or below.
     val top = maxOf(itemOffset, viewportStart)
     val bottom = minOf(itemOffset + itemSize, viewportEnd)
     return (bottom - top).coerceAtLeast(0).toFloat() / reference
 }
 
 /**
- * Traduit l'état de disposition de la liste en observation pour `ReadDetector`.
+ * Translates the list's layout state into an observation for `ReadDetector`.
  *
- * Seuls les éléments dont la clé est l'identifiant d'un article sont retenus :
- * la liste porte aussi un pied de page, dont la clé est une chaîne, et le
- * compter comme article lu n'aurait aucun sens.
+ * Only items whose key is an article identifier are kept: the list also
+ * carries a footer, whose key is a string, and counting it as a read article
+ * would make no sense.
  */
 internal fun LazyListLayoutInfo.articleVisibility(): Map<ArticleId, Float> =
     visibleItemsInfo
@@ -89,19 +86,19 @@ internal fun LazyListLayoutInfo.articleVisibility(): Map<ArticleId, Float> =
         .toMap()
 
 /**
- * Échantillonne la visibilité tant que la coroutine vit.
+ * Samples visibility for as long as the coroutine lives.
  *
- * La boucle observe **avant** d'attendre : la première observation part sans
- * délai, sinon l'article affiché à l'ouverture de l'écran verrait son
- * chronomètre démarrer avec une période de retard.
+ * The loop observes before waiting: the first observation goes out without
+ * delay, otherwise the article displayed when the screen opens would start
+ * its timer one period late.
  *
- * Elle ne s'arrête jamais d'elle-même : c'est son appelant qui la porte, et
- * c'est délibéré. L'arrêt est un fait de cycle de vie — l'écran passe en
- * arrière-plan — que cette fonction n'a pas les moyens de connaître.
+ * It deliberately never stops on its own: the caller owns it. Stopping is a
+ * lifecycle fact (the screen goes to the background) that this function has
+ * no way to know.
  *
- * @param visibility relevé de la disposition, appelé à chaque échantillon plutôt
- *   que capturé une fois : c'est justement parce qu'il change sans que rien ne
- *   nous prévienne qu'on l'interroge périodiquement.
+ * @param visibility layout reading, called on each sample rather than
+ *   captured once: it is precisely because it changes without notice that it
+ *   is polled periodically.
  */
 internal suspend fun sampleVisibility(
     periodMillis: Long = VISIBILITY_SAMPLING_PERIOD_MILLIS,

@@ -11,30 +11,27 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Entretien du cache local : la purge, et la mesure de ce qu'il reste
+ * Local cache maintenance: the purge, and measuring what remains
  * (SPECS.md §5.4, §6).
  *
- * **Quand la purge automatique se déclenche : une fois par démarrage de
- * processus, en tâche de fond.** Les trois moments possibles n'ont pas le même
- * coût.
+ * The automatic purge runs once per process start, in the background. The
+ * three possible moments do not cost the same:
  *
- * - *Après chaque page* : le plus fréquent, et au pire moment. Une page arrive
- *   pendant que l'utilisateur fait défiler ; un `DELETE` qui parcourt toute la
- *   table et interroge au passage la file des marquages tomberait donc
- *   exactement sur l'instant où une saccade se voit. Vingt à trente fois par
- *   session pour un résultat qui ne change qu'au fil des jours.
- * - *Périodiquement* : il faudrait un ordonnanceur (`WorkManager`), donc une
- *   dépendance et un composant de plus, pour une opération qui n'a aucune raison
- *   de tourner quand l'application est fermée — un cache que personne ne lit
- *   n'encombre personne.
- * - *Au démarrage* : une fois par processus, sur [ApplicationScope] et sans que
- *   rien ne l'attende. Le premier affichage vient du cache (SPECS.md §5.1) et
- *   n'est pas suspendu à cette coroutine ; la purge ne peut donc pas retarder ce
- *   que l'utilisateur regarde. C'est ce qui est retenu.
+ * - After each page: the most frequent, and the worst moment. A page arrives
+ *   while the user scrolls; a `DELETE` scanning the whole table and querying
+ *   the mark queue would land exactly when a stutter is visible. Twenty to
+ *   thirty times per session for a result that only changes over days.
+ * - Periodically: would require a scheduler (`WorkManager`), hence one more
+ *   dependency and component, for an operation with no reason to run while
+ *   the application is closed — a cache nobody reads bothers nobody.
+ * - At startup: once per process, on [ApplicationScope], with nothing
+ *   awaiting it. The first display comes from the cache (SPECS.md §5.1) and
+ *   is not suspended on this coroutine, so the purge cannot delay what the
+ *   user is looking at. This is the chosen option.
  *
- * Le seul effet perceptible reste que des articles lus il y a plus d'une
- * semaine disparaissent du bas du flux entre deux lancements — c'est la purge
- * elle-même, pas son moment.
+ * The only perceptible effect is that articles read more than a week ago
+ * disappear from the bottom of the feed between launches — that is the purge
+ * itself, not its timing.
  */
 @Singleton
 internal class CacheMaintenance @Inject constructor(
@@ -45,22 +42,21 @@ internal class CacheMaintenance @Inject constructor(
     override fun observeCacheStatus(): Flow<CacheStatus> = cache.observeCacheStatus()
 
     /**
-     * Purge manuelle : tout ce qui est lu et synchronisé, sans attendre les
-     * sept jours.
+     * Manual purge: everything read and synchronized, without waiting the
+     * seven days.
      *
-     * Renoncer à l'ancienneté n'affaiblit aucune garantie : les articles non lus
-     * et les marquages en attente restent hors d'atteinte.
+     * Dropping the age condition weakens no guarantee: unread articles and
+     * pending marks remain out of reach.
      */
     override suspend fun purgeReadArticles(): Int = cache.purgeAllRead()
 
     /**
-     * Lance la purge d'ancienneté sans l'attendre.
+     * Starts the age-based purge without awaiting it.
      *
-     * À appeler une fois au démarrage. Elle ne renvoie rien : personne n'a de
-     * décision à prendre à partir de son résultat, et le faire attendre
-     * n'apporterait qu'un retard. L'échec est absorbé par le `SupervisorJob` de
-     * la portée applicative — un cache non purgé est un désagrément, pas une
-     * panne.
+     * Call once at startup. It returns nothing: no decision depends on its
+     * result, and awaiting it would only add delay. Failure is absorbed by
+     * the application scope's `SupervisorJob` — an unpurged cache is an
+     * inconvenience, not an outage.
      */
     fun purgeExpiredInBackground() {
         scope.launch {

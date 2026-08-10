@@ -33,18 +33,17 @@ class SettingsViewModelTest {
     private val scheduler = FakeReminderScheduler()
 
     /**
-     * Construit **paresseusement**, et c'est nécessaire : `stateIn` lance sa
-     * coroutine de partage dès la création du ViewModel, sur `Dispatchers.Main`.
-     * Un initialiseur de propriété s'exécute avant que [MainDispatcherRule] ne
-     * l'ait substitué — la coroutine partirait alors sur le vrai dispatcher
-     * principal, absent hors Android.
+     * Built lazily, and necessarily so: `stateIn` starts its sharing coroutine
+     * on ViewModel creation, on `Dispatchers.Main`. A property initializer
+     * runs before [MainDispatcherRule] has substituted it, so the coroutine
+     * would start on the real main dispatcher, absent outside Android.
      */
     private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository, settings, cache, scheduler) }
 
     private fun address(raw: String): ServerAddress =
         assertIs<ServerAddressResult.Valid>(ServerAddress.parse(raw)).address
 
-    /** L'état est publié en `WhileSubscribed` : sans abonné, il resterait figé. */
+    /** The state is published with `WhileSubscribed`: without a subscriber it would stay frozen. */
     private fun TestScope.observe() = keepCollecting(viewModel.uiState)
 
     @Test
@@ -68,15 +67,15 @@ class SettingsViewModelTest {
     fun theAutomaticReadingThresholdsAreExposedInTheirDisplayedUnits() = runTest {
         observe()
 
-        // SPECS.md §4.5 : au moins 60 % de la hauteur affichée, pendant au
-        // moins 1 seconde continue.
+        // SPECS.md §4.5: at least 60% of the displayed height, for at least
+        // 1 continuous second.
         assertEquals(60, viewModel.uiState.value.visibleFraction.value)
         assertEquals(1, viewModel.uiState.value.continuousVisibility.value)
     }
 
     /**
-     * L'affichage vient du dépôt et non d'une copie : c'est la garantie que le
-     * chiffre montré est celui que le détecteur appliquera.
+     * The display comes from the repository, not a copy: the guarantee that
+     * the number shown is the one the detector will apply.
      */
     @Test
     fun theDisplayedThresholdsAreThoseStored() = runTest {
@@ -161,16 +160,16 @@ class SettingsViewModelTest {
 
         viewModel.setAutoMarkAsReadEnabled(false)
 
-        // Grisés, pas oubliés : ils doivent se retrouver tels quels au
-        // rallumage, et l'écran continue de les afficher.
+        // Grayed out, not forgotten: they must return as-is when re-enabled,
+        // and the screen keeps displaying them.
         assertEquals(0.8f, settings.current.visibleFraction)
         assertEquals(80, viewModel.uiState.value.visibleFraction.value)
     }
 
     /**
-     * Les bornes offertes par l'écran sont celles du domaine, jamais des
-     * chiffres recopiés : un curseur plus large que le dépôt produirait un
-     * réglage refusé au moment de l'enregistrer.
+     * The ranges offered by the screen are those of the domain, never copied
+     * numbers: a slider wider than the repository would produce a setting
+     * rejected at save time.
      */
     @Test
     fun theOfferedRangesAreThoseTheRepositoryAccepts() = runTest {
@@ -180,7 +179,7 @@ class SettingsViewModelTest {
         val continuous = viewModel.uiState.value.continuousVisibility
         assertEquals(20..100, visible.range)
         assertEquals(1..5, continuous.range)
-        // Cinq positions, donc trois crans entre les extrémités.
+        // Five positions, so three steps between the endpoints.
         assertEquals(3, visible.stepCount)
         assertEquals(3, continuous.stepCount)
     }
@@ -190,8 +189,8 @@ class SettingsViewModelTest {
         observe()
         viewModel.setVisibleFractionPercent(80)
 
-        // Le même dépôt, un autre ViewModel : c'est ce que fait une réouverture
-        // de l'écran, et le réglage doit y survivre.
+        // Same repository, another ViewModel: what reopening the screen does,
+        // and the setting must survive it.
         val reopened = SettingsViewModel(repository, settings, cache, scheduler)
         keepCollecting(reopened.uiState)
 
@@ -221,8 +220,8 @@ class SettingsViewModelTest {
     }
 
     /**
-     * La purge part **sans confirmation** : elle n'emporte que du lu déjà
-     * transmis au serveur, contrairement à la déconnexion.
+     * The purge fires without confirmation: unlike sign-out, it only removes
+     * read articles already reported to the server.
      */
     @Test
     fun purgingRemovesTheReadArticlesRightAway() = runTest {
@@ -241,8 +240,8 @@ class SettingsViewModelTest {
 
         viewModel.purgeCache()
 
-        // Le compte rendu remplace la question posée avant : c'est le seul
-        // retour que l'utilisateur obtient de son appui.
+        // The result report replaces a prior confirmation: it is the only
+        // feedback the user gets from the press.
         assertEquals(5, viewModel.uiState.value.cache.lastPurgedCount)
     }
 
@@ -297,7 +296,7 @@ class SettingsViewModelTest {
     fun theFeedIsPresentedAsAListUntilSomethingElseIsChosen() = runTest {
         observe()
 
-        // SPECS.md §4.8 : Liste est le mode par défaut.
+        // SPECS.md §4.8: List is the default mode.
         assertEquals(FeedPresentation.List, viewModel.uiState.value.presentation)
     }
 
@@ -310,11 +309,12 @@ class SettingsViewModelTest {
     }
 
     /**
-     * Le changement traverse le dépôt et revient par l'état publié.
+     * The change goes through the repository and comes back via the published
+     * state.
      *
-     * C'est ce qui rend SPECS.md §4.8 tenable sans redémarrage : l'écran de
-     * flux observe la même source, et apprend donc le nouveau mode par le même
-     * chemin — sans que le ViewModel des réglages ait à le prévenir.
+     * What makes SPECS.md §4.8 tenable without a restart: the feed screen
+     * observes the same source and learns the new mode by the same path,
+     * without the settings ViewModel having to notify it.
      */
     @Test
     fun choosingTheSwipePresentationStoresItAndRepublishesIt() = runTest {
@@ -348,7 +348,7 @@ class SettingsViewModelTest {
         assertEquals(0.8f, settings.current.visibleFraction)
     }
 
-    /** SPECS.md §4.9 : qui a accordé la permission a déjà dit oui une fois. */
+    /** SPECS.md §4.9: whoever granted the permission already said yes once. */
     @Test
     fun theReadingReminderIsOnUntilItIsTurnedOff() = runTest {
         observe()
@@ -365,8 +365,8 @@ class SettingsViewModelTest {
     }
 
     /**
-     * Le choix traverse le dépôt et revient par l'état publié : l'interrupteur
-     * ne montre jamais autre chose que ce qui est enregistré.
+     * The choice goes through the repository and comes back via the published
+     * state: the switch never shows anything but what is stored.
      */
     @Test
     fun turningTheReminderOffStoresItAndRepublishesIt() = runTest {
@@ -390,8 +390,8 @@ class SettingsViewModelTest {
     }
 
     /**
-     * Un réglage qui n'agirait sur rien serait un défaut : le travail du
-     * lendemain resterait armé et le rappel partirait quand même.
+     * A setting that acted on nothing would be a defect: the next day's work
+     * would stay armed and the reminder would fire anyway.
      */
     @Test
     fun turningTheReminderOffCancelsThePendingOne() = runTest {
@@ -414,7 +414,7 @@ class SettingsViewModelTest {
         assertEquals(0, scheduler.cancelCount)
     }
 
-    /** Ouvrir l'écran ne programme ni n'annule : seul le geste décide. */
+    /** Opening the screen neither schedules nor cancels: only the gesture decides. */
     @Test
     fun merelyDisplayingTheSettingsTouchesNoPendingReminder() = runTest {
         observe()
@@ -451,8 +451,7 @@ class SettingsViewModelTest {
         observe()
         viewModel.setFeedPresentation(FeedPresentation.Swipe)
 
-        // SPECS.md §4.8 : « l'application rouvre dans le mode que l'utilisateur
-        // a quitté ».
+        // SPECS.md §4.8: the app reopens in the mode the user left.
         val reopened = SettingsViewModel(repository, settings, cache, scheduler)
         keepCollecting(reopened.uiState)
 

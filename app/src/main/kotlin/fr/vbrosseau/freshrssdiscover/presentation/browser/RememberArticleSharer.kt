@@ -7,14 +7,13 @@ import androidx.compose.ui.res.stringResource
 import fr.vbrosseau.freshrssdiscover.R
 
 /**
- * Fournit le partageur d'article prêt à l'emploi pour un écran.
+ * Provides a ready-to-use article sharer for a screen.
  *
- * Les deux textes sont lus **ici** et non dans le partageur : celui-ci est une
- * classe ordinaire, éprouvée en JVM, et lui donner un `Context` pour résoudre
- * ses propres chaînes lui rendrait ce qu'on cherche à lui retirer.
+ * The two strings are read here, not inside the sharer: the sharer is a plain
+ * class tested on the JVM, and giving it a `Context` to resolve its own
+ * strings would reintroduce the dependency being removed.
  *
- * Mémorisé sur ses entrées, comme `rememberArticleOpener` : le recréer à chaque
- * recomposition serait sans effet observable, mais pour rien.
+ * Remembered on its inputs, like `rememberArticleOpener`.
  */
 @Composable
 internal fun rememberArticleSharer(): ArticleSharer {

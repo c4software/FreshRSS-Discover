@@ -11,12 +11,11 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * Ce que l'application affiche à la racine.
+ * What the application displays at the root.
  *
- * [Unknown] existe pour une raison précise : la session vit sur disque, et sa
- * première lecture n'est pas instantanée. Sans cet état, l'écran de connexion
- * apparaîtrait un instant à chaque lancement, y compris pour un utilisateur
- * déjà connecté.
+ * [Unknown] exists because the session lives on disk and its first read is
+ * not instantaneous. Without this state, the login screen would flash at
+ * every launch, including for an already signed-in user.
  */
 sealed interface SessionGate {
     data object Unknown : SessionGate
@@ -34,10 +33,9 @@ class SessionGateViewModel @Inject constructor(
         .map { session -> if (session == null) SessionGate.SignedOut else SessionGate.SignedIn }
         .stateIn(
             scope = viewModelScope,
-            // `Eagerly` et non `WhileSubscribed` : l'aiguillage racine est
-            // observé pendant toute la vie de l'application, et le laisser
-            // retomber sur `Unknown` ferait clignoter l'écran de connexion à
-            // chaque retour d'arrière-plan.
+            // `Eagerly`, not `WhileSubscribed`: the root gate is observed for
+            // the whole life of the app, and letting it fall back to `Unknown`
+            // would flash the login screen on every return from background.
             started = SharingStarted.Eagerly,
             initialValue = SessionGate.Unknown,
         )

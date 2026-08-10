@@ -3,11 +3,11 @@ package fr.vbrosseau.freshrssdiscover.presentation.settings
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 
 /**
- * Planificateur de rappel en mémoire, pour les tests.
+ * In-memory reminder scheduler for tests.
  *
- * Il compte les appels **et** retient le dernier geste : le compte seul ne
- * distinguerait pas une programmation d'une annulation, or c'est précisément ce
- * que l'interrupteur des réglages doit faire correctement.
+ * It counts schedule and cancel calls separately: a single count would not
+ * distinguish scheduling from cancelling, which is precisely what the settings
+ * toggle must get right.
  */
 class FakeReminderScheduler : ReminderScheduler {
     var scheduleCount: Int = 0

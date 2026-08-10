@@ -12,22 +12,22 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 
-/** Délai au-delà duquel un serveur est tenu pour injoignable. */
+/** Delay beyond which a server is considered unreachable. */
 private const val REQUEST_TIMEOUT_MILLIS = 30_000L
 
 /**
- * Établir la connexion doit échouer plus vite que la traiter : un serveur
- * éteint se manifeste ici, et faire patienter l'utilisateur trente secondes
- * pour l'apprendre serait inutilement long.
+ * Establishing the connection must fail faster than processing it: a server
+ * that is down shows up here, and making the user wait thirty seconds to learn
+ * it would be needlessly long.
  */
 private const val CONNECT_TIMEOUT_MILLIS = 10_000L
 
 /**
- * Sérialiseur commun aux réponses de l'API.
+ * Serializer shared by all API responses.
  *
- * `ignoreUnknownKeys` : FreshRSS ajoute des champs au fil des versions —
- * `frss:priority` en est un exemple récent. Sans cette tolérance, une mise à
- * jour du serveur suffirait à faire échouer la lecture de toutes les réponses.
+ * `ignoreUnknownKeys`: FreshRSS adds fields across versions — `frss:priority`
+ * is a recent example. Without this tolerance, a server update would be enough
+ * to break parsing of every response.
  */
 internal val FreshRssJson: Json = Json {
     ignoreUnknownKeys = true
@@ -35,13 +35,13 @@ internal val FreshRssJson: Json = Json {
 }
 
 /**
- * Construit le client HTTP de l'API FreshRSS.
+ * Builds the HTTP client for the FreshRSS API.
  *
- * Le moteur est un paramètre plutôt qu'un choix interne : c'est ce qui permet
- * aux tests d'y substituer un `MockEngine` et de décrire des réponses
- * littérales, malformées comprises.
+ * The engine is a parameter rather than an internal choice: this lets tests
+ * substitute a `MockEngine` and describe literal responses, malformed ones
+ * included.
  *
- * @param verboseLogging à n'activer qu'en construction de débogage.
+ * @param verboseLogging enable only in debug builds.
  */
 internal fun createFreshRssHttpClient(
     engine: HttpClientEngine,
@@ -49,20 +49,20 @@ internal fun createFreshRssHttpClient(
     logger: Logger = TimberLogger,
 ): HttpClient = HttpClient(engine) {
     /**
-     * Aucune exception sur un statut d'erreur : les codes de FreshRSS *sont*
-     * l'information utile — `503` signifie « API désactivée », `401` « jeton
-     * invalide » (docs/freshrss-api.md §5). Les laisser lever obligerait à
-     * reconstituer le code depuis une exception, et à traiter les erreurs
-     * réseau et applicatives par le même canal.
+     * No exception on error statuses: FreshRSS status codes are the useful
+     * information — `503` means "API disabled", `401` "invalid token"
+     * (docs/freshrss-api.md §5). Letting them throw would force reconstructing
+     * the code from an exception and handling network and application errors
+     * through the same channel.
      */
     expectSuccess = false
 
     install(ContentNegotiation) {
         /*
-         * Enregistré pour `application/json` uniquement — c'est le défaut, et
-         * il est ici essentiel : les réponses d'erreur de FreshRSS sont en
-         * `text/plain`. Un enregistrement plus large tenterait de les
-         * désérialiser, échouerait, et masquerait le code HTTP réel.
+         * Registered for `application/json` only — the default, and essential
+         * here: FreshRSS error responses are `text/plain`. A broader
+         * registration would try to deserialize them, fail, and mask the real
+         * HTTP status code.
          */
         json(FreshRssJson)
     }
@@ -76,16 +76,16 @@ internal fun createFreshRssHttpClient(
         install(Logging) {
             this.logger = logger
 
-            // HEADERS et non BODY : le corps de `ClientLogin` contient le mot
-            // de passe API en clair. Les en-têtes, eux, servent réellement au
-            // diagnostic — encore faut-il masquer celui qui porte le jeton.
+            // HEADERS rather than BODY: the `ClientLogin` body contains the
+            // API password in clear text. Headers are genuinely useful for
+            // diagnostics, provided the one carrying the token is masked.
             level = LogLevel.HEADERS
             sanitizeHeader { header -> header.equals(HttpHeaders.Authorization, ignoreCase = true) }
         }
     }
 }
 
-/** Renvoie la journalisation de Ktor vers celle du reste de l'application. */
+/** Routes Ktor logging to the application's logger. */
 internal object TimberLogger : Logger {
     override fun log(message: String) {
         Timber.tag("FreshRssApi").d(message)

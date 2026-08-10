@@ -5,13 +5,13 @@ import androidx.annotation.StringRes
 import fr.vbrosseau.freshrssdiscover.R
 
 /**
- * Destinations visibles dans la barre de navigation.
+ * Destinations shown in the navigation bar.
  *
- * Rassembler route, libellés et icône ici évite qu'ils divergent : ajouter une
- * destination consiste à ajouter une entrée, et la barre suit.
+ * Grouping route, labels, and icon here keeps them from diverging: adding a
+ * destination means adding an entry, and the bar follows.
  *
- * Deux libellés, et non un seul : la barre n'a de place que pour une ligne de
- * texte. Le titre de l'écran garde en revanche le libellé complet.
+ * Two labels, not one: the bar only has room for a single line of text. The
+ * screen title keeps the full label.
  */
 enum class AppDestination(
     val route: String,

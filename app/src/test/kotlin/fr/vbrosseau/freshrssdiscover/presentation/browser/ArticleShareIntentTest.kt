@@ -21,10 +21,10 @@ class ArticleShareIntentTest {
     )
 
     /**
-     * Sans sélecteur explicite, Android retient l'application choisie la
-     * première fois et les partages suivants partiraient sans rien demander —
-     * l'application aurait alors une destination par défaut, ce qu'elle ne doit
-     * jamais avoir (SPECS.md §7.4).
+     * Without an explicit chooser, Android remembers the app picked the first
+     * time and subsequent shares would leave without asking; the application
+     * would then have a default destination, which it must never have
+     * (SPECS.md §7.4).
      */
     @Test
     fun theSystemChooserIsWhatIsLaunched() {
@@ -48,9 +48,9 @@ class ArticleShareIntentTest {
     }
 
     /**
-     * `ArticleSharerTest` recopie ce gabarit pour rester en JVM pure. Le
-     * recopier n'est sûr que si quelqu'un constate qu'il est toujours le même :
-     * c'est ce que fait cette assertion.
+     * `ArticleSharerTest` copies this template to stay in pure JVM. Copying it
+     * is only safe if something verifies it is still the same: this assertion
+     * does.
      */
     @Test
     fun theSharedTextFormatIsTheTitleThenTheLink() {

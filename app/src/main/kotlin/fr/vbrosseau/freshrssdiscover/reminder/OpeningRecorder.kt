@@ -3,24 +3,23 @@ package fr.vbrosseau.freshrssdiscover.reminder
 import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
 
 /**
- * Ce qui retient le moment d'une ouverture.
+ * Records the time of an application opening.
  *
- * Une interface plutôt qu'un appel direct au magasin : c'est elle qui permet à
- * `ReadingReminderWorkerTest` d'éprouver le travailleur avec un faux, sans
- * `DataStore`, sans horloge ni fuseau à lui transmettre — le magasin possède
- * déjà les deux.
+ * An interface rather than a direct store call: it lets
+ * `ReadingReminderWorkerTest` exercise the worker with a fake, without
+ * `DataStore`, clock, or time zone to pass in; the store already owns both.
  */
 interface OpeningRecorder {
 
     /**
-     * Retient l'heure qu'il est, si c'est la **première** ouverture du jour.
+     * Records the current time, if this is the first opening of the day.
      *
-     * Le silence des ouvertures suivantes est la règle et non une optimisation :
-     * l'heure recherchée est celle où l'utilisateur tend la main vers
-     * l'application, pas celle d'un passage distrait en fin de journée.
+     * Ignoring later openings is the rule, not an optimization: the time
+     * sought is when the user reaches for the app, not a distracted visit at
+     * the end of the day.
      */
     suspend fun recordOpening()
 
-    /** Le moment retenu, ou `null` si l'application n'a jamais été ouverte. */
+    /** The recorded time, or `null` if the app has never been opened. */
     suspend fun openingMinute(): DailyMinute?
 }

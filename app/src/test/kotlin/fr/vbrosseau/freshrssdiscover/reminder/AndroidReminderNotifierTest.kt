@@ -19,11 +19,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Le rappel tel qu'Android le reçoit.
+ * The reminder as Android receives it.
  *
- * `qualifiers = "fr-rFR"` : les formulations sont le cœur de la fonctionnalité
- * (SPECS.md §4.9), et les éprouver dans la langue par défaut de la machine ne
- * dirait rien de ce que l'utilisateur lit.
+ * `qualifiers = "fr-rFR"`: the wordings are the core of the feature
+ * (SPECS.md §4.9), and testing them in the machine's default locale would say
+ * nothing about what the user reads.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -48,7 +48,7 @@ class AndroidReminderNotifierTest {
     private fun titleOf(notification: Notification): String? =
         notification.extras.getString(Notification.EXTRA_TITLE)
 
-    /** Le corps déplié : c'est celui que `BigTextStyle` montre, et celui qui cite les titres. */
+    /** The expanded body: what `BigTextStyle` shows, and what quotes the titles. */
     private fun bodyOf(notification: Notification): String? =
         notification.extras.getString(Notification.EXTRA_BIG_TEXT)
 
@@ -63,8 +63,8 @@ class AndroidReminderNotifierTest {
     fun theChannelIsDescribedBeforeTheFirstReminderIsPosted() {
         notifier.show(plan())
 
-        // Sans canal, Android 8 et au-delà écartent la notification sans rien
-        // dire : l'existence du canal est donc la première chose à constater.
+        // Without a channel, Android 8+ silently drops the notification: the
+        // channel's existence is the first thing to check.
         assertNotNull(channelOfTheReminder())
     }
 
@@ -98,8 +98,8 @@ class AndroidReminderNotifierTest {
 
     @Test
     fun noTwoTonesShareTheirWording() {
-        // Le point de la fonctionnalité : quatre variantes d'une même phrase
-        // seraient balayées comme une seule (SPECS.md §4.9).
+        // The point of the feature: four variants of the same sentence would
+        // be dismissed as one (SPECS.md §4.9).
         val titles = ReminderTone.entries.map { tone ->
             notifier.show(plan(tone = tone))
             titleOf(onlyPosted())
@@ -150,8 +150,8 @@ class AndroidReminderNotifierTest {
     fun theBodyIsAlsoReadableWhenTheNotificationIsFolded() {
         notifier.show(plan())
 
-        // `EXTRA_TEXT` est ce que montre le volet replié ; sans lui, la
-        // notification n'aurait qu'un titre tant qu'on ne la déplie pas.
+        // `EXTRA_TEXT` is what the collapsed shade shows; without it, the
+        // notification would only have a title until expanded.
         assertEquals(
             bodyOf(onlyPosted()),
             onlyPosted().extras.getString(Notification.EXTRA_TEXT),
@@ -216,9 +216,9 @@ class AndroidReminderNotifierTest {
 
         notifier.show(plan())
 
-        // Décrire un canal pour une application dont les notifications sont
-        // coupées ferait apparaître une entrée inerte dans les réglages
-        // Android, juste sous l'interrupteur que l'utilisateur vient d'éteindre.
+        // Creating a channel while the app's notifications are disabled would
+        // add an inert entry in the Android settings, right under the switch
+        // the user just turned off.
         assertNull(channelOfTheReminder())
     }
 }

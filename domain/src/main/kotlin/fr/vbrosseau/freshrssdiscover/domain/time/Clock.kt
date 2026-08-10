@@ -1,13 +1,13 @@
 package fr.vbrosseau.freshrssdiscover.domain.time
 
 /**
- * Source de temps du domaine.
+ * Time source of the domain.
  *
- * Seule son implémentation appelle `System.currentTimeMillis()`. Sans cette
- * abstraction, toute logique horodatée deviendrait intestable ou dépendante de
- * l'heure réelle de la machine.
+ * Only its implementation calls `System.currentTimeMillis()`. Without this
+ * abstraction, any timestamped logic would be untestable or dependent on the
+ * machine's real time.
  */
 fun interface Clock {
-    /** Millisecondes écoulées depuis l'époque Unix. */
+    /** Milliseconds elapsed since the Unix epoch. */
     fun nowEpochMillis(): Long
 }

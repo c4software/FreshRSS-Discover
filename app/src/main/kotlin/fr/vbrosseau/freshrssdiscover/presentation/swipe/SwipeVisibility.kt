@@ -4,36 +4,33 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import kotlin.math.absoluteValue
 
 /**
- * Traduit la position du balayage en observation pour `ReadDetector`
- * (SPECS.md §4.5 et §4.8, GOAL-012-T01).
+ * Translates the pager position into an observation for `ReadDetector`
+ * (SPECS.md §4.5 and §4.8, GOAL-012-T01).
  *
- * **Pourquoi une fonction propre à ce mode.** En mode Liste, la visibilité se
- * lit dans `LazyListState.layoutInfo` : autant d'articles à l'écran, chacun
- * avec sa part visible. Ici il n'y a pas de liste paresseuse et pas de
- * disposition à parcourir — il y a une position de pagination, c'est-à-dire un
- * rang et un décalage. C'est cette position, et elle seule, qui dit ce que
- * l'utilisateur a sous les yeux.
+ * A mode-specific function: List mode reads visibility from
+ * `LazyListState.layoutInfo`, with multiple articles on screen each with its
+ * visible fraction. Here there is no lazy list or layout to walk, only a
+ * pager position (an index and an offset), which alone says what the user
+ * sees.
  *
- * **Pourquoi un décalage plutôt que la page « posée ».** Prendre `settledPage`
- * reviendrait à créditer l'article précédent pendant toute la durée du geste,
- * alors qu'il est déjà à moitié sorti de l'écran. Le décalage donne la vraie
- * réponse et la donne exactement comme en mode Liste : la page courante occupe
- * `1 - |décalage|` de l'écran, sa voisine le reste. Un article posé vaut donc
- * 1,0 — le seuil de surface de SPECS.md §4.5 est satisfait d'emblée, et la
- * durée décide seule, ce que §4.8 annonce. Et pendant un balayage lent, aucune
- * des deux pages ne franchit 60 % assez longtemps : le geste ne marque rien,
- * ce qui est le comportement voulu.
+ * Offset rather than the settled page: `settledPage` would credit the
+ * previous article for the whole gesture while it is already half off
+ * screen. The offset gives the same answer as List mode: the current page
+ * occupies `1 - |offset|` of the screen, its neighbour the rest. A settled
+ * article is thus 1.0, so the area threshold of SPECS.md §4.5 is met
+ * immediately and duration alone decides, as §4.8 states. During a slow
+ * swipe neither page stays above 60% long enough, so the gesture marks
+ * nothing, which is the intended behavior.
  *
- * Fonction pure sur des entiers et un flottant, hors de tout Composable : c'est
- * le seul calcul délicat de la mesure, et il doit être éprouvé sans Compose ni
- * Android — exactement comme `visibleFraction` en mode Liste.
+ * Pure function over ints and a float, outside any Composable: it is the only
+ * delicate part of the measurement and must be testable without Compose or
+ * Android, like `visibleFraction` in List mode.
  *
- * @param articleIds identifiants des articles, dans l'ordre du balayage. Le
- *   rang au-delà du dernier est la page de fin de flux : elle n'est pas un
- *   article, et rien n'y est chronométré.
- * @param currentPage rang de la page courante du pagineur.
- * @param currentPageOffsetFraction décalage de la page courante, dans
- *   `]-1, 1[` : positif vers l'article suivant, négatif vers le précédent.
+ * @param articleIds article ids in swipe order. The index past the last one
+ *   is the end-of-feed page: it is not an article and nothing is timed there.
+ * @param currentPage index of the pager's current page.
+ * @param currentPageOffsetFraction offset of the current page, in `]-1, 1[`:
+ *   positive toward the next article, negative toward the previous one.
  */
 internal fun pagerVisibility(
     articleIds: List<Long>,
@@ -47,8 +44,8 @@ internal fun pagerVisibility(
 
     return buildMap {
         put(ArticleId(current), 1f - offset)
-        // Le voisin n'existe qu'en cours de geste, et pas toujours : aux deux
-        // bouts du flux, et vers la page de fin, il n'y a pas d'article.
+        // The neighbour only exists mid-gesture, and not always: at both ends
+        // of the feed and toward the trailing page there is no article.
         if (offset > 0f) articleIds.getOrNull(neighbour)?.let { put(ArticleId(it), offset) }
     }
 }

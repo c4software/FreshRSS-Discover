@@ -1,35 +1,34 @@
 package fr.vbrosseau.freshrssdiscover.domain.feed
 
 /**
- * Position dans le flux, opaque au domaine.
+ * Position in the feed, opaque to the domain.
  *
- * C'est un **curseur relatif**, pas un rang : il désigne le dernier article
- * déjà transmis, et le serveur reprend juste après (docs/freshrss-api.md §3.5).
- * Le domaine n'a pas à le savoir — mais il ne doit pas non plus le fabriquer,
- * d'où un type dédié plutôt qu'une `String` nue.
+ * A relative cursor, not a rank: it names the last article already delivered,
+ * and the server resumes right after it (docs/freshrss-api.md §3.5). The
+ * domain must not fabricate one, hence a dedicated type rather than a bare
+ * `String`.
  */
 @JvmInline
 value class PageCursor(val value: String)
 
 /**
- * Une page du flux.
+ * One page of the feed.
  *
- * [nextCursor] à `null` signifie **fin du flux**, et c'est le seul signal
- * disponible : l'API ne renvoie aucun compteur total (docs/freshrss-api.md
- * §3.5). Une page pleine sans curseur est donc une fin légitime, pas une
- * anomalie.
+ * [nextCursor] set to `null` means end of feed, and it is the only available
+ * signal: the API returns no total count (docs/freshrss-api.md §3.5). A full
+ * page without a cursor is therefore a legitimate end, not an anomaly.
  */
 data class ArticlePage(
     val articles: List<Article>,
     val nextCursor: PageCursor?,
 ) {
     /**
-     * Vrai lorsqu'il reste des articles à demander.
+     * True when more articles remain to be requested.
      *
-     * Nommé plutôt que laissé à un `!= null` disséminé : SPECS.md §4.4 demande
-     * de distinguer « fin du flux » d'un chargement qui s'arrête, et la
-     * confusion produirait une liste qui cesse simplement de s'allonger —
-     * indistinguable d'une panne.
+     * Named rather than left to scattered `!= null` checks: SPECS.md §4.4
+     * requires distinguishing end of feed from a loading failure, and
+     * confusing the two would produce a list that simply stops growing,
+     * indistinguishable from a breakdown.
      */
     val hasMore: Boolean get() = nextCursor != null
 }

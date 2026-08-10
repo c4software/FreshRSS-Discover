@@ -7,10 +7,9 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
- * Le point vérifié ici n'est pas cosmétique : `toString` est appelé par les
- * bibliothèques de journalisation, par les messages d'exception et par le
- * débogueur. Une `data class` aurait suffi à faire apparaître un mot de passe
- * dans le journal du terminal, sans qu'aucune ligne de code ne l'ait demandé.
+ * `toString` is called by logging libraries, exception messages, and the
+ * debugger. A plain `data class` would have been enough to leak a password
+ * into terminal logs without any line of code asking for it.
  */
 class SecretsTest {
     @Test
@@ -22,8 +21,8 @@ class SecretsTest {
 
     @Test
     fun credentialsKeepTheUsernameVisible() {
-        // L'identifiant n'est pas un secret, et le voir en journal aide à
-        // diagnostiquer un échec de connexion.
+        // The username is not a secret, and seeing it in logs helps diagnose
+        // a sign-in failure.
         assertTrue("alice" in Credentials("alice", "peu importe").toString())
     }
 
@@ -39,9 +38,9 @@ class SecretsTest {
 
     @Test
     fun secretsCompareByValue() {
-        // L'égalité sert à détecter qu'un jeton stocké est encore le bon : la
-        // perdre en redéfinissant `toString` à la main serait une régression
-        // silencieuse.
+        // Equality is used to detect that a stored token is still the right
+        // one: losing it while hand-redefining `toString` would be a silent
+        // regression.
         assertEquals(AuthToken("a"), AuthToken("a"))
         assertEquals(AuthToken("a").hashCode(), AuthToken("a").hashCode())
         assertNotEquals(AuthToken("a"), AuthToken("b"))

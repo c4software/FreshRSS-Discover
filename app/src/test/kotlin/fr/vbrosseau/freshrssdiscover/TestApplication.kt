@@ -3,16 +3,15 @@ package fr.vbrosseau.freshrssdiscover
 import android.app.Application
 
 /**
- * Application employée par les tests Robolectric, à la place de la vraie.
+ * Application used by Robolectric tests instead of the real one.
  *
- * [FreshRssDiscoverApplication] lance à sa création une observation des
- * réglages qui vit aussi longtemps que le processus. Dans un test, ce processus
- * est celui de la JVM : la coroutine survivait donc au test qui l'avait
- * déclenchée et retombait sur un environnement Robolectric déjà démonté. Le
- * symptôme était trompeur — un `UncaughtExceptionsBeforeTest` frappait le test
- * *suivant*, souvent dans une classe sans rapport.
+ * [FreshRssDiscoverApplication] starts, on creation, a settings observation
+ * that lives as long as the process. In tests that process is the JVM: the
+ * coroutine outlived the test that triggered it and hit an already torn-down
+ * Robolectric environment, surfacing as a misleading
+ * `UncaughtExceptionsBeforeTest` in the next, often unrelated, test class.
  *
- * Un test unitaire n'a de toute façon pas à démarrer l'application entière :
- * chacun compose les objets qu'il éprouve.
+ * A unit test does not need to start the whole application: each test composes
+ * the objects it exercises.
  */
 class TestApplication : Application()

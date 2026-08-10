@@ -25,10 +25,10 @@ class OutcomeTest {
 
     @Test
     fun theErrorTypeIsCarriedByTheCallerNotImposed() {
-        // C'est la raison d'être du paramètre de type : chaque domaine a ses
-        // causes. Les fondre en une énumération unique obligerait à traiter des
-        // cas impossibles — un article ne peut pas échouer parce que « l'API est
-        // désactivée », l'authentification l'aurait déjà signalé.
+        // The point of the type parameter: each domain has its own causes.
+        // Merging them into a single enumeration would force handling
+        // impossible cases; an article cannot fail because the API is
+        // disabled, authentication would already have reported it.
         val authLike: Outcome<Int, Cause> = Outcome.Failure(Cause.Unreachable)
         val feedLike: Outcome<Int, String> = Outcome.Failure("fin de flux inattendue")
 

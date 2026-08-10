@@ -64,58 +64,51 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.flow.first
 
 /**
- * Nombre d'articles restants sous lequel la page suivante est demandée
+ * Remaining-article threshold below which the next page is requested
  * (SPECS.md §4.4, GOAL-012-T02).
  *
- * Trois, et non les cinq du mode Liste, parce que le geste n'a pas le même
- * débit : un balayage avance d'exactement **un** article, là où un défilement
- * en traverse plusieurs d'un coup. Trois articles plein écran représentent donc
- * au moins trois gestes et le temps de lecture qui les sépare — bien plus que
- * l'aller-retour réseau qu'il s'agit de couvrir. Descendre à un seul article
- * ferait au contraire buter le balayage sur la page de chargement à chaque fin
- * de page.
+ * Three, not the List mode's five: a swipe advances exactly one article, so
+ * three full-screen articles mean at least three gestures plus reading time,
+ * which comfortably covers the network round trip. A threshold of one would
+ * make swipes hit the loading page at every page boundary.
  */
 private const val PREFETCH_DISTANCE = 3
 
-/** Clé de la page de fin, distincte de tout identifiant d'article. */
+/** Key of the trailing page, distinct from any article id. */
 private const val TRAILING_PAGE_KEY = "swipe:trailing"
 
-/** Arrondi de la carte, celui des surfaces larges de Material 3. */
+/** Card corner radius, matching Material 3 large surfaces. */
 private val CardShape = RoundedCornerShape(28.dp)
 
 /**
- * Ombre portée de la carte du dessus.
+ * Drop shadow of the top card.
  *
- * C'est elle qui dit qu'il y a une **pile** : sans ombre, la carte du dessous,
- * simplement plus petite, se lirait comme un cadre dessiné autour de l'autre
- * plutôt que comme un second objet placé derrière.
+ * The shadow is what conveys a stack: without it, the smaller card underneath
+ * reads as a drawn frame rather than a second object behind.
  */
 private val CardElevation = 6.dp
 
 /**
- * Le point autour duquel la carte pivote : sous son bord inférieur.
+ * Rotation pivot of the card, below its bottom edge.
  *
- * `1,6` fois la hauteur depuis le haut, donc bien au-delà de la carte. Un pivot
- * central la ferait tourner sur elle-même comme une aiguille ; placé en
- * dessous, il produit l'arc d'un objet que l'on écarte de la main.
+ * 1.6 times the height from the top, well beyond the card. A central pivot
+ * would spin the card like a needle; a pivot below produces the arc of an
+ * object pushed aside by hand.
  */
 private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 1.6f)
 
 /**
- * Le flux en mode Balayage : un article en plein écran (SPECS.md §4.8).
+ * Swipe-mode feed: one full-screen article (SPECS.md §4.8).
  *
- * Sans état métier : il affiche [uiState] et remonte les gestes, ce qui le rend
- * prévisualisable et testable sans graphe d'injection. Le seul état qu'il tient
- * est la position du balayage, qui n'appartient qu'à lui.
+ * Stateless with respect to business logic: it renders [uiState] and reports
+ * gestures, which keeps it previewable and testable without the injection
+ * graph. The only state it owns is the swipe position.
  *
- * @param onArticleShare **sans valeur par défaut**, comme en mode Liste : un
- *   `{}` implicite laisserait un bouton visible et inerte, et rien ne le
- *   signalerait.
- * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
- *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
- *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
- *   jeter son résultat — batterie dépensée pour rien, et prévisualisations
- *   perpétuellement occupées.
+ * @param onArticleShare no default value, as in List mode: an implicit `{}`
+ *   would leave a visible but inert button with nothing to flag it.
+ * @param onVisibilityChanged receiver of visibility samples (SPECS.md §4.5).
+ *   Nullable and null by default: observation is a periodic loop, and running
+ *   it without a receiver would waste battery and keep previews busy.
  */
 @Composable
 fun SwipeScreen(
@@ -135,8 +128,8 @@ fun SwipeScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Au-dessus du flux et non par-dessus : le bandeau informe, il ne
-            // masque rien de ce qui reste lisible (SPECS.md §5.2).
+            // Above the feed, not overlaid: the banner informs without hiding
+            // content that remains readable (SPECS.md §5.2).
             if (uiState.showsOfflineBanner) OfflineBanner()
 
             SwipeBody(
@@ -151,14 +144,12 @@ fun SwipeScreen(
             )
 
             /*
-             * **Sous le flux et non par-dessus.** L'avis d'ancienneté dure
-             * jusqu'à ce qu'on l'acquitte ou qu'on recharge : posé en
-             * surimpression, il recouvrait la fin du contenu défilable de la
-             * carte — à l'époque le bouton d'ouverture, aujourd'hui le bouton
-             * de partage, qui est la seule commande de ce mode depuis que la
-             * carte entière ouvre l'article (SPECS.md §4.7). Elle devenait
-             * inatteignable sur un article long. Un avis qui s'installe prend
-             * sa place dans la mise en page ; seul un avis fugace se superpose.
+             * Below the feed, not overlaid. The stale notice persists until
+             * dismissed or the feed reloads: as an overlay it would cover the
+             * end of the card's scrollable content, including the share
+             * button, the only command in this mode since the whole card
+             * opens the article (SPECS.md §4.7). A persistent notice takes
+             * its place in the layout; only a transient notice may overlay.
              */
             if (uiState.showsStaleNotice) {
                 StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
@@ -166,9 +157,9 @@ fun SwipeScreen(
         }
 
         /*
-         * Celui-ci reste **en surimpression** : il est fugace, il répond à un
-         * geste qui vient d'échouer. Il ne rencontre jamais l'avis
-         * d'ancienneté, qui n'existe pas hors ligne.
+         * This one stays overlaid: it is transient, reacting to a gesture
+         * that just failed. It never coexists with the stale notice, which
+         * does not exist offline.
          */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
@@ -180,10 +171,10 @@ fun SwipeScreen(
 }
 
 /**
- * Le flux affiché date de plusieurs heures (SPECS.md §4.6).
+ * Notice shown when the displayed feed is several hours old (SPECS.md §4.6).
  *
- * Mêmes chaînes qu'en mode Liste, même action : c'est le rechargement de la
- * barre de titre que la commande emprunte, et non un chemin à elle.
+ * Same strings and action as List mode: the command reuses the title bar's
+ * refresh path rather than its own.
  */
 @Composable
 private fun StaleFeedNotice(
@@ -201,16 +192,16 @@ private fun StaleFeedNotice(
 }
 
 /**
- * Ramène le balayage à la première carte à la fin d'un rechargement.
+ * Returns the pager to the first card when a refresh completes.
  *
- * L'exact pendant de `ScrollToTopAfterRefresh` en mode Liste, et pour la même
- * raison : SPECS.md §4.6 veut que le rechargement se **voie**. Rester sur la
- * carte courante après avoir remplacé toute la pile donnerait un bouton dont
- * rien n'atteste l'effet.
+ * Counterpart of `ScrollToTopAfterRefresh` in List mode, for the same reason:
+ * SPECS.md §4.6 requires the refresh to be visible. Staying on the current
+ * card after replacing the whole stack would leave the button with no
+ * observable effect.
  *
- * Le retour a lieu au **passage** de `true` à `false`, pas pendant : y aller
- * dès l'appui ferait défiler une pile que l'on s'apprête à jeter. Le front
- * descendant vit dans [AfterRefreshSettles], partagé avec la Liste.
+ * The return happens on the transition from `true` to `false`, not during the
+ * refresh: jumping on press would scroll a stack about to be discarded. The
+ * falling-edge detection lives in [AfterRefreshSettles], shared with List.
  */
 @Composable
 private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
@@ -224,8 +215,8 @@ private fun SwipeBody(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // Sans défaut : un `rememberPagerState` de repli créerait un second état de
-    // balayage, désynchronisé de celui que l'écran remonte au retour-en-tête.
+    // No default: a fallback `rememberPagerState` would create a second swipe
+    // state, out of sync with the one the screen passes to the return-to-top.
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -244,8 +235,8 @@ private fun SwipeBody(
             onVisibilityChanged = onVisibilityChanged,
         )
 
-        // Une session terminée est une attente, pas une erreur : l'aiguillage
-        // racine bascule de lui-même vers la connexion (SPECS.md §3.4).
+        // An ended session is a wait, not an error: the root router switches
+        // to the login screen on its own (SPECS.md §3.4).
         phase == DiscoverPhase.InitialLoading ||
             phase == DiscoverPhase.SessionEnded -> FeedCentered(modifier) { LoadingIndicator() }
 
@@ -258,15 +249,14 @@ private fun SwipeBody(
 }
 
 /**
- * Le balayage lui-même, et son alternative.
+ * The pager and its accessible alternative.
  *
- * Le pagineur occupe tout ce qui reste ; la barre de navigation est **toujours
- * présente**, jamais escamotée. C'est la réponse à GOAL-012-T07 : un balayage
- * horizontal n'est praticable ni par un lecteur d'écran, qui réserve ce geste à
- * sa propre exploration, ni par qui manque de précision ou de mobilité dans le
- * poignet. SPECS.md §7.1 exige que l'application reste utilisable ; deux
- * boutons de 48 dp la rendent entièrement pilotable sans jamais faire glisser
- * le doigt.
+ * The pager fills the remaining space; the navigation bar is always present,
+ * never hidden (GOAL-012-T07). A horizontal swipe is usable neither with a
+ * screen reader, which reserves that gesture for its own exploration, nor by
+ * users lacking wrist precision or mobility. SPECS.md §7.1 requires the app
+ * to remain usable; two 48 dp buttons make it fully operable without any
+ * drag gesture.
  */
 @Composable
 private fun ArticlePager(
@@ -275,7 +265,7 @@ private fun ArticlePager(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // Sans défaut, comme `SwipeBody` : l'état vient toujours de l'écran.
+    // No default, as in `SwipeBody`: the state always comes from the screen.
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -297,8 +287,8 @@ private fun ArticlePager(
         modifier = modifier
             .fillMaxSize()
             .testTag(SwipeTestTags.PAGER),
-        // Clé stable : sans elle, l'insertion d'articles en tête déplacerait
-        // l'article affiché sous le doigt.
+        // Stable key: without it, inserting articles at the head would move
+        // the displayed article under the finger.
         key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
     ) { page ->
         val article = uiState.articles.getOrNull(page)
@@ -318,26 +308,24 @@ private fun ArticlePager(
 }
 
 /**
- * Une carte de la pile, et son mouvement (GOAL-012-T09).
+ * One card of the stack and its motion (GOAL-012-T09).
  *
- * La géométrie est calculée par [swipeCardTransform], hors de tout `Composable`
- * et éprouvée à part ; il ne reste ici que de l'application.
+ * The geometry is computed by [swipeCardTransform], outside any `Composable`
+ * and tested separately; only its application remains here.
  *
- * **Trois détails sans lesquels le motif ne fonctionne pas :**
+ * Three details the pattern depends on:
  *
- * L'**encart**. Une carte qui touche les bords ne peut pas pivoter : la
- * rotation découvrirait les coins du fond, et le mouvement se lirait comme un
- * défaut d'affichage. La marge est ce qui donne à l'inclinaison un endroit où
- * exister — elle n'est pas décorative.
+ * The inset. A card touching the edges cannot rotate: the rotation would
+ * expose the background corners and read as a rendering glitch. The margin is
+ * what gives the tilt room to exist; it is not decorative.
  *
- * Le **pivot sous la carte**. Une rotation autour du centre fait tourner la
- * carte sur elle-même, comme une aiguille. Placé au-delà du bord inférieur, le
- * pivot produit l'arc d'un objet que l'on écarte de la main, ce qui est le
- * geste que l'on imite.
+ * The pivot below the card. A central rotation spins the card like a needle;
+ * a pivot beyond the bottom edge produces the arc of an object pushed aside
+ * by hand, which is the gesture being imitated.
  *
- * `graphicsLayer` **et non des modificateurs de mise en page** : rien n'est
- * remesuré à chaque image du geste. Un `padding` animé relancerait la mise en
- * page du texte à chaque pixel parcouru, sur un écran entier de contenu.
+ * `graphicsLayer` rather than layout modifiers: nothing is remeasured on each
+ * frame of the gesture. An animated `padding` would relayout a full screen of
+ * text for every pixel travelled.
  */
 @Composable
 private fun SwipeCard(
@@ -371,22 +359,19 @@ private fun SwipeCard(
 }
 
 /**
- * Un article, en plein écran.
+ * One article, full screen.
  *
- * **Défilable verticalement**, et ce n'est pas un ornement : SPECS.md §7.1
- * demande que l'application reste utilisable à taille de police augmentée, et
- * un extrait de 900 caractères dépasse alors l'écran. Sans ce défilement, la
- * fin du texte serait inaccessible — coupée, sans que rien ne le dise.
+ * Vertically scrollable by necessity: SPECS.md §7.1 requires the app to
+ * remain usable at increased font size, where a 900-character excerpt
+ * exceeds the screen. Without scrolling the end of the text would be
+ * silently unreachable.
  *
- * **La carte entière ouvre l'article** (SPECS.md §4.7), comme en mode Liste.
- * Le bouton explicite qui l'a précédée craignait qu'un appui pris pendant un
- * balayage hésitant ne fasse partir dans le navigateur : Compose distingue le
- * `tap` du `drag`, le geste horizontal n'est pas consommé par le clic, et
- * `swipingLeftStillWorksWithAClickableCard` le constate.
+ * The whole card opens the article (SPECS.md §4.7), as in List mode. Compose
+ * distinguishes tap from drag, so the horizontal gesture is not consumed by
+ * the click; `swipingLeftStillWorksWithAClickableCard` verifies it.
  *
- * `onClickLabel` plutôt qu'un libellé visible : la surface tactile n'annonce
- * rien d'elle-même, et un lecteur d'écran a besoin de savoir ce que l'appui
- * fera.
+ * `onClickLabel` rather than a visible label: the touch surface announces
+ * nothing by itself, and a screen reader needs to know what the tap does.
  */
 @Composable
 private fun ArticlePage(
@@ -419,17 +404,11 @@ private fun ArticlePage(
 }
 
 /**
- * Le texte de l'article et sa commande de partage.
+ * Article text and its share command.
  *
- * Extrait d'[ArticlePage], qui dépassait sa longueur admise : le découpage suit
- * la seule césure qui a un sens ici — au-dessus l'illustration et la surface
- * cliquable, en dessous ce qui se lit.
- *
- * `fillMaxWidth` n'est pas décoratif, et c'est la raison d'être du commentaire :
- * sans lui la colonne épouse son texte, et l'`align(End)` du partage se range
- * sur la largeur du contenu au lieu de celle de la carte. Le mode Liste porte
- * le même correctif, et le fanion des articles lus s'était fait prendre de la
- * même façon en `GOAL-017-T02`.
+ * `fillMaxWidth` is not decorative: without it the column shrinks to its
+ * text, and the share `align(End)` aligns to the content width instead of
+ * the card width. List mode carries the same fix (see `GOAL-017-T02`).
  */
 @Composable
 private fun ArticleText(
@@ -444,18 +423,13 @@ private fun ArticleText(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         /*
-         * **Le partage sur la ligne de source**, demandé par l'auteur — la même
-         * association qu'en mode Liste, où la commande côtoie déjà la
-         * provenance, à ceci près qu'ici cette ligne ouvre la carte au lieu de
-         * la fermer.
+         * Share on the source line, matching List mode. Placed at the top of
+         * the card rather than after an excerpt that can reach 1,400
+         * characters, which would push the mode's only visible command below
+         * the fold.
          *
-         * Il a d'abord quitté le bas de carte, où il tombait après un extrait
-         * pouvant faire 1 400 caractères — donc sous la ligne de flottaison
-         * alors que c'est la seule commande visible de ce mode — puis la ligne
-         * du titre, qui le faisait descendre avec lui.
-         *
-         * `weight(1f)` sur le texte, comme en mode Liste : c'est au nom du flux
-         * de s'écourter, jamais à la commande d'être poussée hors de la carte.
+         * `weight(1f)` on the text, as in List mode: the feed title truncates,
+         * the command is never pushed off the card.
          */
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -493,10 +467,9 @@ private fun ArticleText(
         }
 
         /*
-         * L'article sans lien **le donne à voir**, comme en mode Liste : la
-         * carte n'est pas cliquable, et rien d'autre ne le dirait — une surface
-         * muette ne se distingue pas d'une surface qui ne répond plus
-         * (SPECS.md §4.7).
+         * A link-less article says so, as in List mode: the card is not
+         * clickable and nothing else would signal it; a silent surface is
+         * indistinguishable from one that stopped responding (SPECS.md §4.7).
          */
         if (!article.isOpenable) {
             Text(
@@ -510,10 +483,10 @@ private fun ArticleText(
 }
 
 /**
- * L'écran qui suit le dernier article chargé (GOAL-012-T03).
+ * Page shown after the last loaded article (GOAL-012-T03).
  *
- * La fin du flux y est **dite**, jamais seulement subie : un balayage qui cesse
- * de répondre est indistinguable d'une panne (SPECS.md §4.4).
+ * The end of the feed is stated explicitly: a swipe that stops responding is
+ * indistinguishable from a failure (SPECS.md §4.4).
  */
 @Composable
 private fun TrailingPage(
@@ -526,9 +499,9 @@ private fun TrailingPage(
             DiscoverPhase.EndOfFeed -> EndOfFeedMessage()
 
             /*
-             * Hors ligne, le bandeau a déjà dit la cause en tête : la répéter
-             * en rouge ferait de deux signaux une alarme, alors que ce qui est
-             * affiché fonctionne (SPECS.md §5.2). Seule la reprise demeure.
+             * Offline, the top banner already states the cause: repeating it
+             * in red would turn two signals into an alarm while the displayed
+             * content still works (SPECS.md §5.2). Only the retry remains.
              */
             is DiscoverPhase.Failed ->
                 if (uiState.showsOfflineBanner) {
@@ -537,8 +510,8 @@ private fun TrailingPage(
                     FailureBlock(failure = phase.failure, onRetry = onRetry)
                 }
 
-            // Le flux continue, ou la session s'achève : dans les deux cas
-            // cette page est une attente, et elle le montre.
+            // Feed still loading or session ending: either way this page is
+            // a wait, and shows it.
             else -> LoadingIndicator()
         }
     }
@@ -568,14 +541,13 @@ private fun EndOfFeedMessage(modifier: Modifier = Modifier) {
 }
 
 /**
- * Demande la page suivante **avant** d'atteindre le dernier article
- * (GOAL-012-T02).
+ * Requests the next page before the last article is reached (GOAL-012-T02).
  *
- * `derivedStateOf` évite de relancer l'effet à chaque pixel parcouru pendant le
- * geste : seul le passage du seuil compte. Le nombre d'articles fait aussi
- * partie de la clé — une page plus courte que le seuil laisserait sinon la
- * condition vraie sans jamais rappeler le chargement, et le flux s'arrêterait
- * sans le dire.
+ * `derivedStateOf` avoids restarting the effect for every pixel of the
+ * gesture: only crossing the threshold matters. The article count is part of
+ * the key: a page shorter than the threshold would otherwise leave the
+ * condition true without ever re-triggering the load, silently stalling the
+ * feed.
  */
 @Composable
 private fun PrefetchNextPage(
@@ -583,12 +555,11 @@ private fun PrefetchNextPage(
     articleCount: Int,
     onLoadMore: () -> Unit,
 ) {
-    // Rien ne part avant un vrai balayage, comme en mode Liste : le cache
-    // filtré de ses articles lus peut tenir en moins de pages que le seuil, et
-    // le chargement partirait alors sans qu'on ait bougé le doigt — la requête
-    // que SPECS.md §5.1 vient de retirer du lancement (voir `PrefetchNextPage`
-    // du mode Liste, qui porte le constat). Verrouillé par un effet et non
-    // écrit en composition, comme en Liste.
+    // Nothing loads before an actual swipe, as in List mode: the cache with
+    // read articles filtered out can hold fewer pages than the threshold, and
+    // the load would then fire without any gesture, reintroducing the launch
+    // request SPECS.md §5.1 removed (see List mode's `PrefetchNextPage`).
+    // Latched by an effect, not written during composition, as in List.
     var hasSwiped by remember(pagerState) { mutableStateOf(false) }
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage > 0 || pagerState.isScrollInProgress }.first { it }
@@ -605,20 +576,18 @@ private fun PrefetchNextPage(
 }
 
 /**
- * Relève périodiquement la visibilité de l'article affiché (GOAL-012-T01).
+ * Periodically samples the visibility of the displayed article (GOAL-012-T01).
  *
- * **Périodiquement, et non à chaque geste.** C'est le point où ce mode se
- * distingue le plus du mode Liste : un article plein écran immobile ne produit
- * strictement aucun événement — pas même un pixel de défilement — et une mesure
- * déclenchée par le seul mouvement ne le signalerait donc jamais. La cadence
- * est celle du mode Liste, [VISIBILITY_SAMPLING_PERIOD_MILLIS], reprise avec sa
- * justification : 5 Hz situe le franchissement du seuil d'une seconde à 20 %
- * près sans réveiller l'appareil pour rien.
+ * Periodic, not gesture-driven: a still full-screen article produces no
+ * events at all, so a movement-triggered measurement would never report it.
+ * The cadence is List mode's [VISIBILITY_SAMPLING_PERIOD_MILLIS]: 5 Hz
+ * locates the one-second threshold crossing within 20% without waking the
+ * device needlessly.
  *
- * **`repeatOnLifecycle(RESUMED)` et non un simple `LaunchedEffect`.** Une
- * boucle liée à la seule composition continuerait de tourner écran éteint : en
- * plein écran, elle marquerait comme lu l'article resté affiché — un faux
- * positif irréversible, puisque le marquage part ensuite au serveur.
+ * `repeatOnLifecycle(RESUMED)` rather than a plain `LaunchedEffect`: a loop
+ * tied only to composition would keep running with the screen off and mark
+ * the displayed article as read, an irreversible false positive since the
+ * mark is then sent to the server.
  */
 @Composable
 private fun ObserveArticleVisibility(
@@ -640,7 +609,7 @@ private fun ObserveArticleVisibility(
     }
 }
 
-/** Le bandeau hors ligne partagé (SPECS.md §5.2). */
+/** Shared offline banner (SPECS.md §5.2). */
 @Composable
 private fun OfflineBanner(modifier: Modifier = Modifier) {
     FeedOfflineBanner(
@@ -649,7 +618,7 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
     )
 }
 
-/** L'ouverture refusée faute de réseau (SPECS.md §5.2). */
+/** Notice shown when opening is refused for lack of network (SPECS.md §5.2). */
 @Composable
 private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     FeedNotice(

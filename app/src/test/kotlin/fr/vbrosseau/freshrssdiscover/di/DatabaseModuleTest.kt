@@ -28,15 +28,14 @@ private const val EXPECTED_DATABASE_VERSION = 2
 private const val LARGE_LIMIT = 100
 
 /**
- * Éprouve la base **telle que l'application l'obtient** : par le graphe, sur
- * disque, avec les migrations déclarées par `DatabaseModule`.
+ * Exercises the database as the application obtains it: through the graph, on
+ * disk, with the migrations declared by `DatabaseModule`.
  *
- * Tous les autres tests de persistance construisent une base en mémoire à la
- * main (`inMemoryDatabaseBuilder`). C'est commode et rapide, mais une base en
- * mémoire est **toujours créée à la version courante** : elle ne passe par
- * aucune migration, n'a pas de fichier, et ne peut donc pas révéler qu'un
- * `addMigrations` a été oublié — le défaut que `DatabaseModule` documente
- * précisément comme invisible aux tests. Ce test-ci ferme cette porte.
+ * All other persistence tests build an in-memory database by hand
+ * (`inMemoryDatabaseBuilder`). An in-memory database is always created at the
+ * current version: it goes through no migration, has no file, and therefore
+ * cannot reveal a forgotten `addMigrations` — the defect `DatabaseModule`
+ * documents as invisible to tests. This test closes that gap.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -67,13 +66,13 @@ class DatabaseModuleTest {
 
     @Test
     fun theGraphProvidesAFileBackedDatabaseAndNotAnInMemoryOne() {
-        // La distinction est le fond du sujet : c'est le fichier qui survit à
-        // une mise à jour de l'application, donc lui seul qui peut se présenter
-        // un jour dans une version antérieure.
+        // The distinction is the whole point: the file is what survives an
+        // application update, so only it can one day show up at an earlier
+        // version.
         assertEquals(DATABASE_FILE, database.openHelper.databaseName)
 
-        // Room n'ouvre qu'au premier accès : sans cette lecture, aucun fichier
-        // n'existerait encore.
+        // Room only opens on first access: without this read, no file would
+        // exist yet.
         assertEquals(EXPECTED_DATABASE_VERSION, database.openHelper.writableDatabase.version)
 
         val file = ApplicationProvider.getApplicationContext<Context>().getDatabasePath(DATABASE_FILE)
@@ -82,8 +81,8 @@ class DatabaseModuleTest {
 
     @Test
     fun theDatabaseOpensAtTheCurrentSchemaVersion() {
-        // Ouvrir, c'est aussi laisser Room comparer le schéma réel à l'empreinte
-        // du schéma exporté : un écart lève ici, et non chez l'utilisateur.
+        // Opening also lets Room compare the actual schema against the exported
+        // schema fingerprint: a mismatch throws here, not on the user's device.
         assertEquals(EXPECTED_DATABASE_VERSION, database.openHelper.writableDatabase.version)
     }
 
@@ -110,9 +109,9 @@ class DatabaseModuleTest {
 
     @Test
     fun aMarkQueuedThroughTheGraphIsReadBackFromDisk() = runTest {
-        // Le DAO de la file vient de la table ajoutée par MIGRATION_1_2 : la
-        // solliciter par le graphe vérifie qu'elle est bien là, quel que soit le
-        // chemin — création directe en version 2 ici, migration ailleurs.
+        // The queue DAO uses the table added by MIGRATION_1_2: querying it
+        // through the graph verifies the table is there whichever path was
+        // taken, direct creation at version 2 here, migration elsewhere.
         pendingMarkQueue.enqueue(listOf(ArticleId(7L)))
 
         assertEquals(listOf(ArticleId(7L)), pendingMarkQueue.pending(LARGE_LIMIT))

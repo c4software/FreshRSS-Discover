@@ -3,31 +3,30 @@ package fr.vbrosseau.freshrssdiscover.domain.read
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 
-/** Fraction de hauteur affichée à partir de laquelle un article compte comme regardé (SPECS.md §4.5). */
+/** Displayed-height fraction above which an article counts as seen (SPECS.md §4.5). */
 private const val DEFAULT_VISIBLE_FRACTION_THRESHOLD = 0.6f
 
-/** Durée d'affichage continu exigée avant de conclure à une lecture (SPECS.md §4.5). */
+/** Continuous display duration required before concluding a read (SPECS.md §4.5). */
 private const val DEFAULT_CONTINUOUS_VISIBILITY_MILLIS = 1_000L
 
 /**
- * Décide quand un article devient « lu » à partir de sa visibilité à l'écran.
+ * Decides when an article becomes read based on its on-screen visibility.
  *
- * SPECS.md §4.5 fixe un **double seuil** : au moins 60 % de la hauteur affichée,
- * pendant au moins 1 seconde continue. Les deux sont nécessaires et aucun ne
- * suffit — la surface seule marquerait comme lus les articles traversés par un
- * défilement rapide, la durée seule marquerait un article à peine effleuré en
- * bord d'écran.
+ * SPECS.md §4.5 sets a double threshold: at least 60% of the height displayed,
+ * for at least 1 continuous second. Both are necessary and neither suffices:
+ * surface alone would mark articles crossed by a fast scroll, duration alone
+ * would mark an article barely peeking at the screen edge.
  *
- * Les deux valeurs sont des paramètres nommés : SPECS.md annonce qu'elles seront
- * ajustées à l'usage, et un réglage éparpillé en constantes serait impossible à
- * exposer dans les réglages (SPECS.md §6).
+ * Both values are named parameters: SPECS.md states they will be tuned with
+ * usage, and scattered constants could not be exposed in the settings
+ * (SPECS.md §6).
  *
- * Le composant est pur hors [clock] : il ne lit pas l'heure système, ne
- * déclenche aucun effet et ne connaît ni Android ni le réseau. C'est ce qui
- * rend la règle testable à la milliseconde près.
+ * The component is pure apart from [clock]: it does not read the system time,
+ * triggers no effect, and knows neither Android nor the network. This makes
+ * the rule testable to the millisecond.
  *
- * Il n'est pas thread-safe : il est conçu pour être appelé depuis la boucle qui
- * observe la liste, c'est-à-dire toujours depuis le même fil.
+ * Not thread-safe: designed to be called from the loop observing the list,
+ * i.e. always from the same thread.
  */
 class ReadDetector(
     private val clock: Clock,
@@ -35,43 +34,42 @@ class ReadDetector(
     private val continuousVisibilityMillis: Long = DEFAULT_CONTINUOUS_VISIBILITY_MILLIS,
 ) {
     /**
-     * Instant auquel chaque article a franchi le seuil de surface, sans être
-     * jamais repassé dessous depuis.
+     * Instant at which each article crossed the surface threshold without
+     * dropping below it since.
      *
-     * Cette table est purgée à chaque appel des articles absents de
-     * l'observation : sans cela, une session de défilement laisserait derrière
-     * elle une entrée par article jamais revu.
+     * Entries for articles absent from the observation are purged on every
+     * call: otherwise a scrolling session would leave one entry per article
+     * never seen again.
      */
     private val visibleSince = mutableMapOf<ArticleId, Long>()
 
     /**
-     * Articles déjà signalés.
+     * Articles already reported.
      *
-     * Ils sont conservés pour toute la vie du détecteur, car c'est la seule
-     * façon de garantir qu'un article ne soit **jamais** signalé deux fois : un
-     * article reste visible pendant des dizaines d'images de rendu après avoir
-     * franchi le seuil, et le re-signaler produirait autant d'appels réseau
-     * inutiles. Le coût est borné par ce que l'utilisateur a réellement lu — un
-     * identifiant par article — et non par le nombre d'observations.
+     * Kept for the detector's whole lifetime: it is the only way to guarantee
+     * an article is never reported twice. An article stays visible for dozens
+     * of render frames after crossing the threshold, and re-reporting it would
+     * produce as many useless network calls. The cost is bounded by what the
+     * user actually read, one id per article, not by the number of
+     * observations.
      */
     private val reported = mutableSetOf<ArticleId>()
 
     /**
-     * Prend en compte une nouvelle observation de visibilité.
+     * Processes a new visibility observation.
      *
-     * [visibility] décrit les articles actuellement à l'écran et la fraction de
-     * leur hauteur affichée. Un article absent de la table est considéré comme
-     * sorti de l'écran : son chronomètre est oublié, et s'il revient il repart
-     * de zéro.
+     * [visibility] describes the articles currently on screen and the fraction
+     * of their height displayed. An article absent from the map is considered
+     * off screen: its timer is dropped, and it restarts from zero if it comes
+     * back.
      *
-     * Les deux seuils sont **inclusifs** : SPECS.md §4.5 dit « au moins 60 % »
-     * et « au moins 1 seconde ». Exactement 60,0 % pendant exactement 1000 ms
-     * suffit donc. Un seuil exclusif rendrait de surcroît la règle dépendante
-     * de l'arrondi du calcul de fraction côté interface, où 0,6 n'est jamais
-     * exactement représentable.
+     * Both thresholds are inclusive: SPECS.md §4.5 says "at least 60%" and "at
+     * least 1 second", so exactly 60.0% for exactly 1000 ms qualifies. An
+     * exclusive threshold would also make the rule depend on how the UI rounds
+     * the fraction, where 0.6 is never exactly representable.
      *
-     * @return les seuls articles qui viennent de franchir le seuil lors de cet
-     *   appel — jamais ceux déjà signalés.
+     * @return only the articles that crossed the threshold during this call,
+     *   never those already reported.
      */
     fun onVisibilityChanged(visibility: Map<ArticleId, Float>): Set<ArticleId> {
         val now = clock.nowEpochMillis()
@@ -83,20 +81,20 @@ class ReadDetector(
                 .keys
                 .toSet()
         reported += justRead
-        // Le chronomètre d'un article signalé n'a plus d'objet : le garder
-        // ferait grossir la table tant que l'article reste à l'écran.
+        // The timer of a reported article no longer serves a purpose: keeping
+        // it would grow the map for as long as the article stays on screen.
         visibleSince.keys.removeAll(justRead)
         return justRead
     }
 
     /**
-     * Chronomètre la visibilité d'un article et dit s'il vient d'atteindre la
-     * durée exigée.
+     * Times an article's visibility and reports whether it just reached the
+     * required duration.
      *
-     * Retomber sous le seuil de surface efface le chronomètre plutôt que de le
-     * suspendre : « continue » est la condition même que SPECS.md §4.5 pose.
-     * Sans cet effacement, dix passages de 100 ms cumuleraient une seconde, ce
-     * qui est exactement le défilement rapide que le seuil de durée écarte.
+     * Dropping below the surface threshold clears the timer instead of pausing
+     * it: "continuous" is the very condition SPECS.md §4.5 states. Without the
+     * reset, ten 100 ms passes would accumulate a second, which is exactly the
+     * fast scroll the duration threshold rules out.
      */
     private fun hasReachedThreshold(
         id: ArticleId,

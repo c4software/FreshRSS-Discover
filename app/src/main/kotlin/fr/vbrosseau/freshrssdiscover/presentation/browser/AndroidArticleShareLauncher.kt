@@ -3,23 +3,22 @@ package fr.vbrosseau.freshrssdiscover.presentation.browser
 import android.content.Context
 import android.content.Intent
 
-/** Le seul type que le partage annonce : du texte, pas un fichier. */
+/** The only MIME type the share announces: text, not a file. */
 private const val PLAIN_TEXT = "text/plain"
 
 /**
- * Construit l'intention de partage, sélecteur compris.
+ * Builds the share intent, chooser included.
  *
- * Extraite du lancement pour être vérifiable, comme `buildArticleCustomTabsIntent`.
+ * Extracted from the launch so it can be tested, like `buildArticleCustomTabsIntent`.
  *
- * **`createChooser` et non l'intention nue.** Sans lui, Android présente son
- * sélecteur la première fois puis retient l'application choisie : le second
- * partage partirait alors sans rien demander. Le sélecteur explicite garde le
- * choix de la destination à l'utilisateur à chaque fois — c'est ce qui fait
- * qu'aucun service tiers n'est engagé par l'application (SPECS.md §7.4).
+ * `createChooser` rather than the bare intent: without it, Android shows its
+ * chooser the first time and then remembers the chosen app, so the second
+ * share would leave without asking. The explicit chooser keeps the destination
+ * choice with the user every time, which is what guarantees the app commits to
+ * no third-party service (SPECS.md §7.4).
  *
- * @param chooserTitle titre du sélecteur. Les versions récentes d'Android
- *   l'ignorent au profit de leur feuille de partage, mais `minSdk` est 26 et il
- *   s'affiche encore là-bas.
+ * @param chooserTitle chooser title. Recent Android versions ignore it in
+ *   favor of their share sheet, but `minSdk` is 26 and it still shows there.
  */
 internal fun buildArticleShareIntent(text: String, chooserTitle: String): Intent {
     val send = Intent(Intent.ACTION_SEND).apply {
@@ -31,15 +30,14 @@ internal fun buildArticleShareIntent(text: String, chooserTitle: String): Intent
 }
 
 /**
- * Implémentation Android de [ArticleShareLauncher].
+ * Android implementation of [ArticleShareLauncher].
  *
- * Elle ne décide de rien : ce qui se partage est tranché en amont par
- * [ArticleSharer].
+ * Decides nothing: what gets shared is settled upstream by [ArticleSharer].
  *
- * @param context contexte d'`Activity`, pour la même raison que
- *   `AndroidCustomTabLauncher` : un contexte d'application obligerait à poser
- *   `FLAG_ACTIVITY_NEW_TASK`, et le sélecteur quitterait la pile de
- *   l'application.
+ * @param context an `Activity` context, for the same reason as
+ *   `AndroidCustomTabLauncher`: an application context would require
+ *   `FLAG_ACTIVITY_NEW_TASK`, and the chooser would leave the app's task
+ *   stack.
  */
 internal class AndroidArticleShareLauncher(
     private val context: Context,

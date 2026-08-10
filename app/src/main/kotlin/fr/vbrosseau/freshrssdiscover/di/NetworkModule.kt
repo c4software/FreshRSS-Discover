@@ -10,7 +10,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import javax.inject.Singleton
 
-/** Seul endroit du projet où un moteur HTTP concret est choisi. */
+/** The only place in the project where a concrete HTTP engine is chosen. */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -18,9 +18,9 @@ object NetworkModule {
     @Singleton
     fun provideHttpClient(): HttpClient = createFreshRssHttpClient(
         engine = OkHttp.create(),
-        // La journalisation détaillée reste hors des constructions publiées :
-        // même expurgée de l'en-tête d'autorisation, elle expose l'adresse du
-        // serveur personnel de l'utilisateur.
+        // Verbose logging stays out of release builds: even with the
+        // authorization header redacted, it exposes the address of the user's
+        // personal server.
         verboseLogging = BuildConfig.DEBUG,
     )
 }

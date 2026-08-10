@@ -1,52 +1,50 @@
 package fr.vbrosseau.freshrssdiscover.domain.settings
 
 /**
- * La façon dont le flux se parcourt (SPECS.md §4.8).
+ * How the feed is browsed (SPECS.md §4.8).
  *
- * **Ce n'est pas un réglage d'apparence.** Le contenu est rigoureusement le
- * même dans les deux modes — mêmes articles, même mélange, même ordre, mêmes
- * règles de lecture et de chargement. Seul le geste change, et avec lui le
- * nombre d'articles visibles à la fois. C'est pourquoi le type vit dans le
- * domaine plutôt que dans la couche de présentation : il décide de ce que
- * l'application rouvre après avoir été quittée (SPECS.md §6), donc il se
- * persiste, donc il doit exister là où la persistance est décrite.
+ * Not an appearance setting. Content is strictly identical in both modes:
+ * same articles, same shuffle, same order, same reading and loading rules.
+ * Only the gesture changes, and with it the number of articles visible at
+ * once. The type lives in the domain rather than the presentation layer
+ * because it decides what the app reopens after being quit (SPECS.md §6), so
+ * it is persisted, so it must exist where persistence is described.
  *
- * Un `enum` fermé plutôt qu'un booléen : « balayage activé » obligerait à
- * savoir que le contraire s'appelle « Liste », ce que rien n'indiquerait, et un
- * troisième mode transformerait le type en drapeau contradictoire.
+ * A closed enum rather than a boolean: "swipe enabled" would require knowing
+ * the opposite is called "List", which nothing would indicate, and a third
+ * mode would turn the type into a contradictory flag.
  */
 enum class FeedPresentation {
-    /** Défilement vertical, plusieurs articles à l'écran en cartes. */
+    /** Vertical scrolling, several articles on screen as cards. */
     List,
 
-    /** Balayage horizontal, un article à la fois en plein écran. */
+    /** Horizontal swiping, one article at a time, full screen. */
     Swipe,
 
     ;
 
     companion object {
         /**
-         * **Liste**, imposé par SPECS.md §4.8.
+         * List, mandated by SPECS.md §4.8.
          *
-         * C'est le mode qui montre plusieurs articles à la fois : à la première
-         * ouverture, il laisse voir de quoi le flux est fait avant de demander
-         * un geste. Le balayage se choisit une fois qu'on sait ce qu'on balaye.
+         * The mode showing several articles at once: on first open it shows
+         * what the feed is made of before requiring a gesture. Swipe is chosen
+         * once the user knows what is being swiped.
          */
         val Default: FeedPresentation = List
 
         /**
-         * Relit une valeur venue du disque, sans jamais échouer.
+         * Reads back a value from disk, never failing.
          *
-         * `null` (rien d'enregistré), une chaîne vide, le nom d'un mode retiré
-         * depuis, ou un fichier de préférences abîmé retombent tous sur
-         * [Default] : un mode de présentation illisible ne doit pas empêcher
-         * l'application de démarrer. La valeur corrigée sera réécrite au
-         * prochain choix de l'utilisateur.
+         * `null` (nothing stored), an empty string, the name of a since-removed
+         * mode, or a damaged preferences file all fall back to [Default]: an
+         * unreadable presentation mode must not prevent the app from starting.
+         * The corrected value is rewritten on the user's next choice.
          *
-         * La forme sur disque est le **nom** et non l'`ordinal` : un ordinal
-         * lierait la valeur enregistrée à l'ordre de déclaration, et intercaler
-         * un mode un jour ferait rouvrir l'application dans un autre mode que
-         * celui qu'on avait quitté — sans que rien ne le signale.
+         * The on-disk form is the name, not the `ordinal`: an ordinal would
+         * tie the stored value to declaration order, and inserting a mode one
+         * day would silently reopen the app in a different mode than the one
+         * it was left in.
          */
         fun fromStoredName(raw: String?): FeedPresentation = entries.firstOrNull { it.name == raw } ?: Default
     }

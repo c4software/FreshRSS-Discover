@@ -5,11 +5,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Réglages en mémoire, pour les tests.
+ * In-memory settings for tests.
  *
- * Il **valide comme le vrai dépôt** : un fake permissif laisserait passer un
- * appel hors bornes que l'implémentation réelle refuserait, et le test serait
- * alors vert sur un chemin impossible en production.
+ * Validates like the real repository: a permissive fake would accept an
+ * out-of-bounds call the real implementation rejects, making the test pass on
+ * a path impossible in production.
  */
 class FakeSettingsRepository(
     initial: ReadingSettings = ReadingSettings.Default,
@@ -18,25 +18,24 @@ class FakeSettingsRepository(
     private val settings = MutableStateFlow(initial)
     private val presentation = MutableStateFlow(initialPresentation)
 
-    /** Nombre d'écritures reçues, tous réglages confondus. */
+    /** Number of writes received, across all settings. */
     var writeCount: Int = 0
         private set
 
-    /** Valeur courante, pour vérifier ce qui a été enregistré sans collecter. */
+    /** Current value, to verify what was stored without collecting. */
     val current: ReadingSettings
         get() = settings.value
 
-    /** Mode courant, même usage que [current]. */
+    /** Current mode, same purpose as [current]. */
     val currentPresentation: FeedPresentation
         get() = presentation.value
 
     /**
-     * Allume ou éteint le marquage automatique **sans passer par une écriture**.
+     * Enables or disables automatic marking without going through a write.
      *
-     * Une fonction ordinaire et non [setAutoMarkAsReadEnabled] : les tests de
-     * ViewModel ne sont pas des `runTest`, et surtout ce n'est pas un geste de
-     * l'utilisateur qu'ils mettent en scène mais un état de départ — d'où
-     * l'absence d'incrément de [writeCount].
+     * A plain function rather than [setAutoMarkAsReadEnabled]: ViewModel
+     * tests are not `runTest`, and they stage an initial state, not a user
+     * gesture, hence no [writeCount] increment.
      */
     fun setAutomaticMarking(enabled: Boolean) {
         settings.value = settings.value.copy(autoMarkAsReadEnabled = enabled)
@@ -46,7 +45,7 @@ class FakeSettingsRepository(
 
     override fun observeFeedPresentation(): StateFlow<FeedPresentation> = presentation
 
-    /** Le rappel de lecture (SPECS.md §4.9), actif par défaut comme en production. */
+    /** The reading reminder (SPECS.md §4.9), enabled by default as in production. */
     val reminderEnabled = MutableStateFlow(true)
 
     override fun observeReminderEnabled(): Flow<Boolean> = reminderEnabled

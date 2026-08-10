@@ -9,32 +9,31 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * D'où vient la clé de chiffrement des secrets.
+ * Source of the secret encryption key.
  *
- * **Cette interface existe pour une raison, et une seule** : `AndroidKeyStore`
- * n'est pas simulé par Robolectric, et il ne l'est toujours pas — réessayé le
- * 2026-08-08, le fournisseur lève `NoSuchAlgorithmException`. Tant que la
- * provenance de la clé était mêlée au chiffrement, c'est **toute** la classe
- * qui restait hors de portée des tests : le format, l'authentification GCM, la
- * conduite à tenir devant un texte illisible.
+ * This interface exists for one reason only: `AndroidKeyStore` is not
+ * simulated by Robolectric, and still is not — retried on 2026-08-08, the
+ * provider throws `NoSuchAlgorithmException`. As long as key provenance was
+ * mixed with encryption, the whole class stayed out of reach of tests: the
+ * format, GCM authentication, the handling of unreadable text.
  *
- * Le partage se fait donc ici, au plus petit endroit possible. Ce qui reste non
- * testé est [AndroidKeyStoreKeySource] et rien d'autre — une vingtaine de
- * lignes qui ne font qu'appeler la plateforme.
+ * The split therefore happens here, at the smallest possible point. What
+ * remains untested is [AndroidKeyStoreKeySource] and nothing else — about
+ * twenty lines that only call the platform.
  */
 internal fun interface SecretKeySource {
     fun key(): SecretKey
 }
 
 /**
- * La clé vit dans le magasin matériel et n'en sort jamais.
+ * The key lives in the hardware keystore and never leaves it.
  *
- * Même une lecture du fichier de préférences — appareil déverrouillé par un
- * tiers, sauvegarde extraite — ne livre pas le jeton.
+ * Even reading the preferences file — device unlocked by a third party,
+ * extracted backup — does not yield the token.
  *
- * `androidx.security:security-crypto` aurait fait le même travail, mais la
- * bibliothèque est dépréciée : l'employer contreviendrait à AGENTS.md §2. Ce
- * qui suit n'utilise que des API de la plateforme, toujours en vigueur.
+ * `androidx.security:security-crypto` would have done the same job, but the
+ * library is deprecated: using it would violate AGENTS.md §2. The code below
+ * only uses platform APIs that remain current.
  */
 @Singleton
 internal class AndroidKeyStoreKeySource @Inject constructor() : SecretKeySource {
@@ -53,10 +52,10 @@ internal class AndroidKeyStoreKeySource @Inject constructor() : SecretKeySource 
             )
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                // Volontairement **sans** `setUserAuthenticationRequired` : le
-                // flux Discover doit s'ouvrir sans redemander le déverrouillage
-                // à chaque lancement. Le secret protégé est un jeton de lecture
-                // de flux RSS, pas un moyen de paiement.
+                // Deliberately without `setUserAuthenticationRequired`: the
+                // Discover feed must open without asking for an unlock at
+                // every launch. The protected secret is an RSS reading token,
+                // not a payment credential.
                 .build(),
         )
         return generator.generateKey()

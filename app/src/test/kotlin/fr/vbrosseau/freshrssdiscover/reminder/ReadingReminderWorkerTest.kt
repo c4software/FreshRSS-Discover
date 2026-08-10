@@ -38,10 +38,10 @@ import kotlin.test.assertTrue
 
 private val PARIS: ZoneId = ZoneId.of("Europe/Paris")
 
-/** Minutes dans une heure, pour lire les attentes sans compter mentalement. */
+/** Minutes in an hour, so expectations read without mental arithmetic. */
 private const val MINUTES_PER_HOUR = 60
 
-/** L'instant que porte cette date locale à Paris. */
+/** The instant carried by this local date in Paris. */
 private fun parisMillis(
     year: Int,
     month: Int,
@@ -53,7 +53,7 @@ private fun parisMillis(
         .toInstant()
         .toEpochMilli()
 
-/** Ce qui a été affiché, sans `NotificationManager`. */
+/** Records what was shown, without a `NotificationManager`. */
 private class RecordingNotifier : ReminderNotifier {
     val shown: MutableList<ReminderPlan> = mutableListOf()
 
@@ -64,7 +64,7 @@ private class RecordingNotifier : ReminderNotifier {
     override fun dismiss() = Unit
 }
 
-/** Compte les réarmements : c'est eux que les cas de refus doivent supprimer. */
+/** Counts reschedules: the refusal cases must suppress them. */
 private class RecordingScheduler : ReminderScheduler {
     var scheduleCount: Int = 0
         private set
@@ -76,7 +76,7 @@ private class RecordingScheduler : ReminderScheduler {
     override fun cancel() = Unit
 }
 
-/** Heure d'ouverture pilotée, sans `DataStore`. */
+/** Controlled opening time, without `DataStore`. */
 private class FakeOpeningRecorder(var minute: DailyMinute? = null) : OpeningRecorder {
     override suspend fun recordOpening() = Unit
 
@@ -84,13 +84,13 @@ private class FakeOpeningRecorder(var minute: DailyMinute? = null) : OpeningReco
 }
 
 /**
- * Éprouve la décision du rappel **par le travailleur**, tel que WorkManager
- * l'exécutera : `TestListenableWorkerBuilder` construit un vrai
- * `CoroutineWorker` et lui donne les paramètres qu'il recevrait en production.
+ * Tests the reminder decision through the worker, as WorkManager will execute
+ * it: `TestListenableWorkerBuilder` builds a real `CoroutineWorker` and gives
+ * it the parameters it would receive in production.
  *
- * Robolectric est indispensable ici — un `ListenableWorker` reçoit un `Context`
- * — mais rien d'autre n'est simulé : les dépendances de la décision sont les
- * Fakes du domaine.
+ * Robolectric is required here (a `ListenableWorker` receives a `Context`),
+ * but nothing else is simulated: the decision's dependencies are the domain
+ * Fakes.
  */
 @RunWith(RobolectricTestRunner::class)
 class ReadingReminderWorkerTest {
@@ -110,9 +110,9 @@ class ReadingReminderWorkerTest {
     }
 
     /**
-     * Le travailleur est construit avec une fabrique explicite : sans elle,
-     * WorkManager instancierait `ReadingReminderWorker` par son constructeur à
-     * deux paramètres, que `@AssistedInject` ne laisse pas exister.
+     * The worker is built with an explicit factory: without it, WorkManager
+     * would instantiate `ReadingReminderWorker` through its two-parameter
+     * constructor, which `@AssistedInject` does not let exist.
      */
     private fun worker(): ReadingReminderWorker {
         val reminder = ReadingReminder(auth, settings, articles, notifier, scheduler, clock, PARIS)
@@ -132,8 +132,8 @@ class ReadingReminderWorkerTest {
 
     @Test
     fun aWorkerWithoutSessionNotifiesNothingAndSchedulesNothing() = runTest {
-        // Exigence explicite : un utilisateur déconnecté n'a rien à lire, et
-        // réarmer ferait revenir le travailleur chaque jour pour ne rien faire.
+        // Explicit requirement: a signed-out user has nothing to read, and
+        // rescheduling would bring the worker back daily to do nothing.
         articles.unreadInCache = listOf(article(id = 1L, title = "Un titre"))
 
         val result = worker().doWork()
@@ -145,8 +145,8 @@ class ReadingReminderWorkerTest {
 
     @Test
     fun aDisabledReminderNotifiesNothingAndSchedulesNothing() = runTest {
-        // Réarmer un rappel que l'utilisateur a coupé, c'est ne pas l'avoir
-        // coupé : il repartirait au prochain réveil du travailleur.
+        // Rescheduling a reminder the user turned off means it was not turned
+        // off: it would fire again at the worker's next wake-up.
         signIn()
         settings.reminderEnabled.value = false
         articles.unreadInCache = listOf(article(id = 1L, title = "Un titre"))
@@ -159,10 +159,9 @@ class ReadingReminderWorkerTest {
 
     @Test
     fun anEmptyCacheNotifiesNothingButStillSchedulesTheNextReminder() = runTest {
-        // SPECS.md §4.9 : un rappel annonçant que la pile est vide est une
-        // interruption sans contrepartie. Mais s'arrêter là éteindrait le rappel
-        // définitivement le jour où l'utilisateur a tout lu — le meilleur des
-        // jours.
+        // SPECS.md §4.9: a reminder announcing an empty pile is an
+        // interruption with no payoff. But stopping there would permanently
+        // disable the reminder the day the user has read everything.
         signIn()
 
         worker().doWork()
@@ -190,8 +189,8 @@ class ReadingReminderWorkerTest {
 
     @Test
     fun theWorkerReadsTheCacheAndNeverTheNetwork() = runTest {
-        // SPECS.md §2 exclut toujours la synchronisation en arrière-plan : une
-        // requête partie d'ici sortirait sans geste de l'utilisateur.
+        // SPECS.md §2 always excludes background sync: a request from here
+        // would leave without any user gesture.
         signIn()
         articles.unreadInCache = listOf(article(id = 1L, title = "Le premier"))
 
@@ -203,8 +202,8 @@ class ReadingReminderWorkerTest {
 
     @Test
     fun theSameDayGivesTheSameWordingTwice() = runTest {
-        // SPECS.md §4.9 : deux exécutions du même jour — une reprise après
-        // échec, un redémarrage — doivent donner le même message.
+        // SPECS.md §4.9: two runs on the same day (a retry after failure, a
+        // restart) must give the same message.
         signIn()
         articles.unreadInCache = listOf(article(id = 1L, title = "Le premier"))
 
@@ -232,9 +231,9 @@ class ReadingReminderWorkerTest {
 }
 
 /**
- * Éprouve la programmation sur un vrai WorkManager, celui de `work-testing` :
- * ce qui compte n'est pas qu'une méthode ait été appelée, mais qu'il reste
- * **un seul** travail en attente et au bon délai.
+ * Tests the scheduling against a real WorkManager, the `work-testing` one:
+ * what matters is not that a method was called, but that exactly one work
+ * remains pending, with the right delay.
  */
 @RunWith(RobolectricTestRunner::class)
 class WorkManagerReminderSchedulerTest {
@@ -244,9 +243,9 @@ class WorkManagerReminderSchedulerTest {
 
     @Before
     fun initializeWorkManager() {
-        // `SynchronousExecutor` : sans lui, l'état du travail ne serait lisible
-        // qu'après un aller-retour de fil d'exécution, et l'assertion
-        // courserait la file.
+        // `SynchronousExecutor`: without it, the work state would only be
+        // readable after a thread round-trip, and the assertion would race
+        // the queue.
         WorkManagerTestInitHelper.initializeTestWorkManager(
             context,
             Configuration.Builder().setExecutor(SynchronousExecutor()).build(),
@@ -272,8 +271,8 @@ class WorkManagerReminderSchedulerTest {
 
         scheduler().scheduleNext()
 
-        // 8 h 12 est déjà passée aujourd'hui : la cible est demain, soit
-        // 22 h 12 après l'instant courant.
+        // 8:12 has already passed today: the target is tomorrow, 22 h 12 min
+        // after the current instant.
         val expected = parisMillis(2026, 3, 5, hour = 8, minute = 12) - clock.nowEpochMillis()
         assertEquals(expected, reminderWork().single().initialDelayMillis)
         assertEquals(TimeUnit.HOURS.toMillis(22) + TimeUnit.MINUTES.toMillis(12), expected)
@@ -281,9 +280,8 @@ class WorkManagerReminderSchedulerTest {
 
     @Test
     fun schedulingTwiceLeavesASinglePendingReminder() = runTest {
-        // Le programmateur est appelé à chaque ouverture de l'application :
-        // sans travail unique, l'utilisateur recevrait autant de rappels qu'il
-        // a lancé l'application la veille.
+        // The scheduler is called on every app opening: without unique work,
+        // the user would get as many reminders as app launches the day before.
         recorder.minute = DailyMinute(8 * MINUTES_PER_HOUR + 12)
         val scheduler = scheduler()
 

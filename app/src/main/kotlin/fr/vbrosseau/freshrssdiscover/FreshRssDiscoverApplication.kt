@@ -9,12 +9,11 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Point d'entrée de l'application et racine du graphe d'injection.
+ * Application entry point and root of the injection graph.
  *
- * Elle ne porte aucune logique métier : tout ce qui décide vit dans `:domain`,
- * tout ce qui parle au réseau ou au disque vit dans `data`. Elle se borne à
- * deux gestes de démarrage — installer la journalisation en construction de
- * débogage, et lancer la purge du cache.
+ * Carries no business logic: decisions live in `:domain`, network and disk
+ * access in `data`. It only performs two startup steps: installing logging in
+ * debug builds and launching the cache purge.
  */
 @HiltAndroidApp
 class FreshRssDiscoverApplication : Application(), Configuration.Provider {
@@ -26,13 +25,13 @@ class FreshRssDiscoverApplication : Application(), Configuration.Provider {
     internal lateinit var workerFactory: HiltWorkerFactory
 
     /**
-     * WorkManager est configuré ici plutôt que par son initialiseur
-     * automatique, retiré du manifeste.
+     * WorkManager is configured here rather than by its automatic
+     * initializer, which is removed from the manifest.
      *
-     * C'est la seule façon de lui donner la fabrique de Hilt, sans laquelle un
-     * travailleur à dépendances injectées ne peut pas être construit — l'échec
-     * survient alors à l'exécution du rappel, plusieurs heures après le
-     * démarrage, et se lit comme un rappel qui ne part jamais.
+     * This is the only way to give it Hilt's worker factory, without which a
+     * worker with injected dependencies cannot be constructed. The failure
+     * would otherwise occur when the reminder runs, hours after startup, and
+     * manifest as a reminder that never fires.
      */
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -48,14 +47,13 @@ class FreshRssDiscoverApplication : Application(), Configuration.Provider {
         Timber.i("Processus démarré")
 
         /*
-         * Une fois par démarrage de processus, et rien ne l'attend.
+         * Once per process start, and nothing waits on it.
          *
-         * Après chaque page, ce serait vingt à trente balayages de table par
-         * session, chacun pendant que l'utilisateur fait défiler — précisément
-         * l'instant où une saccade se voit. Périodiquement, il faudrait
-         * WorkManager pour une opération qui n'a aucune raison de tourner
-         * application fermée. Ici, le premier affichage (SPECS.md §5.1) n'est
-         * suspendu à rien.
+         * Purging after each page would mean twenty to thirty table scans per
+         * session, each while the user is scrolling, where jank is visible.
+         * A periodic purge would require WorkManager for an operation that has
+         * no reason to run with the app closed. Here, the first render
+         * (SPECS.md §5.1) is not blocked by anything.
          */
         cacheMaintenance.purgeExpiredInBackground()
     }

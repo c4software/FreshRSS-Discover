@@ -7,7 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import javax.inject.Singleton
 
-/** Seul endroit du projet appelant `System.currentTimeMillis()`. */
+/** The only place in the project that calls `System.currentTimeMillis()`. */
 @Module
 @InstallIn(SingletonComponent::class)
 object TimeModule {

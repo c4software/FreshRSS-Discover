@@ -5,27 +5,27 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
-/** Accès à la file des marquages « lu » restant à transmettre. */
+/** Access to the queue of read marks awaiting transmission. */
 @Dao
 internal interface PendingMarkDao {
     /**
-     * Met des articles en file, sans jamais en dupliquer un déjà présent.
+     * Enqueues articles, never duplicating one already present.
      *
-     * `IGNORE` plutôt que `REPLACE` : la ligne existante conserve sa date de
-     * mise en file d'origine. Avec `REPLACE`, un article revu à l'écran verrait
-     * son horodatage repoussé et repasserait derrière les autres — un article
-     * fréquemment revu pourrait ainsi ne jamais être transmis.
+     * `IGNORE` rather than `REPLACE`: the existing row keeps its original
+     * enqueue timestamp. With `REPLACE`, an article seen again on screen would
+     * have its timestamp pushed back and fall behind the others — a
+     * frequently revisited article might never be transmitted.
      */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(marks: List<PendingMarkEntity>)
 
     /**
-     * Les [limit] marquages en attente les plus anciens.
+     * The [limit] oldest pending marks.
      *
-     * L'ordre est celui de la mise en file : le rejeu commence par ce qui
-     * attend depuis le plus longtemps. `article_id` départage les ex æquo pour
-     * que deux appels successifs rendent la même chose — sans quoi une
-     * transmission partielle pourrait retomber indéfiniment sur le même lot.
+     * Ordered by enqueue time: replay starts with what has waited longest.
+     * `article_id` breaks ties so two successive calls return the same thing —
+     * otherwise a partial transmission could keep landing on the same batch
+     * indefinitely.
      */
     @Query(
         "SELECT article_id FROM pending_marks " +
@@ -33,7 +33,7 @@ internal interface PendingMarkDao {
     )
     suspend fun pending(limit: Int): List<Long>
 
-    /** Retire de la file les marquages dont la transmission est confirmée. */
+    /** Removes marks whose transmission is confirmed. */
     @Query("DELETE FROM pending_marks WHERE article_id IN (:articleIds)")
     suspend fun deleteByIds(articleIds: List<Long>)
 

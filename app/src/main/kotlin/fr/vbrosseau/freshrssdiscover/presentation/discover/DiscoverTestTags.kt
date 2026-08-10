@@ -1,12 +1,12 @@
 package fr.vbrosseau.freshrssdiscover.presentation.discover
 
-/** Repères de test de l'écran Discover. */
+/** Test tags for the Discover screen. */
 object DiscoverTestTags {
     const val LIST = "discover:list"
     const val EMPTY = "discover:empty"
     const val END_OF_FEED = "discover:end"
 
-    /** Le cadre tirable des écrans sans article (GOAL-025-T02). */
+    /** The pullable frame of article-less screens (GOAL-025-T02). */
     const val PULLABLE_MESSAGE = "discover:pullable"
 
     const val FAILURE = "discover:failure"

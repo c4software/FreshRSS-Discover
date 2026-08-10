@@ -2,16 +2,16 @@ package fr.vbrosseau.freshrssdiscover.presentation.theme
 
 import androidx.compose.ui.unit.dp
 
-/** Échelle d'espacement unique de l'application. */
+/** The application's single spacing scale. */
 object Spacing {
     /**
-     * L'absence de marge, nommée.
+     * The named absence of margin.
      *
-     * Elle existe pour les endroits où « zéro » est une **décision** et non un
-     * défaut : le bas de la carte du flux, dont la marge est fournie par la
-     * cible tactile du bouton de partage. Un `0.dp` écrit là se lirait comme un
-     * oubli, et AGENTS.md §9 veut que les dimensions récurrentes passent par
-     * cette échelle plutôt que par des `.dp` épars.
+     * For places where zero is a decision, not a default: the bottom of the
+     * feed card, whose margin comes from the share button's touch target. A
+     * literal `0.dp` there would read as an omission, and AGENTS.md §9
+     * requires recurring dimensions to go through this scale rather than
+     * scattered `.dp` values.
      */
     val none = 0.dp
     val xs = 4.dp

@@ -3,75 +3,70 @@ package fr.vbrosseau.freshrssdiscover.domain.read
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 
 /**
- * Propage au serveur les articles que [ReadDetector] a déclarés lus.
+ * Propagates to the server the articles [ReadDetector] declared read.
  *
- * Déclaré ici, implémenté dans `:app` : le domaine exprime ce dont il a besoin
- * sans rien connaître de HTTP ni du disque (ARCHITECTURE.md §2).
+ * Declared here, implemented in `:app`: the domain expresses what it needs
+ * without knowing anything about HTTP or storage (ARCHITECTURE.md §2).
  *
- * **Le marquage est optimiste** (SPECS.md §4.5), et c'est ce qui dicte tout le
- * reste de cette interface. L'état local bascule immédiatement, la transmission
- * suit — donc la pose de l'intention ([markAsRead]) et son envoi ([flush]) sont
- * deux opérations distinctes. Les fondre en une seule rendrait le marquage
- * dépendant du réseau : l'article resterait non lu tant que la requête n'aurait
- * pas abouti, et un tunnel de métro suffirait à faire réapparaître dans le flux
- * ce que l'utilisateur vient de lire.
+ * Marking is optimistic (SPECS.md §4.5), which dictates the rest of this
+ * interface. Local state flips immediately and transmission follows, so
+ * recording the intent ([markAsRead]) and sending it ([flush]) are two
+ * distinct operations. Merging them would make marking depend on the network:
+ * an article would stay unread until the request succeeded, and a subway
+ * tunnel would be enough to make just-read articles reappear in the feed.
  *
- * **Ce qui n'est pas transmis n'est jamais perdu.** La file survit au
- * redémarrage et n'est purgée qu'après confirmation du serveur, article par
- * article. Une seule chose la vide sans confirmation : [clearPending], à la
- * déconnexion.
+ * What is not transmitted is never lost. The queue survives restarts and is
+ * only purged after server confirmation, article by article. One thing empties
+ * it without confirmation: [clearPending], on sign-out.
  */
 interface ReadSyncRepository {
     /**
-     * Marque des articles comme lus **localement**, met la transmission en file
-     * et programme son envoi.
+     * Marks articles as read locally, enqueues the transmission, and schedules
+     * its dispatch.
      *
-     * Ne rend aucune issue, et c'est délibéré : du point de vue de l'appelant,
-     * cette opération ne peut pas échouer. Elle n'attend pas le réseau — elle
-     * ne le touche même pas. Une issue ici obligerait l'écran à traiter un
-     * échec qu'il n'a pas à montrer (SPECS.md §4.5).
+     * Deliberately returns nothing: from the caller's perspective this
+     * operation cannot fail. It does not wait for the network; it does not
+     * even touch it. A result here would force the screen to handle a failure
+     * it must not display (SPECS.md §4.5).
      *
-     * **L'appelant n'a rien à envoyer après cet appel.** Le regroupement
-     * temporel est du ressort de l'implémentation
-     * ([ReadTransmissionScheduler]) : un défilement continu produit un lot
-     * toutes les 200 ms, et les faire partir un par un serait la requête par
-     * article que le marquage par lots de SPECS.md §4.5 écarte. Enchaîner un
-     * [flush] ici annulerait précisément ce regroupement.
+     * The caller has nothing to send after this call. Temporal grouping
+     * belongs to the implementation ([ReadTransmissionScheduler]): continuous
+     * scrolling produces a batch every 200 ms, and sending them one by one
+     * would be the per-article request that batched marking in SPECS.md §4.5
+     * rules out. Chaining a [flush] here would defeat that grouping.
      *
-     * Idempotent : le flux repasse sur les mêmes articles au gré du
-     * défilement, remarquer un article déjà lu ne produit rien.
+     * Idempotent: the feed revisits the same articles while scrolling;
+     * re-marking an already-read article does nothing.
      */
     suspend fun markAsRead(ids: Set<ArticleId>)
 
     /**
-     * Transmet **sans attendre** ce qui attend, par lots, et n'acquitte
-     * qu'après confirmation.
+     * Transmits what is pending immediately, in batches, acknowledging only
+     * after confirmation.
      *
-     * C'est la sortie de secours du regroupement : au démarrage — le rejeu
-     * promis par SPECS.md §4.5 pour ce qui n'a pas pu partir avant la fermeture
-     * de l'application — et partout où attendre n'aurait plus de sens, un
-     * passage en arrière-plan par exemple. Le marquage ordinaire, lui, n'a pas
-     * à l'appeler.
+     * The escape hatch from grouping: at startup, for the replay SPECS.md §4.5
+     * promises for what could not leave before the app closed, and wherever
+     * waiting no longer makes sense, e.g. when going to background. Ordinary
+     * marking must not call it.
      *
-     * Sans rien en file, ne touche pas au réseau : il serait absurde de payer
-     * un aller-retour pour n'envoyer aucun article.
+     * With nothing queued, does not touch the network.
      *
-     * Ne rend rien, comme [markAsRead] et pour la même raison : aucun appelant
-     * n'a de conduite à tenir selon l'issue. Un échec est un report — la file
-     * conserve (SPECS.md §4.5) — et une session refusée est déjà prise en
-     * charge par l'implémentation, l'aiguillage racine ramenant de lui-même à
-     * l'écran de connexion (SPECS.md §3.4).
+     * Returns nothing, like [markAsRead] and for the same reason: no caller
+     * has behavior to adapt to the outcome. A failure is a deferral (the queue
+     * keeps everything, SPECS.md §4.5), and a rejected session is already
+     * handled by the implementation, the root gate returning to the sign-in
+     * screen by itself (SPECS.md §3.4).
      */
     suspend fun flush()
 
     /**
-     * Abandonne ce qui attend, sans le transmettre.
+     * Drops what is pending, without transmitting.
      *
-     * Réservé à la déconnexion (SPECS.md §3.5) : ces marquages appartiennent au
-     * compte que l'on vient de quitter, et les envoyer sous une autre session
-     * marquerait comme lus les articles de quelqu'un d'autre. C'est la **seule**
-     * façon de vider la file sans confirmation du serveur — en particulier, une
-     * session expirée ne la vide pas.
+     * Reserved for sign-out (SPECS.md §3.5): these markings belong to the
+     * account just left, and sending them under another session would mark
+     * someone else's articles as read. This is the only way to empty the queue
+     * without server confirmation; in particular, an expired session does not
+     * empty it.
      */
     suspend fun clearPending()
 }

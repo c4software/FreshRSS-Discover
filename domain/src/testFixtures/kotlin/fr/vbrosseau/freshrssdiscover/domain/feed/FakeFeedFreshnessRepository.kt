@@ -4,18 +4,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Fraîcheur du flux en mémoire, pour les tests.
+ * In-memory feed freshness for tests.
  *
- * L'acquittement y est **partagé**, comme dans l'implémentation réelle : c'est
- * ce qui permet à un test de vérifier qu'un avis acquitté en mode Liste reste
- * muet en mode Balayage, en donnant le même exemplaire aux deux ViewModels.
+ * The acknowledgement is shared, as in the real implementation: this lets a
+ * test verify that a notice acknowledged in List mode stays silent in Swipe
+ * mode, by handing the same instance to both ViewModels.
  */
 class FakeFeedFreshnessRepository(
     initial: FeedFreshness = FeedFreshness(),
 ) : FeedFreshnessRepository {
     private val freshness = MutableStateFlow(initial)
 
-    /** Instant que [recordRefresh] écrira. Le test le pose lui-même. */
+    /** Instant that [recordRefresh] writes. Set by the test. */
     var nowEpochMillis: Long = 0L
 
     var recordCallCount: Int = 0
@@ -39,7 +39,7 @@ class FakeFeedFreshnessRepository(
         freshness.value = latest.copy(acknowledgedRefreshEpochMillis = latest.lastRefreshEpochMillis)
     }
 
-    /** Pose directement un état, sans passer par une écriture. */
+    /** Sets a state directly, bypassing the write path. */
     fun set(value: FeedFreshness) {
         freshness.value = value
     }

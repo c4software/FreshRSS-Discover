@@ -1,10 +1,11 @@
 package fr.vbrosseau.freshrssdiscover.domain.feed
 
 /**
- * Fabriques d'articles pour les tests.
+ * Article factories for tests.
  *
- * Tout a une valeur par défaut : un test qui éprouve le mélange n'a que faire
- * du résumé, et l'obliger à en fournir un noierait ce qu'il vérifie.
+ * Every parameter has a default: a test exercising the shuffle does not care
+ * about the summary, and forcing it to provide one would drown out what it
+ * actually verifies.
  */
 fun article(
     id: Long = 1L,

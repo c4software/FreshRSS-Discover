@@ -55,7 +55,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Plus large que ce que les tests écrivent : la borne n'est jamais ce qu'ils éprouvent. */
+/** Larger than what the tests write: the limit is never what they exercise. */
 private const val CACHE_LIMIT = 100
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -101,9 +101,9 @@ class DefaultArticleRepositoryTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
 
-                // Une **nouvelle** exception à chaque appel : relancer la même
-                // instance la fait décorer deux fois par la pile de coroutines,
-                // et elle finit par échapper au rattrapage.
+                // A fresh exception on each call: rethrowing the same
+                // instance gets it decorated twice by the coroutine stack,
+                // and it ends up escaping the catch.
                 is MockEngineResponse.Failure -> throw respond.newCause()
 
                 is MockEngineResponse.Gated -> {
@@ -128,11 +128,11 @@ class DefaultArticleRepositoryTest {
     }
 
     /**
-     * Base en mémoire, partagée par le dépôt et par le test.
+     * In-memory database shared by the repository and the test.
      *
-     * Le test doit pouvoir garnir le cache **avant** que le dépôt n'existe :
-     * c'est exactement la situation d'un lancement d'application, où le contenu
-     * précède la première requête.
+     * The test must be able to populate the cache before the repository
+     * exists: exactly the app-launch situation, where content precedes the
+     * first request.
      */
     private val database: AppDatabase by lazy {
         Room.inMemoryDatabaseBuilder(
@@ -144,11 +144,11 @@ class DefaultArticleRepositoryTest {
     private val cache: ArticleCache by lazy { ArticleCache(database.articleDao(), Clock { 0L }) }
 
     /**
-     * La file des marquages en attente, sur la **même** base que le cache.
+     * The pending-mark queue, on the same database as the cache.
      *
-     * C'est ce qui permet d'éprouver ce que la purge du rechargement épargne :
-     * la condition vit dans une sous-requête SQL, et deux bases distinctes la
-     * rendraient toujours vraie — le cas passerait sans rien prouver.
+     * This is what lets the test exercise what the reload purge spares: the
+     * condition lives in a SQL subquery, and two separate databases would
+     * make it always true, letting the case pass without proving anything.
      */
     private val pendingMarks: PendingMarkQueue by lazy {
         PendingMarkQueue(database.pendingMarkDao(), Clock { 0L })
@@ -157,12 +157,12 @@ class DefaultArticleRepositoryTest {
     private sealed interface MockEngineResponse {
         data class Body(val text: String, val status: HttpStatusCode = HttpStatusCode.OK) : MockEngineResponse
 
-        /** Réponses servies dans l'ordre, pour éprouver deux pages successives. */
+        /** Responses served in order, to exercise two successive pages. */
         data class Bodies(val texts: List<String>) : MockEngineResponse
 
         data class Failure(val newCause: () -> Throwable) : MockEngineResponse
 
-        /** Réponse retenue jusqu'à ce que le test la libère : reproduit une page en vol. */
+        /** Response held until the test releases it: reproduces an in-flight page. */
         data class Gated(val gate: CompletableDeferred<Unit>, val text: String) : MockEngineResponse
     }
 
@@ -173,11 +173,11 @@ class DefaultArticleRepositoryTest {
     }
 
     /**
-     * Une page dont chaque article porte le flux demandé.
+     * A page whose every article carries the requested feed.
      *
-     * Les identifiants voyagent en hexadécimal, les dates décroissent avec eux :
-     * l'ordre du serveur est ainsi celui de la liste, et une inversion due au
-     * mélange devient lisible dans l'assertion.
+     * Ids travel in hexadecimal and dates decrease with them: the server
+     * order matches the list order, so a mix-induced inversion is readable
+     * in the assertion.
      */
     private fun page(
         vararg items: Pair<Long, String>,
@@ -207,10 +207,10 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aCancelledPageInFlightWritesNothingToTheCache() = runTest {
-        // L'annulation du rechargement (GOAL-029) promet plus que jeter le
-        // résultat : la requête est abandonnée, donc son `cache.save` ne
-        // s'exécute jamais — les lignes que `retainOnly` vient d'emporter ne
-        // reviennent pas. C'est ce que le compteur de GOAL-028 ne couvrait pas.
+        // Reload cancellation (GOAL-029) promises more than dropping the
+        // result: the request is abandoned, so its `cache.save` never runs
+        // and the rows `retainOnly` just removed do not come back. This is
+        // what the GOAL-028 counter did not cover.
         val gate = CompletableDeferred<Unit>()
         val repository = repository(MockEngineResponse.Gated(gate, onePage))
         signedIn()
@@ -253,8 +253,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun fortyArticlesAreAskedPerPage() = runTest {
-        // Tranché dans SPECS.md §8 : mesuré sur un flux réel, une page de 40
-        // pèse environ 55 ko.
+        // Decided in SPECS.md §8: measured on a real feed, a page of 40
+        // weighs about 55 kB.
         val repository = repository(MockEngineResponse.Body(onePage))
         signedIn()
 
@@ -265,7 +265,7 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun readArticlesAreExcluded() = runTest {
-        // SPECS.md §4.1 : le flux ne présente que les articles non lus.
+        // SPECS.md §4.1: the feed only presents unread articles.
         val repository = repository(MockEngineResponse.Body(onePage))
         signedIn()
 
@@ -276,8 +276,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun noCursorIsSentForTheFirstPage() = runTest {
-        // Un `c` vide est silencieusement ramené au début du flux : l'envoyer
-        // produirait une boucle infinie muette, jamais une erreur.
+        // An empty `c` is silently reset to the start of the feed: sending
+        // one would produce a silent infinite loop, never an error.
         val repository = repository(MockEngineResponse.Body(onePage))
         signedIn()
 
@@ -309,8 +309,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun loadingWithoutASessionIsReportedRatherThanShownAsAnEmptyFeed() = runTest {
-        // Une page vide se lirait « plus d'articles », ce qui est faux et
-        // définitif du point de vue de l'utilisateur.
+        // An empty page would read as "no more articles", which is false and
+        // final from the user's point of view.
         val repository = repository(MockEngineResponse.Body(onePage))
 
         assertEquals(FeedError.SessionExpired, repository.loadPage().errorOrNull())
@@ -318,8 +318,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aRefusedTokenEndsTheSessionSoTheRootRedirectsByItself() = runTest {
-        // Lève GOAL-002-T20 : c'est le premier appel authentifié, donc le
-        // premier déclencheur réel de l'invalidation.
+        // Closes GOAL-002-T20: this is the first authenticated call, hence
+        // the first real trigger of invalidation.
         val repository = repository(
             MockEngineResponse.Body("Unauthorized!", HttpStatusCode.Unauthorized),
         )
@@ -354,9 +354,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theSameFailureWithoutNetworkIsReportedAsBeingOffline() = runTest {
-        // La pile HTTP rapporte les deux de façon identique ; seule la
-        // connectivité constatée les sépare, et les gestes de correction n'ont
-        // rien à voir — attendre le réseau, ou vérifier son serveur.
+        // The HTTP stack reports both identically; only observed
+        // connectivity tells them apart, and the fixes are unrelated: wait
+        // for the network, or check the server.
         online = false
         val repository = repository(MockEngineResponse.Failure { IOException("délai dépassé") })
         signedIn()
@@ -366,8 +366,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aTruncatedResponseIsUnexpectedNotAnEmptyFeed() = runTest {
-        // La confondre avec une fin de flux ferait disparaître les articles
-        // sans que rien ne le signale.
+        // Mistaking it for an end of feed would make articles vanish without
+        // any signal.
         val repository = repository(MockEngineResponse.Body("""{"items":[{"id":"tag"""))
         signedIn()
 
@@ -390,8 +390,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aServerErrorDoesNotEndTheSession() = runTest {
-        // Seul un 401 signifie « jeton refusé ». Effacer la session sur un 500
-        // déconnecterait l'utilisateur à la moindre panne serveur.
+        // Only a 401 means a refused token. Clearing the session on a 500
+        // would log the user out on any server outage.
         val repository = repository(
             MockEngineResponse.Body("Internal Server Error", HttpStatusCode.InternalServerError),
         )
@@ -424,8 +424,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theCachedFeedIsReadableBeforeAnyRequest() = runTest {
-        // SPECS.md §5.1 : un écran vide pendant une requête donnerait
-        // l'impression d'une application sans contenu, alors qu'elle en a.
+        // SPECS.md §5.1: an empty screen during a request would suggest an
+        // app with no content when it has some.
         cache.save(listOf(article(id = 1L, title = "Déjà là")))
         val repository = repository(MockEngineResponse.Body(onePage))
 
@@ -437,12 +437,11 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun readArticlesStayInTheFeedUntilTheNextReload() = runTest {
-        // C'est l'astuce qui rend le lancement stable : un article lu ne
-        // disparaît pas de l'écran à la prochaine ouverture. S'il partait,
-        // l'ensemble changerait d'une session à l'autre — le marquage en
-        // consomme à chaque lecture — et le mélange rendrait un ordre
-        // différent : le flux paraîtrait se remélanger tout seul. Seul un
-        // rechargement demandé (SPECS.md §4.6) renouvelle la liste.
+        // What makes launch stable: a read article does not vanish from the
+        // screen at the next opening. If it left, the set would change
+        // between sessions and the mix would produce a different order, so
+        // the feed would seem to reshuffle by itself. Only a requested
+        // reload (SPECS.md §4.6) renews the list.
         cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
         val repository = repository(MockEngineResponse.Body(onePage))
 
@@ -453,10 +452,10 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theOrderOfTheCachedFeedDoesNotChangeWhenAnArticleIsRead() = runTest {
-        // Le même invariant, vu de l'ordre : marquer un article lu ne doit
-        // déplacer personne. C'est le défaut constaté sur appareil — trois
-        // lancements consécutifs, trois têtes différentes, sans qu'aucune
-        // requête ne soit partie.
+        // The same invariant, from the ordering side: marking an article
+        // read must move nothing. This was the defect observed on device:
+        // three consecutive launches, three different heads, without a
+        // single request sent.
         cache.save(List(6) { article(id = it + 1L, publishedAtEpochSeconds = 100L + it) })
         val repository = repository(MockEngineResponse.Body(onePage))
         val before = repository.observeCachedArticles(CACHE_LIMIT).first().map { it.id.value }
@@ -468,9 +467,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theReminderStillOnlySeesUnreadArticles() = runTest {
-        // Le flux garde les lus ; le rappel de lecture, lui, n'a rien à dire
-        // sur ce qui est déjà lu (SPECS.md §4.9). Les deux lectures du cache ne
-        // répondent pas à la même question.
+        // The feed keeps read articles; the reading reminder has nothing to
+        // say about what is already read (SPECS.md §4.9). The two cache
+        // reads answer different questions.
         cache.save(listOf(article(id = 1L, title = "Lu", isRead = true), article(id = 2L, title = "Non lu")))
         val repository = repository(MockEngineResponse.Body(onePage))
 
@@ -479,7 +478,7 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun offlineTheCachedFeedRemainsReadable() = runTest {
-        // SPECS.md §5.2 : sans réseau, le flux reste consultable.
+        // SPECS.md §5.2: without network, the feed stays readable.
         online = false
         cache.save(listOf(article(id = 1L, title = "Hors ligne")))
         val repository = repository(MockEngineResponse.Failure { IOException("pas de réseau") })
@@ -493,9 +492,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun offlineWithAnEmptyCacheIsAFailureNotAnEndOfFeed() = runTest {
-        // Le piège : rendre le cache sous forme de page ferait afficher « vous
-        // avez tout lu » à un utilisateur simplement privé de réseau, un
-        // `nextCursor` nul ne signifiant rien d'autre que la fin du flux.
+        // The trap: returning the cache as a page would show "you have read
+        // everything" to a user who merely lost network, since a null
+        // `nextCursor` means nothing but the end of the feed.
         online = false
         val repository = repository(MockEngineResponse.Failure { IOException("pas de réseau") })
         signedIn()
@@ -520,8 +519,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun twoArticlesOfTheSameSourceAreSeparatedWhenAnotherSourceExists() = runTest {
-        // SPECS.md §4.2, règle 1 : un flux prolifique ne doit pas occuper
-        // l'écran d'affilée.
+        // SPECS.md §4.2, rule 1: a prolific feed must not occupy the screen
+        // consecutively.
         val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")))
         signedIn()
 
@@ -532,9 +531,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun theMixKeepsItsContinuityAcrossTwoPages() = runTest {
-        // Règle 4 : la jonction entre deux pages obéit à la règle 1. La fin de
-        // la page précédente est passée par l'appelant — le dépôt ne retient
-        // rien, il est partagé par les deux modes de présentation.
+        // Rule 4: the junction between two pages obeys rule 1. The previous
+        // page's tail is passed by the caller; the repository retains
+        // nothing, being shared by both presentation modes.
         val repository = repository(
             MockEngineResponse.Bodies(
                 listOf(
@@ -556,9 +555,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun askingForTheFirstPageAgainRestartsTheMixFromScratch() = runTest {
-        // Règle 3 : le même ensemble d'articles produit le même ordre. Une fin
-        // de page rémanente ferait dépendre le premier écran de ce qui a été
-        // affiché avant lui.
+        // Rule 3: the same set of articles produces the same order. A
+        // lingering page tail would make the first screen depend on what was
+        // displayed before it.
         val body = page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")
         val repository = repository(MockEngineResponse.Body(body))
         signedIn()
@@ -571,7 +570,7 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun refreshAsksForTheHeadOfTheFeed() = runTest {
-        // SPECS.md §4.6 : le rafraîchissement redemande le début, sans curseur.
+        // SPECS.md §4.6: refresh re-requests the head, without a cursor.
         val repository = repository(MockEngineResponse.Body(onePage))
         signedIn()
 
@@ -583,8 +582,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun refreshLosesNoArticle() = runTest {
-        // Le mélange est une permutation exacte : rafraîchir ne doit rien
-        // écarter, pas même un article déjà affiché.
+        // The mix is an exact permutation: refreshing must discard nothing,
+        // not even an already-displayed article.
         val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/1", 3L to "feed/2")))
         signedIn()
 
@@ -593,12 +592,12 @@ class DefaultArticleRepositoryTest {
         assertEquals(setOf(1L, 2L, 3L), refreshed.articles.map { it.id.value }.toSet())
     }
 
-    // ----- Le rechargement renouvelle le cache (GOAL-026) ---------------------
+    // ----- Reload renews the cache (GOAL-026) ---------------------------------
 
     /**
-     * Le défaut signalé par l'auteur : vider le flux, tuer l'application, la
-     * relancer — et retrouver le jeu d'articles qu'on venait d'épuiser. Le
-     * rechargement vidait l'affichage sans toucher à la base.
+     * The reported defect: empty the feed, kill the app, relaunch, and find
+     * the set of articles just exhausted. The reload cleared the display
+     * without touching the database.
      */
     @Test
     fun aReloadDropsFromTheCacheWhatHasAlreadyBeenRead() = runTest {
@@ -613,14 +612,13 @@ class DefaultArticleRepositoryTest {
     }
 
     /**
-     * **Le cas mesuré sur l'appareil de l'auteur**, et celui que GOAL-026 ne
-     * savait pas voir : un article que le serveur ne renvoie plus s'en va, même
-     * s'il est **non lu localement**. Il l'a été ailleurs — interface web, autre
-     * client — et son absence de la page rendue est le seul signe que
-     * l'application en reçoive jamais.
+     * The case GOAL-026 could not see: an article the server no longer
+     * returns goes away, even if locally unread. It was read elsewhere (web
+     * UI, another client), and its absence from the returned page is the
+     * only signal the app ever receives.
      *
-     * Constat : après un rechargement affichant « rien à lire », 31 lignes non
-     * lues subsistaient en base, et le lancement suivant les remontait.
+     * Observed: after a reload showing nothing to read, 31 unread rows
+     * remained in the database, and the next launch brought them back.
      */
     @Test
     fun aReloadDropsAnUnreadArticleTheServerNoLongerReturns() = runTest {
@@ -634,7 +632,7 @@ class DefaultArticleRepositoryTest {
         assertEquals(listOf(2L), cached, "le critère est la page rendue, pas l'état lu local")
     }
 
-    /** Le cas exact du signalement : plus rien à lire, donc plus rien en base. */
+    /** The exact reported case: nothing left to read, so nothing left in the database. */
     @Test
     fun aReloadThatReturnsNothingEmptiesTheCache() = runTest {
         cache.save(listOf(article(id = 7L), article(id = 8L, isRead = true)))
@@ -651,7 +649,7 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aReloadKeepsEverythingItReturned() = runTest {
-        // Le garde-fou de la règle précédente : renouveler n'est pas effacer.
+        // The guardrail of the previous rule: renewing is not erasing.
         cache.save(listOf(article(id = 1L)))
         val repository = repository(MockEngineResponse.Body(page(1L to "feed/1", 2L to "feed/2")))
         signedIn()
@@ -663,9 +661,9 @@ class DefaultArticleRepositoryTest {
     }
 
     /**
-     * L'article lu **dont le marquage n'est pas encore parti** est épargné : sa
-     * ligne porte la mémoire locale du « déjà lu », et la perdre le ferait
-     * revenir comme neuf au prochain passage du serveur
+     * A read article whose mark has not left yet is spared: its row carries
+     * the local "already read" memory, and losing it would bring the article
+     * back as new on the server's next pass
      * (`ArticleDao.deleteReadCachedBefore`).
      */
     @Test
@@ -682,9 +680,9 @@ class DefaultArticleRepositoryTest {
     }
 
     /**
-     * **La pagination ne purge rien.** Purger à chaque page effacerait le flux
-     * sous les yeux de qui le parcourt : les articles lus en haut disparaîtraient
-     * pendant que le bas se charge.
+     * Pagination purges nothing. Purging on each page would erase the feed
+     * under the reader's eyes: articles read at the top would vanish while
+     * the bottom loads.
      */
     @Test
     fun loadingTheNextPagePurgesNothing() = runTest {
@@ -700,9 +698,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun refreshDoesNotDisturbThePaginationContinuity() = runTest {
-        // Le rechargement ne retient rien dans le dépôt : la continuité est
-        // l'affaire de l'appelant, qui prolonge le parcours de son choix en
-        // passant la queue correspondante — ici l'ancien parcours.
+        // The reload retains nothing in the repository: continuity belongs
+        // to the caller, which extends the traversal of its choice by
+        // passing the matching tail, here the old traversal.
         val repository = repository(
             MockEngineResponse.Bodies(
                 listOf(
@@ -736,15 +734,15 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aPageServedInCrawlOrderIsShownInPublicationOrder() = runTest {
-        // Constaté sur une instance réelle : le serveur trie sa reading-list par
-        // date de récupération, et un article publié deux jours plus tôt peut
-        // ouvrir la première page. Deux conséquences si on l'affiche tel quel :
-        // l'ordre à l'écran dépend de qui, du disque ou du réseau, répond en
-        // premier au lancement — le cache, lui, trie par publication — et la
-        // reprise de lecture (SPECS.md §5.3), qui cherche « le premier article
-        // pas plus récent », tombe n'importe où dans une liste non
-        // chronologique. La page est donc ramenée à l'ordre de publication ici,
-        // avant le mélange, qui l'attend déjà (règle 2 de SPECS.md §4.2).
+        // Observed on a real instance: the server sorts its reading-list by
+        // crawl date, and an article published two days earlier can open the
+        // first page. Displayed as-is, the on-screen order would depend on
+        // whether disk or network answers first at launch (the cache sorts
+        // by publication), and reading resumption (SPECS.md §5.3), which
+        // looks for the first article no newer, would land anywhere in a
+        // non-chronological list. The page is therefore brought back to
+        // publication order here, before the mix, which already expects it
+        // (rule 2 of SPECS.md §4.2).
         val repository = repository(
             MockEngineResponse.Body(
                 pageWithDates(
@@ -763,9 +761,9 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun articlesPublishedAtTheSameSecondFollowTheCacheTieBreak() = runTest {
-        // À date égale, id décroissant — le même départage que le tri SQL du
-        // cache. Deux départages différents referaient dépendre l'ordre affiché
-        // de la source qui a répondu en premier.
+        // Equal dates break ties by descending id, the same tie-break as the
+        // cache's SQL sort. Two different tie-breaks would again make the
+        // displayed order depend on which source answered first.
         val repository = repository(
             MockEngineResponse.Body(
                 pageWithDates(
@@ -781,7 +779,7 @@ class DefaultArticleRepositoryTest {
         assertEquals(listOf(2L, 1L), page.articles.map { it.id.value })
     }
 
-    /** Une page dont la date de publication est **explicite**, découplée de l'id. */
+    /** A page whose publication date is explicit, decoupled from the id. */
     private fun pageWithDates(vararg items: Triple<Long, String, Long>): String {
         val entries = items.joinToString(",") { (id, feedId, published) ->
             """
@@ -795,8 +793,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun aPageObtainedFromTheServerRecordsTheContact() = runTest {
-        // SPECS.md §4.6 : c'est cette date qui dira si le flux affiché est
-        // ancien. Une page ordinaire compte autant qu'un rafraîchissement.
+        // SPECS.md §4.6: this date is what says whether the displayed feed
+        // is stale. An ordinary page counts as much as a refresh.
         val repository = repository(MockEngineResponse.Body(onePage))
         signedIn()
         freshness.nowEpochMillis = 1_700_000_000_000L
@@ -819,8 +817,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun anEmptyButValidPageStillRecordsTheContact() = runTest {
-        // Le serveur a répondu ; c'est le flux qui n'a rien de neuf. Ne rien
-        // noter ferait paraître ancien un flux qu'on vient d'épuiser.
+        // The server answered; the feed simply has nothing new. Recording
+        // nothing would make a just-exhausted feed look stale.
         val repository = repository(MockEngineResponse.Body("""{"items":[]}"""))
         signedIn()
 
@@ -855,8 +853,8 @@ class DefaultArticleRepositoryTest {
 
     @Test
     fun anOfflineFailureRecordsNoContact() = runTest {
-        // Sans cette règle, une application laissée ouverte hors ligne toute la
-        // journée paraîtrait fraîche.
+        // Without this rule, an app left open offline all day would look
+        // fresh.
         val repository = repository(MockEngineResponse.Failure { IOException("réseau") })
         signedIn()
         online = false

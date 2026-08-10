@@ -3,52 +3,53 @@ package fr.vbrosseau.freshrssdiscover.domain.feed
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Nombre d'articles à demander à [ArticleRepository.observeCachedArticles].
+ * Number of articles to request from [ArticleRepository.observeCachedArticles].
  *
- * Cinq pages : de quoi retrouver plusieurs écrans de défilement au lancement,
- * sans lire tout le cache pour n'en afficher que le haut. La borne est
- * indispensable — le cache n'est purgé que de ses articles lus (SPECS.md §5.4),
- * un flux prolifique y accumulerait donc des milliers de lignes à charger avant
- * la première image.
+ * Five pages: enough to restore several screens of scrolling at launch,
+ * without reading the whole cache to display only its top. The bound is
+ * essential: the cache is only purged of its read articles (SPECS.md §5.4), so
+ * a prolific feed would accumulate thousands of rows to load before the first
+ * frame.
  *
- * Passée explicitement plutôt que valeur par défaut du paramètre : une valeur
- * par défaut d'interface engendre une méthode de pont que rien n'exécute, et
- * qui apparaîtrait comme non couverte dans un module vérifié à 98 %.
+ * Passed explicitly rather than as a parameter default: an interface default
+ * generates a bridge method nothing executes, which would show up as
+ * uncovered in a module verified at 98%.
  */
 const val CACHED_FEED_LIMIT = 200
 
 /**
- * Accès aux articles du flux.
+ * Access to the feed's articles.
  *
- * Déclaré ici, implémenté dans `:app` : le domaine exprime ce dont il a besoin
- * sans rien connaître de HTTP ni du disque (ARCHITECTURE.md §2).
+ * Declared here, implemented in `:app`: the domain expresses what it needs
+ * without knowing anything about HTTP or storage (ARCHITECTURE.md §2).
  *
- * **Ce que le dépôt tient : rien.** Il rend des pages déjà mélangées et
- * n'accumule ni liste ni position : la liste affichée, le curseur **et la fin
- * de la page précédente** appartiennent à l'appelant. L'appelant est le seul à
- * savoir ce qui est réellement à l'écran (SPECS.md §4.6 demande de préserver la
- * position de lecture) — et le dépôt étant un singleton partagé par les deux
- * modes de présentation, y loger la fin de page faisait contaminer la jonction
- * d'un mode par la pagination de l'autre.
+ * The repository holds no state. It returns pages already shuffled and
+ * accumulates neither list nor position: the displayed list, the cursor, and
+ * the tail of the previous page belong to the caller. Only the caller knows
+ * what is actually on screen (SPECS.md §4.6 requires preserving the reading
+ * position), and since the repository is a singleton shared by both
+ * presentation modes, storing the page tail here would let one mode's
+ * pagination contaminate the other's page junction.
  */
 interface ArticleRepository {
     /**
-     * Récupère une page d'articles non lus, **déjà mélangée** (SPECS.md §4.2).
+     * Fetches a page of unread articles, already shuffled (SPECS.md §4.2).
      *
-     * L'ordre rendu est celui à afficher : l'appelant ne réordonne pas, sans
-     * quoi la règle 4 tomberait — lui seul verrait la jonction entre deux
-     * pages, mais lui seul ignore comment la précédente a été ordonnée.
+     * The returned order is the display order: the caller must not reorder,
+     * otherwise rule 4 would break. Only the caller sees the junction between
+     * two pages, but only the repository knows how the previous one was
+     * ordered.
      *
-     * @param cursor position rendue par la page précédente. `null` demande le
-     *   début du flux — et **seulement** `null` : fabriquer un curseur vide
-     *   ferait recommencer la première page sans que rien ne le signale
+     * @param cursor position returned by the previous page. `null` requests
+     *   the start of the feed, and only `null`: fabricating an empty cursor
+     *   would silently restart from the first page
      *   (docs/freshrss-api.md §3.5).
-     * @param previousTail la fin de la page précédente **telle que rendue** —
-     *   son dernier article suffit. C'est ce qui fait tenir la règle 4 de
-     *   SPECS.md §4.2 à la jonction entre deux pages : la monotonie ne se juge
-     *   qu'entre voisins immédiats. Vide pour la première page, et vide après
-     *   un rechargement dont la queue est celle de la page rafraîchie — la
-     *   queue suit le parcours que suit le curseur.
+     * @param previousTail the tail of the previous page as rendered; its last
+     *   article is enough. This is what upholds rule 4 of SPECS.md §4.2 at the
+     *   junction between two pages: monotonicity is only judged between
+     *   immediate neighbours. Empty for the first page, and empty after a
+     *   reload whose tail is that of the refreshed page; the tail follows the
+     *   same path as the cursor.
      */
     suspend fun loadPage(
         cursor: PageCursor? = null,
@@ -56,61 +57,56 @@ interface ArticleRepository {
     ): FeedResult<ArticlePage>
 
     /**
-     * Les [limit] articles non lus du cache, mélangés, du plus récent au plus
-     * ancien.
+     * The [limit] unread articles from the cache, shuffled, newest first.
      *
-     * Sert deux besoins d'un seul flux, et c'est délibéré :
+     * Deliberately serves two needs with one flow:
      *
-     * - **au lancement** (SPECS.md §5.1), le flux s'affiche immédiatement,
-     *   avant que la moindre requête n'aboutisse ;
-     * - **hors ligne** (SPECS.md §5.2), il reste consultable, la requête ayant
-     *   échoué.
+     * - at launch (SPECS.md §5.1), the feed displays immediately, before any
+     *   request completes;
+     * - offline (SPECS.md §5.2), it remains readable after the request failed.
      *
-     * C'est la réponse au fait qu'une page issue du cache n'a pas de curseur :
-     * elle n'est **jamais** rendue comme une [ArticlePage]. Un `nextCursor` à
-     * `null` signifie « fin du flux » et rien d'autre (voir [ArticlePage]) ;
-     * habiller le cache en page ferait afficher « vous avez tout lu » à un
-     * utilisateur simplement privé de réseau. Le cache est donc une **source
-     * parallèle et permanente**, et l'échec réseau reste rapporté tel quel par
-     * [loadPage] — à charge pour l'appelant de le signaler sans alarmer,
-     * puisqu'il a du contenu à montrer.
+     * This is why a cache-backed page has no cursor: it is never returned as
+     * an [ArticlePage]. A `null` `nextCursor` means end of feed and nothing
+     * else (see [ArticlePage]); dressing the cache up as a page would show
+     * "you have read everything" to a user who merely lost network. The cache
+     * is a parallel, permanent source, and network failures are still reported
+     * as-is by [loadPage]; the caller signals them without alarm, since it has
+     * content to show.
      *
-     * Le flux émet à chaque écriture du cache : une page réseau enregistrée s'y
-     * répercute d'elle-même.
+     * The flow emits on every cache write: a stored network page propagates by
+     * itself.
      */
     fun observeCachedArticles(limit: Int): Flow<List<Article>>
 
     /**
-     * Redemande le début du flux (SPECS.md §4.6).
+     * Requests the start of the feed again (SPECS.md §4.6).
      *
-     * Rend la **première page telle qu'elle est aujourd'hui**, mélangée entre
-     * ses seuls articles : rien ne la précède. Elle contient donc aussi des
-     * articles déjà affichés — l'API n'a pas de notion de « depuis la dernière
-     * fois » (docs/freshrss-api.md §3.5).
+     * Returns the first page as it stands today, shuffled among its own
+     * articles only: nothing precedes it. It therefore also contains articles
+     * already displayed; the API has no "since last time" notion
+     * (docs/freshrss-api.md §3.5).
      *
-     * L'appelant insère **en tête** ceux qu'il ne connaît pas encore, et laisse
-     * les autres à leur place : le rafraîchissement ne réordonne pas ce qui est
-     * déjà affiché (règle 3 de SPECS.md §4.2). Le dédoublonnage lui revient
-     * pour la même raison que l'accumulation — lui seul sait ce qui est à
-     * l'écran.
+     * The caller prepends the articles it does not know yet and leaves the
+     * rest in place: refreshing must not reorder what is already displayed
+     * (rule 3 of SPECS.md §4.2). Deduplication is the caller's job for the
+     * same reason as accumulation: only the caller knows what is on screen.
      *
-     * N'affecte pas la continuité de la pagination : curseur et fin de page
-     * vivent chez l'appelant, et c'est lui qui décide de repartir de la page
-     * rafraîchie.
+     * Does not affect pagination continuity: cursor and page tail live in the
+     * caller, which decides whether to resume from the refreshed page.
      */
     suspend fun refresh(): FeedResult<ArticlePage>
 
     /**
-     * Ce qu'il reste à lire dans le **cache**, sans toucher au réseau.
+     * What remains to read in the cache, without touching the network.
      *
-     * `FeedResult` serait de trop : il n'y a pas d'échec à rapporter, un cache
-     * vide se disant très bien par une liste vide. C'est la différence avec
-     * [loadPage], qui peut trouver le serveur injoignable.
+     * No `FeedResult`: there is no failure to report, an empty cache is well
+     * expressed by an empty list. This differs from [loadPage], which can find
+     * the server unreachable.
      *
-     * L'absence de réseau n'est pas une commodité mais le contrat : l'appelant
-     * est le rappel de lecture (SPECS.md §4.9), et SPECS.md §2 exclut toujours
-     * la synchronisation en arrière-plan. Une implémentation qui irait chercher
-     * une page ferait sortir une requête sans geste de l'utilisateur (§7.4).
+     * Staying off the network is the contract, not a convenience: the caller
+     * is the reading reminder (SPECS.md §4.9), and SPECS.md §2 always excludes
+     * background synchronization. An implementation that fetched a page would
+     * issue a request without a user action (§7.4).
      */
     suspend fun unreadFromCache(limit: Int): List<Article>
 }

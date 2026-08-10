@@ -5,12 +5,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * La règle qui décide du fond flouté (SPECS.md §4.3).
+ * Rule deciding whether the blurred background applies (SPECS.md §4.3).
  *
- * Ce qui compte ici n'est pas l'inégalité — elle ne surprend personne — mais
- * les trois cas où l'on ne doit **rien** faire : image assez large, image
- * exactement à la taille, et taille inconnue. Le dernier est le plus important :
- * flouter sur une supposition abîmerait des images correctes.
+ * The important cases are the three where nothing must happen: image wide
+ * enough, image exactly at slot width, and unknown size. The last matters most:
+ * blurring on a guess would degrade correct images.
  */
 class IllustrationFitTest {
     @Test
@@ -20,37 +19,35 @@ class IllustrationFitTest {
 
     @Test
     fun anImageWiderThanItsSlotIsLeftAlone() {
-        // Elle sera rognée, jamais étirée : c'est le cas ordinaire d'un bandeau
-        // d'article, et il n'a rien à corriger.
+        // A wider image is cropped, never stretched; nothing to correct.
         assertFalse(needsUpscaling(sourceWidthPx = 1920, slotWidthPx = 1080))
     }
 
     @Test
     fun anImageExactlyAtItsSlotWidthIsLeftAlone() {
-        // Aucun agrandissement : la borne est stricte, sans quoi le procédé se
-        // déclencherait sur une image parfaitement nette.
+        // The bound is strict: otherwise the effect would trigger on a
+        // perfectly sharp image.
         assertFalse(needsUpscaling(sourceWidthPx = 1080, slotWidthPx = 1080))
     }
 
     @Test
     fun anUnknownSourceSizeDecidesNothing() {
-        // L'image est encore en vol, ou Coil n'a pas rendu sa taille : on ne
-        // floute pas sur une supposition.
+        // The image is still loading, or Coil has not reported its size:
+        // never blur on a guess.
         assertFalse(needsUpscaling(sourceWidthPx = 0, slotWidthPx = 1080))
         assertFalse(needsUpscaling(sourceWidthPx = -1, slotWidthPx = 1080))
     }
 
     @Test
     fun anUnmeasuredSlotDecidesNothing() {
-        // Première composition : la largeur n'est pas encore connue. Décider à
-        // ce moment-là ferait clignoter le fond dès la mesure suivante.
+        // First composition: the slot width is not measured yet. Deciding now
+        // would make the background flicker on the next measurement.
         assertFalse(needsUpscaling(sourceWidthPx = 200, slotWidthPx = 0))
     }
 
     @Test
     fun aTallButWideEnoughImageIsLeftAlone() {
-        // La hauteur ne participe pas : une image large et haute est assez
-        // définie, et la traiter ferait flouter des bannières nettes.
+        // Height does not participate: treating it would blur sharp banners.
         assertFalse(needsUpscaling(sourceWidthPx = 1200, slotWidthPx = 1080))
     }
 }

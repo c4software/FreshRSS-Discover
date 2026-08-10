@@ -4,23 +4,23 @@ import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 
-/** Minutes dans une heure — nommée pour que la conversion se lise. */
+/** Minutes in an hour, named so the conversion reads clearly. */
 private const val MINUTES_PER_HOUR = 60
 
-/** Nombre de minutes dans une journée, borne exclusive d'un moment de la journée. */
+/** Minutes in a day, exclusive upper bound of a time of day. */
 const val MINUTES_PER_DAY: Int = 24 * MINUTES_PER_HOUR
 
 /**
- * Le moment de la journée auquel le rappel part (SPECS.md §4.9).
+ * Time of day at which the reminder fires (SPECS.md §4.9).
  *
- * Exprimé en **minutes depuis minuit** plutôt qu'en `LocalTime` : c'est ce qui
- * se range dans un `DataStore` sans conversion, et la seconde n'a aucun sens
- * pour un rappel de lecture.
+ * Expressed in minutes since midnight rather than `LocalTime`: it stores in a
+ * `DataStore` without conversion, and seconds are meaningless for a reading
+ * reminder.
  *
- * L'heure retenue est celle de l'**ouverture de la veille**. Le rappel tombe
- * donc au moment où l'utilisateur a l'habitude d'ouvrir l'application, et non à
- * une heure choisie par le développeur — une notification à 9 h chez quelqu'un
- * qui lit le soir est une interruption, pas un rappel.
+ * The retained time is the previous day's opening time. The reminder therefore
+ * fires when the user habitually opens the app, not at a developer-chosen
+ * hour: a 9 a.m. notification for someone who reads at night is an
+ * interruption, not a reminder.
  */
 @JvmInline
 value class DailyMinute(val value: Int) {
@@ -29,7 +29,7 @@ value class DailyMinute(val value: Int) {
     }
 
     companion object {
-        /** Le moment de la journée que porte cet instant, dans [zone]. */
+        /** Time of day carried by this instant, in [zone]. */
         fun of(
             epochMillis: Long,
             zone: ZoneId,
@@ -41,18 +41,18 @@ value class DailyMinute(val value: Int) {
 }
 
 /**
- * Quand le prochain rappel doit partir.
+ * When the next reminder must fire.
  *
- * **Strictement dans le futur**, et c'est tout l'objet de cette fonction : à
- * l'instant où l'utilisateur ouvre l'application, l'heure d'ouverture du jour
- * est par construction déjà passée. Programmer « aujourd'hui à cette heure-là »
- * ferait partir la notification immédiatement, c'est-à-dire pendant qu'il lit.
+ * Strictly in the future, which is the whole point of this function: at the
+ * moment the user opens the app, today's opening time has by construction
+ * already passed. Scheduling "today at that time" would fire the notification
+ * immediately, i.e. while the user is reading.
  *
- * L'égalité stricte compte donc : à la seconde près, on vise le lendemain.
+ * Strict inequality matters: at the exact second, the next day is targeted.
  *
- * @param zone la zone de l'utilisateur, transmise plutôt que lue : le domaine
- *   ne connaît ni horloge ni réglage système, et un test doit pouvoir se placer
- *   à Tokyo comme à Paris.
+ * @param zone the user's zone, passed in rather than read: the domain knows
+ *   neither clock nor system settings, and a test must be able to run in Tokyo
+ *   as well as Paris.
  */
 fun nextReminderAt(
     at: DailyMinute,

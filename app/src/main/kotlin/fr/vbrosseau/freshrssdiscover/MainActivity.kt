@@ -48,25 +48,25 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     /**
-     * Enregistré ici et nulle part ailleurs : c'est le seul point du code qui
-     * possède un cycle de vie d'écran. Voir la classe pour le choix d'`ON_STOP`
-     * et pour ce que le cycle de vie d'une `Activity` coûte face à celui du
-     * processus.
+     * Registered here and nowhere else: this is the only place in the code
+     * that owns a screen lifecycle. See the class for the choice of `ON_STOP`
+     * and the trade-off between the `Activity` lifecycle and the process
+     * lifecycle.
      */
     @Inject
     internal lateinit var readFlushOnBackground: ReadFlushOnBackgroundObserver
 
     /**
-     * Le pendant du précédent, à l'arrivée : il retire le rappel affiché,
-     * retient l'heure d'ouverture et programme celui du lendemain
-     * (SPECS.md §4.9). Voir la classe pour le choix d'`ON_START`.
+     * Counterpart of the above, on foreground: removes the displayed
+     * reminder, records the opening time, and schedules the next day's
+     * reminder (SPECS.md §4.9). See the class for the choice of `ON_START`.
      */
     @Inject
     internal lateinit var reminderOnForeground: ReminderOnForegroundObserver
 
     /**
-     * Construit dès l'activité, et non dans `onCreate` : l'enregistrement du
-     * contrat de résultat doit précéder l'état démarré.
+     * Built with the activity, not in `onCreate`: the result contract must be
+     * registered before the started state.
      */
     private val notificationPermission = NotificationPermissionRequest(this)
 
@@ -75,25 +75,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(readFlushOnBackground)
         lifecycle.addObserver(reminderOnForeground)
-        // Ni attendue ni bloquante : l'interface se monte juste après, quelle
-        // que soit la réponse. Voir `shouldAskForNotificationPermission` pour ce
-        // que `savedInstanceState` décide ici.
+        // Neither awaited nor blocking: the UI mounts right after, whatever
+        // the answer. See `shouldAskForNotificationPermission` for what
+        // `savedInstanceState` decides here.
         notificationPermission.askIfNeeded(isFirstCreation = savedInstanceState == null)
         setContent {
             AppTheme {
                 /*
-                 * `Surface` à la racine, et ce n'est pas décoratif : il est le
-                 * seul à installer `LocalContentColor`. Sans lui, tout texte qui
-                 * ne fixe pas sa couleur retombe sur du **noir**, invisible en
-                 * thème sombre — c'est ce qui est arrivé au titre de l'écran de
-                 * connexion, servi hors de tout `Scaffold`.
-                 *
-                 * Le défaut avait été rencontré en Phase 0 sur les captures
-                 * Roborazzi, et « corrigé » là où il se voyait : dans le harnais
-                 * de capture. Les images sont alors redevenues correctes pendant
-                 * que l'application, elle, restait fautive — le harnais peignait
-                 * un `Surface` que la production n'avait pas. Une capture ne vaut
-                 * que si elle rend ce que l'application rend.
+                 * `Surface` at the root is required: it is what installs
+                 * `LocalContentColor`. Without it, any text that does not set
+                 * its color falls back to black, invisible in dark theme, as
+                 * happened to the login screen title rendered outside any
+                 * `Scaffold`.
                  */
                 Surface(color = MaterialTheme.colorScheme.background) {
                     AppRoot()
@@ -104,11 +97,11 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Aiguillage racine : connexion, ou application.
+ * Root switch: login screen or the signed-in app.
  *
- * Il est piloté par la seule présence d'une session. C'est ce qui ramène
- * l'utilisateur à l'écran de connexion lorsque le serveur refuse le jeton
- * (SPECS.md §3.4), sans qu'aucun écran ait à s'en préoccuper.
+ * Driven solely by the presence of a session. This is what returns the user
+ * to the login screen when the server rejects the token (SPECS.md §3.4),
+ * without any screen having to handle it.
  */
 @Composable
 private fun AppRoot(modifier: Modifier = Modifier) {
@@ -116,8 +109,8 @@ private fun AppRoot(modifier: Modifier = Modifier) {
     val gate by viewModel.gate.collectAsStateWithLifecycle()
 
     when (gate) {
-        // La session vit sur disque : afficher l'écran de connexion pendant sa
-        // première lecture le ferait clignoter à chaque lancement.
+        // The session lives on disk: showing the login screen during its
+        // first read would make it flash on every launch.
         SessionGate.Unknown -> Box(
             modifier = modifier
                 .fillMaxSize()
@@ -128,14 +121,12 @@ private fun AppRoot(modifier: Modifier = Modifier) {
         }
 
         /*
-         * `safeDrawingPadding` ici, et pas dans le `Scaffold` du cas connecté :
-         * lui gère déjà ses encarts. L'écran de connexion, servi nu sous
-         * `enableEdgeToEdge`, passait sinon **sous la barre d'état** — son titre
-         * était chevauché par l'heure.
-         *
-         * Aucune capture Roborazzi ne pouvait le voir : elles rendent le
-         * Composable isolé, sans barres système. Seule une exécution sur
-         * appareil l'a montré.
+         * `safeDrawingPadding` here, not in the signed-in `Scaffold`, which
+         * already handles its insets. The login screen, rendered bare under
+         * `enableEdgeToEdge`, would otherwise extend under the status bar and
+         * have its title overlapped by the clock. Roborazzi captures cannot
+         * catch this: they render the Composable in isolation, without system
+         * bars.
          */
         SessionGate.SignedOut -> LoginRoute(modifier = modifier.safeDrawingPadding())
 
@@ -148,8 +139,8 @@ private fun LoginRoute(modifier: Modifier = Modifier) {
     val viewModel: LoginViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Aucune navigation à déclencher après un succès : la session apparaît, et
-    // l'aiguillage racine bascule de lui-même.
+    // No navigation to trigger after success: the session appears and the
+    // root switch flips on its own.
     LoginScreen(
         uiState = uiState,
         onServerAddressChange = viewModel::onServerAddressChange,
@@ -161,11 +152,10 @@ private fun LoginRoute(modifier: Modifier = Modifier) {
 }
 
 /**
- * Ossature de l'application connectée : barre de titre, barre de navigation,
- * graphe.
+ * Scaffold of the signed-in app: top bar, navigation bar, nav graph.
  *
- * `TopAppBar` est encore expérimental dans Material 3 ; l'opt-in est local
- * plutôt que déclaré pour tout le module, afin que la dette reste visible.
+ * `TopAppBar` is still experimental in Material 3; the opt-in is local rather
+ * than module-wide so the debt stays visible.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,10 +166,10 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
     val currentDestination = AppDestination.forRoute(currentRoute)
 
     /*
-     * Le rechargement est publié par la destination affichée, et non tenu ici :
-     * l'action appartient à son ViewModel, que cette ossature n'a aucune raison
-     * de connaître. `null` tant qu'aucune destination n'en offre — la barre
-     * reste alors nue, ce qui est le cas des réglages.
+     * The refresh action is published by the displayed destination, not held
+     * here: it belongs to that destination's ViewModel, which this scaffold
+     * has no reason to know. `null` while no destination offers one; the bar
+     * then stays bare, as on the settings screen.
      */
     var feedRefresh by remember { mutableStateOf<FeedRefresh?>(null) }
 
@@ -190,8 +180,8 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                 title = {
                     Text(stringResource(currentDestination?.labelRes ?: R.string.app_name))
                 },
-                // Sur la ligne du titre : c'est une commande de l'écran entier,
-                // et superposée au contenu elle en recouvrait toujours une part.
+                // On the title row: it is a command for the whole screen, and
+                // overlaid on the content it always covered part of it.
                 actions = {
                     feedRefresh?.let { refresh ->
                         RefreshButton(isRefreshing = refresh.isRefreshing, onRefresh = refresh.onRefresh)

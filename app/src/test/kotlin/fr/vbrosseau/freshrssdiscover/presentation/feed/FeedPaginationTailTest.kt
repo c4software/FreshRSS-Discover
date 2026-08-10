@@ -18,11 +18,10 @@ import kotlin.test.assertEquals
 private const val NOW_MILLIS = 1_700_000_000_000L
 
 /**
- * La fin de page voyage avec l'appelant (GOAL-029) : elle vit dans le moteur,
- * avec le curseur, et non dans le dépôt — un singleton que les deux modes de
- * présentation partagent, où elle mélangeait les parcours de l'un et de
- * l'autre. Éprouvé sur le mode Liste ; le moteur étant commun, le Balayage
- * suit.
+ * The page tail travels with the caller (GOAL-029): it lives in the engine,
+ * with the cursor, not in the repository, a singleton shared by both
+ * presentation modes where it mixed one mode's traversal with the other's.
+ * Tested on List mode; the engine being shared, Swipe follows.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedPaginationTailTest {
@@ -33,7 +32,7 @@ class FeedPaginationTailTest {
 
     private val repository = FakeArticleRepository()
 
-    /** Paresseux : le ViewModel charge dès sa création, sur `Dispatchers.Main`. */
+    /** Lazy: the ViewModel loads on creation, on `Dispatchers.Main`. */
     private val viewModel: DiscoverViewModel by lazy {
         DiscoverViewModel(
             articleRepository = repository,
@@ -46,8 +45,8 @@ class FeedPaginationTailTest {
 
     @Test
     fun theNextPageCarriesTheTailOfThePreviousOne() {
-        // Règle 4 de SPECS.md §4.2 : la jonction se juge contre le dernier
-        // article rendu.
+        // Rule 4 of SPECS.md §4.2: the junction is judged against the last
+        // rendered article.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
 
@@ -58,8 +57,8 @@ class FeedPaginationTailTest {
 
     @Test
     fun afterAReloadTheTailIsTheOneOfTheRefreshedPage() {
-        // La queue suit le parcours que suit le curseur : après un
-        // rechargement, la page suivante prolonge la page rafraîchie.
+        // The tail follows the traversal the cursor follows: after a reload,
+        // the next page extends the refreshed page.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 5L), article(id = 6L)), nextCursor = PageCursor("c9"))
         repository.enqueuePage(listOf(article(id = 7L)), nextCursor = null)

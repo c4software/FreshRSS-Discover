@@ -14,27 +14,24 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
- * `values/` est complet, et il est bien l'anglais (GOAL-021-T02).
+ * `values/` is complete, and it is indeed English (GOAL-021-T02).
  *
- * **Ce que ce cas rattrape, et que rien d'autre ne rattrape.** L'interface est
- * bilingue : le français vit dans `values-fr/`, l'anglais dans `values/`, qui
- * est ce que reçoit tout appareil dont la langue n'est pas prévue. Or **tout le
- * reste du dépôt regarde le français** — les cinquante-huit captures Roborazzi
- * sont figées sur `fr-rFR`, et les tests d'écran le sont aussi depuis
- * GOAL-021-T02. Une chaîne oubliée à la traduction retomberait silencieusement
- * sur sa version française, et le défaut ne se verrait que sur l'appareil d'un
- * anglophone.
+ * The UI is bilingual: French lives in `values-fr/`, English in `values/`,
+ * which is what any device with an unplanned language receives. Everything
+ * else in the repository looks at French: the Roborazzi captures are pinned to
+ * `fr-rFR`, and so are the screen tests since GOAL-021-T02. A string missed in
+ * translation would silently fall back to its French version, and the defect
+ * would only show on an English speaker's device.
  *
- * Le contrôle porte donc sur la **complétude**, pas sur la formulation :
- * traduire n'est pas une décision d'interface, et figer chaque phrase anglaise
- * dans une assertion ferait un test qu'il faut réécrire à chaque retouche de
- * style, donc un test qu'on finit par réenregistrer sans le lire.
+ * The check is about completeness, not wording: pinning every English
+ * sentence in an assertion would make a test that must be rewritten on every
+ * style touch-up, hence one that ends up re-recorded without being read.
  *
- * Le repère est qu'une chaîne rendue en `en-rUS` **diffère** de sa version
- * française : c'est ce qui distingue une traduction d'un repli. Les chaînes
- * volontairement identiques dans les deux langues — le nom de l'application,
- * « Discover » — sont écartées nommément, parce qu'un repli et une égalité
- * voulue s'y ressemblent, et qu'aucune règle mécanique ne saurait les séparer.
+ * The marker is that a string rendered in `en-rUS` differs from its French
+ * version: that is what distinguishes a translation from a fallback. Strings
+ * deliberately identical in both languages (the application name, "Discover")
+ * are excluded by name, because a fallback and an intended equality look
+ * alike there and no mechanical rule can separate them.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en-rUS")
@@ -42,11 +39,11 @@ class EnglishStringsTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     /**
-     * Les chaînes que l'on veut identiques dans les deux langues.
+     * Strings intended to be identical in both languages.
      *
-     * `app_name` est un nom propre ; « Discover » est le nom de la destination,
-     * emprunté à Google Discover et gardé tel quel en français ; le gabarit
-     * `%1$s · %2$s` n'a pas de mots à traduire.
+     * `app_name` is a proper noun; "Discover" is the destination name,
+     * borrowed from Google Discover and kept as-is in French; the template
+     * `%1$s · %2$s` has no words to translate.
      */
     private val sameInBothLanguages = setOf(
         R.string.app_name,
@@ -59,11 +56,10 @@ class EnglishStringsTest {
     )
 
     /**
-     * Un échantillon large, une chaîne par famille de ressources : `strings`,
+     * A broad sample, one string per resource family: `strings`,
      * `strings_discover_feed`, `strings_feed`, `strings_swipe`,
-     * `strings_settings`, `strings_reminder`. Un fichier entier oublié dans le
-     * déplacement vers `values-fr/` se verrait ici, et c'est le défaut le plus
-     * probable de ce Goal.
+     * `strings_settings`, `strings_reminder`. A whole file forgotten in the
+     * move to `values-fr/` would show here.
      */
     private val translated = listOf(
         R.string.destination_settings,
@@ -116,8 +112,8 @@ class EnglishStringsTest {
     }
 
     /**
-     * Les pluriels aussi : ils vivent dans un autre nœud du fichier de
-     * ressources, et un déplacement peut en emporter les uns sans les autres.
+     * Plurals too: they live in a different node of the resource file, and a
+     * move can carry some without the others.
      */
     @Test
     fun pluralsAreTranslatedTooAndKeepBothForms() {

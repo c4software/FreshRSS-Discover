@@ -3,10 +3,10 @@ package fr.vbrosseau.freshrssdiscover.domain.auth
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 
 /**
- * Issue d'une opération d'authentification.
+ * Result of an authentication operation.
  *
- * Alias plutôt que type propre : la forme est celle de [Outcome], seule
- * l'erreur est spécifique. Le nom reste parce qu'il se lit mieux dans une
- * signature que `Outcome<AuthSession, AuthError>`.
+ * An alias rather than a dedicated type: the shape is [Outcome], only the
+ * error type is specific. The name reads better in signatures than
+ * `Outcome<AuthSession, AuthError>`.
  */
 typealias AuthResult<T> = Outcome<T, AuthError>

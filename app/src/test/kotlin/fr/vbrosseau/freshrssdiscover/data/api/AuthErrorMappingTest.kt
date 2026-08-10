@@ -8,16 +8,16 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * SPECS.md §3.3 exige un message par cause. Cette traduction est le seul
- * endroit qui décide laquelle : s'y tromper affiche un diagnostic faux, et
- * l'utilisateur cherche alors du côté qu'on lui a désigné.
+ * SPECS.md §3.3 requires one message per cause. This mapping is the only
+ * place that decides which: getting it wrong shows a false diagnosis and
+ * sends the user searching in the wrong direction.
  */
 class AuthErrorMappingTest {
     @Test
     fun anUnreachableServerIsDistinguishedFromAnAbsentNetwork() {
-        // La pile HTTP rapporte les deux de façon identique, et les gestes de
-        // correction n'ont rien à voir : attendre le réseau, ou corriger
-        // l'adresse. Seule la connectivité constatée les sépare.
+        // The HTTP stack reports both identically, yet the fixes are
+        // unrelated: wait for the network, or fix the address. Only observed
+        // connectivity tells them apart.
         val failure = ApiOutcome.TransportError(IOException("hôte inconnu"))
 
         assertEquals(AuthError.ServerUnreachable, failure.toAuthError(isOnline = true))
@@ -26,7 +26,7 @@ class AuthErrorMappingTest {
 
     @Test
     fun aWellFormedButNonFreshRssResponseNamesTheRightCause() {
-        // Portail captif, page de maintenance, proxy qui répond 200 à tout.
+        // Captive portal, maintenance page, proxy answering 200 to anything.
         val outcome = ApiOutcome.MalformedResponse("la racine n'a pas répondu « OK »")
 
         assertEquals(AuthError.NotAFreshRssServer, outcome.toAuthError(isOnline = true))
@@ -34,8 +34,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun a401MeansCredentialsWhicheverOfTheTwoIsWrong() {
-        // Constaté : identifiant inconnu et mot de passe faux répondent tous
-        // deux 401. Les distinguer permettrait d'énumérer les comptes.
+        // Observed: unknown username and wrong password both answer 401.
+        // Distinguishing them would allow account enumeration.
         val outcome = ApiOutcome.HttpError(401, "Unauthorized!")
 
         assertEquals(AuthError.InvalidCredentials, outcome.toAuthError(isOnline = true))
@@ -43,8 +43,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun a400AlsoSendsTheUserBackToHisCredentials() {
-        // 400 désigne un identifiant syntaxiquement invalide. La cause diffère
-        // du 401, mais le geste attendu est le même.
+        // 400 means a syntactically invalid username. The cause differs from
+        // 401, but the expected user action is the same.
         val outcome = ApiOutcome.HttpError(400, "Bad Request!")
 
         assertEquals(AuthError.InvalidCredentials, outcome.toAuthError(isOnline = true))
@@ -52,9 +52,9 @@ class AuthErrorMappingTest {
 
     @Test
     fun a503MeansTheApiIsDisabledNotThatTheCredentialsAreWrong() {
-        // C'est une case à cocher dans l'administration FreshRSS. Le confondre
-        // avec un refus d'identifiants ferait vérifier son mot de passe
-        // indéfiniment.
+        // A checkbox in the FreshRSS admin. Confusing it with rejected
+        // credentials would have the user re-checking their password
+        // indefinitely.
         val outcome = ApiOutcome.HttpError(503, "Service Unavailable!")
 
         assertEquals(AuthError.ApiDisabled, outcome.toAuthError(isOnline = true))
@@ -62,8 +62,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun a404DesignatesTheHostNotThePath() {
-        // Constaté : un chemin inconnu sous l'API répond 401, jamais 404. Un
-        // 404 ne peut donc venir que d'un hôte qui n'est pas FreshRSS.
+        // Observed: an unknown path under the API answers 401, never 404. A
+        // 404 can thus only come from a host that is not FreshRSS.
         val outcome = ApiOutcome.HttpError(404, "Not Found")
 
         assertEquals(AuthError.NotAFreshRssServer, outcome.toAuthError(isOnline = true))
@@ -79,8 +79,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun a501IsReportedAsUnexpectedBecauseItIsAProgrammingFault() {
-        // 501 signifie « output autre que json là où il est exigé » : aucune
-        // action de l'utilisateur n'y changerait quoi que ce soit.
+        // 501 means output other than JSON where JSON is required: no user
+        // action would change anything.
         val outcome = ApiOutcome.HttpError(501, "Not Implemented!")
 
         assertIs<AuthError.Unexpected>(outcome.toAuthError(isOnline = true))
@@ -88,8 +88,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun aLongErrorBodyIsTruncatedBeforeReachingTheLogs() {
-        // Un portail captif renvoie une page HTML entière : la déverser dans
-        // les journaux les rendrait illisibles.
+        // A captive portal returns an entire HTML page: dumping it into the
+        // logs would make them unreadable.
         val outcome = ApiOutcome.HttpError(500, "x".repeat(10_000))
 
         val error = assertIs<AuthError.Unexpected>(outcome.toAuthError(isOnline = true))
@@ -98,9 +98,9 @@ class AuthErrorMappingTest {
 
     @Test
     fun theConnectivityOnlyMattersForTransportFailures() {
-        // Un serveur qui a répondu prouve que le réseau fonctionne : laisser la
-        // connectivité influer sur un code HTTP produirait des diagnostics
-        // incohérents.
+        // A server that answered proves the network works: letting
+        // connectivity influence an HTTP status would produce inconsistent
+        // diagnoses.
         val outcome = ApiOutcome.HttpError(503, "Service Unavailable!")
 
         assertEquals(outcome.toAuthError(isOnline = true), outcome.toAuthError(isOnline = false))
@@ -108,8 +108,8 @@ class AuthErrorMappingTest {
 
     @Test
     fun mappingASuccessIsReportedAsAProgrammingFault() {
-        // Ne devrait jamais arriver ; le signaler vaut mieux que de renvoyer
-        // une erreur plausible qui masquerait l'anomalie.
+        // Should never happen; reporting it beats returning a plausible
+        // error that would mask the anomaly.
         val error = ApiOutcome.Success(Unit).toAuthError(isOnline = true)
 
         assertIs<AuthError.Unexpected>(error)

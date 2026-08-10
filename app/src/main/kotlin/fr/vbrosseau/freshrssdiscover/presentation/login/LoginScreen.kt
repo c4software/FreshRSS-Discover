@@ -38,10 +38,10 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
 /**
- * Écran de connexion.
+ * Login screen.
  *
- * Sans état : il affiche [uiState] et remonte les gestes. C'est ce qui le rend
- * prévisualisable et testable sans graphe d'injection (AGENTS.md §9).
+ * Stateless: it renders [uiState] and forwards gestures, which keeps it
+ * previewable and testable without an injection graph (AGENTS.md §9).
  */
 @Composable
 fun LoginScreen(
@@ -56,8 +56,8 @@ fun LoginScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            // Sans cela, le clavier recouvre le champ du mot de passe, qui est
-            // le dernier de la liste.
+            // Without this, the keyboard covers the password field, the last
+            // one in the column.
             .imePadding()
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -142,17 +142,17 @@ private fun ApiPasswordField(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // Purement local à l'affichage : le ViewModel n'a pas à savoir si le mot de
-    // passe est masqué, et le faire transiter par l'état le ferait survivre à
-    // l'écran.
+    // Purely display-local: the ViewModel need not know whether the password
+    // is masked, and routing it through the state would make it outlive the
+    // screen.
     var visible by remember { mutableStateOf(false) }
 
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(stringResource(R.string.login_password_label)) },
-        // L'explication est affichée d'emblée, pas après un échec : c'est la
-        // première cause de refus, et son existence n'est pas évidente.
+        // The explanation is shown upfront, not after a failure: it is the
+        // leading cause of rejection, and its existence is not obvious.
         supportingText = { Text(stringResource(R.string.login_password_help)) },
         singleLine = true,
         enabled = enabled,
@@ -167,9 +167,9 @@ private fun ApiPasswordField(
                     painter = painterResource(
                         if (visible) R.drawable.ic_visibility_off else R.drawable.ic_visibility,
                     ),
-                    // Un mot de passe API se recopie depuis un gestionnaire :
-                    // pouvoir vérifier ce qui a été collé évite un échec dont
-                    // la cause resterait invisible.
+                    // An API password is copied from a password manager:
+                    // being able to check what was pasted avoids a failure
+                    // whose cause would stay invisible.
                     contentDescription = stringResource(
                         if (visible) R.string.login_password_hide else R.string.login_password_show,
                     ),
@@ -193,11 +193,11 @@ private fun InsecureConnectionWarning(modifier: Modifier = Modifier) {
 }
 
 /**
- * L'échec est une carte, pas une simple ligne de texte.
+ * The failure is a card, not a plain line of text.
  *
- * Certains messages font trois lignes — celui de l'API désactivée nomme le
- * chemin exact dans l'administration. Noyé dans le formulaire, il ne serait pas
- * lu, et c'est pourtant lui qui contient le geste à faire.
+ * Some messages span three lines (the disabled-API one names the exact admin
+ * path). Buried in the form it would go unread, yet it contains the action to
+ * take.
  */
 @Composable
 private fun FailureMessage(failure: LoginFailure, modifier: Modifier = Modifier) {
@@ -232,14 +232,13 @@ private fun SubmitButton(uiState: LoginUiState, onSubmit: () -> Unit, modifier: 
 }
 
 /**
- * Progression **hors** du bouton, et non dedans.
+ * Progress indicator outside the button, not inside.
  *
- * Le bouton est désactivé pendant l'appel — c'est ce qui empêche un double
- * envoi — et Material atténue tout son contenu, indicateur compris. Placé à
- * l'intérieur, il devenait quasi invisible : la capture de l'état « connexion
- * en cours » ne montrait qu'un point gris sur fond gris, et l'utilisateur
- * n'avait aucun signe que quelque chose se passait. Constaté sur
- * `connexion-en-cours-clair.png`.
+ * The button is disabled during the call (preventing a double submit), and
+ * Material dims all of its content, indicator included. Placed inside, the
+ * indicator was nearly invisible: the "connecting" state showed only a grey
+ * dot on a grey background, giving no sign that anything was happening.
+ * Observed in `connexion-en-cours-clair.png`.
  */
 @Composable
 private fun ConnectingIndicator(modifier: Modifier = Modifier) {

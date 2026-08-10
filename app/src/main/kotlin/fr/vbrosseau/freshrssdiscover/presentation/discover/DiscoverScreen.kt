@@ -58,36 +58,34 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.flow.first
 
 /**
- * Nombre d'articles restants sous lesquels la page suivante est demandée.
+ * Number of remaining articles below which the next page is requested.
  *
- * SPECS.md §4.4 veut que le défilement ne s'interrompe pas : attendre le
- * dernier élément visible ferait apparaître l'indicateur à chaque fois. Cinq —
- * un huitième d'une page de 40 — laisse le temps d'un aller-retour réseau au
- * rythme de défilement ordinaire.
+ * SPECS.md §4.4 requires uninterrupted scrolling: waiting for the last
+ * visible item would show the indicator every time. Five, an eighth of a
+ * 40-item page, leaves time for a network round trip at ordinary scrolling
+ * pace.
  */
 private const val PREFETCH_DISTANCE = 5
 
-/** Cible tactile minimale (SPECS.md §7.1) : Material s'arrête à 40 dp. */
+/** Minimum touch target (SPECS.md §7.1): Material stops at 40 dp. */
 private val MinTouchTarget = 48.dp
 
 /**
- * Le flux Discover.
+ * The Discover feed.
  *
- * Sans état métier : il affiche [uiState] et remonte les gestes, ce qui le rend
- * prévisualisable et testable sans graphe d'injection (AGENTS.md §9). Le seul
- * état qu'il tient est la position de défilement, qui n'appartient qu'à lui.
+ * Holds no business state: it displays [uiState] and forwards gestures, which
+ * makes it previewable and testable without an injection graph (AGENTS.md
+ * §9). The only state it owns is the scroll position.
  *
- * @param onArticleShare **sans valeur par défaut**, contrairement aux avis et
- *   au rechargement : un `{}` implicite laisserait un bouton visible et inerte
- *   sur chaque carte, et rien ne le signalerait. L'oubli doit être une erreur
- *   de compilation.
- * @param onVisibilityChanged destinataire des relevés de visibilité (SPECS.md
- *   §4.5). **Nullable, et nul par défaut** : l'observation est une boucle
- *   périodique, et l'armer sans destinataire ferait tourner un minuteur pour
- *   jeter son résultat — c'est-à-dire dépenser de la batterie pour rien, et
- *   rendre les prévisualisations et les tests de rendu perpétuellement occupés.
- *   `null` dit donc « personne n'écoute », ce qu'un `{}` par défaut ne saurait
- *   exprimer.
+ * @param onArticleShare no default value, unlike the notices and the refresh:
+ *   an implicit `{}` would leave a visible but inert button on every card
+ *   with nothing signalling it. Forgetting it must be a compile error.
+ * @param onVisibilityChanged recipient of the visibility readings
+ *   (SPECS.md §4.5). Nullable, null by default: the observation is a periodic
+ *   loop, and arming it without a recipient would run a timer only to discard
+ *   its result, wasting battery and keeping previews and rendering tests
+ *   perpetually busy. `null` means "nobody is listening", which a default
+ *   `{}` cannot express.
  */
 @Composable
 fun DiscoverScreen(
@@ -107,8 +105,8 @@ fun DiscoverScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Au-dessus du flux et non par-dessus : le bandeau informe, il ne
-            // masque rien de ce qui reste lisible (SPECS.md §5.2).
+            // Above the feed, not over it: the banner informs without hiding
+            // anything that remains readable (SPECS.md §5.2).
             if (uiState.showsOfflineBanner) OfflineBanner()
 
             FeedBody(
@@ -124,10 +122,10 @@ fun DiscoverScreen(
             )
 
             /*
-             * **Sous le flux et non par-dessus**, comme en mode Balayage : cet
-             * avis dure jusqu'à ce qu'on l'acquitte ou qu'on recharge, et un
-             * avis qui s'installe prend sa place dans la mise en page. Posé en
-             * surimpression, il recouvrait la fin de ce qui est défilable.
+             * Below the feed, not over it, as in swipe mode: this notice
+             * lasts until dismissed or refreshed, and a notice that settles
+             * takes its place in the layout. Overlaid, it covered the end of
+             * the scrollable content.
              */
             if (uiState.showsStaleNotice) {
                 StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
@@ -135,12 +133,11 @@ fun DiscoverScreen(
         }
 
         /*
-         * Celui-ci reste **en surimpression**, et c'est la différence : il est
-         * fugace — il répond à un geste qui vient d'échouer, et disparaît dès
-         * qu'on l'acquitte. Décaler le flux pour l'afficher ferait bouger la
-         * lecture à chaque ouverture refusée. Il ne rencontre jamais l'avis
-         * d'ancienneté : il n'existe que hors ligne, où `showsStaleNotice` est
-         * justement faux.
+         * This one stays overlaid, and that is the difference: it is
+         * transient, responding to a gesture that just failed and vanishing
+         * on dismissal. Shifting the feed to display it would move the
+         * reading on every refused open. It never meets the staleness notice:
+         * it only exists offline, where `showsStaleNotice` is false.
          */
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
@@ -151,7 +148,7 @@ fun DiscoverScreen(
     }
 }
 
-/** L'avis d'ancienneté partagé, sous les étiquettes de test de cet écran. */
+/** The shared staleness notice, under this screen's test tags. */
 @Composable
 private fun StaleFeedNotice(
     onRefresh: () -> Unit,
@@ -175,9 +172,9 @@ private fun FeedBody(
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // Sans défaut : un `rememberLazyListState` de repli créerait un second état
-    // de défilement, désynchronisé de celui que l'écran remonte au
-    // retour-en-tête après rechargement.
+    // No default: a fallback `rememberLazyListState` would create a second
+    // scroll state, out of sync with the one the screen uses for
+    // scroll-to-top after refresh.
     listState: LazyListState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -198,11 +195,10 @@ private fun FeedBody(
         )
 
         /*
-         * Une session terminée est traitée comme une attente, et non comme une
-         * erreur : le dépôt vient d'invalider le jeton, l'aiguillage racine
-         * bascule de lui-même vers la connexion (SPECS.md §3.4). Afficher un
-         * message ici reviendrait à commenter un écran sur le point de
-         * disparaître.
+         * A terminated session is treated as a wait, not an error: the
+         * repository just invalidated the token and the root switch moves to
+         * the login screen on its own (SPECS.md §3.4). Displaying a message
+         * here would annotate a screen about to disappear.
          */
         phase == DiscoverPhase.InitialLoading ||
             phase == DiscoverPhase.SessionEnded -> FeedCentered(modifier) { LoadingIndicator() }
@@ -226,26 +222,22 @@ private fun FeedBody(
 }
 
 /**
- * Un écran sans article, tirable quand même (GOAL-025-T02).
+ * A screen without articles, still pullable (GOAL-025-T02).
  *
- * **Le tirage n'était armé que sur la liste**, au motif que les états sans
- * article avaient déjà leur reprise et qu'un geste de défilement ne se découvre
- * pas là où rien ne défile. L'usage a démenti la première moitié : le lecteur
- * qui a tout lu n'a pas d'erreur à reprendre, seulement un écran vide, et c'est
- * le tirage qu'il tente en premier — signalé par l'auteur. La seconde moitié
- * reste vraie, et c'est pourquoi le geste **s'ajoute** aux commandes existantes
- * plutôt que de les remplacer : le bouton de la barre de titre demeure, et
- * l'écran d'échec garde son « Réessayer ».
+ * A reader who has read everything has no error to retry, only an empty
+ * screen, and pull-to-refresh is what they try first. The gesture is added to
+ * the existing commands rather than replacing them: the title-bar button
+ * remains, and the failure screen keeps its retry action.
  *
- * **Une `LazyColumn` d'un seul élément**, là où un `Box` suffirait à
- * l'affichage : le tirage se détecte par le défilement imbriqué, et un cadre
- * qui ne défile pas n'en émet aucun — le geste serait inerte, ce qui est pire
- * que son absence. Une liste, elle, dispatche même lorsqu'elle n'a rien à
- * faire défiler. `fillParentMaxSize` rend au contenu exactement la hauteur du
- * cadre, donc le même centrage qu'avant : les captures ne bougent pas.
+ * A single-item `LazyColumn` where a `Box` would suffice for display:
+ * pull-to-refresh is detected through nested scrolling, and a non-scrolling
+ * container emits none, leaving the gesture inert, which is worse than its
+ * absence. A list dispatches even when it has nothing to scroll.
+ * `fillParentMaxSize` gives the content exactly the frame height, so the same
+ * centering as before.
  *
- * Le premier chargement et la fin de session n'y passent pas : l'un a déjà sa
- * requête en vol, l'autre est sur le point de rendre l'écran.
+ * Initial loading and session end do not go through here: one already has a
+ * request in flight, the other is about to leave the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -289,12 +281,9 @@ private fun PullableMessage(
 }
 
 /**
- * Le flux et son geste de rafraîchissement (SPECS.md §4.6).
+ * The feed and its pull-to-refresh gesture (SPECS.md §4.6).
  *
- * Le tirage y est armé, et l'était longtemps **ici seulement** : les états sans
- * article avaient leur reprise, et un geste de défilement sur un écran qui n'en
- * propose pas se découvre mal. Un écran vide n'a pourtant rien à reprendre, et
- * le tirage est ce qu'on y tente d'abord — il est désormais armé là aussi, par
+ * Pull-to-refresh is also armed on article-less states, via
  * [PullableMessage] (GOAL-025-T02).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -306,7 +295,7 @@ private fun ArticleList(
     onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // Sans défaut, comme `FeedBody` : l'état vient toujours de l'écran.
+    // No default, like `FeedBody`: the state always comes from the screen.
     listState: LazyListState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -330,11 +319,11 @@ private fun ArticleList(
         state = refreshState,
         indicator = {
             /*
-             * L'indicateur par défaut peint son disque en `surfaceContainer` :
-             * posé sur une carte d'article, il s'y confond en thème clair, et
-             * la capture l'a montré effaçant le titre qu'il recouvre. Le
-             * conteneur primaire le détache des deux fonds, et son arc en
-             * `onPrimaryContainer` reste lisible dans les deux thèmes.
+             * The default indicator paints its disc in `surfaceContainer`:
+             * over an article card it blends in in light theme, hiding the
+             * title it covers. The primary container detaches it from both
+             * backgrounds, and its `onPrimaryContainer` arc stays readable in
+             * both themes.
              */
             PullToRefreshDefaults.Indicator(
                 state = refreshState,
@@ -353,11 +342,11 @@ private fun ArticleList(
             contentPadding = PaddingValues(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            // Clé stable : sans elle, l'insertion d'articles en tête (SPECS.md
-            // §4.6) recomposerait toute la liste et déplacerait la lecture en
-            // cours. Avec elle, la liste repositionne son premier élément
-            // visible sur sa **clé** et non sur son rang : les articles insérés
-            // au-dessus ne poussent donc pas la lecture vers le bas.
+            // Stable key: without it, inserting articles at the top
+            // (SPECS.md §4.6) would recompose the whole list and shift the
+            // ongoing reading. With it, the list repositions its first
+            // visible item on its key rather than its rank, so articles
+            // inserted above do not push the reading down.
             items(items = uiState.articles, key = ArticleUiModel::id) { article ->
                 ArticleCard(
                     article = article,
@@ -373,7 +362,7 @@ private fun ArticleList(
     }
 }
 
-/** Le bandeau hors ligne partagé (SPECS.md §5.2), sous l'étiquette de cet écran. */
+/** The shared offline banner (SPECS.md §5.2), under this screen's test tag. */
 @Composable
 private fun OfflineBanner(modifier: Modifier = Modifier) {
     FeedOfflineBanner(
@@ -383,10 +372,10 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
 }
 
 /**
- * L'ouverture refusée faute de réseau (SPECS.md §5.2).
+ * Open refused for lack of network (SPECS.md §5.2).
  *
- * Le geste a échoué, la lecture continue : la bandelette explique pourquoi rien
- * ne s'est passé, et attend qu'on l'acquitte.
+ * The gesture failed, reading continues: the strip explains why nothing
+ * happened and waits to be dismissed.
  */
 @Composable
 private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
@@ -400,20 +389,19 @@ private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifi
 }
 
 /**
- * Demande la page suivante **avant** d'atteindre le bas (SPECS.md §4.4).
+ * Requests the next page before reaching the bottom (SPECS.md §4.4).
  *
- * `derivedStateOf` évite de relancer l'effet à chaque pixel parcouru : seul le
- * passage du seuil compte. Le nombre d'articles fait aussi partie de la clé —
- * une page plus courte que le seuil laisserait sinon la condition vraie sans
- * jamais rappeler le chargement, et le flux s'arrêterait sans le dire.
+ * `derivedStateOf` avoids relaunching the effect on every pixel scrolled:
+ * only crossing the threshold matters. The article count is part of the key
+ * too: a page shorter than the threshold would otherwise leave the condition
+ * true without ever re-triggering the load, and the feed would stop silently.
  *
- * **Rien ne part avant un vrai défilement**, et c'est la condition qui manquait.
- * Le lancement n'interroge plus le réseau (SPECS.md §5.1), mais le cache filtré
- * de ses articles lus tient parfois entièrement à l'écran : le bas était alors
- * atteint sans que personne n'ait bougé le doigt, et le chargement partait
- * quand même — la requête qu'on venait de retirer par la porte revenait par la
- * fenêtre. Constaté sur appareil : la date du dernier contact serveur changeait
- * encore à chaque ouverture.
+ * Nothing is requested before an actual scroll. Launch no longer hits the
+ * network (SPECS.md §5.1), but the cache filtered of read articles sometimes
+ * fits entirely on screen: the bottom was then reached without any gesture
+ * and the load fired anyway, reintroducing the request that had just been
+ * removed. Observed on device: the last-server-contact date still changed on
+ * every open.
  */
 @Composable
 private fun PrefetchNextPage(
@@ -421,12 +409,12 @@ private fun PrefetchNextPage(
     articleCount: Int,
     onLoadMore: () -> Unit,
 ) {
-    // Détecté sur la **position**, pas sur le geste : un défilement
-    // programmatique en est un aussi, et `isScrollInProgress` le manquerait.
-    // Mémorisé et non dérivé, car c'est un fait acquis — une fois l'utilisateur
-    // entré dans le flux, la pagination suit sans qu'il ait à relancer un geste
-    // à chaque page. Verrouillé par un effet et non écrit en composition : une
-    // écriture d'instantané dans le corps du Composable est le motif à éviter.
+    // Detected on position, not on gesture: a programmatic scroll counts
+    // too, and `isScrollInProgress` alone would miss it. Remembered rather
+    // than derived because it is a settled fact: once the user has entered
+    // the feed, pagination follows without requiring a gesture per page.
+    // Latched in an effect, not written during composition: a snapshot write
+    // in the Composable body is the pattern to avoid.
     var hasScrolled by remember(listState) { mutableStateOf(false) }
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -450,24 +438,23 @@ private fun PrefetchNextPage(
 }
 
 /**
- * Relève périodiquement la visibilité des articles (SPECS.md §4.5).
+ * Periodically samples article visibility (SPECS.md §4.5).
  *
- * **Périodiquement, et non à chaque défilement.** Le seuil porte sur une durée
- * continue : un article immobile à l'écran ne produit aucun événement, et une
- * mesure déclenchée par le seul défilement ne le signalerait donc jamais. La
- * cadence retenue et sa justification sont dans
- * [VISIBILITY_SAMPLING_PERIOD_MILLIS].
+ * Periodically, not on each scroll: the threshold is a continuous duration,
+ * and an article sitting still on screen produces no event, so a
+ * scroll-driven measurement would never report it. The chosen cadence and
+ * its justification are in [VISIBILITY_SAMPLING_PERIOD_MILLIS].
  *
- * **`repeatOnLifecycle(RESUMED)` et non un simple `LaunchedEffect`.** Une
- * boucle liée à la seule composition continuerait de tourner écran éteint ou
- * application en arrière-plan : elle marquerait comme lus des articles que
- * personne ne regarde — un faux positif irréversible, puisque le marquage part
- * ensuite au serveur — tout en réveillant l'appareil cinq fois par seconde.
- * `RESUMED` plutôt que `STARTED` : c'est le seul état où l'écran est réellement
- * au premier plan et non simplement visible derrière une boîte de dialogue.
+ * `repeatOnLifecycle(RESUMED)` rather than a plain `LaunchedEffect`: a loop
+ * tied only to composition would keep running with the screen off or the app
+ * in the background, marking as read articles nobody is looking at, an
+ * irreversible false positive since the marking is then sent to the server,
+ * while waking the device five times per second. `RESUMED` rather than
+ * `STARTED`: the only state where the screen is actually in the foreground
+ * and not merely visible behind a dialog.
  *
- * Le calcul vit dans un effet, jamais dans le corps d'un Composable
- * (AGENTS.md §9) : il lit une disposition, il ne produit pas d'affichage.
+ * The computation lives in an effect, never in a Composable body
+ * (AGENTS.md §9): it reads a layout, it produces no display.
  */
 @Composable
 private fun ObserveArticleVisibility(
@@ -487,11 +474,11 @@ private fun ObserveArticleVisibility(
 }
 
 /**
- * Une carte par article.
+ * One card per article.
  *
- * La carte n'est cliquable que si l'article a un lien : SPECS.md §4.7 demande
- * qu'un article sans lien exploitable ne le soit pas, et le donne à voir — d'où
- * la mention explicite plutôt qu'un simple clic sans effet.
+ * The card is clickable only if the article has a link: SPECS.md §4.7
+ * requires an article without a usable link not to be, and to make that
+ * visible, hence the explicit mention rather than a click with no effect.
  */
 @Composable
 private fun ArticleCard(
@@ -520,26 +507,22 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
         }
 
         /*
-         * `fillMaxWidth` n'est pas décoratif : sans lui, cette colonne épouse
-         * son contenu, et l'`align(End)` du bouton de partage se range sur la
-         * **largeur du texte** au lieu de celle de la carte. Le défaut ne se
-         * voit que sur un article **sans illustration** et au texte court —
-         * avec une illustration, celle-ci impose déjà la pleine largeur. C'est
-         * exactement le travers qu'avait rencontré le fanion en GOAL-017-T02,
-         * et il est revenu par la même porte.
+         * `fillMaxWidth` is not decorative: without it this column wraps its
+         * content, and the share button's `align(End)` lines up on the text
+         * width instead of the card width. The flaw only shows on an article
+         * without an illustration and with short text; with one, the
+         * illustration already forces full width (see GOAL-017-T02).
          */
         /*
-         * **Le bas ne porte aucune marge quand le pied a son bouton**, et c'est
-         * lui qui la fournit : la cible tactile de 48 dp entoure un dessin de
-         * 16, donc elle laisse déjà 16 points sous le trait — exactement la
-         * marge des trois autres côtés. En ajouter faisait la bande que
-         * l'auteur a signalée deux fois.
+         * No bottom padding when the footer has its button: the button
+         * provides it. The 48 dp touch target surrounds a 16 dp glyph, so it
+         * already leaves 16 points below the stroke, exactly the padding of
+         * the other three sides. Adding more created a visible band. Going
+         * lower would require shrinking the target below the 48 dp of
+         * SPECS.md §7.1.
          *
-         * C'est le plancher **sans rien céder** : descendre plus bas
-         * demanderait de rétrécir la cible sous les 48 dp de SPECS.md §7.1.
-         *
-         * La carte sans lien, elle, garde sa marge : sans bouton pour la
-         * porter, sa dernière ligne toucherait le bord.
+         * The card without a link keeps its padding: without a button to
+         * carry it, its last line would touch the edge.
          */
         val bottomPadding = if (article.isOpenable) Spacing.none else Spacing.md
 
@@ -548,11 +531,9 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
                 .fillMaxWidth()
                 .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md, bottom = bottomPadding),
             /*
-             * **Aucun espacement entre le titre et l'extrait** : l'interligne
-             * propre des deux styles les sépare déjà, et les 4 dp qui s'y
-             * ajoutaient faisaient une respiration que l'auteur a trouvée
-             * excessive sur appareil. Le pied, lui, reprend cet écart à son
-             * compte — il change de nature, pas de paragraphe.
+             * No spacing between title and excerpt: the two styles' own line
+             * height already separates them, and the extra 4 dp read as
+             * excessive on device. The footer keeps that gap for itself.
              */
         ) {
             ArticleCardTexts(article)
@@ -562,22 +543,18 @@ private fun ArticleCardContent(article: ArticleUiModel, onShare: () -> Unit) {
 }
 
 /**
- * Le pied de carte : provenance à gauche, partage à droite (GOAL-023).
+ * Card footer: source on the left, share on the right (GOAL-023).
  *
- * **Les deux tenaient chacun une ligne**, la source et la date en tête de
- * carte, le bouton seul en bas. Réunis, ils en rendent une au contenu — c'est
- * tout l'objet du resserrement demandé par l'auteur.
+ * The title thereby becomes the first thing read, which benefits a screen
+ * reader as much as the eye: the source is no longer announced before the
+ * subject.
  *
- * Le titre devient du même coup la première chose lue, ce qu'un lecteur d'écran
- * gagne autant que l'œil : la provenance ne s'annonce plus avant le sujet.
+ * `weight(1f)` on the text rather than a spacer: the text must yield when
+ * the feed name is long, shortening with an ellipsis, rather than pushing
+ * the command off the card.
  *
- * `weight(1f)` sur le texte, et non un espaceur : c'est lui qui doit céder
- * quand le nom du flux est long, en s'écourtant d'une ellipse, plutôt que de
- * pousser la commande hors de la carte.
- *
- * Le clic du bouton ne remonte pas à la carte : un `IconButton` consomme le
- * sien, et l'ouverture de l'article n'est donc pas déclenchée par un appui sur
- * le partage.
+ * The button's click does not propagate to the card: an `IconButton`
+ * consumes its own, so tapping share does not open the article.
  */
 @Composable
 private fun ArticleCardFooter(
@@ -586,13 +563,11 @@ private fun ArticleCardFooter(
     modifier: Modifier = Modifier,
 ) {
     /*
-     * **Pas de `heightIn` ici**, et c'est un retour en arrière assumé. Il avait
-     * été posé pour que le pied d'un article sans lien — donc sans bouton —
-     * tienne la même hauteur que les autres. Le prix était visible sur
-     * appareil : la cible de 48 dp du bouton, centrée sur une ligne de texte de
-     * 16, laissait sous elle une bande vide que l'auteur a signalée. Entre un
-     * gabarit régulier et une carte resserrée, c'est le resserrement qui a été
-     * demandé.
+     * Deliberately no `heightIn` here. It had been added so the footer of a
+     * link-less article, without a button, matched the height of the others.
+     * The cost was visible on device: the button's 48 dp target, centered on
+     * a 16 dp text line, left an empty band below it. The tighter card was
+     * the requested choice.
      */
     Row(
         modifier = modifier
@@ -624,8 +599,8 @@ private fun ArticleCardFooter(
 
 @Composable
 private fun ColumnScope.ArticleCardTexts(article: ArticleUiModel) {
-    // La source et la date ne sont plus ici mais en pied de carte
-    // (`ArticleCardFooter`, GOAL-023) : le titre ouvre la carte.
+    // The source and date live in the card footer (`ArticleCardFooter`,
+    // GOAL-023): the title opens the card.
     Text(
         text = article.title,
         style = MaterialTheme.typography.titleMedium,
@@ -654,10 +629,10 @@ private fun ColumnScope.ArticleCardTexts(article: ArticleUiModel) {
 }
 
 /**
- * Ce qui suit le dernier article.
+ * What follows the last article.
  *
- * La fin du flux y est **dite**, jamais seulement subie : une liste qui cesse
- * de s'allonger est indistinguable d'une panne (SPECS.md §4.4).
+ * The end of the feed is stated, never merely endured: a list that stops
+ * growing is indistinguishable from a failure (SPECS.md §4.4).
  */
 @Composable
 private fun FeedFooter(
@@ -682,11 +657,11 @@ private fun FeedFooter(
             )
 
             /*
-             * Hors ligne, le bandeau a déjà dit la cause en tête du flux : la
-             * répéter en rouge sous le dernier article ferait de deux signaux
-             * une alarme, alors que ce qui est affiché fonctionne (SPECS.md
-             * §5.2). Seule la reprise demeure — c'est elle que SPECS.md §4.4
-             * exige, pas la couleur.
+             * Offline, the banner has already stated the cause at the top of
+             * the feed: repeating it in red under the last article would turn
+             * two signals into an alarm while what is displayed still works
+             * (SPECS.md §5.2). Only the retry remains; that is what
+             * SPECS.md §4.4 requires, not the color.
              */
             is DiscoverPhase.Failed ->
                 if (uiState.showsOfflineBanner) {
@@ -695,7 +670,7 @@ private fun FeedFooter(
                     FailureBlock(failure = phase.failure, onRetry = onRetry)
                 }
 
-            // Rien à dire : le flux continue, ou la session s'achève.
+            // Nothing to say: the feed continues, or the session is ending.
             DiscoverPhase.Idle,
             DiscoverPhase.InitialLoading,
             DiscoverPhase.SessionEnded,
@@ -737,10 +712,10 @@ private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
     )
 }
 
-/** Clé du pied de liste, distincte de tout identifiant d'article. */
+/** Footer key, distinct from any article identifier. */
 private const val FOOTER_KEY = "discover:footer"
 
-/** Clé de l'unique élément d'un écran sans article. */
+/** Key of the single item of an article-less screen. */
 private const val MESSAGE_KEY = "discover:message"
 
 @Preview(showBackground = true)
@@ -778,7 +753,7 @@ private fun DiscoverScreenPreview() {
     }
 }
 
-/** Le régime hors ligne : bandeau calme, cache intact, avis d'ouverture refusée. */
+/** Offline mode: calm banner, cache intact, refused-open notice. */
 @Preview(showBackground = true)
 @Composable
 private fun DiscoverScreenOfflinePreview() {
@@ -822,12 +797,13 @@ private fun DiscoverScreenEmptyPreview() {
 }
 
 /**
- * Remonte en haut à la fin d'un tirer-pour-rafraîchir.
+ * Scrolls back to the top when a pull-to-refresh ends.
  *
- * SPECS.md §4.6 : le geste vide la liste et repart du début. Sans cette
- * remontée, l'utilisateur resterait à un rang qui ne désigne plus rien de ce
- * qu'il regardait — le contenu a été remplacé sous lui. Le front descendant
- * vit dans [AfterRefreshSettles], partagé avec le Balayage.
+ * SPECS.md §4.6: the gesture clears the list and restarts from the top.
+ * Without this scroll, the user would stay at a rank that no longer refers to
+ * anything they were looking at, the content having been replaced under
+ * them. The falling edge lives in [AfterRefreshSettles], shared with the
+ * swipe mode.
  */
 @Composable
 private fun ScrollToTopAfterRefresh(listState: LazyListState, isRefreshing: Boolean) {

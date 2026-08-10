@@ -20,17 +20,16 @@ private const val DATABASE_FILE = "freshrss-discover.db"
 internal object DatabaseModule {
 
     /**
-     * Aucune migration destructrice n'est déclarée : les schémas sont
-     * versionnés (`app/schemas/`) et une évolution de base doit fournir sa
-     * migration. Un `fallbackToDestructiveMigration` effacerait en silence les
-     * marquages non encore transmis au serveur.
+     * No destructive migration is declared: schemas are versioned
+     * (`app/schemas/`) and a database change must provide its migration. A
+     * `fallbackToDestructiveMigration` would silently erase marks not yet
+     * transmitted to the server.
      *
-     * **`addMigrations` n'est pas facultatif.** Sans lui, une installation déjà
-     * en version 1 lève `IllegalStateException` au premier accès, et
-     * l'application est inutilisable jusqu'à sa réinstallation. Les tests ne
-     * l'attrapent pas : ils construisent la base en mémoire, donc toujours à la
-     * version courante. C'est un défaut qui ne se voit que chez ceux qui
-     * mettent à jour.
+     * `addMigrations` is not optional. Without it, an installation already at
+     * version 1 throws `IllegalStateException` on first access, and the
+     * application is unusable until reinstalled. Tests do not catch this:
+     * they build the database in memory, hence always at the current version.
+     * The defect only shows for users who upgrade.
      */
     @Provides
     @Singleton

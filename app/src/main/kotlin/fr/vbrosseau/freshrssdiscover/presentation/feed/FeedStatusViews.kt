@@ -27,27 +27,24 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 
-/** Cible tactile minimale (Material) : un bouton texte seul n'y arrive pas toujours. */
+/** Minimum touch target (Material): a lone text button does not always reach it. */
 private val MinTouchTarget = 48.dp
 
 /*
- * Les états terminaux du flux, écrits une fois pour les deux modes.
+ * Terminal states of the feed, written once for both modes.
  *
- * Chaque composant a existé en deux copies — une par écran — où seuls
- * changeaient le libellé et l'étiquette de test. La règle est celle
- * d'`ArticleIllustration` : deux copies divergeraient au premier correctif.
- * Ce qui reste aux écrans, c'est la **configuration** — leurs chaînes, leurs
- * étiquettes — jamais la mise en page.
+ * Same rule as `ArticleIllustration`: two copies would diverge at the first
+ * fix. What remains with the screens is configuration, their strings and
+ * test tags, never the layout.
  */
 
 /**
- * Le régime hors ligne, dit calmement (SPECS.md §5.2).
+ * Offline mode, stated calmly (SPECS.md §5.2).
  *
- * `surfaceVariant` et non `errorContainer` : ce que l'utilisateur a sous les
- * yeux fonctionne, et le peindre aux couleurs de l'erreur laisserait croire à
- * une panne de l'application. La paire `surfaceVariant`/`onSurfaceVariant` est
- * définie dans les deux thèmes, ce qu'une couleur choisie à la main ne
- * garantirait pas.
+ * `surfaceVariant` rather than `errorContainer`: what the user is looking at
+ * works, and painting it in error colors would suggest an app failure. The
+ * `surfaceVariant`/`onSurfaceVariant` pair is defined in both themes, which
+ * a hand-picked color would not guarantee.
  */
 @Composable
 internal fun FeedOfflineBanner(message: String, modifier: Modifier = Modifier) {
@@ -68,13 +65,13 @@ internal fun FeedOfflineBanner(message: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Le flux affiché date de plusieurs heures (SPECS.md §4.6).
+ * The displayed feed is hours old (SPECS.md §4.6).
  *
- * L'action **emprunte le rechargement existant** plutôt que d'en ouvrir un à
- * elle : deux chemins vers le même geste divergeraient. La seconde commande
- * existe pour qui ne veut pas recharger maintenant — sans elle, l'avis ne
- * pourrait se taire qu'en obéissant. Les chaînes sont communes aux deux modes
- * (`feed_stale_*`) ; seules les étiquettes de test viennent de l'écran.
+ * The action reuses the existing refresh rather than opening its own: two
+ * paths to the same gesture would diverge. The second command exists for
+ * those who do not want to refresh now; without it, the notice could only be
+ * silenced by obeying. Strings are shared by both modes (`feed_stale_*`);
+ * only the test tags come from the screen.
  */
 @Composable
 internal fun FeedStaleNotice(
@@ -97,7 +94,7 @@ internal fun FeedStaleNotice(
 }
 
 /**
- * Un chargement a échoué : le message, puis sa reprise (SPECS.md §4.4).
+ * A load failed: the message, then its retry (SPECS.md §4.4).
  */
 @Composable
 internal fun FeedFailureBlock(
@@ -124,7 +121,7 @@ internal fun FeedFailureBlock(
     }
 }
 
-/** La reprise après échec, seule — le pied de liste l'affiche sans le message hors ligne. */
+/** The retry action alone; the list footer shows it without the message when offline. */
 @Composable
 internal fun FeedRetryAction(
     label: String,
@@ -140,8 +137,8 @@ internal fun FeedRetryAction(
 }
 
 /**
- * Le flux est au bout **sans rien à montrer** : « vous avez tout lu » sous une
- * liste vide n'expliquerait rien, d'où un message à part entière.
+ * The feed is exhausted with nothing to show: "you have read everything"
+ * under an empty list would explain nothing, hence a message of its own.
  */
 @Composable
 internal fun FeedEmptyMessage(
@@ -168,7 +165,7 @@ internal fun FeedEmptyMessage(
     }
 }
 
-/** Centre son contenu plein cadre : l'attente et les messages terminaux. */
+/** Centers its content full-frame: the loading state and terminal messages. */
 @Composable
 internal fun FeedCentered(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(
@@ -179,12 +176,11 @@ internal fun FeedCentered(modifier: Modifier = Modifier, content: @Composable ()
 }
 
 /**
- * Exécute [onSettled] à la **retombée** du rechargement, jamais à sa montée.
+ * Runs [onSettled] on the refresh's falling edge, never its rising one.
  *
- * SPECS.md §4.6 : le geste vide et repart du début — l'écran doit revenir en
- * tête, mais seulement une fois la nouvelle liste posée ; y aller dès l'appui
- * ferait défiler un contenu que l'on s'apprête à jeter. Le front descendant
- * était détecté à la main dans chaque écran, à l'identique.
+ * SPECS.md §4.6: the gesture clears and restarts from the top. The screen
+ * must return to the top, but only once the new list is in place; going
+ * there on press would scroll content about to be discarded.
  */
 @Composable
 internal fun AfterRefreshSettles(isRefreshing: Boolean, onSettled: suspend () -> Unit) {

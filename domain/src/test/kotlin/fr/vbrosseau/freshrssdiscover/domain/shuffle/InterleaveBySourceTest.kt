@@ -7,26 +7,26 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Une date de référence quelconque : seul l'écart entre articles compte ici. */
+/** Arbitrary reference date: only the gap between articles matters here. */
 private const val REFERENCE_EPOCH = 1_700_000_000L
 
-/** Une heure, en secondes : le pas entre deux articles « du jour ». */
+/** One hour, in seconds: the step between two same-day articles. */
 private const val ONE_HOUR = 3_600L
 
-/** Trente jours, en secondes : l'« article vieux d'un mois » de SPECS.md §4.2. */
+/** Thirty days, in seconds: the "month-old article" of SPECS.md §4.2. */
 private const val ONE_MONTH = 30 * 24 * ONE_HOUR
 
 /**
- * Recopie volontaire de la fenêtre du mélangeur, qui est privée : le test
- * énonce la garantie attendue, il ne la lit pas dans le code éprouvé.
+ * Deliberate copy of the shuffler's window, which is private: the test states
+ * the expected guarantee, it does not read it from the code under test.
  */
 private const val LOOKAHEAD_WINDOW = 8
 
 /**
- * Le mélange est la seule règle réellement subtile de l'application (SPECS.md
- * §4.2) et ses quatre exigences se contredisent partiellement : ces tests
- * fixent l'arbitrage retenu, faute de quoi un ajustement futur de la fenêtre
- * passerait inaperçu.
+ * The shuffle is the app's one genuinely subtle rule (SPECS.md §4.2) and its
+ * four requirements partially contradict each other: these tests pin down the
+ * chosen trade-off, without which a future window adjustment would go
+ * unnoticed.
  */
 class InterleaveBySourceTest {
     private fun item(
@@ -40,7 +40,7 @@ class InterleaveBySourceTest {
             feed = feedRef(id = "feed/$feed", title = "Flux $feed"),
         )
 
-    /** Un article par lettre, dans l'ordre donné : la forme la plus lisible d'un cas. */
+    /** One article per letter, in the given order: the most readable form of a case. */
     private fun articlesOf(feeds: String): List<Article> =
         feeds.mapIndexed { index, feed -> item(id = index.toLong(), feed = feed.toString()) }
 
@@ -61,7 +61,7 @@ class InterleaveBySourceTest {
 
     @Test
     fun aSingleSourceKeepsTheServerOrder() {
-        // Rien à entrelacer : réordonner ici ne ferait que casser la chronologie.
+        // Nothing to interleave: reordering here would only break chronology.
         val articles = articlesOf("AAAAA")
 
         assertEquals(articles, interleaveBySource(articles))
@@ -83,7 +83,7 @@ class InterleaveBySourceTest {
 
     @Test
     fun aProlificFeedDoesNotKeepConsecutivePositionsWhileAnotherSourceExists() {
-        // A domine largement ; B et C sont rares mais présents dans la fenêtre.
+        // A dominates heavily; B and C are rare but present in the window.
         val articles = articlesOf("AAAAABAAACAA")
 
         val ordered = interleaveBySource(articles)
@@ -97,7 +97,7 @@ class InterleaveBySourceTest {
 
         val ordered = interleaveBySource(articles)
 
-        // Les répétitions ne commencent qu'une fois B et C consommés.
+        // Repetitions only start once B and C are consumed.
         val firstRepetition = ordered.indices.first { it > 0 && ordered[it].feed == ordered[it - 1].feed }
         val consumed = ordered.take(firstRepetition).map { it.feed.id }
         assertTrue("feed/B" in consumed && "feed/C" in consumed, "répétition prématurée dans ${feedsOf(ordered)}")
@@ -105,8 +105,8 @@ class InterleaveBySourceTest {
 
     @Test
     fun anImpossibleInterleavingStillYieldsTheWholeInput() {
-        // Tout vient du même flux : la règle 1 n'est pas satisfiable, la sortie
-        // reste néanmoins complète et chronologique.
+        // Everything comes from the same feed: rule 1 is unsatisfiable, yet
+        // the output stays complete and chronological.
         val articles = articlesOf("AAAA")
 
         assertEquals(articles, interleaveBySource(articles, previousTail = listOf(item(id = 99L, feed = "A"))))
@@ -132,8 +132,9 @@ class InterleaveBySourceTest {
 
     @Test
     fun aMonthOldArticleNeverReachesTheTopOfTheFeed() {
-        // Trente articles du jour, tous du même flux, puis un article vieux d'un
-        // mois : sans borne, la lutte contre la monotonie le remonterait en tête.
+        // Thirty same-day articles, all from one feed, then a month-old
+        // article: without a bound, the fight against monotony would promote
+        // it to the top.
         val recentCount = 30
         val recent = (0 until recentCount).map { item(id = it.toLong(), feed = "A") }
         val old = item(id = recentCount.toLong(), feed = "B", publishedAt = REFERENCE_EPOCH - ONE_MONTH)

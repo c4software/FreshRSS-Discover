@@ -25,12 +25,12 @@ class LoginViewModel @Inject constructor(
 
     init {
         /*
-         * Préremplissage après un jeton refusé : l'utilisateur n'a
-         * probablement qu'un mot de passe API à renouveler, lui faire retaper
-         * l'adresse de son serveur serait gratuit (SPECS.md §3.4).
+         * Prefill after a rejected token: the user probably only has an API
+         * password to renew, so retyping the server address would be needless
+         * (SPECS.md §3.4).
          *
-         * `first()` et non une collecte continue : la saisie en cours ne doit
-         * jamais être écrasée par une écriture du dépôt.
+         * `first()` rather than a continuous collection: in-progress input
+         * must never be overwritten by a repository write.
          */
         viewModelScope.launch {
             val hint = authRepository.observeLastSignInHint().first() ?: return@launch
@@ -51,11 +51,11 @@ class LoginViewModel @Inject constructor(
     fun onApiPasswordChange(value: String) = update { it.copy(apiPassword = value) }
 
     /**
-     * Tente la connexion.
+     * Attempts the login.
      *
-     * L'adresse est analysée d'abord : la rejeter ici évite un aller-retour
-     * réseau, et surtout permet de désigner le champ fautif plutôt que
-     * d'afficher une erreur générale.
+     * The address is parsed first: rejecting it here avoids a network round
+     * trip and, above all, allows pointing at the faulty field instead of
+     * showing a general error.
      */
     fun submit() {
         val current = _uiState.value
@@ -81,10 +81,9 @@ class LoginViewModel @Inject constructor(
             when (val result = authRepository.signIn(address, credentials)) {
                 is Outcome.Success ->
                     /*
-                     * Le mot de passe est retiré de l'état dès qu'il a servi :
-                     * un `UiState` survit à l'écran qui l'affiche, et se
-                     * retrouverait dans un instantané de débogage ou une
-                     * restauration de processus.
+                     * The password is cleared from the state once used: a
+                     * `UiState` outlives the screen displaying it and would
+                     * end up in a debug snapshot or a process restoration.
                      */
                     update { it.copy(isSubmitting = false, apiPassword = "") }
 
@@ -97,11 +96,11 @@ class LoginViewModel @Inject constructor(
     private fun fail(failure: LoginFailure) = update { it.copy(failure = failure) }
 
     /**
-     * Applique une modification puis **réévalue les champs dérivés**.
+     * Applies a change, then reevaluates the derived fields.
      *
-     * Les recalculer ici plutôt qu'à chaque appel garantit qu'ils ne peuvent
-     * pas se désynchroniser de la saisie : un `copy` qui les oublierait
-     * laisserait le bouton actif sur un formulaire vide.
+     * Recomputing them here rather than at each call site guarantees they
+     * cannot drift from the input: a `copy` that forgot them would leave the
+     * button enabled on an empty form.
      */
     private fun update(transform: (LoginUiState) -> LoginUiState) {
         _uiState.update { previous -> derive(transform(previous)) }

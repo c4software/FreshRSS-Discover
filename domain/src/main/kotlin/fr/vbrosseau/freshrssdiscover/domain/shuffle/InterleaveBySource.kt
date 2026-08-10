@@ -3,51 +3,50 @@ package fr.vbrosseau.freshrssdiscover.domain.shuffle
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 
 /**
- * Portée du réordonnancement, en nombre d'articles.
+ * Reordering scope, in number of articles.
  *
- * C'est **la** valeur qui définit ce que « mélanger localement » veut dire
- * (SPECS.md §4.2, règle 2). Un article ne peut être avancé que dans cette
- * fenêtre : au-delà, il n'est jamais candidat, quelle que soit la monotonie des
- * sources. Huit articles représentent environ trois écrans — assez pour trouver
- * une autre source dans la plupart des flux réels, trop peu pour qu'un
- * déplacement se lise comme une anomalie de date. Une fenêtre large
- * mélangerait mieux mais finirait par remonter l'ancien au-dessus du récent,
- * ce que la règle 2 interdit ; une fenêtre de 2 ne casserait que les doublons
- * immédiats et laisserait un flux prolifique occuper l'écran par paires.
+ * This value defines what "shuffle locally" means (SPECS.md §4.2, rule 2). An
+ * article can only be moved forward within this window: beyond it, it is
+ * never a candidate, whatever the source monotony. Eight articles are about
+ * three screens: enough to find another source in most real feeds, too few
+ * for a move to read as a date anomaly. A wide window would mix better but
+ * would end up raising old content above recent, which rule 2 forbids; a
+ * window of 2 would only break immediate duplicates and let a prolific feed
+ * occupy the screen in pairs.
  */
 private const val LOOKAHEAD_WINDOW = 8
 
 /**
- * Réordonne [articles] pour répartir les sources sans trahir la chronologie.
+ * Reorders [articles] to spread sources without betraying chronology.
  *
- * [articles] est attendu dans l'ordre du serveur, c'est-à-dire chronologique
- * inverse ; la sortie est une **permutation exacte** de l'entrée.
+ * [articles] is expected in server order, i.e. reverse chronological; the
+ * output is an exact permutation of the input.
  *
- * Le procédé est glouton : à chaque position, on prend le plus ancien candidat
- * *encore disponible* dont le flux diffère du précédent, en ne regardant que
- * les [LOOKAHEAD_WINDOW] premiers restants. Faute de candidat éligible dans la
- * fenêtre — tous les articles proches viennent du même flux — la tête est prise
- * telle quelle : la règle 1 cède devant la règle 2, conformément à l'ordre de
- * priorité de SPECS.md §4.2 (« tant qu'une autre source est disponible »).
+ * The process is greedy: at each position, take the oldest still-available
+ * candidate whose feed differs from the previous one, looking only at the
+ * first [LOOKAHEAD_WINDOW] remaining. When no eligible candidate exists in
+ * the window (all nearby articles come from the same feed), the head is taken
+ * as is: rule 1 yields to rule 2, per the priority order of SPECS.md §4.2
+ * ("as long as another source is available").
  *
- * Ce que ce choix garantit sur la récence :
- * - **en avant** : un article n'est jamais présenté plus de
- *   `LOOKAHEAD_WINDOW - 1` positions avant son rang chronologique, puisqu'il
- *   n'est candidat qu'une fois entré dans la fenêtre ;
- * - **en arrière** : un article en tête n'est différé qu'**une seule fois de
- *   suite**. Le sauter impose d'émettre un article d'un autre flux, ce qui rend
- *   la tête éligible au tour suivant, où elle est le plus ancien candidat donc
- *   choisie.
+ * Recency guarantees of this choice:
+ * - forward: an article is never presented more than `LOOKAHEAD_WINDOW - 1`
+ *   positions before its chronological rank, since it is only a candidate
+ *   once it enters the window;
+ * - backward: a head article is deferred at most once in a row. Skipping it
+ *   requires emitting an article from another feed, which makes the head
+ *   eligible on the next turn, where it is the oldest candidate and thus
+ *   chosen.
  *
- * Le résultat ne dépend que de [articles] et de [previousTail] : pas d'aléa,
- * pas d'horloge, aucun parcours d'ensemble non ordonné (règle 3). Le même
- * ensemble d'articles produit donc le même ordre à chaque affichage.
+ * The result depends only on [articles] and [previousTail]: no randomness, no
+ * clock, no iteration over an unordered set (rule 3). The same set of
+ * articles thus produces the same order on every display.
  *
- * @param previousTail fin de la page précédente, pour que la règle 1 tienne
- *   aussi à la jonction entre deux pages (règle 4). Seul son **dernier**
- *   élément contraint le résultat — la monotonie ne se juge qu'entre voisins
- *   immédiats — mais l'appelant tient naturellement la fin de sa page et n'a
- *   pas à savoir combien d'éléments la règle consomme.
+ * @param previousTail tail of the previous page, so rule 1 also holds at the
+ *   junction between two pages (rule 4). Only its last element constrains the
+ *   result (monotony is only judged between immediate neighbours), but the
+ *   caller naturally holds its page tail and need not know how many elements
+ *   the rule consumes.
  */
 fun interleaveBySource(
     articles: List<Article>,
@@ -65,10 +64,10 @@ fun interleaveBySource(
 }
 
 /**
- * Position, dans [pending], de l'article à présenter ensuite.
+ * Index, in [pending], of the article to present next.
  *
- * Repli sur `0` : conserver l'ordre du serveur est le comportement le moins
- * surprenant quand aucune alternative n'existe.
+ * Fallback to `0`: keeping server order is the least surprising behavior when
+ * no alternative exists.
  */
 private fun nextIndex(
     pending: List<Article>,

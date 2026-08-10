@@ -24,11 +24,10 @@ class LoginViewModelTest {
     private val repository = FakeAuthRepository()
 
     /**
-     * Construit **paresseusement**, et c'est nécessaire : le ViewModel lance
-     * son préremplissage dès sa création, sur `Dispatchers.Main`. Un
-     * initialiseur de propriété s'exécute avant que [MainDispatcherRule] ne
-     * l'ait substitué — la coroutine partirait alors sur le vrai dispatcher
-     * principal, absent hors Android.
+     * Built lazily, and necessarily so: the ViewModel starts its prefill on
+     * creation, on `Dispatchers.Main`. A property initializer runs before
+     * [MainDispatcherRule] has substituted it, so the coroutine would start on
+     * the real main dispatcher, absent outside Android.
      */
     private val viewModel: LoginViewModel by lazy { LoginViewModel(repository) }
 
@@ -38,7 +37,7 @@ class LoginViewModelTest {
         viewModel.onApiPasswordChange("mot-de-passe-api")
     }
 
-    // ----- Champs dérivés ----------------------------------------------------
+    // ----- Derived fields ----------------------------------------------------
 
     @Test
     fun submissionStaysDisabledUntilEveryFieldIsFilled() {
@@ -65,8 +64,8 @@ class LoginViewModelTest {
 
     @Test
     fun aPasswordMadeOfSpacesIsAccepted() {
-        // Contrairement à l'identifiant : un mot de passe peut légitimement
-        // contenir des espaces, et les rejeter empêcherait de se connecter.
+        // Unlike the username: a password may legitimately contain spaces, and
+        // rejecting them would prevent signing in.
         viewModel.onServerAddressChange("rss.exemple.org")
         viewModel.onUsernameChange("alice")
         viewModel.onApiPasswordChange("   ")
@@ -76,8 +75,8 @@ class LoginViewModelTest {
 
     @Test
     fun anInsecureAddressIsFlaggedWithoutBlocking() {
-        // Les instances auto-hébergées sur réseau local sont un cas réel : on
-        // avertit, on n'interdit pas.
+        // Self-hosted instances on a local network are a real case: warn,
+        // do not block.
         viewModel.onServerAddressChange("http://192.168.1.20:8080")
         viewModel.onUsernameChange("alice")
         viewModel.onApiPasswordChange("x")
@@ -102,7 +101,7 @@ class LoginViewModelTest {
         assertFalse(viewModel.uiState.value.showsInsecureWarning)
     }
 
-    // ----- Adresse rejetée avant tout appel réseau ---------------------------
+    // ----- Address rejected before any network call --------------------------
 
     @Test
     fun anEmptyAddressIsRejectedWithoutContactingAnyServer() {
@@ -141,12 +140,12 @@ class LoginViewModelTest {
         )
     }
 
-    // ----- Préremplissage après un jeton refusé ------------------------------
+    // ----- Prefill after a rejected token ------------------------------------
 
     @Test
     fun theFormIsPrefilledWithTheLastServerAndUsername() {
-        // Après un jeton refusé, l'utilisateur n'a probablement qu'un mot de
-        // passe API à renouveler : lui faire retaper l'adresse serait gratuit.
+        // After a rejected token, the user probably only needs to renew the
+        // API password: retyping the address would be pointless.
         repository.hint.value = SignInHint(
             server = (ServerAddress.parse("rss.exemple.org") as ServerAddressResult.Valid).address,
             username = "alice",
@@ -160,8 +159,8 @@ class LoginViewModelTest {
 
     @Test
     fun theApiPasswordIsNeverPrefilled() {
-        // Il n'est pas enregistré, et ne doit pas l'être : c'est le seul
-        // secret que l'utilisateur ressaisit.
+        // It is not stored and must not be: it is the one secret the user
+        // re-enters.
         repository.hint.value = SignInHint(
             server = (ServerAddress.parse("rss.exemple.org") as ServerAddressResult.Valid).address,
             username = "alice",
@@ -179,12 +178,12 @@ class LoginViewModelTest {
         assertEquals("", viewModel.uiState.value.username)
     }
 
-    // ----- Connexion ---------------------------------------------------------
+    // ----- Sign-in -----------------------------------------------------------
 
     @Test
     fun theNormalizedAddressIsWhatReachesTheRepository() {
-        // L'utilisateur saisit ce qu'il connaît ; le dépôt reçoit une forme
-        // canonique.
+        // The user types what they know; the repository receives a canonical
+        // form.
         fillValidForm()
         repository.nextResult = successFor("rss.exemple.org")
 
@@ -195,8 +194,8 @@ class LoginViewModelTest {
 
     @Test
     fun theUsernameIsTrimmedButThePasswordIsNot() {
-        // Une espace collée par un copier-coller ne doit pas faire échouer la
-        // connexion ; en retirer une du mot de passe la ferait échouer.
+        // A space pasted along with the username must not fail the sign-in;
+        // removing one from the password would.
         viewModel.onServerAddressChange("rss.exemple.org")
         viewModel.onUsernameChange("  alice  ")
         viewModel.onApiPasswordChange(" secret ")
@@ -210,7 +209,7 @@ class LoginViewModelTest {
 
     @Test
     fun theFormIsLockedWhileTheRequestIsInFlight() = runTest {
-        // Sans cela, un double appui enverrait deux connexions.
+        // Without this, a double press would send two sign-in requests.
         fillValidForm()
         repository.pendingSignIn = CompletableDeferred()
 
@@ -227,8 +226,8 @@ class LoginViewModelTest {
 
     @Test
     fun thePasswordLeavesTheStateOnceItHasServed() = runTest {
-        // Un UiState survit à l'écran qui l'affiche : il se retrouverait dans
-        // un instantané de débogage ou une restauration de processus.
+        // A UiState outlives the screen that displays it: the password would
+        // end up in a debug snapshot or a process restoration.
         fillValidForm()
         repository.nextResult = successFor("rss.exemple.org")
 
@@ -251,8 +250,8 @@ class LoginViewModelTest {
 
     @Test
     fun aFailedAttemptKeepsWhatTheUserTyped() {
-        // Retaper l'adresse et l'identifiant après chaque échec serait
-        // pénible, et l'erreur porte souvent sur le seul mot de passe.
+        // Retyping the address and username after every failure would be
+        // painful, and the error usually concerns only the password.
         fillValidForm()
         repository.nextResult = Outcome.Failure(AuthError.InvalidCredentials)
 

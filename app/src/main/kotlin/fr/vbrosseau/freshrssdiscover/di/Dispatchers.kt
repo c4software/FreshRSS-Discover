@@ -3,19 +3,19 @@ package fr.vbrosseau.freshrssdiscover.di
 import javax.inject.Qualifier
 
 /**
- * Qualifiers des `CoroutineDispatcher` injectables.
+ * Qualifiers for injectable `CoroutineDispatcher`s.
  *
- * Aucun composant ne référence `Dispatchers.IO` ou `Dispatchers.Default`
- * directement : sans injection, un test ne peut ni contrôler l'ordonnancement,
- * ni avancer le temps virtuellement.
+ * No component references `Dispatchers.IO` or `Dispatchers.Default` directly:
+ * without injection, a test can neither control scheduling nor advance
+ * virtual time.
  */
 
-/** Entrées/sorties bloquantes : base de données, DataStore, appels système. */
+/** Blocking I/O: database, DataStore, system calls. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class IoDispatcher
 
-/** Calcul : évaluation des règles, transformations de flux. */
+/** Computation: rule evaluation, flow transformations. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class DefaultDispatcher

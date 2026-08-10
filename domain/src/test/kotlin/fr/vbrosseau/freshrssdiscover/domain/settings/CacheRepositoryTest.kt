@@ -7,14 +7,14 @@ import kotlin.test.assertNotEquals
 import kotlin.time.Duration.Companion.days
 
 /**
- * Le seuil de purge ne se constate nulle part à l'usage : trop court, il fait
- * disparaître le passé du flux entre deux lancements ; trop long, il laisse le
- * cache enfler. Aucun des deux ne lève d'erreur. Il est donc fixé ici, et vérifié.
+ * The purge threshold is nowhere observable in use: too short, the feed's
+ * past disappears between launches; too long, the cache bloats. Neither
+ * raises an error, so the value is fixed and verified here.
  */
 class CacheRepositoryTest {
     @Test
     fun theAutomaticPurgeKeepsReadArticlesForOneWeek() {
-        // SPECS.md §8, question 3 : tranchée à 7 jours.
+        // SPECS.md §8, question 3: settled at 7 days.
         assertEquals(7.days, CacheRepository.MaxAge)
     }
 
@@ -28,9 +28,9 @@ class CacheRepositoryTest {
 
     @Test
     fun twoStatusesDifferAsSoonAsOneOfTheirCountsDiffers() {
-        // L'écran observe cet état : deux valeurs égales doivent l'être, sinon
-        // `StateFlow` réémettrait à chaque lecture de la base et l'écran
-        // clignoterait.
+        // The screen observes this state: equal values must compare equal,
+        // otherwise `StateFlow` would re-emit on every database read and the
+        // screen would flicker.
         assertEquals(CacheStatus(articleCount = 3, purgeableCount = 1), CacheStatus(3, 1))
         assertNotEquals(CacheStatus(articleCount = 3, purgeableCount = 1), CacheStatus(3, 2))
         assertEquals(
@@ -52,8 +52,8 @@ class CacheRepositoryTest {
 
     @Test
     fun theStatusIsReadableAsText() {
-        // `toString` est ce qu'affiche un échec d'assertion : sans lui, un test
-        // rouge ne dirait pas quel compteur a divergé.
+        // `toString` is what an assertion failure prints: without it, a red
+        // test would not say which counter diverged.
         assertEquals("CacheStatus(articleCount=3, purgeableCount=1)", CacheStatus(3, 1).toString())
     }
 }

@@ -15,18 +15,18 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 /**
- * Le numéro du jour **local** que porte cet instant, compté depuis l'époque.
+ * Local day number carried by this instant, counted from the epoch.
  *
- * Deux besoins s'en servent, et c'est pour cela qu'elle est nommée ici plutôt
- * que recopiée : savoir si le jour a changé depuis la dernière ouverture, et
- * donner au domaine l'index qui fait tourner la formulation du rappel
- * (`reminderPlanFor`). Les deux doivent compter les **mêmes** jours, sans quoi
- * la formulation changerait au milieu d'une journée de l'utilisateur.
+ * Two needs share this function, which is why it is named here rather than
+ * duplicated: knowing whether the day changed since the last opening, and
+ * giving the domain the index that rotates the reminder wording
+ * (`reminderPlanFor`). Both must count the same days, otherwise the wording
+ * would change in the middle of the user's day.
  *
- * Local, et jamais UTC : « la première ouverture du jour » se compte dans le
- * jour de celui qui ouvre l'application, pas dans celui de Greenwich. À Paris,
- * une ouverture à 1 h du matin appartient déjà au jour suivant ; en UTC, elle
- * appartiendrait encore à la veille.
+ * Local, never UTC: "the first opening of the day" is counted in the day of
+ * the person opening the application, not Greenwich's. In Paris, an opening at
+ * 1 a.m. already belongs to the next day; in UTC it would still belong to the
+ * previous one.
  */
 internal fun localDayOf(
     epochMillis: Long,
@@ -34,29 +34,29 @@ internal fun localDayOf(
 ): Long = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate().toEpochDay()
 
 /**
- * Retient le moment de la **première** ouverture du jour (SPECS.md §4.9).
+ * Records the time of the first opening of the day (SPECS.md §4.9).
  *
- * C'est cette heure-là que le rappel du lendemain vise : le moment où
- * l'utilisateur tend la main vers l'application. Retenir la dernière ouverture
- * retiendrait au contraire un passage distrait — un coup d'œil de trente
- * secondes avant de dormir fixerait le rappel à minuit.
+ * That time is what the next day's reminder targets: the moment the user
+ * reaches for the application. Recording the last opening would instead
+ * capture a distracted visit — a thirty-second glance before sleep would pin
+ * the reminder to midnight.
  *
- * D'où les **deux** clés. Le moment seul ne suffirait pas : sans savoir à quel
- * jour il se rapporte, il serait impossible de distinguer la première ouverture
- * du jour des suivantes, et chaque retour à l'application écraserait l'heure
- * retenue. Le jour stocké est ce qui rend [recordOpening] silencieux à partir
- * du deuxième appel.
+ * Hence the two keys. The time alone would not suffice: without knowing which
+ * day it refers to, the first opening of the day could not be distinguished
+ * from later ones, and every return to the application would overwrite the
+ * recorded time. The stored day is what makes [recordOpening] a no-op from the
+ * second call onward.
  *
- * Partage le `DataStore<Preferences>` de l'application, avec le préfixe
- * `reminder.` — le même que celui du réglage porté par [SettingsStore]. Une
- * déconnexion n'efface que les clés `session.` et laisse donc l'heure en place :
- * l'habitude de lecture de l'utilisateur ne relève pas de son compte.
+ * Shares the application's `DataStore<Preferences>`, with the `reminder.`
+ * prefix — the same as the setting held by [SettingsStore]. A logout only
+ * wipes `session.` keys and therefore leaves the time in place: the user's
+ * reading habit does not belong to their account.
  *
- * **Sans portée `@Singleton`, délibérément.** L'objet ne retient rien — l'état
- * est dans le `DataStore`, qui est le singleton — et sa [zone] est lue à sa
- * construction : une instance unique figerait pour toute la vie du processus le
- * fuseau du démarrage, et l'utilisateur qui change de pays continuerait à voir
- * ses ouvertures datées à l'heure de l'ancien.
+ * Deliberately not `@Singleton`. The object holds no state — the state lives
+ * in the `DataStore`, which is the singleton — and its [zone] is read at
+ * construction: a single instance would freeze the startup time zone for the
+ * life of the process, and a user who changes country would keep seeing their
+ * openings dated in the old one.
  */
 internal class ReminderTimeStore @Inject constructor(
     private val dataStore: DataStore<Preferences>,
@@ -65,11 +65,11 @@ internal class ReminderTimeStore @Inject constructor(
 ) : OpeningRecorder {
 
     /**
-     * Le test du jour et l'écriture sont dans le même `edit` : DataStore y
-     * sérialise les transactions, ce qu'un `first()` suivi d'un `edit` ne
-     * garantirait pas. Deux ouvertures simultanées — un `Activity` recréé
-     * pendant une rotation en est une — pourraient sinon passer toutes les deux
-     * le test, et la seconde écraserait la première.
+     * The day check and the write are in the same `edit`: DataStore serializes
+     * transactions there, which a `first()` followed by an `edit` would not
+     * guarantee. Two simultaneous openings — an `Activity` recreated during a
+     * rotation is one — could otherwise both pass the check, and the second
+     * would overwrite the first.
      */
     override suspend fun recordOpening() {
         val now = clock.nowEpochMillis()
@@ -84,14 +84,14 @@ internal class ReminderTimeStore @Inject constructor(
     }
 
     /**
-     * Lecture ponctuelle et non `Flow` : l'appelant est le programmateur, qui
-     * décide une fois et n'a rien à réobserver.
+     * One-shot read rather than a `Flow`: the caller is the scheduler, which
+     * decides once and has nothing to re-observe.
      *
-     * Une valeur hors bornes est traitée comme une absence plutôt que relayée à
-     * `DailyMinute`, dont le constructeur lèverait. Le fichier peut avoir été
-     * écrit par une version antérieure ou restauré d'une sauvegarde, et faire
-     * échouer la programmation du rappel pour cela empêcherait aussi la
-     * prochaine ouverture d'en réécrire une bonne.
+     * An out-of-range value is treated as absent rather than passed to
+     * `DailyMinute`, whose constructor would throw. The file may have been
+     * written by an earlier version or restored from a backup, and failing the
+     * reminder scheduling for that would also prevent the next opening from
+     * writing a valid value.
      */
     override suspend fun openingMinute(): DailyMinute? =
         dataStore.data.first()[Keys.OpeningMinute]
@@ -102,8 +102,8 @@ internal class ReminderTimeStore @Inject constructor(
         val OpeningMinute = intPreferencesKey("reminder.opening_minute")
 
         /**
-         * Le jour auquel [OpeningMinute] se rapporte. Sans lui, l'heure retenue
-         * serait celle de la dernière ouverture et non de la première.
+         * The day [OpeningMinute] refers to. Without it, the recorded time
+         * would be the last opening's rather than the first's.
          */
         val OpeningDay = longPreferencesKey("reminder.opening_day")
     }

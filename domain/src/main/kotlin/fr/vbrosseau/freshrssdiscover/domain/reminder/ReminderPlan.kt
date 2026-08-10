@@ -2,46 +2,43 @@ package fr.vbrosseau.freshrssdiscover.domain.reminder
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 
-/** Nombre de titres cités dans un rappel. */
+/** Number of titles quoted in a reminder. */
 const val REMINDER_TITLE_COUNT: Int = 2
 
 /**
- * Les formulations possibles d'un rappel.
+ * Possible phrasings of a reminder.
  *
- * Un type énuméré et non des chaînes : le domaine choisit **laquelle**, la
- * couche Android sait la dire. Toute chaîne affichée est une ressource
- * (AGENTS.md §9), et le domaine n'en connaît aucune — il ignore d'ailleurs la
- * langue de l'utilisateur.
+ * An enum rather than strings: the domain chooses which one, the Android layer
+ * knows how to say it. Every displayed string is a resource (AGENTS.md §9),
+ * and the domain knows none, nor the user's language.
  *
- * Plusieurs formulations parce qu'un rappel quotidien identique cesse d'être lu
- * au bout de trois jours : l'œil apprend la forme du message et le balaie sans
- * le voir. Varier n'est pas une coquetterie, c'est ce qui le maintient lisible.
+ * Several phrasings because an identical daily reminder stops being read after
+ * three days: the eye learns the shape of the message and skips it. Variation
+ * is what keeps it readable.
  */
 enum class ReminderTone {
-    /** « Des articles vous attendent. » */
+    /** "Articles are waiting for you." */
     Waiting,
 
-    /** « Un moment pour lire ? » */
+    /** "A moment to read?" */
     Invitation,
 
-    /** « Voici ce qui est arrivé depuis hier. » */
+    /** "Here is what arrived since yesterday." */
     Fresh,
 
-    /** « Votre pile n'attend que vous. » */
+    /** "Your pile is waiting." */
     Pile,
 }
 
 /**
- * Ce qu'un rappel doit dire, ou l'absence de rappel.
+ * What a reminder should say, or the absence of a reminder.
  *
- * `null` — rendu par [reminderPlanFor] — signifie **ne pas notifier du tout**.
- * Un rappel qui annoncerait qu'il n'y a rien à lire est une interruption sans
- * contrepartie, et c'est exactement ce qui fait désactiver les notifications
- * d'une application.
+ * `null` returned by [reminderPlanFor] means do not notify at all. A reminder
+ * announcing there is nothing to read is an interruption with no payoff, and
+ * exactly what makes users disable an app's notifications.
  *
- * @property titles les titres cités, dans l'ordre du flux. Ils viennent des
- *   articles eux-mêmes : c'est du **contenu**, pas un libellé d'interface, et
- *   rien n'est donc à traduire.
+ * @property titles the quoted titles, in feed order. They come from the
+ *   articles themselves: content, not UI labels, so nothing to translate.
  */
 data class ReminderPlan(
     val tone: ReminderTone,
@@ -50,15 +47,15 @@ data class ReminderPlan(
 )
 
 /**
- * Décide du rappel du jour à partir de ce que le cache contient.
+ * Decides the day's reminder from what the cache contains.
  *
- * **Le ton tourne avec le jour**, et de façon déterministe : deux exécutions du
- * même jour — une reprise après échec, un redémarrage de l'appareil — donnent
- * le même message, alors qu'un tirage au hasard en donnerait deux différents
- * pour un seul rappel. Deux jours de suite ne partagent jamais leur ton.
+ * The tone rotates with the day, deterministically: two runs on the same day
+ * (a retry after failure, a device restart) yield the same message, whereas a
+ * random draw would yield two different ones for a single reminder. Two
+ * consecutive days never share a tone.
  *
- * @param dayIndex un numéro de jour strictement croissant, typiquement le
- *   nombre de jours depuis l'époque. Seul son reste importe.
+ * @param dayIndex a strictly increasing day number, typically days since the
+ *   epoch. Only its remainder matters.
  */
 fun reminderPlanFor(
     unread: List<Article>,
@@ -67,9 +64,9 @@ fun reminderPlanFor(
     if (unread.isEmpty()) return null
 
     val tones = ReminderTone.entries
-    // `Math.floorMod` et non `%` : un `dayIndex` négatif — une date antérieure à
-    // 1970, qu'une horloge d'appareil mal réglée peut produire — rendrait un
-    // index négatif, et l'accès à la liste échouerait.
+    // `Math.floorMod`, not `%`: a negative `dayIndex` (a pre-1970 date, which
+    // a misconfigured device clock can produce) would yield a negative index
+    // and the list access would fail.
     val tone = tones[Math.floorMod(dayIndex, tones.size.toLong()).toInt()]
 
     return ReminderPlan(

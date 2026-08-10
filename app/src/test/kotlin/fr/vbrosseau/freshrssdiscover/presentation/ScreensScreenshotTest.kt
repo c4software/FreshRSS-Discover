@@ -16,12 +16,11 @@ import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppRoutes
 import org.junit.Test
 
 /**
- * Références visuelles de l'ossature.
+ * Visual references for the app skeleton.
  *
- * Les écrans réels viendront s'ajouter ici au fil des Goals. Capturer dès
- * maintenant la barre de navigation et l'écran d'attente sert d'abord à
- * éprouver la chaîne Roborazzi elle-même : sans une référence enregistrée,
- * `verifyRoborazziDebug` ne compare rien et passerait à tort.
+ * Capturing the navigation bar and the waiting screen also exercises the
+ * Roborazzi chain itself: without a recorded reference,
+ * `verifyRoborazziDebug` compares nothing and would pass wrongly.
  */
 class ScreensScreenshotTest : ScreenshotTest() {
 
@@ -52,10 +51,10 @@ class ScreensScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Le message le plus long de l'écran, sur l'avertissement le plus long.
+     * The longest message of the screen, over the longest warning.
      *
-     * C'est le cas qui déborde : si une mise en page casse, c'est ici que cela
-     * se voit — et une assertion textuelle ne le montrerait pas.
+     * This is the overflow case: if a layout breaks, it shows here, and a
+     * textual assertion would not reveal it.
      */
     @Test
     fun loginScreenWithTheLongestFailure() {
@@ -85,14 +84,15 @@ class ScreensScreenshotTest : ScreenshotTest() {
         }
     }
 
-    // ----- Flux Discover ------------------------------------------------------
+    // ----- Discover feed ------------------------------------------------------
 
     /**
-     * Le flux ordinaire, avec et sans illustration, et un article sans lien.
+     * The ordinary feed, with and without illustration, plus an article
+     * without a link.
      *
-     * Les trois cas cohabitent volontairement sur une même image : c'est leur
-     * juxtaposition qui montre qu'un article sans illustration ne laisse pas de
-     * trou dans la colonne (SPECS.md §4.3).
+     * The three cases share one image on purpose: their juxtaposition shows
+     * that an article without an illustration leaves no hole in the column
+     * (SPECS.md §4.3).
      */
     @Test
     fun discoverScreenLoaded() {
@@ -116,10 +116,10 @@ class ScreensScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * Un échec de page suivante, sous les articles déjà affichés.
+     * A next-page failure, below the articles already displayed.
      *
-     * C'est le cas que SPECS.md §4.4 protège : la capture doit montrer la liste
-     * intacte et le message en pied, jamais un écran d'erreur plein.
+     * The case SPECS.md §4.4 protects: the capture must show the list intact
+     * and the message in the footer, never a full error screen.
      */
     @Test
     fun discoverScreenWithAFailedNextPage() {

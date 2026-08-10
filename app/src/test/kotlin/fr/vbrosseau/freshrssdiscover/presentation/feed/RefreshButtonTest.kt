@@ -14,11 +14,11 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
 /**
- * Le bouton de rechargement, éprouvé seul.
+ * Tests for the refresh button in isolation.
  *
- * Il a quitté les deux écrans pour la barre de titre : le tester à travers
- * `DiscoverScreen` ou `SwipeScreen` ne dirait donc plus rien de l'endroit où il
- * se trouve, et ferait dépendre son sort d'un écran qui ne le possède plus.
+ * The button lives in the top bar, not in the screens: testing it through
+ * `DiscoverScreen` or `SwipeScreen` would tie it to a screen that no longer
+ * owns it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -56,8 +56,8 @@ class RefreshButtonTest {
 
     @Test
     fun itStaysInPlaceWhileTheReloadRunsRatherThanDisappearing() {
-        // Disparu, il laisserait un trou et l'appui semblerait perdu ; grisé,
-        // il dirait « indisponible » et non « en cours ».
+        // Hiding it would leave a gap and make the press feel lost; graying it
+        // out would read as "unavailable" rather than "in progress".
         show(isRefreshing = true)
 
         composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed()
@@ -65,7 +65,7 @@ class RefreshButtonTest {
 
     @Test
     fun itAnnouncesWhatItDoesToAScreenReader() {
-        // SPECS.md §7.1 : une icône seule ne dit rien sans description.
+        // SPECS.md §7.1: an icon alone means nothing without a description.
         show()
 
         composeRule.onNodeWithContentDescription("Recharger le flux").assertIsDisplayed()

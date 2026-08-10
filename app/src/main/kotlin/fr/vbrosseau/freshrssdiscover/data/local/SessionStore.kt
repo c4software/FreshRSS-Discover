@@ -18,17 +18,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Conserve la session entre deux lancements.
+ * Persists the session across launches.
  *
- * **Le mot de passe API n'est jamais enregistré.** Le jeton FreshRSS n'expirant
- * pas (docs/freshrss-api.md §2.1), le conserver suffit à rouvrir l'application
- * sans reconnexion ; garder en plus le mot de passe n'apporterait rien et
- * doublerait la surface exposée. Lorsque le jeton devient invalide — parce que
- * l'utilisateur a changé son mot de passe API — SPECS.md §3.4 demande de
- * revenir à l'écran de connexion, pas de retenter en silence.
+ * The API password is never stored. The FreshRSS token does not expire
+ * (docs/freshrss-api.md §2.1), so keeping it is enough to reopen the
+ * application without signing in again; also keeping the password would add
+ * nothing and double the exposed surface. When the token becomes invalid —
+ * because the user changed their API password — SPECS.md §3.4 requires
+ * returning to the sign-in screen, not retrying silently.
  *
- * Adresse et identifiant sont en clair : ce ne sont pas des secrets, et les
- * lire aide à diagnostiquer. Les jetons, eux, passent par [SecretCipher].
+ * Address and username are stored in clear text: they are not secrets, and
+ * reading them helps diagnostics. Tokens go through [SecretCipher].
  */
 @Singleton
 internal class SessionStore @Inject constructor(
@@ -36,12 +36,12 @@ internal class SessionStore @Inject constructor(
     private val cipher: SecretCipher,
 ) {
     /**
-     * Session enregistrée, ou `null`.
+     * Stored session, or `null`.
      *
-     * `null` couvre aussi le cas d'un secret devenu illisible — clé du
-     * *keystore* perdue après un changement de verrouillage d'écran. Du point
-     * de vue de l'application, il n'y a alors pas de session : c'est la seule
-     * conduite qui ramène l'utilisateur à un écran utile.
+     * `null` also covers a secret that became unreadable — keystore key lost
+     * after a screen-lock change. From the application's point of view, there
+     * is then no session: the only behavior that brings the user back to a
+     * useful screen.
      */
     fun observeSession(): Flow<AuthSession?> = dataStore.data.map(::readSession).distinctUntilChanged()
 
@@ -60,14 +60,14 @@ internal class SessionStore @Inject constructor(
     }
 
     /**
-     * Adresse et identifiant du dernier accès, même sans session valide.
+     * Address and username of the last access, even without a valid session.
      *
-     * Aucun secret n'y figure : c'est ce qui permet de les conserver après un
-     * jeton refusé, là où les jetons sont effacés.
+     * Contains no secret: this is what allows keeping them after a rejected
+     * token, whereas the tokens are wiped.
      */
     fun observeLastSignInHint(): Flow<SignInHint?> = dataStore.data.map(::readHint).distinctUntilChanged()
 
-    /** Efface les jetons, conserve le rappel de saisie. */
+    /** Wipes the tokens, keeps the sign-in hint. */
     suspend fun invalidateTokens() {
         dataStore.edit { preferences ->
             preferences.remove(Keys.AuthToken)
@@ -75,7 +75,7 @@ internal class SessionStore @Inject constructor(
         }
     }
 
-    /** Efface tout, rappel de saisie compris. Geste délibéré de l'utilisateur. */
+    /** Wipes everything, sign-in hint included. A deliberate user action. */
     suspend fun clear() {
         dataStore.edit { preferences ->
             Keys.all.forEach(preferences::remove)

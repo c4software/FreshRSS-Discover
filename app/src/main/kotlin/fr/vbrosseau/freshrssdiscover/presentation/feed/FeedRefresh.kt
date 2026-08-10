@@ -1,18 +1,18 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 /**
- * Le rechargement, tel qu'une destination le publie à la barre de titre.
+ * The refresh action as a destination publishes it to the title bar.
  *
- * Ce type existe parce que le bouton et le flux ne vivent pas au même endroit :
- * la barre de titre appartient à l'ossature de l'application, au-dessus du
- * graphe de navigation, tandis que l'action appartient au ViewModel de la
- * destination affichée. L'un des deux doit franchir la frontière, et c'est
- * l'action — remonter la barre dans chaque écran obligerait chacun à
- * redessiner un titre et une barre de navigation.
+ * This type exists because the button and the feed do not live in the same
+ * place: the title bar belongs to the app scaffold, above the navigation
+ * graph, while the action belongs to the displayed destination's ViewModel.
+ * One of them has to cross the boundary, and it is the action; moving the
+ * bar into each screen would force each to redraw a title and a navigation
+ * bar.
  *
- * `null` en l'absence de cette valeur signifie « cette destination n'a rien à
- * recharger », et non « rien à faire pour le moment » : c'est ce qui laisse la
- * barre nue sur l'écran de réglages, sans qu'il ait à le demander.
+ * `null` means "this destination has nothing to refresh", not "nothing to do
+ * right now": that is what leaves the bar bare on the settings screen
+ * without it having to ask.
  */
 data class FeedRefresh(
     val isRefreshing: Boolean,

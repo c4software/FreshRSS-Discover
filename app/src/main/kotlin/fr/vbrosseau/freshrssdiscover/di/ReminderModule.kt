@@ -17,10 +17,8 @@ import fr.vbrosseau.freshrssdiscover.reminder.WorkManagerReminderScheduler
 import java.time.ZoneId
 
 /**
- * Le rappel de lecture (SPECS.md §4.9), au complet : ce qui le programme, ce
- * qui retient l'heure qu'il vise, et ce qui le montre. La notification a eu
- * son module à part ; même feature, même travailleur consommateur — un module
- * unique dit mieux le périmètre.
+ * Bindings for the reading reminder feature (SPECS.md §4.9): scheduling,
+ * storage of the target time, and notification display.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -33,9 +31,9 @@ internal abstract class ReminderModule {
     abstract fun bindOpeningRecorder(implementation: ReminderTimeStore): OpeningRecorder
 
     /**
-     * Le travailleur ne dépend que de l'interface : c'est ce qui le rend
-     * éprouvable sans `NotificationManager`, et cette liaison est le seul
-     * endroit du code qui connaisse l'implémentation Android.
+     * The worker depends only on the interface, which makes it testable
+     * without `NotificationManager`; this binding is the only place that
+     * knows the Android implementation.
      */
     @Binds
     abstract fun bindReminderNotifier(implementation: AndroidReminderNotifier): ReminderNotifier
@@ -43,28 +41,27 @@ internal abstract class ReminderModule {
     companion object {
 
         /**
-         * **Seul endroit du projet appelant `ZoneId.systemDefault()`**, pour la
-         * raison exacte qui fait que `Clock` existe (voir [TimeModule]) : le
-         * fuseau est un réglage du système, et le lire là où on en a besoin rend
-         * intestable tout ce qui en dépend. Le rappel étant calculé en heure
-         * locale, un test doit pouvoir se placer à Tokyo comme à Paris — et
-         * surtout franchir un changement d'heure sans attendre mars.
+         * The only place in the project that calls `ZoneId.systemDefault()`,
+         * for the same reason `Clock` exists (see [TimeModule]): the time zone
+         * is a system setting, and reading it at the point of use makes
+         * everything that depends on it untestable. The reminder is computed
+         * in local time, so tests must be able to pin any zone and cross a DST
+         * transition.
          *
-         * **Sans `@Singleton`, délibérément.** Le fuseau du téléphone change en
-         * cours d'exécution : voyage, retour d'un vol, correction manuelle. Une
-         * valeur mise en cache figerait celui du démarrage du processus, et le
-         * rappel resterait à l'heure du pays quitté jusqu'au prochain
-         * redémarrage. Les deux objets qui la consomment — `ReminderTimeStore`
-         * et `WorkManagerReminderScheduler` — sont eux-mêmes construits à la
-         * demande pour que cette fraîcheur leur parvienne.
+         * Deliberately not `@Singleton`: the device time zone can change at
+         * runtime (travel, manual correction). A cached value would freeze the
+         * zone from process start, leaving the reminder at the old zone's time
+         * until the next restart. The two consumers, `ReminderTimeStore` and
+         * `WorkManagerReminderScheduler`, are themselves built on demand so
+         * this freshness reaches them.
          */
         @Provides
         fun provideZoneId(): ZoneId = ZoneId.systemDefault()
 
         /**
-         * L'instance configurée par l'application, et non une nouvelle : c'est
-         * elle qui porte la fabrique de travailleurs de Hilt, sans laquelle
-         * `ReadingReminderWorker` ne peut pas être construit.
+         * The instance configured by the application, not a new one: it
+         * carries Hilt's worker factory, without which `ReadingReminderWorker`
+         * cannot be constructed.
          */
         @Provides
         fun provideWorkManager(

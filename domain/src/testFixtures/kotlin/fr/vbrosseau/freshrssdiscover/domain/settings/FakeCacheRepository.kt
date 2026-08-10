@@ -4,22 +4,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Cache en mémoire, pour les tests.
+ * In-memory cache for tests.
  *
- * Il **respecte l'invariant du vrai dépôt** : la purge n'emporte que les
- * articles purgeables et laisse les autres. Un fake qui viderait tout laisserait
- * passer un ViewModel qui promet à l'écran une suppression complète.
+ * Preserves the real repository's invariant: purging removes only purgeable
+ * articles and leaves the rest. A fake that emptied everything would let
+ * through a ViewModel promising the screen a complete deletion.
  */
 class FakeCacheRepository(
     initial: CacheStatus = CacheStatus.Empty,
 ) : CacheRepository {
     private val status = MutableStateFlow(initial)
 
-    /** Nombre de purges demandées, pour vérifier qu'un geste en déclenche exactement une. */
+    /** Number of purges requested, to verify a gesture triggers exactly one. */
     var purgeCount: Int = 0
         private set
 
-    /** État courant, pour vérifier l'effet d'une purge sans collecter. */
+    /** Current state, to verify a purge's effect without collecting. */
     val current: CacheStatus
         get() = status.value
 

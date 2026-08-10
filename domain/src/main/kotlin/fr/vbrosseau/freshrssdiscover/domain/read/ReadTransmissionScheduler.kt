@@ -9,79 +9,75 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Délai de regroupement des marquages avant transmission (SPECS.md §8, question 4).
+ * Grouping delay for markings before transmission (SPECS.md §8, question 4).
  *
- * Deux bornes, et la valeur est choisie entre elles :
+ * The value sits between two bounds:
  *
- * - **par le bas**, [ReadDetector] exige déjà 1 seconde de visibilité continue
- *   avant de déclarer un article lu : au rythme le plus rapide possible, il
- *   n'apparaît qu'un article lu par seconde. Une fenêtre plus courte que cette
- *   seconde se refermerait donc systématiquement sur **un seul** article, et
- *   produirait exactement la requête par article que SPECS.md §4.5 écarte ;
- * - **par le haut**, la fenêtre est le temps pendant lequel un marquage n'est
- *   connu que de l'appareil. Rien n'est perdu — la file survit à la fermeture
- *   et au redémarrage — mais tant qu'elle n'est pas transmise, la lecture
- *   n'est pas visible depuis le web ou un autre appareil. L'utilisateur qui
- *   lit puis quitte l'application est le cas courant, et il ne doit pas
- *   attendre le lancement suivant pour une lecture faite dix secondes plus tôt.
+ * - lower bound: [ReadDetector] already requires 1 second of continuous
+ *   visibility before declaring an article read, so at the fastest possible
+ *   pace one article per second becomes read. A window shorter than that
+ *   second would systematically close on a single article and produce exactly
+ *   the per-article request SPECS.md §4.5 rules out;
+ * - upper bound: the window is the time during which a marking is known only
+ *   to the device. Nothing is lost (the queue survives closing and restart),
+ *   but until transmitted the read is not visible from the web or another
+ *   device. Reading and then quitting the app is the common case, and the
+ *   user must not wait for the next launch for a read done ten seconds
+ *   earlier.
  *
- * 5 secondes valent cinq fois le seuil de détection : l'écran échantillonne la
- * visibilité toutes les 200 ms, donc une fenêtre regroupe jusqu'à 25 lots
- * détectés en **une** requête, pour au plus cinq articles — largement sous le
- * lot de 100 de la couche data. Et elle reste de l'ordre du geste : quitter
- * l'application dans les cinq secondes qui suivent une lecture est possible,
- * mais c'est déjà l'exception.
+ * 5 seconds is five times the detection threshold: the screen samples
+ * visibility every 200 ms, so one window groups up to 25 detected batches into
+ * one request, for at most five articles, well under the data layer's batch of
+ * 100. It also stays within the scale of a gesture: quitting the app within
+ * five seconds of a read is possible but exceptional.
  */
 private const val DEFAULT_GROUPING_DELAY_MILLIS = 5_000L
 
 /**
- * Regroupe dans le temps les transmissions de marquages.
+ * Groups marking transmissions in time.
  *
- * Le marquage **local** ne passe pas par ici : il reste immédiat, c'est la
- * moitié optimiste de SPECS.md §4.5, et la retarder ferait réapparaître à
- * l'écran un article que l'utilisateur vient de lire. Seule la **transmission**
- * est différée.
+ * Local marking does not go through here: it stays immediate, the optimistic
+ * half of SPECS.md §4.5, and delaying it would make a just-read article
+ * reappear on screen. Only the transmission is deferred.
  *
- * La fenêtre est **à échéance fixe** : un marquage survenant pendant l'attente
- * rejoint la fenêtre en cours sans la repousser. C'est le point à ne pas
- * inverser — un défilement continu produit un lot toutes les 200 ms, et une
- * fenêtre glissante ne se refermerait donc **jamais** tant que l'utilisateur
- * lit. La transmission n'aurait lieu qu'à l'arrêt du défilement, c'est-à-dire
- * souvent au moment même où l'application se ferme. L'échéance fixe borne au
- * contraire l'attente à [groupingDelayMillis], quoi que fasse l'utilisateur.
+ * The window has a fixed deadline: a marking arriving during the wait joins
+ * the current window without extending it. This must not be inverted:
+ * continuous scrolling produces a batch every 200 ms, so a sliding window
+ * would never close while the user reads. Transmission would only happen when
+ * scrolling stops, often the very moment the app closes. A fixed deadline
+ * bounds the wait to [groupingDelayMillis] whatever the user does.
  *
- * Le temps vient de `delay` et non de `Clock` : c'est une attente, pas un
- * horodatage, et l'ordonnanceur virtuel de `kotlinx-coroutines-test` la rend
- * vérifiable sans attendre réellement.
+ * Time comes from `delay`, not `Clock`: this is a wait, not a timestamp, and
+ * the virtual scheduler of `kotlinx-coroutines-test` makes it verifiable
+ * without real waiting.
  */
 class ReadTransmissionScheduler(
     private val scope: CoroutineScope,
     private val groupingDelayMillis: Long = DEFAULT_GROUPING_DELAY_MILLIS,
     private val transmit: suspend () -> Unit,
 ) {
-    /** Protège [window] : un marquage et un envoi forcé n'arrivent pas du même fil. */
+    /** Guards [window]: a marking and a forced dispatch may arrive from different threads. */
     private val windowMutex = Mutex()
 
     /**
-     * Sérialise les transmissions.
+     * Serializes transmissions.
      *
-     * Deux envois simultanés liraient la même file avant que l'un des deux ne
-     * l'acquitte, et enverraient donc deux fois les mêmes articles. Le marquage
-     * distant est idempotent, mais la requête, elle, serait payée deux fois.
+     * Two simultaneous dispatches would read the same queue before either
+     * acknowledged it, sending the same articles twice. The remote marking is
+     * idempotent, but the request would be paid twice.
      */
     private val transmissionMutex = Mutex()
 
-    /** Fenêtre en cours, ou `null` si aucune n'est ouverte. */
+    /** Current window, or `null` when none is open. */
     private var window: Job? = null
 
     /**
-     * Ouvre une fenêtre de regroupement si aucune ne l'est déjà.
+     * Opens a grouping window if none is open.
      *
-     * À appeler **après** avoir mis le marquage en file, jamais avant : c'est
-     * cet ordre qui garantit qu'aucun marquage n'est perdu. Une fenêtre déjà
-     * ouverte n'a pas encore commencé à transmettre — elle se referme avant —
-     * donc elle emportera le marquage qui vient d'être mis en file ; et si elle
-     * s'est refermée entre-temps, cet appel en ouvre une nouvelle.
+     * Must be called after enqueuing the marking, never before: this order
+     * guarantees no marking is lost. An already-open window has not yet begun
+     * transmitting (it closes first), so it will carry the marking just
+     * enqueued; and if it closed in the meantime, this call opens a new one.
      */
     suspend fun schedule() {
         windowMutex.withLock {
@@ -90,12 +86,12 @@ class ReadTransmissionScheduler(
                 scope.launch {
                     delay(groupingDelayMillis)
                     /*
-                     * La fenêtre se referme AVANT de transmettre, et c'est tout
-                     * l'invariant : un marquage arrivant pendant la transmission
-                     * trouve la place libre et ouvre sa propre fenêtre. Le
-                     * refermer après laisserait ce marquage sans transmission
-                     * programmée, alors que la transmission en cours a peut-être
-                     * déjà lu la file.
+                     * The window closes BEFORE transmitting, and that is the
+                     * whole invariant: a marking arriving during transmission
+                     * finds the slot free and opens its own window. Closing it
+                     * after would leave that marking with no scheduled
+                     * transmission, while the in-flight one may already have
+                     * read the queue.
                      */
                     releaseWindow(coroutineContext.job)
                     transmitExclusively()
@@ -104,11 +100,11 @@ class ReadTransmissionScheduler(
     }
 
     /**
-     * Transmet sans attendre la fin de la fenêtre.
+     * Transmits without waiting for the window to end.
      *
-     * C'est ce que fait le rejeu au démarrage — où il n'y a rien à regrouper,
-     * seulement à rattraper — et ce que fera un passage en arrière-plan, où
-     * l'attente n'a plus d'objet puisque plus rien ne sera lu.
+     * Used by the startup replay, where there is nothing to group, only to
+     * catch up, and by going to background, where waiting is pointless since
+     * nothing more will be read.
      */
     suspend fun transmitNow() {
         closeWindow()
@@ -116,10 +112,10 @@ class ReadTransmissionScheduler(
     }
 
     /**
-     * Renonce à la fenêtre en cours sans transmettre.
+     * Abandons the current window without transmitting.
      *
-     * Pour la déconnexion : la file étant abandonnée, la transmission
-     * programmée n'a plus rien à dire au serveur.
+     * For sign-out: the queue being dropped, the scheduled transmission has
+     * nothing left to tell the server.
      */
     suspend fun cancelScheduled() {
         closeWindow()
@@ -133,13 +129,13 @@ class ReadTransmissionScheduler(
     }
 
     /**
-     * Libère la place, à l'usage de la fenêtre elle-même.
+     * Frees the slot, for use by the window itself.
      *
-     * Distincte de [closeWindow], qui annule : une fenêtre ne peut pas
-     * s'annuler elle-même sans annuler la transmission qu'elle est en train de
-     * déclencher. La comparaison d'identité protège du cas de course où un
-     * envoi forcé a déjà refermé cette fenêtre et où une autre a été ouverte
-     * depuis — l'oublier ferait perdre la fenêtre de quelqu'un d'autre.
+     * Distinct from [closeWindow], which cancels: a window cannot cancel
+     * itself without cancelling the transmission it is about to trigger. The
+     * identity comparison guards the race where a forced dispatch already
+     * closed this window and another was opened since; without it, someone
+     * else's window would be lost.
      */
     private suspend fun releaseWindow(current: Job) {
         windowMutex.withLock { if (window === current) window = null }

@@ -1,44 +1,41 @@
 package fr.vbrosseau.freshrssdiscover.domain.settings
 
 /**
- * Les deux seuils du marquage automatique (SPECS.md §4.5), dans les unités du
- * domaine : une fraction de hauteur affichée et une durée en millisecondes.
+ * The two thresholds of automatic marking (SPECS.md §4.5), in domain units: a
+ * displayed-height fraction and a duration in milliseconds.
  *
- * **Pourquoi ce type existe.** Ces deux valeurs vivaient jusqu'ici en copies
- * indépendantes : deux constantes privées de `ReadDetector`, deux constantes
- * du `SettingsViewModel`, des littéraux dans les tests. Rien n'empêchait les
- * copies de diverger, et la divergence aurait été **silencieuse** : l'écran de
- * réglages aurait continué d'annoncer « 60 % pendant 1 s » pendant que le
- * détecteur en appliquait d'autres. Un réglage qui affiche autre chose que ce
- * qui est appliqué est pire qu'un réglage absent — c'est la raison d'être de
- * ce type. [Default] est désormais la déclaration unique côté réglages, et
- * `ReadingSettingsTest` constate qu'elle produit le même comportement que les
- * défauts compilés dans `ReadDetector`.
+ * This type exists to eliminate independent copies of these values (private
+ * constants of `ReadDetector`, constants of `SettingsViewModel`, literals in
+ * tests). Nothing prevented the copies from diverging, and divergence would
+ * have been silent: the settings screen would keep announcing "60% for 1 s"
+ * while the detector applied other values. A setting that displays something
+ * other than what is applied is worse than no setting. [Default] is now the
+ * single declaration on the settings side, and `ReadingSettingsTest` verifies
+ * it produces the same behavior as the defaults compiled into `ReadDetector`.
  *
- * Les bornes sont vérifiées à la construction plutôt que laissées à l'appelant.
- * La source d'une valeur hors bornes n'est pas l'interface — un curseur à crans
- * ne peut pas en produire — mais le **disque** : un fichier de préférences
- * écrit par une version antérieure, tronqué, ou modifié. Voir [coerced], qui
- * est le chemin prévu pour ce cas.
+ * Bounds are checked at construction rather than left to the caller. The
+ * source of an out-of-bounds value is not the UI (a stepped slider cannot
+ * produce one) but the disk: a preferences file written by an earlier
+ * version, truncated, or modified. See [coerced], the intended path for that
+ * case.
  */
 data class ReadingSettings(
     val visibleFraction: Float,
     val continuousVisibilityMillis: Long,
     /**
-     * Le marquage par visibilité a-t-il lieu (SPECS.md §4.5) ?
+     * Whether visibility-based marking is active (SPECS.md §4.5).
      *
-     * Éteint, il n'arrête que la **détection par visibilité** : ouvrir un
-     * article continue de le marquer lu (SPECS.md §4.7), parce que c'est un
-     * geste délibéré et non un effet du défilement. Confondre les deux ferait
-     * revenir dans le flux l'article qu'on vient de lire ailleurs.
+     * When off, only visibility detection stops: opening an article still
+     * marks it read (SPECS.md §4.7), because that is a deliberate gesture and
+     * not a scrolling side effect. Conflating the two would bring back into
+     * the feed the article just read elsewhere.
      *
-     * Il vit ici plutôt que dans un flux à lui : il a le même lecteur que les
-     * deux seuils — le détecteur de lecture — et se lit au même moment. Deux
-     * sources obligeraient qui n'en applique qu'une à observer les deux.
+     * It lives here rather than in its own flow: it has the same reader as
+     * the two thresholds (the read detector) and is read at the same moment.
+     * Two sources would force a consumer of one to observe both.
      *
-     * Sans borne à vérifier, contrairement aux seuils : un booléen n'a pas de
-     * valeur aberrante. Il traverse tout de même [coerced], qui est le chemin
-     * unique de relecture du disque.
+     * No bound to check, unlike the thresholds: a boolean has no aberrant
+     * value. It still goes through [coerced], the single disk read-back path.
      */
     val autoMarkAsReadEnabled: Boolean = true,
 ) {
@@ -53,74 +50,71 @@ data class ReadingSettings(
 
     companion object {
         /**
-         * Fraction de hauteur exigée, entre 20 % et 100 % **inclus**.
+         * Required height fraction, between 20% and 100% inclusive.
          *
-         * Le plafond est 1.0 et non davantage : SPECS.md §4.5 précise que
-         * l'appelant borne la fraction à la part visible de l'écran, donc à 1.0.
-         * Un seuil de 2.0 ne serait jamais atteint et **aucun** article ne
-         * deviendrait jamais lu, sans que rien ne le signale.
+         * The ceiling is 1.0 and no more: SPECS.md §4.5 states the caller
+         * clamps the fraction to the visible share of the screen, i.e. 1.0. A
+         * threshold of 2.0 would never be reached and no article would ever
+         * become read, with nothing signalling it.
          *
-         * Le plancher est 0.2 et non 0.0 : à zéro, la condition de surface est
-         * toujours vraie — une fraction négative rendrait de surcroît lu tout
-         * article seulement présent dans l'observation. Le seuil de surface
-         * existe précisément pour écarter l'article effleuré en bord d'écran
-         * (SPECS.md §4.5) ; en dessous de 20 %, il ne filtre plus rien et le
-         * double seuil se réduit à un seuil simple.
+         * The floor is 0.2 and not 0.0: at zero the surface condition is
+         * always true, and a negative fraction would even mark read any
+         * article merely present in the observation. The surface threshold
+         * exists precisely to exclude the article grazing the screen edge
+         * (SPECS.md §4.5); below 20% it filters nothing and the double
+         * threshold degrades to a single one.
          */
         val VisibleFractionRange: ClosedFloatingPointRange<Float> = 0.2f..1.0f
 
         /**
-         * Durée d'affichage continu exigée, entre 1 s et 5 s **incluses**.
+         * Required continuous display duration, between 1 s and 5 s inclusive.
          *
-         * Le plancher est la valeur de SPECS.md §4.5 : c'est déjà la durée la
-         * plus courte qui distingue une lecture d'un défilement rapide. Zéro ou
-         * une durée négative satisferaient la condition dès la première
-         * observation, ce qui annulerait le second seuil — l'article traversé
-         * par un défilement rapide redeviendrait lu, exactement le cas que le
-         * double seuil écarte.
+         * The floor is the SPECS.md §4.5 value: already the shortest duration
+         * that separates a read from a fast scroll. Zero or a negative
+         * duration would satisfy the condition on the first observation,
+         * cancelling the second threshold; fast-scrolled articles would become
+         * read again, exactly the case the double threshold excludes.
          *
-         * Le plafond est 5 s parce qu'au-delà, dans un défilement normal, plus
-         * aucun article n'atteindrait le seuil : le réglage serait alors
-         * indiscernable d'une panne du marquage.
+         * The ceiling is 5 s because beyond it, in normal scrolling, no
+         * article would ever reach the threshold: the setting would then be
+         * indistinguishable from broken marking.
          */
         val ContinuousVisibilityRange: LongRange = 1_000L..5_000L
 
         /**
-         * Les valeurs de SPECS.md §4.5, appliquées tant que rien n'est enregistré.
+         * SPECS.md §4.5 values, applied while nothing is stored.
          *
-         * Elles doivent rester identiques aux défauts de `ReadDetector` : c'est
-         * la seule chose qui garantit qu'une première installation applique bien
-         * ce que l'écran de réglages affiche.
+         * They must stay identical to the `ReadDetector` defaults: the only
+         * guarantee that a fresh install applies what the settings screen
+         * displays.
          */
         val Default: ReadingSettings =
             ReadingSettings(
                 visibleFraction = 0.6f,
                 continuousVisibilityMillis = 1_000L,
                 /*
-                 * Actif : c'est le comportement d'aujourd'hui, celui que
-                 * SPECS.md §1 décrit — « lire, c'est faire défiler ». Une
-                 * installation existante ne doit rien voir changer.
+                 * Enabled: the current behavior, the one SPECS.md §1
+                 * describes. An existing installation must see nothing change.
                  */
                 autoMarkAsReadEnabled = true,
             )
 
         /**
-         * Ramène des valeurs quelconques dans les bornes, sans échouer.
+         * Clamps arbitrary values into bounds, without failing.
          *
-         * Réservé à la relecture du disque : une préférence corrompue ne doit
-         * pas empêcher l'application de démarrer, alors qu'un appel de
-         * l'interface hors bornes est un défaut de programmation et doit lever.
+         * Reserved for disk read-back: a corrupted preference must not prevent
+         * the app from starting, whereas an out-of-bounds call from the UI is
+         * a programming defect and must throw.
          *
-         * `NaN` est ramené au défaut plutôt qu'à une borne : il ne se compare à
-         * rien, donc `coerceIn` le laisserait passer tel quel, et un seuil `NaN`
-         * rendrait toute comparaison fausse — aucun article ne serait plus
-         * jamais marqué lu.
+         * `NaN` falls back to the default rather than a bound: it compares to
+         * nothing, so `coerceIn` would let it through unchanged, and a `NaN`
+         * threshold would make every comparison false; no article would ever
+         * be marked read again.
          *
-         * [autoMarkAsReadEnabled] la traverse sans être corrigé — un booléen
-         * n'a pas de valeur hors bornes — mais elle reste le point de passage
-         * unique de la relecture du disque : le lui faire contourner
-         * demanderait à chaque appelant de savoir lequel des trois réglages se
-         * corrige, et lequel non.
+         * [autoMarkAsReadEnabled] passes through uncorrected (a boolean has no
+         * out-of-bounds value), but this remains the single disk read-back
+         * path: bypassing it would require each caller to know which of the
+         * three settings is corrected and which is not.
          */
         fun coerced(
             visibleFraction: Float,

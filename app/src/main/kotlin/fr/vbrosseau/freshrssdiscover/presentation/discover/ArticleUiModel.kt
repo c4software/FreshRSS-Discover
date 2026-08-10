@@ -4,92 +4,91 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
 
 /**
- * Longueur maximale de l'extrait, en caractères.
+ * Maximum excerpt length, in characters.
  *
- * Le serveur envoie le résumé complet : 1 324 caractères en médiane, 34 777 au
- * maximum mesuré (SPECS.md §8, question 7). Le laisser entier ferait mesurer à
- * Compose un paragraphe de plusieurs milliers de caractères pour n'en afficher
- * trois lignes, sur chaque carte et à chaque recomposition.
+ * The server sends the full summary: 1,324 characters median, 34,777 maximum
+ * measured (SPECS.md §8, question 7). Keeping it whole would make Compose
+ * measure a paragraph of several thousand characters to display three lines,
+ * on every card and every recomposition.
  *
- * 240 est calibré sur ce que la carte montre réellement : trois lignes de
- * `bodyMedium` sur une largeur de 411 dp tiennent environ 180 caractères, et
- * jusqu'à 210 à la plus petite taille de police système. La marge garantit que
- * la coupure visible reste celle de Compose — une ellipse en fin de troisième
- * ligne — et non un texte qui s'arrête net au milieu de la deuxième.
+ * 240 is calibrated on what the card actually shows: three lines of
+ * `bodyMedium` at 411 dp width hold about 180 characters, and up to 210 at
+ * the smallest system font size. The margin guarantees the visible cut stays
+ * Compose's ellipsis at the end of the third line, not text stopping abruptly
+ * mid second line.
  */
 const val EXCERPT_MAX_LENGTH = 240
 
 /**
- * Un article tel que la liste l'affiche.
+ * An article as the list displays it.
  *
- * Tout y est déjà décidé : l'extrait est écourté, la date est réduite à une
- * ancienneté, la présence d'un lien est un booléen. Un Composable affiche cet
- * état, il ne le dérive pas (AGENTS.md §9).
+ * Everything is already decided: the excerpt is truncated, the date is
+ * reduced to an age, link presence is a boolean. A Composable displays this
+ * state, it does not derive it (AGENTS.md §9).
  */
 data class ArticleUiModel(
-    /** Forme brute de l'identifiant : c'est la clé stable de la liste. */
+    /** Raw form of the identifier: the list's stable key. */
     val id: Long,
     val title: String,
-    /** Sans lui, le mélange des sources serait déroutant (SPECS.md §4.3). */
+    /** Without it, the mix of sources would be confusing (SPECS.md §4.3). */
     val feedTitle: String,
     val publishedAt: RelativeTime,
     val excerpt: String,
     /**
-     * Où aller chercher l'illustration, `null` quand l'article n'en annonce
-     * aucune.
+     * Where to fetch the illustration, `null` when the article announces
+     * none.
      *
-     * L'URL est transportée telle que le serveur l'a fournie : la valider ou la
-     * normaliser serait un calcul, et il n'appartient pas à l'affichage.
+     * The URL is carried as the server provided it: validating or normalizing
+     * it would be a computation, which does not belong to display.
      */
     val imageUrl: String? = null,
     /**
-     * Vraie lorsque l'article annonce une illustration, donc que la carte lui
-     * réserve un créneau.
+     * True when the article announces an illustration, so the card reserves a
+     * slot for it.
      *
-     * Distincte de [imageUrl], qui dit seulement **où** la chercher : les deux
-     * ne se dissocient que dans les tests et les prévisualisations, où l'on veut
-     * la carte illustrée sans déclencher de requête. La projection ci-dessous
-     * les garde toujours d'accord.
+     * Distinct from [imageUrl], which only says where to fetch it: the two
+     * only diverge in tests and previews, where the illustrated card is
+     * wanted without triggering a request. The projection below always keeps
+     * them consistent.
      */
     val hasIllustration: Boolean = imageUrl != null,
     /**
-     * Lien d'origine, `null` quand le flux n'en a fourni aucun d'exploitable.
+     * Original link, `null` when the feed provided no usable one.
      *
-     * Transporté tel que le serveur l'a donné : c'est `ArticleOpener` qui décide
-     * ce qui est ouvrable, et il revalide de toute façon ce qu'on lui passe.
+     * Carried as the server gave it: `ArticleOpener` decides what is openable
+     * and revalidates whatever it is passed anyway.
      */
     val url: String? = null,
     /**
-     * Fausse lorsque l'article n'a pas de lien exploitable.
+     * False when the article has no usable link.
      *
-     * SPECS.md §4.7 demande alors de le rendre non cliquable, et de le donner à
-     * voir — ouvrir une page vide serait pire que ne rien proposer.
+     * SPECS.md §4.7 then requires making it non-clickable while still showing
+     * it: opening an empty page would be worse than offering nothing.
      *
-     * Dérivée d'[url] par défaut, pour la même raison que [hasIllustration] :
-     * un test ou une prévisualisation veut parfois la carte cliquable sans
-     * fournir d'adresse.
+     * Derived from [url] by default, for the same reason as
+     * [hasIllustration]: a test or preview sometimes wants the clickable card
+     * without providing an address.
      */
     val isOpenable: Boolean = url != null,
     /**
-     * Vrai pour un article déjà lu, **qu'il l'ait été dans cette session ou
-     * dans une précédente** (SPECS.md §4.5).
+     * True for an article already read, whether in this session or a
+     * previous one (SPECS.md §4.5).
      *
-     * Les deux origines comptent, et l'oubli de la seconde a été visible à
-     * l'écran : projeté sans cet état, un article lu la veille arrivait du cache
-     * comme neuf, et son fanion n'apparaissait qu'après une seconde de
-     * visibilité — le temps que le marquage de la session le rétablisse.
+     * Both origins count: projected without this state, an article read the
+     * day before arrived from the cache as new, and its badge only appeared
+     * after one second of visibility, once the session's marking restored it.
      *
-     * L'article marqué **reste dans la liste et à sa place** : le drapeau
-     * n'existe que pour dire la vérité sur son état, jamais pour le faire
-     * disparaître, ce qui déplacerait le contenu en cours de lecture.
+     * A marked article stays in the list and in place: the flag only states
+     * the truth about its state, never removes it, which would shift content
+     * mid-read.
      */
     val isRead: Boolean = false,
 )
 
 /**
- * Projette un article du domaine dans sa forme affichable.
+ * Projects a domain article into its displayable form.
  *
- * @param nowEpochMillis instant de référence, fourni par `Clock`.
+ * @param nowEpochMillis reference instant, provided by `Clock`.
  */
 fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     id = id.value,
@@ -102,5 +101,5 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     isRead = isRead,
 )
 
-/** La coupure au mot près vit dans `truncatedAtWord`, partagée avec le Balayage. */
+/** Word-boundary truncation lives in `truncatedAtWord`, shared with the swipe mode. */
 private fun String.toExcerpt(): String = truncatedAtWord(EXCERPT_MAX_LENGTH)

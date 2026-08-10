@@ -1,49 +1,48 @@
 package fr.vbrosseau.freshrssdiscover.presentation.browser
 
 /**
- * Présente le sélecteur de partage du système.
+ * Presents the system share chooser.
  *
- * Réduite à ce seul geste, comme [CustomTabLauncher] et pour la même raison :
- * elle isole ce qui n'est pas éprouvable — un `Context`, une `Activity` qui
- * démarre — pour que la *décision*, ce qui se partage et ce qui se tait, reste
- * testable en JVM.
+ * Reduced to this one action, like [CustomTabLauncher] and for the same
+ * reason: it isolates what cannot be tested (a `Context`, an `Activity`
+ * start) so the decision of what gets shared stays testable on the JVM.
  *
- * Elle reçoit le texte **déjà composé** : c'est [ArticleSharer] qui décide de
- * son contenu, et cette décision doit se lire dans un test sans passer par une
- * intention Android.
+ * It receives already-composed text: [ArticleSharer] decides its content, and
+ * that decision must be readable in a test without an Android intent.
  */
 internal fun interface ArticleShareLauncher {
     fun share(text: String)
 }
 
 /**
- * Décide si un article peut être partagé, et le partage le cas échéant
+ * Decides whether an article can be shared, and shares it if so
  * (SPECS.md §4.3).
  *
- * **Le titre puis l'URL, jamais l'extrait.** Une URL nue ne dit pas ce qu'on
- * envoie ; l'extrait, lui, est écourté par nous, et le transmettre partagerait
- * notre troncature pour du contenu.
+ * Title then URL, never the excerpt: a bare URL does not say what is being
+ * sent, and the excerpt is truncated by the app, so passing it along would
+ * share the truncation as if it were content.
  *
- * **Les mêmes schémas que l'ouverture** ([isSupportedWebLink]) : le lien vient
- * d'un flux tiers non maîtrisé, et un `intent:` passé au sélecteur serait remis
- * tel quel à l'application choisie. L'écran masque déjà le bouton d'un article
- * sans lien (SPECS.md §4.7), mais la règle ne vaut que si elle est appliquée au
- * dernier moment, là où le partage a lieu.
+ * Same schemes as opening ([isSupportedWebLink]): the link comes from an
+ * untrusted third-party feed, and an `intent:` passed to the chooser would be
+ * handed as-is to the chosen app. The screen already hides the button on an
+ * article without a link (SPECS.md §4.7), but the rule only holds if applied
+ * at the last moment, where the share happens.
  *
- * @param textFormat gabarit du texte partagé, à deux paramètres — le titre puis
- *   l'URL. Fourni par l'appelant, qui le lit dans les ressources : la
- *   composition reste ici, éprouvable, mais la formulation reste traduisible.
+ * @param textFormat template of the shared text, with two parameters: the
+ *   title then the URL. Supplied by the caller, which reads it from
+ *   resources: composition stays here and testable, wording stays
+ *   translatable.
  */
 internal class ArticleSharer(
     private val launcher: ArticleShareLauncher,
     private val textFormat: String,
 ) {
     /**
-     * Ne rend rien, comme [ArticleOpener.open] et pour la même raison : un
-     * lien refusé se tait, et le sélecteur du système dit lui-même quand
-     * aucune application ne sait recevoir du texte.
+     * Returns nothing, like [ArticleOpener.open] and for the same reason: a
+     * rejected link stays silent, and the system chooser itself reports when
+     * no app can receive text.
      *
-     * @param url le lien d'origine de l'article, éventuellement absent.
+     * @param url the article's original link, possibly absent.
      */
     fun share(title: String, url: String?) {
         val target = url?.trim().orEmpty()

@@ -33,7 +33,7 @@ private const val DATABASE_FILE = "freshrss-discover.db"
 private const val EXPECTED_DATABASE_VERSION = 2
 private const val LARGE_LIMIT = 100
 
-/** Article non lu présent dans la base **avant** la mise à jour. */
+/** Unread article present in the database before the upgrade. */
 private val UnreadBeforeMigration: Article = article(
     id = 1L,
     title = "Article non lu",
@@ -44,7 +44,7 @@ private val UnreadBeforeMigration: Article = article(
     isRead = false,
 )
 
-/** Article déjà lu, dont l'état ne doit pas reculer à la migration. */
+/** Already-read article whose state must not regress during the migration. */
 private val ReadBeforeMigration: Article = article(
     id = 2L,
     title = "Article déjà lu",
@@ -56,20 +56,19 @@ private val ReadBeforeMigration: Article = article(
 )
 
 /**
- * Éprouve la mise à jour d'une installation **déjà en version 1**, telle
- * qu'elle se produit sur l'appareil d'un utilisateur.
+ * Exercises upgrading an installation already at version 1, as it happens on a
+ * user's device.
  *
- * La différence avec le test de migration de `PendingMarkQueueTest` est le
- * chemin emprunté : celui-ci appelle `MIGRATION_1_2.migrate` directement, donc
- * il éprouve le SQL de la migration mais **pas** son branchement. Retirer
- * `addMigrations(MIGRATION_1_2)` de `DatabaseModule` le laisserait passer au
- * vert, alors que l'application deviendrait inutilisable après mise à jour.
+ * Unlike the migration test in `PendingMarkQueueTest`, which calls
+ * `MIGRATION_1_2.migrate` directly and therefore exercises the migration SQL
+ * but not its wiring, this test writes a version-1 database onto the very file
+ * the graph will open; Room, through `DatabaseModule`, decides what to do.
+ * Removing `addMigrations(MIGRATION_1_2)` from `DatabaseModule` would leave the
+ * direct test green while making the app unusable after an update.
  *
- * Ici, la base est écrite en version 1 sur le fichier même que le graphe
- * ouvrira ; c'est Room, à travers `DatabaseModule`, qui décide quoi faire.
- * L'ouverture valide de surcroît que la table créée par la migration est
- * **identique** à celle qu'une création directe en version 2 aurait produite :
- * Room compare le schéma réel à celui qu'il attend, et lève sinon.
+ * Opening the database also validates that the migrated table is identical to
+ * one created directly at version 2: Room compares the actual schema with the
+ * expected one and throws otherwise.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -89,9 +88,9 @@ class DatabaseMigrationTest {
     internal lateinit var pendingMarkQueue: PendingMarkQueue
 
     /**
-     * L'ordre compte : la base en version 1 doit être écrite **avant** que quoi
-     * que ce soit n'ouvre celle du graphe. Room n'ouvre qu'au premier accès,
-     * l'injection seule ne suffit donc pas à figer le fichier.
+     * Order matters: the version-1 database must be written before anything
+     * opens the graph's database. Room only opens on first access, so injection
+     * alone does not pin the file.
      */
     @Before
     fun writeVersionOneDatabaseThenInject() {
@@ -115,16 +114,16 @@ class DatabaseMigrationTest {
 
     @Test
     fun anExistingVersionOneDatabaseIsMigratedInsteadOfRefusingToOpen() {
-        // Sans `addMigrations` dans DatabaseModule, cette ligne lèverait
-        // `IllegalStateException` — exactement ce que subirait un utilisateur
-        // qui met à jour l'application.
+        // Without `addMigrations` in DatabaseModule this line would throw
+        // `IllegalStateException`, exactly what a user updating the app
+        // would hit.
         assertEquals(EXPECTED_DATABASE_VERSION, database.openHelper.writableDatabase.version)
     }
 
     @Test
     fun theCachedArticlesSurviveTheMigrationUnchanged() = runTest {
-        // Le cache est tout ce qui reste consultable hors ligne (SPECS.md §5.2)
-        // : le perdre à une mise à jour viderait l'application au lancement.
+        // The cache is all that remains readable offline (SPECS.md §5.2):
+        // losing it on an update would empty the app at launch.
         assertEquals(
             listOf(UnreadBeforeMigration, ReadBeforeMigration),
             articleCache.observeArticles(LARGE_LIMIT).first(),
@@ -133,8 +132,8 @@ class DatabaseMigrationTest {
 
     @Test
     fun theMigratedDatabaseIsUsableThroughTheRealDaos() = runTest {
-        // Une base ouverte n'est pas une base utilisable : les requêtes du DAO
-        // ne sont éprouvées qu'en les exécutant sur ce schéma-là.
+        // An open database is not necessarily a usable one: the DAO queries
+        // are only exercised by running them against this exact schema.
         articleCache.markAsRead(listOf(UnreadBeforeMigration.id))
         pendingMarkQueue.enqueue(listOf(UnreadBeforeMigration.id))
 
@@ -144,8 +143,8 @@ class DatabaseMigrationTest {
 
     @Test
     fun thePurgeStillWorksOnAMigratedDatabase() = runTest {
-        // La purge lit `cached_at_epoch_millis`, une colonne écrite par la
-        // version 1 : c'est la colonne la plus exposée à une migration ratée.
+        // The purge reads `cached_at_epoch_millis`, a column written by
+        // version 1: the column most exposed to a botched migration.
         val purged = articleCache.purgeReadOlderThan(1.days)
 
         assertEquals(1, purged)
@@ -153,8 +152,8 @@ class DatabaseMigrationTest {
     }
 
     /**
-     * Reproduit la version 1 telle que `app/schemas/…/1.json` la décrit, avec
-     * deux articles à préserver.
+     * Reproduces version 1 as described by `app/schemas/…/1.json`, with two
+     * articles to preserve.
      */
     private object VersionOneSchema : SupportSQLiteOpenHelper.Callback(1) {
         override fun onCreate(db: SupportSQLiteDatabase) {

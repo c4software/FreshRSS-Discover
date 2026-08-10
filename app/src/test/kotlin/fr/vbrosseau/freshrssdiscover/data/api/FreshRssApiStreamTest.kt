@@ -21,9 +21,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Les réponses décrites ici sont **littérales** : elles reproduisent la forme
- * relevée sur une instance réelle (docs/freshrss-api.md §3.4 et §3.5), pas ce
- * qu'une lecture de la source laissait supposer.
+ * The responses here are literal: they reproduce the form observed on a real
+ * instance (docs/freshrss-api.md §3.4 and §3.5), not what a reading of the
+ * source suggested.
  */
 class FreshRssApiStreamTest {
     private val address = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
@@ -57,12 +57,12 @@ class FreshRssApiStreamTest {
 
     private fun queryParameter(name: String): String? = lastRequest?.url?.parameters?.get(name)
 
-    // ----- Requête -----------------------------------------------------------
+    // ----- Request -----------------------------------------------------------
 
     @Test
     fun theRequestCarriesTheTokenInTheAuthorizationHeader() = runTest {
-        // Contrairement à ClientLogin, ce point d'entrée exige l'en-tête :
-        // sans lui, le serveur répond 401 quel que soit le reste.
+        // Unlike ClientLogin, this endpoint requires the header: without it
+        // the server answers 401 regardless of the rest.
         api { json(PAGE_WITH_CONTINUATION) }.streamContents(address, token, pageSize = 40)
 
         assertEquals(
@@ -83,10 +83,10 @@ class FreshRssApiStreamTest {
 
     @Test
     fun theFirstPageIsRequestedWithoutAnyContinuationParameter() = runTest {
-        // Constaté : un `c` vide ou non numérique est silencieusement ramené au
-        // début du flux. Le serveur répond alors 200 avec la première page —
-        // jamais une erreur. En envoyer un vide bouclerait donc indéfiniment
-        // sur la même page, sans le moindre signal.
+        // Observed: an empty or non-numeric `c` is silently reset to the
+        // start of the feed. The server then answers 200 with the first
+        // page, never an error, so sending an empty one would loop on the
+        // same page indefinitely without any signal.
         api { json(PAGE_WITH_CONTINUATION) }.streamContents(address, token, pageSize = 40)
 
         assertNull(queryParameter("c"))
@@ -102,15 +102,15 @@ class FreshRssApiStreamTest {
 
     @Test
     fun everyPageRequestExcludesTheArticlesAlreadyRead() = runTest {
-        // Le flux Discover ne montre que du non-lu (SPECS.md §4.1) : `xt` est
-        // systématique. Son absence ferait resurgir la moitié du flux.
+        // The Discover feed shows only unread articles (SPECS.md §4.1): `xt`
+        // is systematic. Omitting it would bring back half the feed.
         api { json(PAGE_WITH_CONTINUATION) }
             .streamContents(address, token, pageSize = 40)
 
         assertEquals("user/-/state/com.google/read", queryParameter("xt"))
     }
 
-    // ----- Réponse -----------------------------------------------------------
+    // ----- Response ----------------------------------------------------------
 
     @Test
     fun aValidPageIsDeserialisedWithItsItemsAndItsContinuation() = runTest {
@@ -123,8 +123,8 @@ class FreshRssApiStreamTest {
 
     @Test
     fun anAbsentContinuationEndsTheFeed() = runTest {
-        // C'est le **seul** signal de fin : l'API ne renvoie aucun compteur
-        // total. Une page pleine sans curseur est une fin légitime.
+        // The only end-of-feed signal: the API returns no total count. A
+        // full page without a cursor is a legitimate end.
         val outcome = api { json(LAST_PAGE) }.streamContents(address, token, pageSize = 2)
 
         assertNull(assertIs<ApiOutcome.Success<StreamContentsDto>>(outcome).value.continuation)
@@ -132,8 +132,8 @@ class FreshRssApiStreamTest {
 
     @Test
     fun anExpiredSessionSurfacesItsStatusAndPlainTextBody() = runTest {
-        // Constaté : le corps d'erreur est du texte brut, jamais du JSON. C'est
-        // ce 401 qui signalera plus haut une session à renouveler.
+        // Observed: the error body is plain text, never JSON. This 401 is
+        // what signals a session to renew higher up.
         val outcome = api { text("Unauthorized!", HttpStatusCode.Unauthorized) }
             .streamContents(address, token, pageSize = 40)
 
@@ -144,9 +144,9 @@ class FreshRssApiStreamTest {
 
     @Test
     fun aTruncatedJsonBodyIsMalformedRatherThanThrown() = runTest {
-        // Cas réel : connexion coupée en cours de réponse. Laisser remonter
-        // l'exception de désérialisation obligerait chaque appelant à la
-        // connaître.
+        // Real case: connection cut mid-response. Letting the
+        // deserialization exception propagate would force every caller to
+        // know about it.
         val outcome = api { json("""{"id":"user/-/state/com.google/reading-list","items":[{"id":""") }
             .streamContents(address, token, pageSize = 40)
 
@@ -155,7 +155,7 @@ class FreshRssApiStreamTest {
 
     @Test
     fun aPlainTextBodyWhereJsonWasExpectedIsMalformed() = runTest {
-        // Portail captif, page de maintenance ou proxy qui répond 200 à tout.
+        // Captive portal, maintenance page, or proxy answering 200 to anything.
         val outcome = api { text("Service temporairement indisponible") }
             .streamContents(address, token, pageSize = 40)
 

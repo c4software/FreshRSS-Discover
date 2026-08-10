@@ -9,12 +9,12 @@ class SignInHintTest {
 
     @Test
     fun aHintCarriesNoSecret() {
-        // C'est toute sa raison d'être : il survit à un jeton refusé, là où les
-        // jetons sont effacés. Y glisser un secret annulerait cette propriété.
+        // The hint's whole purpose: it survives a rejected token where tokens
+        // get erased. Slipping a secret into it would void that property.
         val rendered = SignInHint(server, "alice").toString()
 
-        // `toString` d'une data class expose tous les champs : le vérifier
-        // signale immédiatement l'ajout d'un champ sensible.
+        // A data class's `toString` exposes all fields: checking it flags the
+        // addition of a sensitive field immediately.
         assertEquals("SignInHint(server=ServerAddress(https://exemple.org), username=alice)", rendered)
         assertFalse("jeton" in rendered)
     }
@@ -27,8 +27,8 @@ class SignInHintTest {
 
     @Test
     fun theHintKeepsTheNormalizedAddress() {
-        // Préremplir avec la forme canonique évite qu'une nouvelle tentative
-        // reparte d'une saisie approximative.
+        // Prefilling with the canonical form keeps a retry from starting over
+        // with an approximate input.
         assertEquals("https://exemple.org", SignInHint(server, "alice").server.baseUrl)
     }
 }

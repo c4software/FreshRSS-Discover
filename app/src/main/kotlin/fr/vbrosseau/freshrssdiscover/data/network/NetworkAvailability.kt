@@ -9,11 +9,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Constate si l'appareil a une connectivité.
+ * Reports whether the device has connectivity.
  *
- * Sert uniquement à distinguer « pas de réseau » de « serveur injoignable » :
- * la pile HTTP rapporte les deux de façon identique, alors que les gestes de
- * correction n'ont rien à voir (SPECS.md §3.3).
+ * Only used to distinguish "no network" from "server unreachable": the HTTP
+ * stack reports both identically, while the fixes are unrelated
+ * (SPECS.md §3.3).
  */
 internal fun interface NetworkAvailability {
     fun isOnline(): Boolean
@@ -24,10 +24,10 @@ internal class AndroidNetworkAvailability @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : NetworkAvailability {
     /**
-     * `NET_CAPABILITY_VALIDATED` en plus de `INTERNET` : un portail captif
-     * annonce l'accès à Internet sans le fournir. S'en tenir à `INTERNET`
-     * ferait diagnostiquer « serveur injoignable » là où l'utilisateur doit en
-     * réalité accepter les conditions d'un réseau Wi-Fi public.
+     * `NET_CAPABILITY_VALIDATED` in addition to `INTERNET`: a captive portal
+     * advertises Internet access without providing it. Checking `INTERNET`
+     * alone would diagnose "server unreachable" where the user actually needs
+     * to accept the terms of a public Wi-Fi network.
      */
     override fun isOnline(): Boolean {
         val capabilities = context.getSystemService<ConnectivityManager>()

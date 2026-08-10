@@ -16,14 +16,14 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Éprouve la configuration du client, pas encore les points d'entrée.
+ * Exercises the client configuration, not the endpoints.
  *
- * Chacun de ces réglages a une conséquence directe et non évidente sur le
- * traitement des réponses de FreshRSS : les vérifier ici évite d'avoir à
- * redécouvrir leur effet à travers un échec d'appel métier.
+ * Each of these settings has a direct, non-obvious consequence on how
+ * FreshRSS responses are handled: verifying them here avoids rediscovering
+ * their effect through a failed business call.
  */
 class FreshRssHttpClientTest {
-    /** `Logger` de Ktor n'est pas une `fun interface` : il faut un objet. */
+    /** Ktor's `Logger` is not a `fun interface`: an object is required. */
     private fun recordingLogger(into: MutableList<String>) = object : Logger {
         override fun log(message: String) {
             into += message
@@ -50,9 +50,9 @@ class FreshRssHttpClientTest {
 
     @Test
     fun anErrorStatusIsReturnedRatherThanThrown() = runTest {
-        // Les codes de FreshRSS *sont* l'information utile : 503 signifie
-        // « API désactivée », 401 « jeton invalide ». Les laisser lever
-        // obligerait à les reconstituer depuis une exception.
+        // FreshRSS status codes are the useful information: 503 means API
+        // disabled, 401 means invalid token. Letting them throw would force
+        // reconstructing them from an exception.
         val client = clientRespondingWith(
             HttpStatusCode.ServiceUnavailable,
             "Service Unavailable!",
@@ -67,9 +67,9 @@ class FreshRssHttpClientTest {
 
     @Test
     fun aPlainTextErrorBodyIsReadableAsText() = runTest {
-        // FreshRSS répond ses erreurs en text/plain, jamais en JSON. Une
-        // négociation de contenu trop large tenterait de les désérialiser,
-        // échouerait, et masquerait le vrai code.
+        // FreshRSS answers its errors as text/plain, never JSON. Overly
+        // broad content negotiation would try to deserialize them, fail,
+        // and mask the real status code.
         val client = clientRespondingWith(
             HttpStatusCode.Unauthorized,
             "Unauthorized!",
@@ -83,8 +83,8 @@ class FreshRssHttpClientTest {
 
     @Test
     fun theRecognitionProbeReadsItsTwoLetterBody() = runTest {
-        // La sonde de reconnaissance répond `OK` avec un Content-Type
-        // text/html — se fier au type MIME ne marcherait pas.
+        // The recognition probe answers `OK` with a text/html Content-Type;
+        // trusting the MIME type would not work.
         val client = clientRespondingWith(HttpStatusCode.OK, "OK", "text/html; charset=UTF-8")
 
         assertEquals("OK", client.get("https://exemple.org/api/greader.php").bodyAsText())
@@ -112,8 +112,8 @@ class FreshRssHttpClientTest {
 
     @Test
     fun nothingIsLoggedWhenVerboseLoggingIsOff() = runTest {
-        // C'est la configuration des constructions publiées : même expurgée,
-        // la journalisation exposerait l'adresse du serveur personnel.
+        // The configuration of release builds: even redacted, logging would
+        // expose the personal server address.
         val lines = mutableListOf<String>()
         val client = clientRespondingWith(
             status = HttpStatusCode.OK,
@@ -130,8 +130,8 @@ class FreshRssHttpClientTest {
 
     @Test
     fun unknownJsonFieldsAreTolerated() {
-        // FreshRSS ajoute des champs au fil de ses versions. Sans cette
-        // tolérance, une mise à jour du serveur casserait toutes les lectures.
+        // FreshRSS adds fields across versions. Without this tolerance, a
+        // server update would break every read.
         val decoded = FreshRssJson.decodeFromString(
             ProbeResponse.serializer(),
             """{"id":"feed/1","champInconnuAjouteParUneFutureVersion":42}""",

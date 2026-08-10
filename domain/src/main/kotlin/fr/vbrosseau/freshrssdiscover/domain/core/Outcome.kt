@@ -1,20 +1,19 @@
 package fr.vbrosseau.freshrssdiscover.domain.core
 
 /**
- * Issue d'une opération : une valeur, ou une erreur typée.
+ * Result of an operation: a value, or a typed error.
  *
- * `kotlin.Result` n'est pas employé : il transporte un `Throwable`, ce qui
- * ferait remonter des exceptions techniques au-dessus de la couche `data`
- * (ARCHITECTURE.md §7) et laisserait l'appelant libre de ne traiter aucun cas.
- * Un type scellé, lui, se consomme par un `when` exhaustif.
+ * `kotlin.Result` is not used: it carries a `Throwable`, which would let
+ * technical exceptions surface above the `data` layer (ARCHITECTURE.md §7) and
+ * leave callers free to handle no case at all. A sealed type is consumed
+ * through an exhaustive `when`.
  *
- * L'erreur est un paramètre de type, et non un type unique : chaque domaine a
- * ses causes, et les fondre en une seule énumération obligerait à traiter des
- * cas impossibles — un article ne peut pas échouer parce que « l'API est
- * désactivée sur le serveur », l'authentification l'aurait déjà signalé.
+ * The error is a type parameter rather than a single type: each domain has its
+ * own causes, and merging them into one enumeration would force handling
+ * impossible cases (an article load cannot fail because the API is disabled on
+ * the server; authentication would already have reported it).
  *
- * Créé lors du deuxième cas d'usage, pas du premier : l'authentification s'en
- * passait très bien seule (AGENTS.md §2).
+ * Introduced at the second use case, not the first (AGENTS.md §2).
  */
 sealed interface Outcome<out T, out E> {
     data class Success<out T>(val value: T) : Outcome<T, Nothing>

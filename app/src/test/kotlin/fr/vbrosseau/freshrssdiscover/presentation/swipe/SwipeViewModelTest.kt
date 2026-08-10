@@ -27,10 +27,10 @@ import kotlin.test.assertTrue
 
 private const val NOW_SECONDS = 1_700_000_000L
 
-/** Durée d'affichage continu exigée par SPECS.md §4.5, reprise ici pour la lisibilité des cas. */
+/** Continuous display duration required by SPECS.md §4.5, restated for readability. */
 private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
 
-/** Un article plein écran est intégralement visible : c'est tout le propos de SPECS.md §4.8. */
+/** A full-screen article is fully visible: the whole point of SPECS.md §4.8. */
 private const val FULL_SCREEN = 1f
 
 private const val ONE_HOUR_MILLIS = 60L * 60L * 1_000L
@@ -39,7 +39,7 @@ private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SwipeViewModelTest {
-    /** Gardé sous la main : les cas d'ancienneté avancent son ordonnanceur virtuel. */
+    /** Kept as a field: the staleness cases advance its virtual scheduler. */
     private val dispatcher = UnconfinedTestDispatcher()
 
     @get:Rule
@@ -52,9 +52,9 @@ class SwipeViewModelTest {
     private val clock = FakeClock(NOW_SECONDS * 1_000L)
 
     /**
-     * Construit **paresseusement** : le ViewModel charge sa première page dès
-     * sa création, sur `Dispatchers.Main`. Un initialiseur de propriété
-     * s'exécuterait avant que [MainDispatcherRule] ne l'ait substitué.
+     * Built lazily: the ViewModel loads its first page on creation, on
+     * `Dispatchers.Main`. A property initializer would run before
+     * [MainDispatcherRule] has substituted it.
      */
     private val viewModel: SwipeViewModel by lazy {
         SwipeViewModel(
@@ -70,14 +70,14 @@ class SwipeViewModelTest {
 
     private val reportedBatches: List<Set<ArticleId>> get() = readSyncRepository.markCalls
 
-    /** Maintient un article plein écran pendant la durée exigée, puis relève. */
+    /** Holds an article full screen for the required duration, then reports again. */
     private fun watch(id: Long, millis: Long = VISIBILITY_THRESHOLD_MILLIS) {
         viewModel.onVisibilityChanged(mapOf(ArticleId(id) to FULL_SCREEN))
         clock.advanceBy(millis)
         viewModel.onVisibilityChanged(mapOf(ArticleId(id) to FULL_SCREEN))
     }
 
-    // ----- Premier affichage --------------------------------------------------
+    // ----- First display ------------------------------------------------------
 
     @Test
     fun theFirstArticleOfTheFeedIsShown() {
@@ -100,8 +100,8 @@ class SwipeViewModelTest {
 
     @Test
     fun theCachedArticlesAreShownBeforeTheNetworkAnswers() {
-        // SPECS.md §5.1 : en plein écran le défaut serait plus visible encore
-        // qu'en liste — un unique écran vide, sans rien à balayer.
+        // SPECS.md §5.1: full screen the defect would be even more visible
+        // than in list mode, a single empty screen with nothing to swipe.
         repository.pendingLoad = CompletableDeferred()
         repository.cachedArticles.value = listOf(article(id = 9L, title = "Du cache"))
 
@@ -110,8 +110,8 @@ class SwipeViewModelTest {
 
     @Test
     fun theFullScreenExcerptIsTheOneUsedByThisMode() {
-        // Le mode Liste s'arrête à 240 caractères ; le plein écran en montre
-        // davantage (SPECS.md §8, question 8).
+        // List mode stops at 240 characters; full screen shows more
+        // (SPECS.md §8, question 8).
         val summary = "mot ".repeat(500)
         repository.enqueuePage(listOf(article(id = 1L, summary = summary)))
 
@@ -120,10 +120,10 @@ class SwipeViewModelTest {
 
     @Test
     fun reloadingKeepsTheFullScreenExcerptLength() {
-        // La divergence qui a réellement existé : le rechargement projetait
-        // avec l'extrait de la Liste (240 caractères), et une pile rechargée
-        // montrait des cartes tronquées à la longueur de l'autre mode. La
-        // projection est la même à l'amorçage et au rechargement.
+        // A divergence that actually existed: the refresh projected with the
+        // List excerpt (240 characters), and a reloaded stack showed cards
+        // truncated to the other mode's length. The projection is the same at
+        // startup and on refresh.
         val summary = "mot ".repeat(500)
         repository.enqueuePage(listOf(article(id = 1L, summary = summary)))
         repository.enqueuePage(listOf(article(id = 2L, summary = summary)))
@@ -133,7 +133,7 @@ class SwipeViewModelTest {
         assertTrue(state.articles.single().excerpt.length > EXCERPT_LENGTH_OF_A_CARD)
     }
 
-    // ----- Chargement anticipé et fin de flux ---------------------------------
+    // ----- Prefetch and end of feed -------------------------------------------
 
     @Test
     fun thePageAfterTheCurrentOneIsRequestedWithTheReturnedCursor() {
@@ -148,11 +148,11 @@ class SwipeViewModelTest {
 
     @Test
     fun aSecondRequestIsIgnoredWhileOneIsAlreadyInFlight() {
-        // Le balayage réévalue le seuil à chaque recomposition : sans verrou,
-        // plusieurs requêtes partiraient avant la première mise à jour.
+        // The swipe re-evaluates the threshold on every recomposition: without
+        // a lock, several requests would leave before the first update.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        // Force la construction — donc la première page — avant d'armer le
-        // chargement suspendu : sinon c'est l'initialisation qui s'y prendrait.
+        // Forces construction, hence the first page, before arming the
+        // suspended load: otherwise initialization would be caught by it.
         assertEquals(DiscoverPhase.Idle, state.phase)
         repository.pendingLoad = CompletableDeferred()
 
@@ -164,8 +164,8 @@ class SwipeViewModelTest {
 
     @Test
     fun theEndOfTheFeedIsAnnouncedRatherThanSuffered() {
-        // GOAL-012-T03 : un balayage qui cesse de répondre est indistinguable
-        // d'une panne.
+        // GOAL-012-T03: a swipe that stops responding is indistinguishable
+        // from a failure.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = null)
 
         assertEquals(DiscoverPhase.EndOfFeed, state.phase)
@@ -189,7 +189,7 @@ class SwipeViewModelTest {
         assertEquals(DiscoverPhase.EndOfFeed, state.phase)
     }
 
-    // ----- Erreurs ------------------------------------------------------------
+    // ----- Errors -------------------------------------------------------------
 
     @Test
     fun aFailedPageKeepsWhatIsAlreadyDisplayed() {
@@ -221,7 +221,7 @@ class SwipeViewModelTest {
         assertIs<DiscoverPhase.SessionEnded>(state.phase)
     }
 
-    // ----- Marquage comme lu --------------------------------------------------
+    // ----- Marking as read ----------------------------------------------------
 
     @Test
     fun anArticleHeldOnScreenForTheRequiredDurationBecomesRead() {
@@ -245,8 +245,8 @@ class SwipeViewModelTest {
 
     @Test
     fun comingBackToAReadArticleDoesNotMarkItAgain() {
-        // GOAL-012-T04 : le retour en arrière ne délie pas, et ne resignale
-        // pas non plus — ce serait une requête pour rien.
+        // GOAL-012-T04: going back neither unmarks nor re-reports; that would
+        // be a request for nothing.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)))
         watch(id = 1L)
 
@@ -267,7 +267,7 @@ class SwipeViewModelTest {
         assertTrue(state.articles.first { it.id == 1L }.isRead)
     }
 
-    // ----- Marquage automatique éteint (SPECS.md §4.5) ------------------------
+    // ----- Automatic marking off (SPECS.md §4.5) ------------------------------
 
     @Test
     fun withAutomaticMarkingOffWatchingAnArticleLeavesItUnread() {
@@ -282,9 +282,9 @@ class SwipeViewModelTest {
 
     @Test
     fun withAutomaticMarkingOffOpeningAnArticleStillMarksItRead() {
-        // Le piège de ce réglage : en plein écran, la seule autre façon de
-        // marquer est l'ouverture (SPECS.md §4.7). La perdre rendrait le mode
-        // Balayage incapable de consommer quoi que ce soit.
+        // The trap of this setting: full screen, the only other way to mark is
+        // opening (SPECS.md §4.7). Losing it would leave Swipe mode unable to
+        // consume anything.
         settingsRepository.setAutomaticMarking(enabled = false)
         repository.enqueuePage(listOf(article(id = 1L)))
 
@@ -306,7 +306,7 @@ class SwipeViewModelTest {
         assertEquals(listOf(setOf(ArticleId(1L))), reportedBatches)
     }
 
-    // ----- Ouverture ----------------------------------------------------------
+    // ----- Opening ------------------------------------------------------------
 
     @Test
     fun openingAnArticleMarksItReadWhateverItsPastVisibility() {
@@ -342,14 +342,14 @@ class SwipeViewModelTest {
     }
 
     private companion object {
-        /** Borne du mode Liste (`EXCERPT_MAX_LENGTH`), citée pour la comparaison. */
+        /** List-mode bound (`EXCERPT_MAX_LENGTH`), quoted for the comparison. */
         const val EXCERPT_LENGTH_OF_A_CARD = 240
     }
-    // ----- Rechargement (SPECS.md §4.6) ---------------------------------------
+    // ----- Refresh (SPECS.md §4.6) --------------------------------------------
 
     @Test
     fun reloadingReplacesTheWholeStackRatherThanCompletingIt() {
-        // Même règle qu'en mode Liste : recharger vide, il ne complète pas.
+        // Same rule as List mode: refresh replaces, it does not append.
         repository.enqueuePage(listOf(article(id = 1L), article(id = 2L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 5L), article(id = 6L)), nextCursor = PageCursor("c9"))
 
@@ -361,7 +361,7 @@ class SwipeViewModelTest {
 
     @Test
     fun reloadingRestartsThePaginationFromTheFreshPage() {
-        // L'ancien curseur désignerait un endroit qui n'est plus dans la pile.
+        // The old cursor would point to a place no longer in the stack.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("c9"))
         repository.enqueuePage(listOf(article(id = 3L)), nextCursor = null)
@@ -399,8 +399,8 @@ class SwipeViewModelTest {
 
     @Test
     fun aFailedReloadKeepsTheStackAndSaysWhy() {
-        // Rien n'est jeté avant d'avoir quelque chose à mettre à la place :
-        // échouer en vidant l'écran serait perdre ce qui était lisible.
+        // Nothing is discarded before having something to put in its place:
+        // failing while emptying the screen would lose what was readable.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         repository.enqueueFailure(FeedError.NoNetwork)
 
@@ -411,7 +411,7 @@ class SwipeViewModelTest {
         assertIs<DiscoverPhase.Failed>(state.phase)
     }
 
-    // ----- Ancienneté du flux (SPECS.md §4.6) ---------------------------------
+    // ----- Feed staleness (SPECS.md §4.6) -------------------------------------
 
     @Test
     fun aFeedOlderThanSixHoursInvitesToRefresh() {
@@ -453,8 +453,8 @@ class SwipeViewModelTest {
 
     @Test
     fun anInvitationSilencedInTheOtherModeStaysSilentHere() {
-        // Le dépôt est unique : c'est lui qui porte l'acquittement, et non le
-        // ViewModel, que la bascule de mode détruit et reconstruit.
+        // The repository is shared: it carries the acknowledgement, not the
+        // ViewModel, which the mode switch destroys and rebuilds.
         freshnessRepository.set(
             FeedFreshness(
                 lastRefreshEpochMillis = staleSince(),
@@ -478,10 +478,10 @@ class SwipeViewModelTest {
         assertTrue(state.showsStaleNotice)
     }
 
-    /** Un horodatage de contact serveur assez vieux pour que l'avis soit dû. */
+    /** A server-contact timestamp old enough for the notice to be due. */
     private fun staleSince(): Long = clock.nowEpochMillis() - SEVEN_HOURS_MILLIS
 
-    // ----- Lancement calme (SPECS.md §5.1, GOAL-015) --------------------------
+    // ----- Quiet launch (SPECS.md §5.1, GOAL-015) -----------------------------
 
     @Test
     fun aGarnishedCacheLaunchesWithoutAnyNetworkRequest() {

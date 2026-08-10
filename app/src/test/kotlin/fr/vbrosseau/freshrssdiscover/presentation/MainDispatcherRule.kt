@@ -10,13 +10,13 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 /**
- * Substitue le dispatcher principal pendant un test.
+ * Substitutes the main dispatcher during a test.
  *
- * `viewModelScope` s'exécute sur `Dispatchers.Main`, indisponible hors Android.
- * Sans cette règle, tout test de ViewModel échouerait au premier `launch`.
+ * `viewModelScope` runs on `Dispatchers.Main`, unavailable outside Android.
+ * Without this rule, any ViewModel test would fail at the first `launch`.
  *
- * Le dispatcher est *unconfined* : les coroutines démarrent immédiatement, si
- * bien qu'un `init` de ViewModel a produit son premier état dès la construction.
+ * The dispatcher is unconfined: coroutines start immediately, so a ViewModel
+ * `init` has produced its first state by the end of construction.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(

@@ -3,79 +3,78 @@ package fr.vbrosseau.freshrssdiscover.domain.settings
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Accès aux réglages persistants du marquage automatique (SPECS.md §4.5, §6).
+ * Access to the persisted automatic-marking settings (SPECS.md §4.5, §6).
  *
- * L'observation est un [Flow] et non une lecture ponctuelle : deux lecteurs
- * coexistent — l'écran de réglages, qui doit afficher la valeur courante, et le
- * détecteur de lecture, qui doit appliquer la nouvelle **sans redémarrage**.
- * Une lecture ponctuelle obligerait le second à relire au bon moment, c'est-à-dire
- * à deviner quand l'utilisateur a changé d'avis.
+ * Observation is a [Flow], not a one-shot read: two readers coexist. The
+ * settings screen must display the current value, and the read detector must
+ * apply a new one without restart. A one-shot read would force the latter to
+ * re-read at the right moment, i.e. guess when the user changed their mind.
  *
- * Un écrivain par seuil plutôt qu'un `save(ReadingSettings)` : l'écran ne
- * modifie jamais les deux à la fois, et réécrire l'autre valeur au passage
- * écraserait une modification concurrente par une copie potentiellement périmée.
+ * One writer per threshold rather than a `save(ReadingSettings)`: the screen
+ * never modifies both at once, and rewriting the other value in passing would
+ * overwrite a concurrent modification with a possibly stale copy.
  */
 interface SettingsRepository {
     fun observeReadingSettings(): Flow<ReadingSettings>
 
     /**
-     * @throws IllegalArgumentException si [value] sort de
-     *   [ReadingSettings.VisibleFractionRange] — un appel hors bornes vient du
-     *   code, pas de l'utilisateur, et le taire figerait le défaut sur disque.
+     * @throws IllegalArgumentException if [value] is outside
+     *   [ReadingSettings.VisibleFractionRange]. An out-of-bounds call comes
+     *   from code, not the user, and silencing it would freeze the defect on
+     *   disk.
      */
     suspend fun setVisibleFraction(value: Float)
 
-    /** @throws IllegalArgumentException si [value] sort de [ReadingSettings.ContinuousVisibilityRange]. */
+    /** @throws IllegalArgumentException if [value] is outside [ReadingSettings.ContinuousVisibilityRange]. */
     suspend fun setContinuousVisibilityMillis(value: Long)
 
     /**
-     * Allume ou éteint le marquage par visibilité (SPECS.md §4.5, §6).
+     * Turns visibility-based marking on or off (SPECS.md §4.5, §6).
      *
-     * Un écrivain de plus, et non un `save(ReadingSettings)`, pour la raison
-     * déjà écrite plus haut : l'écran ne touche jamais deux réglages à la fois.
+     * A separate writer rather than a `save(ReadingSettings)`, for the reason
+     * stated above: the screen never touches two settings at once.
      *
-     * Sans bornes à vérifier — un booléen n'en a pas — et **sans effet sur les
-     * deux seuils** : ils restent enregistrés pendant l'extinction, puisqu'ils
-     * redeviendront applicables au rallumage.
+     * No bounds to check, and no effect on the two thresholds: they stay
+     * stored while marking is off, since they become applicable again when it
+     * is turned back on.
      */
     suspend fun setAutoMarkAsReadEnabled(value: Boolean)
 
     /**
-     * Le mode de présentation du flux (SPECS.md §4.8, §6).
+     * The feed presentation mode (SPECS.md §4.8, §6).
      *
-     * Un [Flow] distinct de [observeReadingSettings] : les deux réglages n'ont
-     * ni les mêmes lecteurs ni le même rythme. Les seuils n'intéressent que le
-     * détecteur de lecture ; le mode décide de l'écran affiché, et le fondre
-     * dans `ReadingSettings` ferait recomposer le flux entier au moindre
-     * déplacement d'un curseur de marquage.
+     * A [Flow] distinct from [observeReadingSettings]: the two settings share
+     * neither readers nor cadence. The thresholds only concern the read
+     * detector; the mode decides which screen is shown, and folding it into
+     * `ReadingSettings` would recompose the whole feed on any move of a
+     * marking slider.
      *
-     * Comme pour les seuils, l'observation vaut mieux qu'une lecture ponctuelle :
-     * SPECS.md §4.8 veut que le mode s'applique **sans redémarrage**, ce qui
-     * suppose que l'écran de flux apprenne le changement de lui-même.
+     * As for the thresholds, observation beats a one-shot read: SPECS.md §4.8
+     * requires the mode to apply without restart, so the feed screen must
+     * learn of the change by itself.
      */
     fun observeFeedPresentation(): Flow<FeedPresentation>
 
     /**
-     * Enregistre le mode choisi.
+     * Stores the chosen mode.
      *
-     * Sans bornes à vérifier, contrairement aux seuils : le type énuméré rend
-     * une valeur invalide impossible à construire. C'est précisément ce qu'on
-     * attend de lui.
+     * No bounds to check, unlike the thresholds: the enum makes an invalid
+     * value impossible to construct.
      */
     suspend fun setFeedPresentation(value: FeedPresentation)
 
     /**
-     * Le rappel de lecture quotidien est-il souhaité (SPECS.md §4.9, §6) ?
+     * Whether the daily reading reminder is wanted (SPECS.md §4.9, §6).
      *
-     * Un réglage propre et non une déduction de la permission système : sous
-     * Android 13 il n'existe aucune permission de notification à retirer, et un
-     * rappel qu'on ne pourrait pas éteindre serait un défaut. Au-dessus, les
-     * deux coexistent — la permission dit ce que le système autorise, ce
-     * réglage ce que l'utilisateur veut.
+     * A setting of its own, not a deduction from the system permission: below
+     * Android 13 there is no notification permission to revoke, and a
+     * reminder that could not be turned off would be a defect. Above, both
+     * coexist: the permission says what the system allows, this setting what
+     * the user wants.
      *
-     * **Activé par défaut** : l'utilisateur qui a accordé la permission a déjà
-     * dit oui une fois, et lui demander une seconde fois dans les réglages
-     * ferait passer la fonctionnalité pour inopérante.
+     * Enabled by default: a user who granted the permission already said yes
+     * once, and asking again in the settings would make the feature look
+     * inoperative.
      */
     fun observeReminderEnabled(): Flow<Boolean>
 

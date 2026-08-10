@@ -29,57 +29,54 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val cacheRepository: CacheRepository,
     /**
-     * Le réglage ne se contente pas d'être enregistré : il programme ou annule.
+     * The setting does not just get stored: it schedules or cancels.
      *
-     * Sans cette dépendance, éteindre le rappel laisserait le travail du
-     * lendemain en attente — et il partirait quand même. Un réglage qui n'agit
-     * sur rien est un défaut, pas une préférence.
+     * Without this dependency, turning the reminder off would leave the next
+     * day's work pending, and it would fire anyway.
      */
     private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
     /**
-     * Séparée de la session : la confirmation est un état d'interface, la
-     * session vient du disque. Les combiner dans un seul `MutableStateFlow`
-     * obligerait à réécrire la session à chaque ouverture de la boîte de
-     * dialogue, donc à la dupliquer.
+     * Separate from the session: the confirmation is UI state, the session
+     * comes from disk. Combining them in one `MutableStateFlow` would require
+     * rewriting the session on each dialog opening, hence duplicating it.
      */
     private val signOutConfirmation = MutableStateFlow(false)
 
     /**
-     * Résultat de la dernière purge manuelle, `null` tant qu'il n'y en a pas eu.
+     * Result of the last manual purge, `null` until one has happened.
      *
-     * Il ne peut pas venir du dépôt : celui-ci publie ce que le cache contient,
-     * pas ce qu'un geste vient d'en retirer. Or c'est bien cette différence
-     * qu'il faut montrer — sans confirmation préalable, le compte rendu est le
-     * seul retour que l'utilisateur obtient de son appui.
+     * It cannot come from the repository, which publishes what the cache
+     * contains, not what a gesture just removed. That difference is exactly
+     * what must be shown: with no upfront confirmation, the report is the
+     * only feedback the user gets for the press.
      */
     private val lastPurgedCount = MutableStateFlow<Int?>(null)
 
     /**
-     * Les seuils affichés viennent du dépôt, jamais d'une copie locale.
+     * Displayed thresholds come from the repository, never from a local copy.
      *
-     * C'est le cœur de GOAL-011-T04 : la valeur montrée est celle qui sera
-     * relue par le détecteur de lecture. Une modification n'est pas appliquée
-     * à l'état d'interface puis enregistrée « aussi » — elle est enregistrée,
-     * et l'affichage suit parce qu'il observe la même source. Les deux ne
-     * peuvent donc pas diverger, même si une écriture échoue.
+     * This is the core of GOAL-011-T04: the value shown is the one the read
+     * detector will reread. A change is not applied to UI state and then
+     * "also" stored; it is stored, and the display follows because it
+     * observes the same source. The two cannot diverge, even if a write
+     * fails.
      */
     val uiState: StateFlow<SettingsUiState> = combine(
         authRepository.observeSession(),
         settingsRepository.observeReadingSettings(),
-        // Réunis parce que `combine` ne se décline que jusqu'à cinq flux, et
-        // qu'ils ont le même statut : deux préférences booléennes ou presque,
-        // lues sur le disque, sans lien l'une avec l'autre.
+        // Grouped because `combine` only accepts up to five flows and they
+        // share the same status: two disk-read preferences, unrelated to each
+        // other.
         combine(
             settingsRepository.observeFeedPresentation(),
             settingsRepository.observeReminderEnabled(),
             ::StoredPreferences,
         ),
         cacheRepository.observeCacheStatus(),
-        // Les deux états purement locaux sont réunis avant d'entrer dans le
-        // `combine` principal : `combine` ne se décline que jusqu'à cinq flux,
-        // et les regrouper ici dit du même coup lesquels ne viennent pas du
-        // disque.
+        // The two purely local states are grouped before entering the main
+        // `combine`: `combine` only accepts up to five flows, and grouping
+        // them here also marks which ones do not come from disk.
         combine(signOutConfirmation, lastPurgedCount, ::TransientState),
     ) { session, settings, preferences, cache, transient ->
         stateOf(session, settings, preferences, cache, transient)
@@ -92,9 +89,9 @@ class SettingsViewModel @Inject constructor(
                 settings = ReadingSettings.Default,
                 preferences = StoredPreferences(
                     presentation = FeedPresentation.Default,
-                    // Le rappel est actif par défaut dans le dépôt : afficher
-                    // « éteint » le temps de la première lecture ferait
-                    // clignoter l'interrupteur à chaque ouverture de l'écran.
+                    // The reminder defaults to enabled in the repository:
+                    // showing "off" during the first read would flicker the
+                    // switch on every screen opening.
                     reminderEnabled = true,
                 ),
                 cache = CacheStatus.Empty,
@@ -103,21 +100,20 @@ class SettingsViewModel @Inject constructor(
         )
 
     /**
-     * Allume ou éteint le marquage par visibilité (SPECS.md §4.5, §6).
+     * Enables or disables visibility-based marking (SPECS.md §4.5, §6).
      *
-     * Rien d'autre à faire qu'enregistrer, contrairement au rappel de lecture :
-     * les deux ViewModels du flux observent déjà les réglages et reconstruisent
-     * leur détecteur à chaque émission. Le changement s'applique donc sans
-     * redémarrage, sans que cet écran ait à toucher quoi que ce soit du flux.
+     * Nothing to do beyond storing, unlike the reading reminder: both feed
+     * ViewModels already observe the settings and rebuild their detector on
+     * each emission, so the change applies without restart and without this
+     * screen touching the feed.
      *
-     * Les deux seuils ne sont **pas** réécrits au passage : ils restent tels
-     * quels pour le rallumage.
+     * The two thresholds are not rewritten: they stay as-is for re-enabling.
      */
     fun setAutoMarkAsReadEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setAutoMarkAsReadEnabled(enabled) }
     }
 
-    /** @param percent une position du curseur, donc déjà dans les bornes du domaine. */
+    /** @param percent a slider position, so already within the domain bounds. */
     fun setVisibleFractionPercent(percent: Int) {
         viewModelScope.launch { settingsRepository.setVisibleFraction(percent / PERCENT) }
     }
@@ -127,29 +123,29 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Enregistre le mode de parcours, sans le recopier dans l'état d'interface.
+     * Stores the presentation mode without copying it into UI state.
      *
-     * Le segment sélectionné vient du dépôt : si l'écriture échouait, l'écran
-     * continuerait de montrer le mode réellement appliqué plutôt qu'un choix
-     * qui n'a pas pris. C'est aussi ce qui permet à SPECS.md §4.8 d'être tenu —
-     * le changement s'applique **sans redémarrage**, parce que l'écran de flux
-     * observe la même source que celui-ci.
+     * The selected segment comes from the repository: if the write failed,
+     * the screen would keep showing the mode actually applied rather than a
+     * choice that did not take. This is also what upholds SPECS.md §4.8: the
+     * change applies without restart because the feed screen observes the
+     * same source.
      */
     fun setFeedPresentation(presentation: FeedPresentation) {
         viewModelScope.launch { settingsRepository.setFeedPresentation(presentation) }
     }
 
     /**
-     * Enregistre le choix, **puis** programme ou annule le rappel.
+     * Stores the choice, then schedules or cancels the reminder.
      *
-     * Les deux dans cet ordre et dans la même coroutine : le dépôt fait foi sur
-     * ce que l'utilisateur veut, le planificateur ne fait qu'en tirer les
-     * conséquences. Programmer d'abord laisserait, si l'écriture échouait, un
-     * rappel armé qu'aucun réglage ne dit vouloir.
+     * In that order and in the same coroutine: the repository is the
+     * authority on what the user wants, the scheduler only draws the
+     * consequences. Scheduling first would, if the write failed, leave an
+     * armed reminder no setting claims to want.
      *
-     * L'état affiché, lui, n'est pas touché ici : il vient du dépôt, comme le
-     * mode de présentation. Un interrupteur qui basculerait de lui-même
-     * montrerait un choix que l'enregistrement n'a peut-être pas retenu.
+     * The displayed state is not touched here: it comes from the repository,
+     * like the presentation mode. A switch flipping on its own would show a
+     * choice the store may not have kept.
      */
     fun setReminderEnabled(enabled: Boolean) {
         viewModelScope.launch {
@@ -159,10 +155,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Demande la confirmation plutôt que de déconnecter.
+     * Requests confirmation instead of signing out.
      *
-     * SPECS.md §3.5 l'impose : l'action efface le jeton **et** le cache, elle
-     * n'est pas rattrapable par un simple retour en arrière.
+     * Required by SPECS.md §3.5: the action erases the token and the cache
+     * and cannot be undone by going back.
      */
     fun requestSignOut() {
         signOutConfirmation.value = true
@@ -173,11 +169,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * La confirmation est refermée avant l'appel, et non après.
+     * The confirmation is closed before the call, not after.
      *
-     * `signOut()` fait tomber la session, ce qui ramène l'utilisateur à l'écran
-     * de connexion : attendre son retour laisserait la boîte de dialogue
-     * visible pendant la transition.
+     * `signOut()` drops the session, which returns the user to the login
+     * screen: waiting for it to complete would leave the dialog visible
+     * during the transition.
      */
     fun confirmSignOut() {
         signOutConfirmation.value = false
@@ -185,12 +181,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Purge le cache **sans rien demander**.
+     * Purges the cache without asking.
      *
-     * Ce que le geste détruit — des articles lus et déjà connus du serveur
-     * comme lus (SPECS.md §5.4) — ne justifie pas la confirmation qu'exige la
-     * déconnexion, qui emporte le jeton, les non-lus et les marquages en
-     * attente. Le compte rendu tient lieu de retour : voir [lastPurgedCount].
+     * What the gesture destroys (articles read and already known to the
+     * server as read, SPECS.md §5.4) does not justify the confirmation
+     * sign-out requires, which takes the token, unread articles, and pending
+     * markings. The report serves as feedback: see [lastPurgedCount].
      */
     fun purgeCache() {
         viewModelScope.launch { lastPurgedCount.value = cacheRepository.purgeReadArticles() }
@@ -219,11 +215,11 @@ class SettingsViewModel @Inject constructor(
     )
 
     /**
-     * Ce que l'écran porte de lui-même : rien de tout cela n'est sur le disque.
+     * State the screen carries on its own; none of it is on disk.
      *
-     * Les réunir n'est pas qu'une commodité pour tenir dans les cinq flux du
-     * `combine` : c'est la frontière entre ce qui survit à la fermeture de
-     * l'écran et ce qui disparaît avec lui.
+     * Grouping is not only a convenience for `combine`'s five-flow limit: it
+     * marks the boundary between what survives the screen's closing and what
+     * disappears with it.
      */
     private data class TransientState(
         val confirming: Boolean,
@@ -231,11 +227,11 @@ class SettingsViewModel @Inject constructor(
     )
 
     /**
-     * Les préférences persistées qui ne sont pas des seuils.
+     * Persisted preferences that are not thresholds.
      *
-     * Un regroupement de commodité, et il l'assume : `combine` s'arrête à cinq
-     * flux. Les deux réglages n'ont rien à voir l'un avec l'autre, ce qui est
-     * précisément pourquoi ils restent deux champs et non un type du domaine.
+     * A convenience grouping for `combine`'s five-flow limit. The two
+     * settings are unrelated, which is exactly why they stay two fields and
+     * not a domain type.
      */
     private data class StoredPreferences(
         val presentation: FeedPresentation,

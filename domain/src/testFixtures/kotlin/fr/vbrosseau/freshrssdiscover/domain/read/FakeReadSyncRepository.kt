@@ -3,22 +3,22 @@ package fr.vbrosseau.freshrssdiscover.domain.read
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 
 /**
- * Dépôt de synchronisation piloté, pour les tests.
+ * Scripted sync repository for tests.
  *
- * Reproduit la seule propriété qui compte pour l'appelant : [markAsRead] ne
- * peut pas échouer et n'attend rien. Ce que le faux enregistre, ce sont donc
- * les **appels**, pas des issues — un écran qui se contenterait de signaler
- * l'article vu doit être vérifiable sans jamais parler de réseau.
+ * Reproduces the one property that matters to the caller: [markAsRead] cannot
+ * fail and expects nothing back. The fake therefore records calls, not
+ * outcomes; a screen that merely reports an article as seen must be
+ * verifiable without ever involving the network.
  *
- * [markedIds] est un cumul et non le dernier appel : le défilement en produit
- * un par lot d'articles vus, et n'observer que le dernier laisserait passer un
- * marquage écrasé par le suivant.
+ * [markedIds] accumulates rather than keeping the last call: scrolling
+ * produces one call per batch of seen articles, and observing only the last
+ * would miss a marking overwritten by the next.
  */
 class FakeReadSyncRepository : ReadSyncRepository {
-    /** Tous les articles marqués depuis le début, dans l'ordre de marquage. */
+    /** All articles marked so far, in marking order. */
     val markedIds: MutableList<ArticleId> = mutableListOf()
 
-    /** Chaque appel à [markAsRead], tel qu'il a été reçu — les lots sont eux-mêmes observables. */
+    /** Each call to [markAsRead] as received, so the batches themselves are observable. */
     val markCalls: MutableList<Set<ArticleId>> = mutableListOf()
 
     var flushCallCount: Int = 0

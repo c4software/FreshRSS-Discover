@@ -19,8 +19,8 @@ class AuthSessionTest {
 
     @Test
     fun aFreshSessionHasNoModificationToken() {
-        // Il s'obtient par un appel distinct, qu'il serait inutile de payer à
-        // chaque connexion : seules les opérations modifiantes en ont besoin.
+        // Obtained through a separate call that would be wasteful on every
+        // sign-in: only mutating operations need it.
         assertNull(session().modificationToken)
     }
 
@@ -35,9 +35,9 @@ class AuthSessionTest {
 
     @Test
     fun theGeneratedToStringLeaksNoToken() {
-        // Une `data class` affiche tous ses champs. C'est sans risque ici
-        // uniquement parce que les deux jetons masquent eux-mêmes leur valeur ;
-        // le vérifier évite qu'un futur champ secret passe en clair.
+        // A `data class` prints all its fields. That is only safe here
+        // because both tokens mask their own value; checking it prevents a
+        // future secret field from leaking in clear text.
         val text = session(ModificationToken("ZZZ-secret")).toString()
 
         assertFalse("alice/c0ffee" in text)

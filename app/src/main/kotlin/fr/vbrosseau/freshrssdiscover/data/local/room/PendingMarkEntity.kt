@@ -5,19 +5,19 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Un article dont le passage à « lu » reste à transmettre au serveur.
+ * An article whose transition to read has yet to be transmitted to the server.
  *
- * Cette table existe parce que le marquage est **optimiste** (SPECS.md §4.5) :
- * l'état local change dès que l'article a été vu, l'envoi suit, et un échec
- * réseau ne doit pas se voir pendant la lecture. Il faut donc un endroit où
- * l'intention survit à l'échec — et à l'arrêt de l'application, d'où Room
- * plutôt qu'une liste en mémoire : un marquage non transmis est rejoué « y
- * compris après redémarrage ».
+ * This table exists because marking is optimistic (SPECS.md §4.5): the local
+ * state changes as soon as the article has been seen, the send follows, and a
+ * network failure must not be visible during reading. The intent therefore
+ * needs a place that survives failure — and application shutdown, hence Room
+ * rather than an in-memory list: an untransmitted mark is replayed even after
+ * a restart.
  *
- * La clé primaire est l'identifiant d'article lui-même : la file décrit un
- * ensemble d'articles à marquer, pas une suite d'événements. Deux passages sur
- * le même article n'ont rien à transmettre de plus qu'un seul, et une clé
- * autogénérée ferait grossir la file de doublons sans effet.
+ * The primary key is the article identifier itself: the queue describes a set
+ * of articles to mark, not a sequence of events. Two passes over the same
+ * article have nothing more to transmit than one, and an auto-generated key
+ * would grow the queue with ineffective duplicates.
  */
 @Entity(tableName = "pending_marks")
 internal data class PendingMarkEntity(
@@ -25,11 +25,10 @@ internal data class PendingMarkEntity(
     @ColumnInfo(name = "article_id")
     val articleId: Long,
     /**
-     * Date de mise en file.
+     * Enqueue timestamp.
      *
-     * Sert l'ordre de rejeu : le plus ancien marquage part en premier, celui
-     * qui a déjà le plus attendu. Sans elle, l'ordre serait celui, arbitraire,
-     * que SQLite voudrait bien rendre.
+     * Drives the replay order: the oldest mark leaves first. Without it, the
+     * order would be whatever SQLite happens to return.
      */
     @ColumnInfo(name = "queued_at_epoch_millis")
     val queuedAtEpochMillis: Long,

@@ -6,12 +6,11 @@ import kotlin.test.assertTrue
 
 class FeedErrorTest {
     /**
-     * Constate que le jeu de causes reste **plus court** que celui de
-     * l'authentification.
+     * Verifies the cause set stays shorter than authentication's.
      *
-     * Y ajouter « API désactivée » ou « identifiants refusés » compilerait, et
-     * obligerait ensuite chaque appelant à traiter des cas qui ne peuvent plus
-     * survenir une fois la session ouverte.
+     * Adding "API disabled" or "credentials rejected" would compile, then
+     * force every caller to handle cases that can no longer occur once the
+     * session is open.
      */
     @Test
     fun everyCauseIsDistinct() {
@@ -28,10 +27,10 @@ class FeedErrorTest {
 
     @Test
     fun anExpiredSessionIsACauseOfItsOwn() {
-        // Ce n'est pas une erreur de lecture mais une fin de session : le dépôt
-        // l'accompagne d'une invalidation, et l'aiguillage racine ramène à
-        // l'écran de connexion. La confondre avec « serveur injoignable »
-        // laisserait l'utilisateur réessayer indéfiniment.
+        // Not a read error but an end of session: the repository pairs it
+        // with an invalidation, and the root routing returns to the sign-in
+        // screen. Conflating it with "server unreachable" would leave the
+        // user retrying forever.
         assertTrue(FeedError.SessionExpired != FeedError.ServerUnreachable)
     }
 

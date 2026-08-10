@@ -27,18 +27,17 @@ class SessionGateViewModelTest {
 
     @Test
     fun theGateStartsUnknownWhileTheSessionIsStillBeingRead() = runTest {
-        // La session vit sur disque : partir de « déconnecté » ferait
-        // apparaître l'écran de connexion un instant à chaque lancement, y
-        // compris pour un utilisateur déjà connecté.
+        // The session lives on disk: starting from "signed out" would flash
+        // the login screen at every launch, even for a signed-in user.
         //
-        // La source ne doit donc **pas** émettre tout de suite — un
-        // `MutableStateFlow` a déjà une valeur et masquerait le défaut.
+        // The source must not emit immediately: a `MutableStateFlow` already
+        // has a value and would mask the defect.
         val viewModel = SessionGateViewModel(SilentAuthRepository)
 
         assertEquals(SessionGate.Unknown, viewModel.gate.value)
     }
 
-    /** Dépôt dont la session n'est jamais lue, comme un DataStore encore muet. */
+    /** Repository whose session is never read, like a DataStore still silent. */
     private object SilentAuthRepository : AuthRepository {
         override fun observeSession(): Flow<AuthSession?> = emptyFlow()
         override fun observeLastSignInHint(): Flow<SignInHint?> = emptyFlow()
@@ -66,8 +65,8 @@ class SessionGateViewModelTest {
 
     @Test
     fun aRefusedTokenSendsTheUserBackToTheLoginScreen() = runTest {
-        // C'est tout le mécanisme de SPECS.md §3.4 : aucun écran n'a à s'en
-        // préoccuper, la disparition de la session suffit.
+        // The whole mechanism of SPECS.md §3.4: no screen has to care, the
+        // disappearance of the session is enough.
         sessions.value = repository.sessionOf(server)
         val viewModel = SessionGateViewModel(repository)
         assertEquals(SessionGate.SignedIn, viewModel.gate.value)

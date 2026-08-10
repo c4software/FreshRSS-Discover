@@ -7,33 +7,33 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.FeedRef
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import java.lang.Long.parseUnsignedLong
 
-/** Préfixe hérité de Google Reader, invariablement présent devant l'identifiant. */
+/** Google Reader legacy prefix, always present before the identifier. */
 private const val ITEM_ID_PREFIX = "tag:google.com,2005:reader/item/"
 
-/** Catégorie portant l'état lu. Son absence signifie « non lu ». */
+/** Category carrying the read state. Its absence means unread. */
 private const val READ_CATEGORY = "user/-/state/com.google/read"
 
 private const val HEXADECIMAL = 16
 
-/** Balises HTML, y compris leurs attributs. */
+/** HTML tags, including their attributes. */
 private val HTML_TAG = Regex("<[^>]*>")
 
-/** Première image du contenu, quel que soit l'ordre de ses attributs. */
+/** First image in the content, regardless of attribute order. */
 private val IMG_SOURCE = Regex("""<img[^>]*\ssrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
 
 private val WHITESPACE = Regex("\\s+")
 
 /**
- * Convertit une réponse de `stream/contents` en page du domaine.
+ * Converts a `stream/contents` response into a domain page.
  *
- * Les articles dont l'identifiant est illisible sont **écartés** plutôt que de
- * faire échouer la page entière : un article aberrant ne doit pas priver
- * l'utilisateur des trente-neuf autres.
+ * Articles whose identifier cannot be parsed are dropped rather than failing
+ * the whole page: one broken article must not cost the user the other
+ * thirty-nine.
  */
 internal fun StreamContentsDto.toArticlePage(): ArticlePage = ArticlePage(
     articles = items.mapNotNull(ItemDto::toArticleOrNull),
-    // Le curseur est absent lorsque le flux est épuisé : c'est le seul signal
-    // de fin, l'API ne renvoyant aucun compteur total.
+    // The cursor is absent when the stream is exhausted: this is the only
+    // end-of-stream signal, as the API returns no total count.
     nextCursor = continuation?.takeIf(String::isNotBlank)?.let(::PageCursor),
 )
 
@@ -55,21 +55,21 @@ internal fun ItemDto.toArticleOrNull(): Article? {
 }
 
 /**
- * Ramène l'identifiant à sa forme décimale.
+ * Normalizes the identifier to its decimal form.
  *
- * L'API l'expose en hexadécimal ici, mais en décimal dans `continuation` et
- * dans le paramètre `i` d'`edit-tag` : n'en garder qu'une base au-dessus de
- * cette couche évite que la confusion atteigne le marquage comme lu, où elle
- * échouerait sans rien signaler.
+ * The API exposes it in hexadecimal here, but in decimal in `continuation` and
+ * in the `i` parameter of `edit-tag`. Keeping a single base above this layer
+ * prevents the confusion from reaching mark-as-read, where it would fail
+ * silently.
  *
- * `parseUnsignedLong` et non `toLong` : FreshRSS produit un entier 64 bits non
- * signé, et un identifiant au-delà de `Long.MAX_VALUE` ferait lever la seconde.
+ * `parseUnsignedLong` rather than `toLong`: FreshRSS produces an unsigned
+ * 64-bit integer, and an identifier above `Long.MAX_VALUE` would make `toLong`
+ * throw.
  *
- * ⚠️ Conséquence à ne pas perdre de vue : un identifiant dépassant
- * `Long.MAX_VALUE` est conservé sous forme de bits, donc **négatif** en Kotlin.
- * Le reformater avec `toString()` au moment d'un `edit-tag` enverrait un `-1`
- * au serveur ; c'est `java.lang.Long.toUnsignedString` qu'il faudra employer.
- * Voir TASKS.md, GOAL-008.
+ * Consequence to keep in mind: an identifier above `Long.MAX_VALUE` is stored
+ * as raw bits, hence negative in Kotlin. Reformatting it with `toString()` for
+ * an `edit-tag` would send `-1` to the server; `java.lang.Long.toUnsignedString`
+ * must be used instead. See TASKS.md, GOAL-008.
  */
 private fun parseArticleId(raw: String): ArticleId? {
     val digits = raw.removePrefix(ITEM_ID_PREFIX).trim()
@@ -77,43 +77,41 @@ private fun parseArticleId(raw: String): ArticleId? {
 }
 
 /**
- * `canonical` d'abord, `alternate` ensuite.
+ * `canonical` first, `alternate` second.
  *
- * Les deux portent la même valeur dans la pratique, mais `canonical` est le
- * champ que Google Reader destinait à cet usage. `null` lorsqu'aucun lien
- * n'est exploitable : SPECS.md §4.7 demande alors un article non cliquable,
- * pas l'ouverture d'une page vide.
+ * Both carry the same value in practice, but `canonical` is the field Google
+ * Reader intended for this use. `null` when no link is usable: SPECS.md §4.7
+ * requires a non-clickable article in that case, not opening an empty page.
  */
 private fun ItemDto.firstUsableLink(): String? =
     (canonical + alternate).map(LinkDto::href).firstOrNull(String::isNotBlank)
 
 /**
- * Illustration de l'article : `enclosure` d'abord, contenu ensuite.
+ * Article illustration: `enclosure` first, content second.
  *
- * Tranche SPECS.md §8 question 6. L'ordre est celui de la fiabilité : une
- * `enclosure` est une illustration **déclarée** par le flux, alors qu'une
- * balise `<img>` du contenu peut aussi bien être un pixel de suivi, un logo de
- * pied de page ou un bouton de partage. On ne se rabat dessus que faute de
- * mieux — beaucoup de flux n'émettent aucune `enclosure`, et priver ces
- * articles d'illustration appauvrirait sensiblement le flux Discover.
+ * Settles SPECS.md §8 question 6. The order reflects reliability: an
+ * `enclosure` is an illustration declared by the feed, whereas an `<img>` tag
+ * in the content may be a tracking pixel, a footer logo, or a share button.
+ * The content is only a fallback: many feeds emit no `enclosure`, and leaving
+ * those articles without an illustration would noticeably impoverish the
+ * Discover feed.
  */
 private fun ItemDto.illustrationOf(rawSummary: String): String? =
     enclosure.firstOrNull { it.isImage() }?.href?.takeIf(String::isNotBlank)
         ?: IMG_SOURCE.find(rawSummary)?.groupValues?.get(1)?.takeIf(String::isNotBlank)
 
 /**
- * `startsWith("image")` et non `== "image/..."` : quand le flux source ne
- * précise pas de type MIME, FreshRSS se rabat sur le mot `image` seul.
+ * `startsWith("image")` rather than `== "image/..."`: when the source feed
+ * gives no MIME type, FreshRSS falls back to the bare word `image`.
  */
 private fun EnclosureDto.isImage(): Boolean = type?.startsWith("image", ignoreCase = true) == true
 
 /**
- * Réduit un fragment HTML au texte qu'il porte.
+ * Reduces an HTML fragment to its text content.
  *
- * Les champs de FreshRSS contiennent du HTML : l'afficher tel quel montrerait
- * des balises à l'utilisateur, et le laisser interpréter par un composant de
- * texte ouvrirait la porte à du contenu tiers non maîtrisé. Un extrait n'a
- * besoin que du texte.
+ * FreshRSS fields contain HTML: displaying it as-is would show tags to the
+ * user, and letting a text component interpret it would open the door to
+ * uncontrolled third-party content. An excerpt only needs the text.
  */
 private fun String.stripHtml(): String = HTML_TAG.replace(this, " ")
     .decodeHtmlEntities()
@@ -121,10 +119,10 @@ private fun String.stripHtml(): String = HTML_TAG.replace(this, " ")
     .trim()
 
 /**
- * Décode les seules entités que produisent réellement les flux RSS.
+ * Decodes only the entities RSS feeds actually produce.
  *
- * `&amp;` est traité **en dernier** : l'inverse transformerait `&amp;lt;` en
- * `<`, c'est-à-dire réintroduirait une balise que l'on vient de neutraliser.
+ * `&amp;` is handled last: the reverse order would turn `&amp;lt;` into `<`,
+ * reintroducing a tag that was just neutralized.
  */
 private fun String.decodeHtmlEntities(): String = this
     .replace("&nbsp;", " ")

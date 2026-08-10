@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.swipe
 
-/** Repères de test de la vue Balayage. */
+/** Test tags for the Swipe view. */
 object SwipeTestTags {
     const val PAGER = "swipe:pager"
     const val EMPTY = "swipe:empty"

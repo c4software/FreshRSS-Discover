@@ -10,59 +10,53 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Force la transmission des marquages quand l'application passe en arrière-plan.
+ * Forces transmission of read markings when the app goes to the background.
  *
- * Le regroupement de `ReadTransmissionScheduler` retient les marquages cinq
- * secondes avant de les envoyer (SPECS.md §4.5). Rien n'est perdu si
- * l'utilisateur part pendant cette fenêtre — la file survit et le rejeu au
- * démarrage suivant la videra — mais, entre-temps, le serveur et les autres
- * appareils ignorent une lecture qui a bien eu lieu. Quitter l'application dans
- * les cinq secondes qui suivent une lecture est le geste le plus banal qui
- * soit ; cet observateur ferme la fenêtre au lieu de l'attendre.
+ * The batching in `ReadTransmissionScheduler` holds markings for five seconds
+ * before sending (SPECS.md §4.5). Nothing is lost if the user leaves during
+ * that window (the queue persists and replay at next startup drains it), but
+ * in the meantime the server and other devices are unaware of a read that did
+ * happen. Leaving the app within five seconds of a read is common; this
+ * observer closes the window instead of waiting it out.
  *
- * **`ON_STOP` et non `ON_PAUSE`.** `ON_PAUSE` se déclenche dès qu'une autre
- * fenêtre passe devant, y compris une boîte de dialogue système, une
- * notification développée ou un sélecteur de permission — l'application reste
- * visible, la lecture reprendra dans la seconde. Transmettre à chacun de ces
- * événements annulerait le regroupement précisément dans le cas qu'il sert à
- * couvrir. `ON_STOP` ne survient que lorsque l'application n'est plus visible :
- * plus rien ne sera lu, l'attente n'a plus d'objet.
+ * `ON_STOP`, not `ON_PAUSE`: `ON_PAUSE` fires whenever another window comes
+ * in front, including system dialogs, an expanded notification, or a
+ * permission picker, while the app stays visible and reading resumes within
+ * a second. Flushing on each of those events would defeat the batching in
+ * exactly the case it covers. `ON_STOP` only occurs when the app is no longer
+ * visible: nothing more will be read, so waiting is pointless.
  *
- * **L'application peut être tuée sans que l'événement arrive** — le système
- * n'en garantit aucun quand il récupère la mémoire d'un processus en
- * arrière-plan. Ce n'est pas un défaut à corriger ici : c'est exactement ce
- * pour quoi la file est persistante et n'est acquittée qu'après confirmation
- * du serveur. Cet observateur raccourcit le délai habituel, il ne remplace pas
- * le rejeu au démarrage.
+ * The app can be killed without this event arriving; the system guarantees no
+ * callback when it reclaims a background process. That is not a defect to fix
+ * here: it is exactly why the queue is persistent and only acknowledged after
+ * server confirmation. This observer shortens the usual delay; it does not
+ * replace replay at startup.
  *
- * **La portée est celle de l'application, jamais celle d'un ViewModel.** La
- * transmission est déclenchée par la disparition de l'écran : lancée dans
- * `viewModelScope`, elle serait annulée par l'événement même qui l'a demandée.
- * D'où [ApplicationScope], dont le `SupervisorJob` vit aussi longtemps que le
- * processus.
+ * Application scope, never a ViewModel's: the flush is triggered by the
+ * screen going away, so launched in `viewModelScope` it would be cancelled by
+ * the very event that requested it. Hence [ApplicationScope], whose
+ * `SupervisorJob` lives as long as the process.
  *
- * Un `DefaultLifecycleObserver` plutôt qu'un `@Composable` observant
- * `LocalLifecycleOwner` : ce n'est pas un écran qui a quelque chose à
- * transmettre, c'est l'application. Le brancher sur un Composable lierait la
- * synchronisation à la présence d'un écran donné dans l'arborescence — il se
- * tairait dès qu'on navigue ailleurs, et il faudrait le reposer sur chaque
- * écran ajouté.
+ * A `DefaultLifecycleObserver` rather than a `@Composable` observing
+ * `LocalLifecycleOwner`: the app, not a screen, has something to flush. Tying
+ * it to a Composable would bind synchronization to the presence of a given
+ * screen in the tree and require re-adding it on every new screen.
  *
- * À enregistrer une fois, dans `MainActivity.onCreate()`, sur le cycle de vie
- * de l'unique `Activity` :
+ * Register once, in `MainActivity.onCreate()`, on the single `Activity`'s
+ * lifecycle:
  *
  * ```kotlin
  * lifecycle.addObserver(readFlushOnBackgroundObserver)
  * ```
  *
- * Le cycle de vie du **processus** (`ProcessLifecycleOwner`) serait plus juste
- * — il ne produit qu'un `ON_STOP` par passage réel en arrière-plan, là où
- * celui d'une `Activity` en produit aussi un à chaque rotation et à chaque
- * ouverture d'un article dans l'onglet personnalisé. Il demande la dépendance
- * `androidx.lifecycle:lifecycle-process`, absente du dépôt. Le surcoût de s'en
- * passer est nul : transmettre sans rien en file ne touche pas au réseau, et
- * le marquage distant est idempotent. Cette classe n'observe rien elle-même,
- * donc le jour où la dépendance entre, seule la ligne d'enregistrement change.
+ * The process lifecycle (`ProcessLifecycleOwner`) would be more accurate: it
+ * produces one `ON_STOP` per actual backgrounding, whereas an `Activity`'s
+ * also fires on every rotation and every article opened in the custom tab.
+ * It requires the `androidx.lifecycle:lifecycle-process` dependency, absent
+ * from the repository. The cost of doing without is nil: flushing an empty
+ * queue touches no network, and remote marking is idempotent. This class
+ * observes nothing itself, so if the dependency is added later only the
+ * registration line changes.
  */
 @Singleton
 class ReadFlushOnBackgroundObserver @Inject constructor(
@@ -71,8 +65,8 @@ class ReadFlushOnBackgroundObserver @Inject constructor(
 ) : DefaultLifecycleObserver {
 
     /**
-     * L'issue est ignorée volontairement : un échec de transmission laisse la
-     * file intacte, et il n'y a plus d'écran pour en rendre compte.
+     * The outcome is deliberately ignored: a failed flush leaves the queue
+     * intact, and there is no screen left to report it to.
      */
     override fun onStop(owner: LifecycleOwner) {
         applicationScope.launch { readSyncRepository.flush() }

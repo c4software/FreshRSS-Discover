@@ -8,7 +8,7 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** Couleur arbitraire, seulement destinée à être retrouvée dans l'intention. */
+/** Arbitrary color, only meant to be found back in the intent. */
 private const val THEME_SURFACE_COLOR = 0xFF102030.toInt()
 
 @RunWith(RobolectricTestRunner::class)
@@ -34,10 +34,10 @@ class ArticleCustomTabsIntentTest {
     }
 
     /**
-     * L'absence de service lié est ce qui garantit qu'aucun `warmup` ni
-     * `mayLaunchUrl` n'a pu partir : sans session, le navigateur n'a rien à
-     * précharger, et aucune requête n'est émise avant le geste de
-     * l'utilisateur (SPECS.md §7.4).
+     * The absence of a bound service is what guarantees no `warmup` or
+     * `mayLaunchUrl` could have gone out: without a session, the browser has
+     * nothing to preload, and no request is emitted before the user's gesture
+     * (SPECS.md §7.4).
      */
     @Test
     fun noSessionIsBoundSoNothingIsPreconnected() {

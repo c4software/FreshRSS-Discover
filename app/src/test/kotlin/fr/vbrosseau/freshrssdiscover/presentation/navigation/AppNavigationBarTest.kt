@@ -11,8 +11,8 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 
 /**
- * La barre est dérivée de [AppDestination] : ces tests constatent que la
- * dérivation fonctionne, ce qui vaut pour toute destination ajoutée ensuite.
+ * The bar is derived from [AppDestination]: these tests verify the derivation,
+ * which covers any destination added later.
  */
 @RunWith(RobolectricTestRunner::class)
 class AppNavigationBarTest {
@@ -54,8 +54,8 @@ class AppNavigationBarTest {
 
     @Test
     fun anUnknownRouteSelectsNothing() {
-        // Cas réel : une destination atteinte hors de la barre, ou l'état
-        // transitoire avant que le graphe n'ait publié sa première route.
+        // Real case: a destination reached outside the bar, or the transient
+        // state before the graph has published its first route.
         assertEquals(null, AppDestination.forRoute("route-inexistante"))
         assertEquals(null, AppDestination.forRoute(null))
     }

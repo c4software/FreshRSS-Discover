@@ -53,22 +53,21 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Assez large pour lire toute la file d'un test, quelle que soit sa taille. */
+/** Large enough to read a test's whole queue, whatever its size. */
 private const val WHOLE_QUEUE = 1_000
 
-/** Taille de lot attendue, telle que le dépôt la fixe. */
+/** Expected batch size, as fixed by the repository. */
 private const val BATCH_SIZE = 100
 
 private const val FRESH_TOKEN = "JETON-FRAIS"
 
-/** Délai de regroupement attendu, tel que le domaine le fixe par défaut. */
+/** Expected grouping delay, as fixed by the domain default. */
 private const val GROUPING_DELAY_MILLIS = 5_000L
 
 /**
- * Ce que ces tests éprouvent tient en une phrase : **la lecture ne dépend jamais
- * du réseau, et rien ne quitte la file sans confirmation du serveur** (SPECS.md
- * §4.5). Chaque échec est donc doublé d'une vérification de la file, seule
- * garantie que le marquage sera rejoué.
+ * Reading never depends on the network, and nothing leaves the queue without
+ * server confirmation (SPECS.md §4.5). Every failure test therefore also checks
+ * the queue, the only guarantee that the mark will be replayed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -80,17 +79,17 @@ class DefaultReadSyncRepositoryTest {
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
     /**
-     * Portée des transmissions différées, tenue à l'écart de [scope].
+     * Scope for deferred transmissions, kept separate from [scope].
      *
-     * DataStore y ferait vivre des coroutines sans fin, alors que les tests du
-     * regroupement ont besoin d'attendre la fin des seules transmissions.
+     * DataStore would keep never-ending coroutines alive there, while the
+     * grouping tests need to await the completion of transmissions only.
      */
     private val transmissionScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private val server = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
 
-    // Base en mémoire : l'état lu local et la file se vérifient avec le vrai
-    // moteur SQLite, seul capable de révéler une requête invalide.
+    // In-memory database: local read state and the queue are verified against
+    // the real SQLite engine, the only thing able to reveal an invalid query.
     private val database = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java)
         .allowMainThreadQueries()
@@ -100,13 +99,13 @@ class DefaultReadSyncRepositoryTest {
     private val cache = ArticleCache(articleDao, Clock { 0L })
     private val queue = PendingMarkQueue(database.pendingMarkDao(), Clock { 0L })
 
-    /** Réponses de `edit-tag`, consommées dans l'ordre ; `OK` une fois épuisées. */
+    /** `edit-tag` replies, consumed in order; `OK` once exhausted. */
     private val editTagReplies = ArrayDeque<Reply>()
 
-    /** Réponses du point d'entrée `token`, même règle. */
+    /** `token` endpoint replies, same rule. */
     private val tokenReplies = ArrayDeque<Reply>()
 
-    /** Formulaire de chaque `edit-tag` reçu : c'est lui qui porte les identifiants et le jeton. */
+    /** Form data of each received `edit-tag`: it carries the ids and the token. */
     private val editTagForms = mutableListOf<Parameters>()
 
     private var tokenRequestCount = 0
@@ -141,8 +140,8 @@ class DefaultReadSyncRepositoryTest {
     }
 
     /**
-     * Un dépôt neuf sur la **même** base : c'est ce qui reproduit un
-     * redémarrage de l'application, la file étant la seule mémoire commune.
+     * A fresh repository on the same database: reproduces an application
+     * restart, the queue being the only shared memory.
      */
     private fun newRepository() = DefaultReadSyncRepository(
         api = FreshRssApi(createFreshRssHttpClient(engine)),
@@ -198,12 +197,12 @@ class DefaultReadSyncRepositoryTest {
     private suspend fun markAll(count: Int) =
         repository.markAsRead((1..count).map { ArticleId(it.toLong()) }.toSet())
 
-    // ----- Marquage optimiste ------------------------------------------------
+    // ----- Optimistic marking ------------------------------------------------
 
     @Test
     fun markingAnArticleChangesTheLocalStateWithoutTouchingTheNetwork() = runTest {
-        // Le cœur de SPECS.md §4.5 : la lecture ne paie jamais le réseau. Aucun
-        // appel ne doit partir, pas même l'obtention du jeton.
+        // Core of SPECS.md §4.5: reading never pays for the network. No call
+        // may go out, not even the token request.
         cacheArticle(1L)
 
         repository.markAsRead(setOf(ArticleId(1L)))
@@ -222,8 +221,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun markingAnArticleAbsentFromTheCacheStillQueuesIt() = runTest {
-        // La file ne dépend pas du cache : un article purgé entre-temps doit
-        // quand même être signalé au serveur.
+        // The queue does not depend on the cache: an article purged in the
+        // meantime must still be reported to the server.
         repository.markAsRead(setOf(ArticleId(9L)))
 
         assertEquals(listOf(9L), pendingIds())
@@ -251,8 +250,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aFlushWithNothingPendingNeverTouchesTheNetwork() = runTest {
-        // Payer un aller-retour pour n'envoyer aucun article serait absurde, et
-        // c'est le cas courant du démarrage.
+        // Paying a round trip to send no article would be pointless, and this
+        // is the common case at startup.
         signedIn()
 
         repository.flush()
@@ -263,8 +262,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun theQueueIsSentInBatchesRatherThanInOneRequest() = runTest {
-        // Une file accumulée hors ligne ne doit pas partir en une requête
-        // démesurée : au-delà de 1 000 champs, PHP les ignore en silence.
+        // A queue accumulated offline must not leave in one oversized request:
+        // beyond 1,000 fields, PHP silently drops them.
         signedIn()
         markAll(2 * BATCH_SIZE + 50)
 
@@ -279,8 +278,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun theModificationTokenIsObtainedOnceForTheWholeFlush() = runTest {
-        // Le jeton est déterministe et réutilisable : le redemander à chaque lot
-        // doublerait le nombre d'allers-retours (docs/freshrss-api.md §2.3).
+        // The token is deterministic and reusable: requesting it again for each
+        // batch would double the number of round trips (docs/freshrss-api.md §2.3).
         signedIn()
         markAll(BATCH_SIZE + 1)
 
@@ -312,21 +311,20 @@ class DefaultReadSyncRepositoryTest {
         assertEquals("JETON-CONNU", editTagForms.single()["T"])
     }
 
-    // ----- Regroupement temporel (GOAL-008-T07) ------------------------------
+    // ----- Time-based grouping (GOAL-008-T07) --------------------------------
 
     /*
-     * Le **minutage** du regroupement se vérifie dans `:domain`
-     * (ReadTransmissionSchedulerTest), où la transmission est un faux et le
-     * temps entièrement virtuel. Ici, la transmission passe par Room, DataStore
-     * et Ktor, qui suspendent réellement : `runTest` avance alors le temps
-     * virtuel de lui-même pendant ces attentes, et la milliseconde n'y veut plus
-     * rien dire. Ces tests-ci éprouvent donc le **câblage** — ce qui part, quand
-     * on le déclenche, et ce qui reste en file — et rien d'autre.
+     * The grouping *timing* is verified in `:domain` (ReadTransmissionSchedulerTest),
+     * where the transmission is a fake and time fully virtual. Here the
+     * transmission goes through Room, DataStore and Ktor, which really suspend:
+     * `runTest` then advances virtual time on its own during those waits, so
+     * millisecond precision is meaningless. These tests therefore verify the
+     * wiring only: what goes out when triggered, and what stays queued.
      */
 
     /**
-     * Amène la fenêtre à échéance, puis attend la fin de la transmission qu'elle
-     * déclenche : le temps est virtuel, mais Ktor, lui, répond sur un vrai fil.
+     * Advances the window to expiry, then awaits the transmission it triggers:
+     * time is virtual, but Ktor answers on a real thread.
      */
     private suspend fun TestScope.awaitScheduledTransmission() {
         advanceTimeBy(GROUPING_DELAY_MILLIS)
@@ -336,9 +334,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aMarkIsAppliedLocallyWithoutBeingTransmitted() = runTest(dispatcher) {
-        // La moitié immédiate et la moitié différée dans le même test : au
-        // retour de `markAsRead`, l'état local a basculé et la file est écrite,
-        // alors que rien n'est encore parti.
+        // When `markAsRead` returns, the local state has flipped and the queue
+        // is written, while nothing has been transmitted yet.
         signedIn()
         cacheArticle(1L)
 
@@ -352,8 +349,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aMarkIsTransmittedOnceTheGroupingDelayHasElapsed() = runTest(dispatcher) {
-        // Sans `flush` : la fenêtre suffit à faire partir ce qui attend, sans
-        // quoi le marquage attendrait le lancement suivant.
+        // No `flush`: the window alone must send what is waiting, otherwise the
+        // mark would wait until the next launch.
         signedIn()
 
         repository.markAsRead(setOf(ArticleId(1L)))
@@ -365,9 +362,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aFlushTransmitsAndConsumesTheOpenWindow() = runTest(dispatcher) {
-        // Le rejeu au démarrage ne peut pas attendre une fenêtre : `flush`
-        // force. Et il consomme celle qui était ouverte, plutôt que d'en laisser
-        // une partir à vide derrière lui.
+        // Replay at startup cannot wait for a window: `flush` forces it, and
+        // consumes the open window rather than letting one fire empty behind it.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
 
@@ -380,8 +376,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun clearingPendingDropsTheScheduledTransmission() = runTest(dispatcher) {
-        // Déconnexion pendant une fenêtre ouverte : la file est abandonnée, et
-        // la transmission programmée n'a plus rien à dire au serveur.
+        // Sign-out during an open window: the queue is dropped and the
+        // scheduled transmission has nothing left to tell the server.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
 
@@ -394,8 +390,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aMarkAddedAfterATransmissionGetsItsOwnWindow() = runTest(dispatcher) {
-        // Rien ne se perd d'une fenêtre à l'autre : ce qui arrive après un envoi
-        // ouvre le suivant, sans attendre un `flush`.
+        // Nothing is lost between windows: a mark arriving after a transmission
+        // opens the next one, without waiting for a `flush`.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
         awaitScheduledTransmission()
@@ -408,12 +404,12 @@ class DefaultReadSyncRepositoryTest {
         assertTrue(pendingIds().isEmpty())
     }
 
-    // ----- Échecs : la file survit -------------------------------------------
+    // ----- Failures: the queue survives --------------------------------------
 
     @Test
     fun anUnreachableServerKeepsTheQueueIntact() = runTest {
-        // Hors ligne : la transmission échoue, la file grossit, et rien ne se
-        // voit à l'écran (SPECS.md §5.2). C'est le comportement voulu.
+        // Offline: the transmission fails, the queue grows, and nothing shows
+        // on screen (SPECS.md §5.2). This is the intended behavior.
         signedIn(modificationToken = ModificationToken("JETON-CONNU"))
         repository.markAsRead(setOf(ArticleId(1L)))
         val failing = failingRepository()
@@ -436,8 +432,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun anUnexpectedBodyKeepsTheQueueIntact() = runTest {
-        // `edit-tag` répond `OK` en texte brut : autre chose signale un portail
-        // captif ou une page de maintenance, pas un marquage effectué.
+        // `edit-tag` answers `OK` in plain text: anything else signals a
+        // captive portal or a maintenance page, not a successful mark.
         signedIn(modificationToken = ModificationToken("JETON-CONNU"))
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("<html>maintenance</html>")
@@ -456,7 +452,7 @@ class DefaultReadSyncRepositoryTest {
 
         repository.flush()
 
-        // Le premier lot est parti et acquitté ; seul le second reste.
+        // The first batch went out and was acknowledged; only the second remains.
         assertEquals(2, editTagForms.size)
         assertEquals(50, pendingIds().size)
     }
@@ -472,12 +468,12 @@ class DefaultReadSyncRepositoryTest {
         assertEquals(0, tokenRequestCount)
     }
 
-    // ----- Jeton refusé (GOAL-008-T05) ---------------------------------------
+    // ----- Refused token (GOAL-008-T05) --------------------------------------
 
     @Test
     fun aRefusedModificationTokenIsRequestedAgainOnceAndTheBatchGoesThrough() = runTest {
-        // Le jeton conservé peut avoir été invalidé côté serveur. Le redemander
-        // est la conduite prescrite par docs/freshrss-api.md §2.3.
+        // The stored token may have been invalidated server-side. Requesting a
+        // new one is the behavior prescribed by docs/freshrss-api.md §2.3.
         signedIn(modificationToken = ModificationToken("PERIME"))
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
@@ -491,8 +487,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun aSecondRefusalConcludesToALostSessionWithoutEmptyingTheQueue() = runTest {
-        // Le point à ne pas manquer : les marquages doivent survivre à la
-        // reconnexion, sinon l'utilisateur reverrait comme non lu ce qu'il a lu.
+        // Marks must survive the re-sign-in, otherwise the user would see as
+        // unread what they already read.
         signedIn(modificationToken = ModificationToken("PERIME"))
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized)
@@ -500,15 +496,14 @@ class DefaultReadSyncRepositoryTest {
 
         repository.flush()
 
-        // La session est tombée — c'est le test suivant qui l'observe — mais la
-        // file, elle, est intacte.
+        // The session is gone (observed by the next test) but the queue is intact.
         assertEquals(listOf(1L), pendingIds())
     }
 
     @Test
     fun theTokenIsNotAskedTwiceForTheSameBatch() = runTest {
-        // Redemander en boucle ferait tourner l'application contre un serveur
-        // qui a déjà tranché.
+        // Requesting the token in a loop would spin the app against a server
+        // that has already made its decision.
         signedIn(modificationToken = ModificationToken("PERIME"))
         repository.markAsRead(setOf(ArticleId(1L)))
         repeat(2) { editTagReplies += Reply("Unauthorized!", HttpStatusCode.Unauthorized) }
@@ -528,7 +523,7 @@ class DefaultReadSyncRepositoryTest {
         repository.flush()
 
         assertNull(sessionStore.observeSession().first())
-        // Le rappel de saisie survit : SPECS.md §3.4 ne fait rien retaper.
+        // The sign-in hint survives: SPECS.md §3.4 makes the user retype nothing.
         assertEquals("alice", sessionStore.observeLastSignInHint().first()?.username)
     }
 
@@ -546,8 +541,8 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun anUnavailableTokenEndpointOnlyDefersTheTransmission() = runTest {
-        // Un `500` sur le jeton n'est pas un refus : la session est probablement
-        // intacte, et déconnecter l'utilisateur serait une réaction excessive.
+        // A `500` on the token endpoint is not a refusal: the session is
+        // probably intact, and signing the user out would be an overreaction.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
         tokenReplies += Reply("Oups", HttpStatusCode.InternalServerError)
@@ -558,13 +553,13 @@ class DefaultReadSyncRepositoryTest {
         assertNotNull(sessionStore.observeSession().first())
     }
 
-    // ----- Rejeu et déconnexion ----------------------------------------------
+    // ----- Replay and sign-out -----------------------------------------------
 
     @Test
     fun aMarkingThatSurvivedARestartIsReplayed() = runTest {
-        // SPECS.md §4.5 : « y compris après redémarrage de l'application ». La
-        // file étant en base, un dépôt neuf retrouve ce que le précédent n'a pas
-        // pu transmettre.
+        // SPECS.md §4.5: "including after an application restart". The queue
+        // lives in the database, so a fresh repository recovers what the
+        // previous one could not transmit.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
         editTagReplies += Reply("Oups", HttpStatusCode.InternalServerError)
@@ -580,9 +575,9 @@ class DefaultReadSyncRepositoryTest {
 
     @Test
     fun clearingDropsWhatWasPendingWithoutTransmittingIt() = runTest {
-        // Déconnexion (GOAL-008-T06) : ces marquages appartiennent au compte que
-        // l'on vient de quitter, les envoyer sous une autre session marquerait
-        // comme lus les articles de quelqu'un d'autre.
+        // Sign-out (GOAL-008-T06): these marks belong to the account just left;
+        // sending them under another session would mark someone else's articles
+        // as read.
         signedIn()
         repository.markAsRead(setOf(ArticleId(1L)))
 
@@ -592,7 +587,7 @@ class DefaultReadSyncRepositoryTest {
         assertTrue(editTagForms.isEmpty())
     }
 
-    /** Un dépôt dont le réseau ne répond pas du tout — DNS, TLS, délai dépassé. */
+    /** A repository whose network does not answer at all: DNS, TLS, timeout. */
     private fun failingRepository() = DefaultReadSyncRepository(
         api = FreshRssApi(createFreshRssHttpClient(MockEngine { throw IOException("hôte inconnu") })),
         sessionStore = sessionStore,

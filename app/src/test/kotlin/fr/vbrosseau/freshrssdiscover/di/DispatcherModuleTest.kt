@@ -16,12 +16,12 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 
 /**
- * Vérifie que le graphe se construit et que chaque qualifier livre le bon
+ * Verifies that the graph builds and that each qualifier delivers the right
  * dispatcher.
  *
- * La validité du graphe est déjà contrôlée à la compilation par le processeur
- * Hilt ; ce que le compilateur ne peut pas voir, c'est une inversion entre deux
- * qualifiers de même type. C'est précisément ce que ce test couvre.
+ * Graph validity is already checked at compile time by the Hilt processor;
+ * what the compiler cannot see is an inversion between two qualifiers of the
+ * same type. That is what this test covers.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -52,8 +52,8 @@ class DispatcherModuleTest {
 
     @Test
     fun theTwoDispatchersAreDistinct() {
-        // Une inversion de qualifiers compile sans erreur : seule une
-        // vérification à l'exécution la détecte.
+        // A qualifier inversion compiles without error: only a runtime check
+        // detects it.
         assertNotSame(ioDispatcher, defaultDispatcher)
     }
 }

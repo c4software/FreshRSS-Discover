@@ -23,9 +23,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * Les réponses décrites ici sont **littérales** : elles reproduisent la forme
- * relevée sur une instance réelle (docs/freshrss-api.md §2.3 et §4.1). En
- * particulier, `edit-tag` répond `OK` en texte brut, jamais du JSON.
+ * The responses here are literal: they reproduce the form observed on a real
+ * instance (docs/freshrss-api.md §2.3 and §4.1). In particular, `edit-tag`
+ * answers `OK` as plain text, never JSON.
  */
 class FreshRssApiEditTagTest {
     private val address = (ServerAddress.parse("exemple.org") as ServerAddressResult.Valid).address
@@ -58,10 +58,10 @@ class FreshRssApiEditTagTest {
             headers = headersOf(HttpHeaders.ContentType, "application/json; charset=UTF-8"),
         )
 
-    /** Le corps envoyé est un formulaire : c'est lui, et non l'URL, qui porte les champs. */
+    /** The request body is a form: it, not the URL, carries the fields. */
     private fun formParameters(): Parameters = (lastRequest?.body as FormDataContent).formData
 
-    // ----- Jeton de modification ---------------------------------------------
+    // ----- Modification token ------------------------------------------------
 
     @Test
     fun theModificationTokenIsReadFromThePlainTextBody() = runTest {
@@ -82,10 +82,10 @@ class FreshRssApiEditTagTest {
 
     @Test
     fun aTokenOfAnUnexpectedLengthIsStillAccepted() = runTest {
-        // Les 57 caractères sont un **constat**, pas un contrat. Les exiger
-        // ferait échouer l'application sur un jeton parfaitement valide le jour
-        // où FreshRSS en changerait la forme ; un jeton refusé se signale par
-        // un 401 à l'usage (docs/freshrss-api.md §2.3).
+        // The 57 characters are an observation, not a contract. Requiring
+        // them would break the app on a perfectly valid token if FreshRSS
+        // changed its shape; a rejected token shows up as a 401 on use
+        // (docs/freshrss-api.md §2.3).
         val outcome = api { text("court") }.modificationToken(address, token)
 
         assertEquals("court", assertIs<ApiOutcome.Success<ModificationToken>>(outcome).value.value)
@@ -93,7 +93,7 @@ class FreshRssApiEditTagTest {
 
     @Test
     fun anEmptyTokenBodyIsMalformed() = runTest {
-        // Un jeton vide ne produirait qu'un edit-tag silencieusement inutile.
+        // An empty token would only produce a silently useless edit-tag.
         val outcome = api { text("\n") }.modificationToken(address, token)
 
         assertIs<ApiOutcome.MalformedResponse>(outcome)
@@ -115,12 +115,12 @@ class FreshRssApiEditTagTest {
         assertIs<ApiOutcome.TransportError>(outcome)
     }
 
-    // ----- Marquage comme lu -------------------------------------------------
+    // ----- Mark as read ------------------------------------------------------
 
     @Test
     fun aBatchIsSentAsASingleRequestWithOneItemFieldPerArticle() = runTest {
-        // Le traitement par lot est la raison d'être de ce point d'entrée : une
-        // requête par article visible saturerait le réseau (SPECS.md §4.5).
+        // Batching is this endpoint's reason for being: one request per
+        // visible article would saturate the network (SPECS.md §4.5).
         api { text("OK") }
             .markAsRead(address, token, modificationToken, listOf(ArticleId(1L), ArticleId(2L), ArticleId(3L)))
 
@@ -134,10 +134,10 @@ class FreshRssApiEditTagTest {
 
     @Test
     fun anIdentifierBeyondTheSignedRangeIsSentUnsigned() = runTest {
-        // Les identifiants sont des entiers 64 bits **non signés** ; au-delà de
-        // Long.MAX_VALUE ils se lisent négatifs en Kotlin. `toString()`
-        // enverrait « -1 » : le serveur marquerait un article inexistant et
-        // répondrait OK sans rien faire — la perte serait muette.
+        // Identifiers are unsigned 64-bit integers; beyond Long.MAX_VALUE
+        // they read negative in Kotlin. `toString()` would send "-1": the
+        // server would mark a nonexistent article and answer OK without
+        // doing anything, a silent loss.
         api { text("OK") }.markAsRead(address, token, modificationToken, listOf(ArticleId(-1L), ArticleId(-2L)))
 
         assertEquals(listOf("18446744073709551615", "18446744073709551614"), formParameters().getAll("i"))
@@ -152,8 +152,8 @@ class FreshRssApiEditTagTest {
 
     @Test
     fun anExpiredModificationTokenSurfacesItsStatusAndPlainTextBody() = runTest {
-        // C'est ce 401 qui dira plus haut de redemander un jeton, puis de
-        // traiter comme une perte de session si l'échec persiste.
+        // This 401 is what tells the upper layer to request a fresh token,
+        // then to treat persistent failure as a lost session.
         val outcome = api { text("Unauthorized!", HttpStatusCode.Unauthorized) }
             .markAsRead(address, token, modificationToken, listOf(ArticleId(1L)))
 
@@ -164,8 +164,8 @@ class FreshRssApiEditTagTest {
 
     @Test
     fun aBodyOtherThanOkIsMalformed() = runTest {
-        // Portail captif ou page de maintenance qui répond 200 à tout : le
-        // marquage n'a pas été pris en compte, et la file doit le conserver.
+        // Captive portal or maintenance page answering 200 to anything: the
+        // mark was not applied, and the queue must keep it.
         val outcome = api { json("""{"status":"queued"}""") }
             .markAsRead(address, token, modificationToken, listOf(ArticleId(1L)))
 
@@ -181,7 +181,7 @@ class FreshRssApiEditTagTest {
     }
 
     private companion object {
-        /** Longueur constatée du jeton (docs/freshrss-api.md §2.3), utile aux seuls jeux d'essai. */
+        /** Observed token length (docs/freshrss-api.md §2.3), used only by the fixtures. */
         const val TOKEN_LENGTH = 57
     }
 }

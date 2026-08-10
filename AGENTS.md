@@ -421,21 +421,20 @@ Applied by ktlint, Detekt and `.editorconfig`.
 
 ### Code documentation
 
-- KDoc **in French**, on what is not obvious: a choice, a constraint, a reason.
+- KDoc **in English**, on what is not obvious: a choice, a constraint, a reason.
   No paraphrasing of the signature.
 - A comment explains **why**, never **what**.
-- **French stays the language of KDoc and of commit messages.** Only the
-  Markdown documentation of the repository is in English: the switch to English
-  applies to the `.md` files, and to them alone. A KDoc block or a commit
-  message written in English is a deviation to be fixed.
+- **English is the language of KDoc and code comments; French stays the
+  language of commit messages** (§9). A KDoc block or a code comment written in
+  French is a deviation to be fixed.
 
 An example of the expected style:
 
 ```kotlin
 /**
- * L'absence de `continuation` est le seul signal de fin de flux : l'API ne
- * renvoie aucun compteur total. Un curseur invalide, lui, est silencieusement
- * ramené au début côté serveur — d'où la vérification explicite.
+ * A missing `continuation` is the only end-of-feed signal: the API returns no
+ * total count. An invalid cursor, however, is silently reset to the start on
+ * the server side — hence the explicit check.
  */
 ```
 

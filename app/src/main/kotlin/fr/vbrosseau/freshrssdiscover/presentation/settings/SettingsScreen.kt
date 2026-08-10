@@ -43,34 +43,31 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlin.math.roundToInt
 
 /**
- * Hauteur minimale des cibles tactiles (SPECS.md §7.1).
+ * Minimum touch target height (SPECS.md §7.1).
  *
- * Material 3 dessine ses boutons sur 40 dp : sans ce plancher, aucun bouton de
- * l'écran n'atteindrait les 48 dp exigés.
+ * Material 3 draws its buttons at 40 dp: without this floor, no button on the
+ * screen would reach the required 48 dp.
  */
 private val MinTouchTarget = 48.dp
 
 /**
- * Opacité d'un contenu désactivé, telle que Material 3 la définit.
+ * Disabled content opacity as Material 3 defines it.
  *
- * Recopiée parce qu'elle n'est pas publiée : `SliderDefaults` l'applique à sa
- * piste, mais rien n'expose la valeur aux textes qui l'accompagnent. Diverger
- * ferait paraître le libellé plus vif que le curseur qu'il décrit.
+ * Copied because it is not published: `SliderDefaults` applies it to its
+ * track, but nothing exposes the value to the accompanying texts. Diverging
+ * would make the label look brighter than the slider it describes.
  */
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 
-/** Atténue une couleur quand le contrôle qu'elle habille est désactivé. */
+/** Dims a color when the control it styles is disabled. */
 private fun Color.dimmedUnless(enabled: Boolean): Color =
     if (enabled) this else copy(alpha = DISABLED_CONTENT_ALPHA)
 
 /**
- * Écran de réglages (SPECS.md §6).
+ * Settings screen (SPECS.md §6).
  *
- * Sans état : il affiche [uiState] et remonte les gestes, ce qui le rend
- * prévisualisable et testable sans graphe d'injection (AGENTS.md §9).
- *
- * Les seuils de lecture sont modifiables et enregistrés, et le cache se purge
- * depuis cet écran.
+ * Stateless: it renders [uiState] and forwards gestures, keeping it
+ * previewable and testable without an injection graph (AGENTS.md §9).
  */
 @Composable
 fun SettingsScreen(
@@ -82,10 +79,9 @@ fun SettingsScreen(
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
     /*
-     * Tous obligatoires, sans défaut `{}` : `AppNavHost` câble aujourd'hui les
-     * neuf rappels, et un défaut silencieux laisserait une commande visible et
-     * inerte sans que rien ne le signale — les défauts « à câbler plus tard »
-     * qui vivaient ici étaient un fossile du découpage des tâches.
+     * All required, no `{}` defaults: `AppNavHost` wires all nine callbacks,
+     * and a silent default would leave a visible but inert control with
+     * nothing flagging it.
      */
     onPurgeCache: () -> Unit,
     onPresentationChange: (FeedPresentation) -> Unit,
@@ -100,26 +96,24 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         /*
-         * Pas de titre d'écran ici : la barre du `Scaffold` affiche déjà le
-         * libellé de la destination. Les deux se sont retrouvés empilés à la
-         * première exécution sur appareil — « Paramètres » puis « Réglages »,
-         * deux mots pour la même chose. Aucune capture ne pouvait le montrer :
-         * elles rendent l'écran seul, sans son ossature.
+         * No screen title here: the `Scaffold` bar already shows the
+         * destination label, and adding one produced two stacked titles on
+         * device. Screenshots could not show it: they render the screen
+         * alone, without its scaffold.
          */
         AccountSection(account = uiState.account)
         HorizontalDivider()
         /*
-         * Avant le marquage automatique, et juste après le compte : c'est le
-         * seul réglage qui change ce que l'utilisateur voit en ouvrant
-         * l'application, donc celui qu'il vient chercher. Le placer plus bas
-         * l'aurait mis derrière deux curseurs de réglage fin — et derrière la
-         * section « Cache local », qui parle de l'appareil et non de la lecture.
+         * Before automatic marking and right after the account: this is the
+         * only setting that changes what the user sees on opening the app,
+         * so the one they come for. Placing it lower would put it behind two
+         * fine-tuning sliders and the local cache section.
          *
-         * L'ordre porte aussi une explication : les seuils de §4.5 se lisent
-         * différemment selon le mode — en Balayage, un article plein écran
-         * satisfait d'emblée le seuil de surface et seule la durée décide.
-         * Connaître son mode avant de régler ses seuils est donc le bon sens de
-         * lecture.
+         * The order also carries meaning: the §4.5 thresholds read
+         * differently per mode. In Swipe, a full-screen article immediately
+         * satisfies the surface threshold and only duration decides, so
+         * knowing the mode before adjusting thresholds is the natural
+         * reading order.
          */
         PresentationSection(
             presentation = uiState.presentation,
@@ -134,10 +128,9 @@ fun SettingsScreen(
         )
         HorizontalDivider()
         /*
-         * Après le marquage automatique et avant le cache : les trois sections
-         * précédentes parlent de ce qui se passe pendant la lecture, celles qui
-         * suivent de l'appareil et du compte. Le rappel appartient à la
-         * première famille — il dit quand l'application redemande à être lue.
+         * After automatic marking and before the cache: the previous sections
+         * concern what happens during reading, the following ones the device
+         * and the account. The reminder belongs to the first group.
          */
         ReminderSection(
             isEnabled = uiState.isReminderEnabled,
@@ -183,22 +176,19 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
 }
 
 /**
- * Le choix entre les deux façons de parcourir le flux (SPECS.md §4.8, §6).
+ * Choice between the two ways of browsing the feed (SPECS.md §4.8, §6).
  *
- * **Pourquoi des segments.** Le réglage a exactement deux valeurs, exclusives,
- * également légitimes — aucune n'est « l'option activée » de l'autre. Une
- * bascule aurait dû en nommer une seule (« Mode balayage »), laissant deviner
- * que la position éteinte s'appelle « Liste » : l'utilisateur ne pourrait pas
- * lire ce qu'il obtiendrait en la basculant. Un menu déroulant cacherait
- * l'alternative derrière un appui, et une liste de boutons radio dirait la même
- * chose en trois fois plus de hauteur, dans un écran déjà long. Les segments
- * montrent les deux possibilités **et** celle qui est active d'un seul regard,
- * et un unique appui suffit à changer.
+ * Segments rather than a toggle: the setting has exactly two exclusive,
+ * equally legitimate values; neither is the "enabled" option of the other. A
+ * toggle would name only one ("Swipe mode"), leaving the off position's
+ * meaning implicit. A dropdown would hide the alternative behind a tap, and
+ * radio buttons would say the same thing in three times the height on an
+ * already long screen. Segments show both options and the active one at a
+ * glance, and a single tap changes it.
  *
- * **Pourquoi une phrase dessous.** « Liste » et « Balayage » nomment le geste,
- * pas ce qu'on y gagne. La description suit le segment sélectionné et dit ce
- * que le flux montrera — plusieurs articles à faire défiler, ou un seul en
- * plein écran. C'est ce que le contrôle seul ne peut pas dire.
+ * The sentence below: "List" and "Swipe" name the gesture, not the outcome.
+ * The description follows the selected segment and says what the feed will
+ * show, which the control alone cannot convey.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,22 +235,22 @@ private fun PresentationSection(
     }
 }
 
-/** Un repère de test par mode : sans lui, les segments ne se distinguent que par leur texte. */
+/** One test tag per mode: without it, segments differ only by their text. */
 private fun presentationTestTagOf(presentation: FeedPresentation): String = when (presentation) {
     FeedPresentation.List -> SettingsTestTags.PRESENTATION_LIST
     FeedPresentation.Swipe -> SettingsTestTags.PRESENTATION_SWIPE
 }
 
 /**
- * Le marquage automatique (SPECS.md §4.5) : un interrupteur, puis ses seuils.
+ * Automatic marking (SPECS.md §4.5): a switch, then its thresholds.
  *
- * **Une bascule et non des segments**, contrairement au mode de parcours : le
- * réglage n'a pas deux valeurs également légitimes — le marquage a lieu, ou il
- * n'a pas lieu — et la position éteinte se nomme d'elle-même.
+ * A toggle rather than segments, unlike the presentation mode: the setting
+ * does not have two equally legitimate values (marking happens or it does
+ * not), and the off position names itself.
  *
- * **Les deux curseurs restent affichés, grisés.** Les cacher ferait disparaître
- * deux réglages sans dire pourquoi, et l'écran changerait de hauteur sous le
- * doigt ; les laisser actifs proposerait d'ajuster ce qui ne s'applique plus.
+ * The two sliders stay visible, dimmed: hiding them would remove two settings
+ * without saying why and change the screen height under the finger; leaving
+ * them active would offer to adjust something no longer applied.
  */
 @Composable
 private fun ReadingSection(
@@ -276,8 +266,8 @@ private fun ReadingSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        // La rangée entière porte l'action, pour la raison exposée sur le
-        // rappel de lecture : un `Switch` seul est une cible de 32 dp de haut.
+        // The whole row carries the action, for the reason given on the
+        // reading reminder: a `Switch` alone is a 32 dp tall target.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -330,21 +320,20 @@ private fun ReadingSection(
 }
 
 /**
- * Un seuil réglable : sa valeur courante en toutes lettres, puis un curseur à crans.
+ * An adjustable threshold: its current value spelled out, then a stepped slider.
  *
- * Un curseur plutôt qu'une liste de valeurs parce que le geste de l'utilisateur
- * est comparatif — « marquer plus tôt » ou « plus tard » — et non le choix d'un
- * chiffre : la position du pouce montre du même coup où l'on se trouve dans la
- * plage, ce qu'une liste de boutons radio n'indique pas. Les crans, eux,
- * évitent une précision illusoire et rendent chaque valeur atteignable
- * (SPECS.md §7.1).
+ * A slider rather than a list of values because the user's gesture is
+ * comparative ("mark earlier" or "later"), not the choice of a number: the
+ * thumb position also shows where in the range the value lies, which radio
+ * buttons do not. The steps avoid illusory precision and make every value
+ * reachable (SPECS.md §7.1).
  *
- * La valeur reste écrite au-dessus : SPECS.md §6 demande d'afficher les seuils,
- * et un curseur seul ne dit pas ce qu'il vaut.
+ * The value stays written above: SPECS.md §6 requires displaying thresholds,
+ * and a slider alone does not say what it is worth.
  *
- * @param enabled faux quand le marquage automatique est éteint (SPECS.md §4.5).
- *   Le libellé et la valeur s'atténuent avec le curseur : un chiffre resté noir
- *   au-dessus d'une piste grise se lirait comme un réglage encore appliqué.
+ * @param enabled false when automatic marking is off (SPECS.md §4.5). Label
+ *   and value dim with the slider: a value left dark above a grey track would
+ *   read as a setting still applied.
  */
 @Composable
 private fun ThresholdSlider(
@@ -372,10 +361,10 @@ private fun ThresholdSlider(
         Slider(
             enabled = enabled,
             value = threshold.value.toFloat(),
-            // L'arrondi est imposé par `Slider`, qui ne travaille qu'en `Float` :
-            // les crans le font tomber sur une position exacte, mais la
-            // conversion doit être explicite pour que le dépôt reçoive bien une
-            // des valeurs qu'il accepte.
+            // Rounding is imposed by `Slider`, which only works in `Float`:
+            // the steps land it on an exact position, but the conversion must
+            // be explicit so the repository receives one of the values it
+            // accepts.
             onValueChange = { onValueChange(it.roundToInt()) },
             valueRange = threshold.range.first.toFloat()..threshold.range.last.toFloat(),
             steps = threshold.stepCount,
@@ -388,18 +377,17 @@ private fun ThresholdSlider(
 }
 
 /**
- * Le rappel de lecture quotidien, qu'on peut éteindre (SPECS.md §4.9, §6).
+ * Daily reading reminder, which can be turned off (SPECS.md §4.9, §6).
  *
- * **Pourquoi une bascule, là où le mode de présentation a des segments.** Ce
- * réglage n'a pas deux valeurs également légitimes : il y a un rappel, ou il
- * n'y en a pas. La position éteinte se nomme d'elle-même, ce qui était
- * précisément ce qui manquait à « Mode balayage ».
+ * A toggle where the presentation mode uses segments: this setting does not
+ * have two equally legitimate values (there is a reminder or there is not),
+ * and the off position names itself.
  *
- * **La rangée entière est touchable**, et pas seulement l'interrupteur. Un
- * `Switch` de Material 3 mesure 52 × 32 dp : viser sa piste demande une
- * précision que SPECS.md §7.1 refuse d'exiger. La rangée porte donc le
- * `toggleable`, le libellé y répond au même titre que la bascule, et le lecteur
- * d'écran n'annonce qu'un seul élément au lieu de deux.
+ * The whole row is touchable, not just the switch. A Material 3 `Switch`
+ * measures 52 x 32 dp: hitting its track demands a precision SPECS.md §7.1
+ * refuses to require. The row carries the `toggleable`, the label responds
+ * like the switch, and the screen reader announces one element instead of
+ * two.
  */
 @Composable
 private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
@@ -419,8 +407,8 @@ private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Un
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            // `null` : la rangée porte déjà l'action, et un second gestionnaire
-            // ferait de la bascule un élément distinct pour le lecteur d'écran.
+            // `null`: the row already carries the action, and a second handler
+            // would make the switch a distinct element for the screen reader.
             Switch(checked = isEnabled, onCheckedChange = null)
         }
         Text(
@@ -433,15 +421,15 @@ private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Un
 }
 
 /**
- * Taille du cache et purge manuelle (SPECS.md §6).
+ * Cache size and manual purge (SPECS.md §6).
  *
- * La taille est un **nombre d'articles**, pas un poids : c'est le seul chiffre
- * qui réponde à la question que pose le bouton — ce que l'on perd — et le seul
- * qui bouge visiblement quand on appuie dessus (voir `CacheStatus`).
+ * The size is an article count, not bytes: it is the only figure answering
+ * the button's question (what is lost) and the only one that visibly changes
+ * on press (see `CacheStatus`).
  *
- * Aucune confirmation : la purge n'emporte que du lu déjà transmis au serveur.
- * Le bouton se désactive quand il n'y a rien à supprimer, plutôt que de laisser
- * appuyer sur une action sans effet.
+ * No confirmation: the purge only removes read content already transmitted to
+ * the server. The button disables when there is nothing to delete rather than
+ * allowing a no-op press.
  */
 @Composable
 private fun CacheSection(cache: SettingsCache, onPurge: () -> Unit, modifier: Modifier = Modifier) {
@@ -510,10 +498,10 @@ private fun AboutSection(appVersion: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Bouton de déconnexion, teinté en couleur d'erreur.
+ * Sign-out button, tinted with the error color.
  *
- * L'action est destructrice (SPECS.md §3.5) : la couleur la distingue des
- * autres commandes avant même que la confirmation ne soit posée.
+ * The action is destructive (SPECS.md §3.5): the color distinguishes it from
+ * other commands before the confirmation is even shown.
  */
 @Composable
 private fun SignOutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -533,11 +521,11 @@ private fun SignOutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 /**
- * La confirmation exigée par SPECS.md §3.5.
+ * Confirmation required by SPECS.md §3.5.
  *
- * Le message énumère ce qui disparaît — jeton, identifiant, cache — parce que
- * c'est ce que l'utilisateur ne peut pas deviner : « se déconnecter » ne laisse
- * pas entendre que le contenu déjà téléchargé part avec.
+ * The message lists what disappears (token, username, cache) because the user
+ * cannot guess it: "sign out" does not suggest that already downloaded
+ * content goes with it.
  */
 @Composable
 private fun SignOutConfirmation(onConfirm: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
@@ -590,11 +578,11 @@ private fun SettingsSection(
 }
 
 /**
- * Une ligne libellé / valeur, empilée verticalement.
+ * A label/value pair, stacked vertically.
  *
- * Deux lignes plutôt qu'une colonne à droite : une adresse de serveur est
- * longue, et une mise en page à deux colonnes la tronquerait dès que la taille
- * de police système est augmentée (SPECS.md §7.1).
+ * Two lines rather than a right-hand column: a server address is long, and a
+ * two-column layout would truncate it as soon as the system font size is
+ * increased (SPECS.md §7.1).
  */
 @Composable
 private fun SettingsRow(label: String, value: String, testTag: String, modifier: Modifier = Modifier) {

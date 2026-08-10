@@ -6,19 +6,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Dépôt d'authentification piloté, pour les tests.
+ * Scriptable authentication repository for tests.
  *
- * [pendingSignIn] permet de suspendre une connexion en cours : sans cela, il
- * serait impossible d'observer l'état intermédiaire — bouton désactivé,
- * indicateur de progression — que l'utilisateur voit pendant l'appel réseau.
+ * [pendingSignIn] suspends an in-flight sign-in: without it, the intermediate
+ * state the user sees during the network call (disabled button, progress
+ * indicator) could not be observed.
  */
 class FakeAuthRepository(
     private val session: MutableStateFlow<AuthSession?> = MutableStateFlow(null),
 ) : AuthRepository {
-    /** Issue renvoyée par le prochain `signIn`, si aucune attente n'est armée. */
+    /** Result returned by the next `signIn` when no pending wait is armed. */
     var nextResult: AuthResult<AuthSession> = Outcome.Failure(AuthError.InvalidCredentials)
 
-    /** Arme une connexion qui ne se terminera qu'une fois [completeSignIn] appelée. */
+    /** Arms a sign-in that only completes once [completeSignIn] is called. */
     var pendingSignIn: CompletableDeferred<AuthResult<AuthSession>>? = null
 
     var signInCallCount: Int = 0
@@ -36,7 +36,7 @@ class FakeAuthRepository(
     var invalidateCallCount: Int = 0
         private set
 
-    /** Rappel de saisie renvoyé par `observeLastSignInHint`. */
+    /** Sign-in hint returned by `observeLastSignInHint`. */
     val hint: MutableStateFlow<SignInHint?> = MutableStateFlow(null)
 
     override fun observeSession(): StateFlow<AuthSession?> = session
@@ -69,7 +69,7 @@ class FakeAuthRepository(
         hint.value = null
     }
 
-    /** Débloque la connexion armée par [pendingSignIn]. */
+    /** Completes the sign-in armed by [pendingSignIn]. */
     fun completeSignIn(result: AuthResult<AuthSession>) {
         checkNotNull(pendingSignIn) { "aucune connexion en attente" }.complete(result)
     }

@@ -10,11 +10,11 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedSessionViewModel
 import javax.inject.Inject
 
 /**
- * Le flux en mode Liste (SPECS.md §4.3).
+ * The feed in List mode (SPECS.md §4.3).
  *
- * Tout le moteur — pagination, rechargement, amorçage, marquage, avis — vit
- * dans [FeedSessionViewModel] : ce type ne fournit que le câblage Hilt et la
- * projection de la Liste, dont l'extrait est calibré sur trois lignes de carte
+ * The whole engine (pagination, refresh, bootstrap, marking, notices) lives
+ * in [FeedSessionViewModel]: this type only provides the Hilt wiring and the
+ * List projection, whose excerpt is calibrated for three card lines
  * (SPECS.md §8, question 7).
  */
 @HiltViewModel

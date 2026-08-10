@@ -6,11 +6,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Base locale de l'application.
+ * Local application database.
  *
- * `exportSchema = true` : le schéma est versionné dans `app/schemas/`, ce qui
- * permet à Room de vérifier automatiquement les migrations et à une revue de
- * voir une évolution de base dans le diff (ARCHITECTURE.md §5.4).
+ * `exportSchema = true`: the schema is versioned in `app/schemas/`, which lets
+ * Room verify migrations automatically and makes database changes visible in a
+ * review diff (ARCHITECTURE.md §5.4).
  */
 @Database(
     entities = [ArticleEntity::class, PendingMarkEntity::class],
@@ -24,20 +24,19 @@ internal abstract class AppDatabase : RoomDatabase() {
 }
 
 /**
- * Ajoute la file des marquages en attente (`pending_marks`).
+ * Adds the pending-marks queue (`pending_marks`).
  *
- * Une vraie migration, et non `fallbackToDestructiveMigration` : une base en
- * version 1 peut déjà exister sur un appareil, et la détruire effacerait le
- * cache d'articles — donc, hors ligne, tout le contenu consultable (SPECS.md
- * §5.2). La table est simplement créée ; aucune donnée de la version 1 n'est
- * touchée, puisque rien de ce qui existait ne change de forme.
+ * A real migration, not `fallbackToDestructiveMigration`: a version 1 database
+ * may already exist on a device, and destroying it would wipe the article
+ * cache — hence, offline, all readable content (SPECS.md §5.2). The table is
+ * simply created; no version 1 data is touched, since nothing that existed
+ * changes shape.
  *
- * L'instruction `CREATE TABLE` est recopiée telle quelle depuis le schéma
- * exporté `app/schemas/…/2.json` : c'est la seule façon d'obtenir une base
- * migrée strictement identique à une base créée de zéro. La moindre différence
- * — un `NOT NULL` oublié, un type écrit autrement — ferait échouer la
- * validation d'identité de Room au démarrage, et seulement chez les
- * utilisateurs qui migrent.
+ * The `CREATE TABLE` statement is copied verbatim from the exported schema
+ * `app/schemas/…/2.json`: this is the only way to get a migrated database
+ * strictly identical to one created from scratch. The slightest difference —
+ * a missing `NOT NULL`, a type spelled differently — would fail Room's
+ * identity validation at startup, and only for users who migrate.
  */
 internal val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {

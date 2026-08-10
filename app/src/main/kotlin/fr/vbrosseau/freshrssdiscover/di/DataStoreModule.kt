@@ -22,9 +22,9 @@ private const val SETTINGS_FILE = "settings"
 object DataStoreModule {
 
     /**
-     * La portée est construite sur le dispatcher injecté plutôt que sur
-     * `Dispatchers.IO` : c'est ce qui permet à un test de piloter les écritures.
-     * `SupervisorJob` évite qu'une écriture en échec annule les suivantes.
+     * The scope is built on the injected dispatcher rather than
+     * `Dispatchers.IO`: this is what lets a test control the writes.
+     * `SupervisorJob` prevents a failed write from cancelling the next ones.
      */
     @Provides
     @Singleton

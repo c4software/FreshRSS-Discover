@@ -1,14 +1,14 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
 /**
- * Session ouverte : ce qu'il faut connaître pour parler au serveur.
+ * Open session: everything needed to talk to the server.
  *
- * [modificationToken] est nul tant qu'aucune opération modifiante n'a été
- * tentée : il s'obtient par un appel distinct, qu'il serait inutile de payer à
- * chaque connexion (docs/freshrss-api.md §2.3).
+ * [modificationToken] is null until a modifying operation has been attempted:
+ * it requires a separate call, which would be wasteful on every sign-in
+ * (docs/freshrss-api.md §2.3).
  *
- * Le `toString` engendré est sûr : [AuthToken] et [ModificationToken] masquent
- * eux-mêmes leur valeur.
+ * The generated `toString` is safe: [AuthToken] and [ModificationToken] mask
+ * their own values.
  */
 data class AuthSession(
     val server: ServerAddress,

@@ -10,28 +10,27 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Les bornes ne se constatent nulle part ailleurs : à l'usage, une valeur hors
- * bornes ne provoque pas d'erreur mais un marquage qui ne se déclenche jamais,
- * ou qui se déclenche toujours. Chaque frontière est donc attaquée des **deux**
- * côtés.
+ * The bounds are observable nowhere else: in use, an out-of-bounds value
+ * causes no error, only marking that never triggers or always triggers. Each
+ * boundary is therefore probed from both sides.
  */
 class ReadingSettingsTest {
     @Test
     fun theDefaultsAreThoseOfTheSpecification() {
-        // SPECS.md §4.5 : au moins 60 % de la hauteur affichée, pendant au
-        // moins 1 seconde continue.
+        // SPECS.md §4.5: at least 60% of the displayed height, for at least 1
+        // continuous second.
         assertEquals(0.6f, ReadingSettings.Default.visibleFraction)
         assertEquals(1_000L, ReadingSettings.Default.continuousVisibilityMillis)
     }
 
     /**
-     * Le garde-fou contre la divergence.
+     * Guard against divergence.
      *
-     * `ReadDetector` porte ses propres défauts en constantes privées, hors de
-     * portée d'une lecture. Comparer les **comportements** est la seule façon
-     * de constater que [ReadingSettings.Default] dit bien ce que le détecteur
-     * fait : si l'un des deux change seul, ce test rougit au lieu de laisser
-     * l'écran de réglages mentir.
+     * `ReadDetector` carries its own defaults as private constants, out of
+     * reach of a read. Comparing behaviors is the only way to confirm that
+     * [ReadingSettings.Default] says what the detector does: if either
+     * changes alone, this test fails instead of letting the settings screen
+     * lie.
      */
     @Test
     fun theDefaultsAgreeWithWhatTheReadDetectorActuallyApplies() {
@@ -45,8 +44,8 @@ class ReadingSettingsTest {
                 continuousVisibilityMillis = ReadingSettings.Default.continuousVisibilityMillis,
             )
 
-        // Juste sous chaque frontière, puis exactement dessus : deux détecteurs
-        // réglés différemment ne pourraient pas rendre les mêmes réponses.
+        // Just under each boundary, then exactly on it: two differently tuned
+        // detectors could not return the same answers.
         val observations = listOf(0.59f to 0L, 0.6f to 0L, 0.6f to 999L, 0.6f to 1L)
         val fromCompiled =
             observations.map { (fraction, elapsed) ->
@@ -71,29 +70,30 @@ class ReadingSettingsTest {
 
     @Test
     fun aVisibleFractionJustBelowTheLowerBoundIsRejected() {
-        // En dessous, le seuil de surface ne filtre plus l'article effleuré en
-        // bord d'écran : le double seuil de SPECS.md §4.5 se réduit à un seul.
+        // Below it, the surface threshold no longer filters an article barely
+        // shown at the screen edge: the dual threshold of SPECS.md §4.5
+        // collapses to one.
         assertFailsWith<IllegalArgumentException> { settings(visibleFraction = 0.19f) }
     }
 
     @Test
     fun aNegativeVisibleFractionIsRejected() {
-        // Toute fraction observée lui serait supérieure : chaque article
-        // apparaissant à l'écran deviendrait lu instantanément.
+        // Any observed fraction would exceed it: every article appearing on
+        // screen would instantly become read.
         assertFailsWith<IllegalArgumentException> { settings(visibleFraction = -0.1f) }
     }
 
     @Test
     fun aVisibleFractionAboveOneIsRejected() {
-        // L'appelant borne la fraction à la part visible de l'écran : au-delà
-        // de 1.0, plus aucun article ne deviendrait jamais lu.
+        // The caller bounds the fraction to the visible share of the screen:
+        // above 1.0, no article would ever become read.
         assertFailsWith<IllegalArgumentException> { settings(visibleFraction = 1.01f) }
     }
 
     @Test
     fun aNotANumberVisibleFractionIsRejected() {
-        // `NaN` ne se compare à rien : le seuil deviendrait inatteignable sans
-        // qu'aucune valeur ne paraisse aberrante.
+        // `NaN` compares to nothing: the threshold would become unreachable
+        // without any value looking abnormal.
         assertFailsWith<IllegalArgumentException> { settings(visibleFraction = Float.NaN) }
     }
 
@@ -110,21 +110,21 @@ class ReadingSettingsTest {
 
     @Test
     fun aContinuousVisibilityJustAboveTheUpperBoundIsRejected() {
-        // Au-delà, un défilement normal n'atteindrait plus jamais le seuil et
-        // le marquage paraîtrait en panne.
+        // Beyond it, normal scrolling would never reach the threshold and
+        // marking would appear broken.
         assertFailsWith<IllegalArgumentException> { settings(millis = 5_001L) }
     }
 
     @Test
     fun aNegativeContinuousVisibilityIsRejected() {
-        // La condition de durée serait satisfaite dès la première observation.
+        // The duration condition would be satisfied on the first observation.
         assertFailsWith<IllegalArgumentException> { settings(millis = -1L) }
     }
 
     @Test
     fun automaticMarkingIsOnUntilSomeoneTurnsItOff() {
-        // SPECS.md §1 : « lire, c'est faire défiler ». Une installation
-        // existante ne doit rien voir changer à la mise à jour.
+        // SPECS.md §1: reading is scrolling. An existing installation must
+        // see nothing change on update.
         assertTrue(ReadingSettings.Default.autoMarkAsReadEnabled)
     }
 
@@ -151,31 +151,31 @@ class ReadingSettingsTest {
 
     @Test
     fun coercingReplacesNotANumberByTheDefaultRatherThanABound() {
-        // `coerceIn` laisserait passer `NaN` : aucune de ses comparaisons n'est
-        // vraie, et la valeur ressortirait telle quelle.
+        // `coerceIn` would let `NaN` through: none of its comparisons is
+        // true, and the value would come out unchanged.
         assertEquals(0.6f, ReadingSettings.coerced(Float.NaN, 1_000L).visibleFraction)
     }
 
     @Test
     fun coercingCarriesTheAutomaticMarkingSwitchThrough() {
-        // Le réglage n'a pas de bornes, mais il emprunte le même chemin de
-        // relecture du disque : s'il n'y passait pas, une extinction
-        // enregistrée reviendrait allumée au lancement suivant.
+        // The setting has no bounds but takes the same disk read-back path:
+        // if it did not, a recorded off state would come back on at the next
+        // launch.
         assertFalse(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = false).autoMarkAsReadEnabled)
         assertTrue(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = true).autoMarkAsReadEnabled)
     }
 
     @Test
     fun coercingAssumesAutomaticMarkingWhenNothingSaysOtherwise() {
-        // Le cas du fichier de préférences écrit avant que le réglage
-        // n'existe : l'absence de valeur vaut « actif ».
+        // The case of a preferences file written before the setting existed:
+        // no value means enabled.
         assertTrue(ReadingSettings.coerced(0.6f, 1_000L).autoMarkAsReadEnabled)
     }
 
     @Test
     fun turningAutomaticMarkingOffLeavesTheThresholdsUntouched() {
-        // Les seuils restent enregistrés pendant l'extinction : ils sont
-        // affichés grisés, pas oubliés, et se retrouvent au rallumage.
+        // The thresholds stay stored while the switch is off: they are shown
+        // grayed out, not forgotten, and return when it is turned back on.
         val off = ReadingSettings.Default.copy(autoMarkAsReadEnabled = false)
 
         assertEquals(ReadingSettings.Default.visibleFraction, off.visibleFraction)

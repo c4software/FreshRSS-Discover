@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation
 
-/** Repère de test de l'indicateur de chargement, commun aux écrans. */
+/** Test tag for the loading indicator, shared across screens. */
 object LoadingTestTags {
     const val INDICATOR = "loading"
 }

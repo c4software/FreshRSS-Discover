@@ -14,32 +14,32 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
- * Périodicité du réexamen de l'ancienneté.
+ * Period between staleness re-checks.
  *
- * **Il faut bien que quelque chose réveille la règle.** Le seuil de six heures
- * se franchit sans qu'aucun événement ne se produise : l'application peut
- * rester ouverte, écran éteint, sans qu'une seule page soit demandée. Sans ce
- * réveil, l'avis n'apparaîtrait qu'au prochain geste — c'est-à-dire jamais pour
- * qui rouvre l'application et attend d'y voir quelque chose.
+ * Something has to wake the rule: the six-hour threshold is crossed without
+ * any event occurring; the app can stay open, screen off, without a single
+ * page being requested. Without this wake-up, the notice would only appear
+ * at the next gesture, that is, never for someone reopening the app and
+ * waiting to see something.
  *
- * Cinq minutes de retard sont invisibles sur un seuil de six heures, et le coût
- * est dérisoire : l'écran échantillonne déjà la visibilité toutes les 200 ms.
+ * A five-minute lag is invisible against a six-hour threshold, and the cost
+ * is negligible: the screen already samples visibility every 200 ms.
  */
 private const val STALE_CHECK_PERIOD_MILLIS = 5L * 60L * 1_000L
 
 /**
- * Dit, à tout instant, si le flux affiché mérite qu'on invite à le rafraîchir
- * (SPECS.md §4.6).
+ * Says, at any moment, whether the displayed feed warrants an invitation to
+ * refresh (SPECS.md §4.6).
  *
- * **Une classe partagée plutôt que deux fois le même code.** Les deux modes de
- * présentation (SPECS.md §4.8) ont chacun leur ViewModel, et la règle est la
- * même : deux copies divergeraient à la première correction. C'est aussi ce qui
- * rend l'acquittement cohérent d'un mode à l'autre — le dépôt est unique, et
- * cette classe ne fait que l'observer.
+ * A shared class rather than the same code twice: both presentation modes
+ * (SPECS.md §4.8) each have their ViewModel and the rule is the same; two
+ * copies would diverge at the first fix. It also keeps the acknowledgement
+ * consistent across modes: the repository is unique, and this class only
+ * observes it.
  *
- * [isStale] ne dit **pas** que la bandelette est à l'écran : c'est l'état de
- * chaque écran qui décide de la montrer, en y ajoutant ce que lui seul sait —
- * qu'il est hors ligne, qu'il rafraîchit déjà, qu'il n'a rien à afficher.
+ * [isStale] does not say the strip is on screen: each screen's state decides
+ * whether to show it, adding what only it knows: that it is offline, already
+ * refreshing, or has nothing to display.
  */
 internal class FeedStalenessWatcher(
     private val repository: FeedFreshnessRepository,
@@ -50,10 +50,10 @@ internal class FeedStalenessWatcher(
     val isStale: StateFlow<Boolean> = _isStale.asStateFlow()
 
     /**
-     * Attente en cours de la prochaine échéance.
+     * Wait in progress for the next deadline.
      *
-     * Une seule à la fois : chaque changement de fraîcheur — contact serveur,
-     * acquittement — rend la précédente caduque.
+     * Only one at a time: every freshness change (server contact,
+     * acknowledgement) invalidates the previous one.
      */
     private var aging: Job? = null
 
@@ -63,7 +63,7 @@ internal class FeedStalenessWatcher(
             .launchIn(scope)
     }
 
-    /** L'utilisateur fait taire l'avis pour l'horodatage courant. */
+    /** The user silences the notice for the current timestamp. */
     fun acknowledge() {
         _isStale.value = false
         scope.launch { repository.acknowledgeStale() }
@@ -74,19 +74,19 @@ internal class FeedStalenessWatcher(
         _isStale.value = freshness.showsStaleNotice(clock.nowEpochMillis())
 
         /*
-         * Ne rien attendre quand le temps ne peut plus rien changer : sans
-         * contact serveur enregistré rien ne vieillit, et un avis déjà acquitté
-         * ne se rouvrira qu'au prochain contact — lequel produira une émission
-         * et repassera par ici.
+         * Wait for nothing when time can no longer change anything: without
+         * a recorded server contact nothing ages, and an already-acknowledged
+         * notice will only reopen at the next contact, which will produce an
+         * emission and come back through here.
          */
         if (_isStale.value || !freshness.canGrowStale()) return
 
         aging = scope.launch {
             /*
-             * Un sondage plutôt qu'une attente calculée : une horloge
-             * d'appareil qui saute — fuseau, réglage manuel, synchronisation
-             * réseau — rendrait le délai calculé faux, et l'avis attendrait
-             * alors une échéance qui n'arrive jamais.
+             * Polling rather than a computed wait: a device clock that jumps
+             * (time zone, manual adjustment, network sync) would make the
+             * computed delay wrong, and the notice would then wait for a
+             * deadline that never arrives.
              */
             while (!freshness.showsStaleNotice(clock.nowEpochMillis())) {
                 delay(STALE_CHECK_PERIOD_MILLIS)
@@ -96,6 +96,6 @@ internal class FeedStalenessWatcher(
     }
 }
 
-/** Reste-t-il quelque chose que le seul écoulement du temps puisse changer ? */
+/** Whether the mere passage of time can still change anything. */
 private fun FeedFreshness.canGrowStale(): Boolean =
     lastRefreshEpochMillis != null && acknowledgedRefreshEpochMillis != lastRefreshEpochMillis

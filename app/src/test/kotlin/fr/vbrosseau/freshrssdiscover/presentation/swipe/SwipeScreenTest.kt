@@ -36,30 +36,29 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Assez d'articles pour que le chargement anticipé ne soit pas vrai d'emblée. */
+/** Enough articles so the prefetch is not immediately true. */
 private const val LONG_FEED_SIZE = 10
 
-/** Rang à partir duquel une page de dix articles réclame la suivante. */
+/** Index from which a ten-article page requests the next one. */
 private const val PREFETCH_TRIGGER_PAGE = 7
 
-/** Cadence des relevés de visibilité, reprise de `sampleVisibility`. */
+/** Sampling period of the visibility reports, taken from `sampleVisibility`. */
 private const val SAMPLING_PERIOD_MILLIS = 200L
 
-/** Cible tactile minimale exigée par SPECS.md §7.1. */
+/** Minimum touch target required by SPECS.md §7.1. */
 private val MIN_TOUCH_TARGET = 48.dp
 
 /*
- * Langue figée au français, comme le harnais de capture (ARCHITECTURE.md §8.2).
+ * Locale pinned to French, like the screenshot harness (ARCHITECTURE.md §8.2).
  *
- * Ces cas affirment des libellés **littéraux**, et l'interface est bilingue
- * depuis GOAL-021-T02 : le français vit dans `values-fr/`, l'anglais dans
- * `values/`. Sans ce fanion, Robolectric rend la langue par défaut — l'anglais
- * — et chaque assertion tombe. Ce n'est pas une commodité de test : c'est la
- * même décision que pour les captures, dont les références sont françaises.
+ * These cases assert literal labels, and the UI is bilingual since
+ * GOAL-021-T02: French lives in `values-fr/`, English in `values/`. Without
+ * this qualifier, Robolectric renders the default language (English) and every
+ * assertion fails.
  *
- * Ce que `values/` contient est éprouvé ailleurs, par un cas dédié en `en-rUS`
- * (`EnglishStringsTest`) : sans lui, une chaîne oubliée à la traduction ne se
- * verrait que sur un appareil anglophone.
+ * The content of `values/` is covered elsewhere by a dedicated `en-rUS` case
+ * (`EnglishStringsTest`): without it, a string missed in translation would
+ * only show on an English-locale device.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -95,14 +94,14 @@ class SwipeScreenTest {
         }
     }
 
-    // ----- Alimentation du marquage (GOAL-012-T01) ----------------------------
+    // ----- Feeding the read marking (GOAL-012-T01) ----------------------------
 
     @Test
     fun theArticleOnScreenIsReportedAsFullyVisible() {
-        // Le maillon que ni `SwipeViewModelTest` ni `SwipeVisibilityTest` ne
-        // voient : le premier suppose qu'on lui parle, le second calcule sans
-        // que personne l'appelle. Sans ce relevé, rien ne serait jamais marqué
-        // comme lu en mode Balayage — et tout le reste passerait au vert.
+        // The link neither `SwipeViewModelTest` nor `SwipeVisibilityTest`
+        // sees: the former assumes it is called, the latter computes without
+        // anyone calling it. Without this report, nothing would ever be marked
+        // read in Swipe mode, and everything else would still pass.
         val reports = mutableListOf<Map<ArticleId, Float>>()
         show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
 
@@ -111,10 +110,10 @@ class SwipeScreenTest {
 
     @Test
     fun theArticleIsStillReportedWhileNothingMoves() {
-        // C'est **le** piège de ce mode : un article plein écran immobile ne
-        // produit aucun événement, et la règle de SPECS.md §4.5 porte sur une
-        // durée — que le détecteur ne mesure que d'un relevé à l'autre. Un
-        // relevé unique à l'affichage ne marquerait donc jamais rien.
+        // The trap of this mode: a motionless full-screen article produces no
+        // events, and the SPECS.md §4.5 rule is about a duration, which the
+        // detector only measures from one report to the next. A single report
+        // at display time would never mark anything.
         val reports = mutableListOf<Map<ArticleId, Float>>()
         composeRule.mainClock.autoAdvance = false
         show(feedOf(uiArticle(id = 1L)), onVisibilityChanged = reports::add)
@@ -127,8 +126,8 @@ class SwipeScreenTest {
 
     @Test
     fun theSecondArticleIsReportedOnceTheSwipeIsDone() {
-        // Le relevé suit le balayage : sans cela, le premier article resterait
-        // le seul jamais signalé, et le flux ne se marquerait qu'une fois.
+        // Reporting follows the swipe: otherwise the first article would stay
+        // the only one ever reported, and the feed would only mark once.
         val reports = mutableListOf<Map<ArticleId, Float>>()
         show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
 
@@ -140,9 +139,8 @@ class SwipeScreenTest {
 
     @Test
     fun nothingIsReportedWhenNoOneIsListening() {
-        // `null` signifie « personne n'écoute » : armer la boucle ferait tourner
-        // un minuteur pour jeter son résultat, et occuperait les
-        // prévisualisations en permanence.
+        // `null` means "no one is listening": arming the loop would run a
+        // timer only to discard its result, and keep previews busy forever.
         composeRule.mainClock.autoAdvance = false
         show(feedOf(uiArticle(id = 1L)), onVisibilityChanged = null)
 
@@ -151,7 +149,7 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertExists()
     }
 
-    // ----- Un article à la fois -----------------------------------------------
+    // ----- One article at a time ----------------------------------------------
 
     @Test
     fun theFirstArticleIsShownFullScreen() {
@@ -191,7 +189,7 @@ class SwipeScreenTest {
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
-    // ----- Chargement anticipé (GOAL-012-T02) ---------------------------------
+    // ----- Prefetch (GOAL-012-T02) --------------------------------------------
 
     @Test
     fun theNextPageIsRequestedBeforeReachingTheLastArticle() {
@@ -215,7 +213,7 @@ class SwipeScreenTest {
         assertEquals(0, loadMoreCalls)
     }
 
-    // ----- Fin de flux (GOAL-012-T03) -----------------------------------------
+    // ----- End of feed (GOAL-012-T03) -----------------------------------------
 
     @Test
     fun theEndOfTheFeedIsAnnouncedAfterTheLastArticle() {
@@ -252,14 +250,14 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.RETRY).performClick()
 
         assertTrue(retried)
-        // Les articles déjà chargés sont toujours là : l'échec de la page
-        // suivante n'a pas remplacé le flux par un écran d'erreur, et un
-        // balayage en arrière les retrouve.
+        // Already loaded articles are still there: the next-page failure did
+        // not replace the feed with an error screen, and a swipe back finds
+        // them.
         composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeRight() }
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
-    // ----- Flux sans article --------------------------------------------------
+    // ----- Feed without articles ----------------------------------------------
 
     @Test
     fun anEmptyFeedExplainsItselfRatherThanShowingNothing() {
@@ -285,7 +283,7 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.PAGER).assertDoesNotExist()
     }
 
-    // ----- Ouverture et illustration ------------------------------------------
+    // ----- Opening and illustration -------------------------------------------
 
     @Test
     fun tappingTheCardOpensTheArticleShown() {
@@ -309,10 +307,9 @@ class SwipeScreenTest {
     }
 
     /**
-     * Ce que craignait le bouton d'ouverture qu'on vient de retirer : un appui
-     * pris pour une ouverture pendant un balayage hésitant. Compose distingue
-     * le `tap` du `drag` — encore faut-il que quelqu'un le constate, sur la
-     * carte réellement rendue cliquable.
+     * The risk the removed open button guarded against: a press taken for an
+     * open during a hesitant swipe. Compose distinguishes `tap` from `drag`,
+     * but that must be verified on the card actually made clickable.
      */
     @Test
     fun swipingLeftStillWorksWithAClickableCard() {
@@ -328,7 +325,7 @@ class SwipeScreenTest {
         assertNull(opened, "le balayage a été pris pour une ouverture")
     }
 
-    // ----- Partage de la carte (SPECS.md §4.3) --------------------------------
+    // ----- Card sharing (SPECS.md §4.3) ---------------------------------------
 
     @Test
     fun anArticleWithALinkCanBeShared() {
@@ -373,7 +370,7 @@ class SwipeScreenTest {
         composeRule.onNodeWithTag(SwipeTestTags.ILLUSTRATION, useUnmergedTree = true).assertDoesNotExist()
     }
 
-    // ----- Fabriques ----------------------------------------------------------
+    // ----- Factories ----------------------------------------------------------
 
     private fun feedOf(
         vararg articles: ArticleUiModel,
@@ -385,7 +382,7 @@ class SwipeScreenTest {
         phase = DiscoverPhase.Idle,
     )
 
-    // ----- Flux ancien (SPECS.md §4.6) ----------------------------------------
+    // ----- Stale feed (SPECS.md §4.6) -----------------------------------------
 
     @Test
     fun anOldFeedInvitesToReloadIt() {
@@ -423,9 +420,9 @@ class SwipeScreenTest {
 
     @Test
     fun theInvitationDoesNotCoverTheShareAction() {
-        // En plein écran la bandelette se pose sur la carte : elle ne doit pas
-        // recouvrir la seule commande de ce mode depuis que la carte entière
-        // ouvre l'article (SPECS.md §4.7).
+        // Full screen, the strip sits on the card: it must not cover the only
+        // control of this mode since the whole card opens the article
+        // (SPECS.md §4.7).
         showStale()
 
         val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
@@ -439,10 +436,9 @@ class SwipeScreenTest {
 
     @Test
     fun theInvitationLeavesTheShareActionReachableOnALongArticle() {
-        // Le contenu de la carte défile : sur un extrait long, le bouton de
-        // partage n'est pas à l'écran au repos, mais il doit pouvoir y venir
-        // entièrement. Une bandelette posée par-dessus la carte le
-        // recouvrirait là où le défilement s'arrête.
+        // The card content scrolls: with a long excerpt, the share button is
+        // not on screen at rest but must be able to come fully into view. A
+        // strip laid over the card would cover it where scrolling stops.
         showStale(excerpt = "Un paragraphe interminable. ".repeat(60))
 
         composeRule.onNodeWithTag(SwipeTestTags.share(1L)).performScrollTo()
@@ -456,10 +452,10 @@ class SwipeScreenTest {
     }
 
     /**
-     * Un flux ancien, avec de quoi lire : l'invitation y est due.
+     * A stale feed with something to read: the notice is due.
      *
-     * Point d'entrée propre à ces cas plutôt qu'un [show] élargi : le
-     * rechargement et l'acquittement ne concernent qu'eux.
+     * A dedicated entry point rather than a widened [show]: refresh and
+     * dismissal only concern these cases.
      */
     private fun showStale(
         onRefresh: () -> Unit = {},

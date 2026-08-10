@@ -7,98 +7,95 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import kotlin.math.roundToInt
 
 /**
- * Pas du curseur de proportion visible, en points de pourcentage.
+ * Step of the visible-fraction slider, in percentage points.
  *
- * Les crans ne sont pas une facilité d'implémentation : personne ne distingue
- * 62 % de 65 % à l'usage, et un curseur continu promettrait une précision qui
- * n'existe pas — tout en rendant la valeur voulue difficile à atteindre au
- * pouce (SPECS.md §7.1). Cinq positions se visent sans effort.
+ * The steps are not an implementation convenience: nobody distinguishes 62%
+ * from 65% in use, and a continuous slider would promise precision that does
+ * not exist while making the intended value hard to hit with a thumb
+ * (SPECS.md §7.1). Five positions are easy to target.
  */
 private const val VISIBLE_FRACTION_PERCENT_STEP = 20
 
-/** Pas du curseur de durée, en secondes. Une seconde est la plus petite différence perceptible ici. */
+/** Step of the duration slider, in seconds; the smallest perceptible difference here. */
 private const val CONTINUOUS_VISIBILITY_SECONDS_STEP = 1
 
 private const val PERCENT = 100
 private const val MILLIS_PER_SECOND = 1_000L
 
 /**
- * Ce que l'écran de réglages affiche, entièrement dérivé par le ViewModel.
+ * State displayed by the settings screen, fully derived by the ViewModel.
  *
- * Rien n'y est calculable depuis un Composable (AGENTS.md §9) : les seuils sont
- * déjà convertis dans l'unité affichée — pourcentage et secondes — parce que
- * passer de `0.6f` et `1_000L` à « 60 % » et « 1 s » est un calcul, et qu'il
- * n'a pas sa place dans une fonction de rendu.
+ * Nothing here is computable from a Composable (AGENTS.md §9): thresholds are
+ * already converted into their display unit (percent, seconds) because going
+ * from `0.6f` and `1_000L` to "60%" and "1 s" is a computation that does not
+ * belong in a rendering function.
  */
 data class SettingsUiState(
     /**
-     * Session observée, `null` tant qu'elle n'est pas lue ou après déconnexion.
+     * Observed session, `null` until read or after sign-out.
      *
-     * L'écran distingue les deux affichages : sans compte, il n'y a ni adresse
-     * ni identifiant à montrer, et la déconnexion n'a plus d'objet.
+     * The screen distinguishes the two displays: without an account there is
+     * no address or username to show, and sign-out has no purpose.
      */
     val account: SettingsAccount? = null,
     /**
-     * Mode de parcours du flux (SPECS.md §4.8), tel qu'il est enregistré.
+     * Feed presentation mode (SPECS.md §4.8), as stored.
      *
-     * Le type du domaine et non une copie côté interface : les deux modes sont
-     * une donnée persistée, pas une variante d'affichage, et redéclarer
-     * l'énumération ici obligerait à traduire dans les deux sens un choix qui
-     * n'a que deux valeurs.
+     * The domain type, not a UI-side copy: the two modes are persisted data,
+     * not a display variant, and redeclaring the enum here would require
+     * two-way translation of a two-value choice.
      */
     val presentation: FeedPresentation = FeedPresentation.Default,
     /**
-     * Le marquage par visibilité a-t-il lieu (SPECS.md §4.5, §6) ?
+     * Whether visibility-based marking happens (SPECS.md §4.5, §6).
      *
-     * Il commande l'état actif des deux curseurs, qui restent **affichés et
-     * grisés** quand il est éteint : les cacher ferait disparaître deux
-     * réglages sans dire pourquoi, les laisser actifs proposerait d'ajuster ce
-     * qui ne s'applique plus.
+     * Drives the enabled state of the two sliders, which stay visible but
+     * dimmed when off: hiding them would remove two settings without saying
+     * why, leaving them active would offer to adjust something no longer
+     * applied.
      *
-     * Sa valeur par défaut suit celle du dépôt — **actif** — pour que l'écran
-     * ne montre pas brièvement des curseurs grisés pendant la première lecture
-     * du disque.
+     * The default follows the repository's (enabled) so the screen does not
+     * briefly show dimmed sliders during the first disk read.
      */
     val isAutoMarkAsReadEnabled: Boolean = true,
-    /** Part de hauteur affichée exigée par SPECS.md §4.5, en pourcentage entier. */
+    /** Displayed-height fraction required by SPECS.md §4.5, as a whole percentage. */
     val visibleFraction: SettingsThreshold = visibleFractionThresholdOf(ReadingSettings.Default),
-    /** Durée d'affichage continu exigée par SPECS.md §4.5, en secondes. */
+    /** Continuous display duration required by SPECS.md §4.5, in seconds. */
     val continuousVisibility: SettingsThreshold = continuousVisibilityThresholdOf(ReadingSettings.Default),
     /**
-     * Le rappel de lecture quotidien est-il souhaité (SPECS.md §4.9, §6) ?
+     * Whether the daily reading reminder is wanted (SPECS.md §4.9, §6).
      *
-     * Un booléen et non l'état de la permission système : sous Android 13 il
-     * n'existe aucune permission de notification à retirer, et un rappel qu'on
-     * ne pourrait pas éteindre serait un défaut. La valeur par défaut suit
-     * celle du dépôt — **activé** — pour que l'écran ne montre pas brièvement un
-     * interrupteur éteint pendant la première lecture du disque.
+     * A boolean, not the system permission state: below Android 13 there is
+     * no notification permission to revoke, and a reminder that could not be
+     * turned off would be a defect. The default follows the repository's
+     * (enabled) so the screen does not briefly show an off switch during the
+     * first disk read.
      */
     val isReminderEnabled: Boolean = true,
-    /** Contenu du cache local et suite de la dernière purge (SPECS.md §5.4, §6). */
+    /** Local cache contents and outcome of the last purge (SPECS.md §5.4, §6). */
     val cache: SettingsCache = SettingsCache(),
-    /** Nom de version de l'application, tel que produit par la compilation. */
+    /** Application version name, as produced by the build. */
     val appVersion: String = "",
     /**
-     * Vraie pendant que la confirmation de déconnexion est posée.
+     * True while the sign-out confirmation is shown.
      *
-     * Dans l'état publié et non dans l'écran : SPECS.md §3.5 fait de la
-     * confirmation une étape du geste, et une `rememberSaveable` locale la
-     * rendrait intestable depuis le ViewModel.
+     * In the published state, not the screen: SPECS.md §3.5 makes the
+     * confirmation a step of the gesture, and a local `rememberSaveable`
+     * would make it untestable from the ViewModel.
      */
     val isSignOutConfirmationVisible: Boolean = false,
 )
 
 /**
- * Un seuil réglable, déjà exprimé dans son unité d'affichage.
+ * An adjustable threshold, already expressed in its display unit.
  *
- * Les bornes accompagnent la valeur au lieu d'être écrites dans l'écran :
- * elles viennent de `ReadingSettings`, et les recopier côté interface
- * recréerait exactement la duplication que cette tâche supprime — un curseur
- * qui laisserait choisir une valeur que le dépôt refuse d'enregistrer.
+ * The bounds travel with the value instead of being hard-coded in the screen:
+ * they come from `ReadingSettings`, and copying them UI-side would let a
+ * slider offer a value the repository refuses to store.
  *
- * [stepCount] est le nombre de crans **intermédiaires**, au sens du `Slider` de
- * Material 3 : cinq positions font quatre intervalles, donc trois crans entre
- * les extrémités.
+ * [stepCount] is the number of intermediate steps in Material 3 `Slider`
+ * terms: five positions make four intervals, so three steps between the
+ * endpoints.
  */
 data class SettingsThreshold(
     val value: Int,
@@ -107,41 +104,40 @@ data class SettingsThreshold(
 )
 
 /**
- * Ce que la section « Cache local » affiche.
+ * State displayed by the local cache section.
  *
- * [lastPurgedCount] remplace la confirmation que la purge manuelle ne demande
- * pas. Le raisonnement est celui de SPECS.md §5.4 : la purge n'emporte que des
- * articles **lus et déjà connus du serveur comme lus** — jamais un non-lu,
- * jamais un marquage en attente. Elle ne détruit donc rien qui ne soit à la fois
- * déjà consommé et retéléchargeable ; il n'y a pas de promesse à faire arracher
- * à l'utilisateur avant. La déconnexion, elle, en demande une (SPECS.md §3.5)
- * parce qu'elle efface le jeton, **tout** le cache — non-lus compris — et les
- * marquages non transmis : sans réseau ni mot de passe, rien n'en revient.
- * Confirmer les deux nivellerait la différence et apprendrait à congédier la
- * boîte de dialogue qui compte. Un compte rendu **après** coup informe mieux
- * qu'une question posée avant.
+ * [lastPurgedCount] replaces the confirmation the manual purge does not ask
+ * for. The reasoning follows SPECS.md §5.4: the purge only removes articles
+ * that are read and already known to the server as read, never an unread
+ * article or a pending marking. It destroys nothing that is not both consumed
+ * and re-downloadable, so no upfront promise is needed. Sign-out, by
+ * contrast, requires one (SPECS.md §3.5) because it erases the token, the
+ * whole cache including unread articles, and untransmitted markings.
+ * Confirming both would level the difference and train the user to dismiss
+ * the dialog that matters. An after-the-fact report informs better than a
+ * question asked before.
  */
 data class SettingsCache(
-    /** Articles conservés, lus comme non lus. */
+    /** Articles kept, read and unread alike. */
     val articleCount: Int = 0,
-    /** Ce qu'une purge emporterait maintenant : lus et synchronisés. */
+    /** What a purge would remove now: read and synchronized. */
     val purgeableCount: Int = 0,
-    /** Nombre d'articles supprimés par la dernière purge, `null` tant qu'aucune n'a eu lieu. */
+    /** Articles removed by the last purge, `null` until one has happened. */
     val lastPurgedCount: Int? = null,
 )
 
-/** Le compte connecté, en lecture seule (SPECS.md §6). */
+/** The signed-in account, read-only (SPECS.md §6). */
 data class SettingsAccount(
     val serverAddress: String,
     val username: String,
 )
 
 /**
- * Le libellé court d'un mode, celui que porte le segment.
+ * Short label of a mode, carried by the segment.
  *
- * Une fonction et non un `when` dans le Composable : associer une valeur du
- * domaine à une ressource est une conversion, et AGENTS.md §2 la tient hors des
- * fonctions de rendu. Elle se teste ici sans faire tourner Compose.
+ * A function rather than a `when` in the Composable: mapping a domain value
+ * to a resource is a conversion, which AGENTS.md §2 keeps out of rendering
+ * functions. It is testable here without running Compose.
  */
 @StringRes
 fun feedPresentationLabelOf(presentation: FeedPresentation): Int = when (presentation) {
@@ -150,11 +146,11 @@ fun feedPresentationLabelOf(presentation: FeedPresentation): Int = when (present
 }
 
 /**
- * La phrase qui décrit le mode **sélectionné**.
+ * Sentence describing the selected mode.
  *
- * Deux mots ne disent pas ce qu'on gagne ou perd en changeant de mode : la
- * description répond à la seule question que pose le contrôle — à quoi
- * ressemblera le flux après l'avoir touché.
+ * Two words do not say what is gained or lost by switching: the description
+ * answers the only question the control raises, namely what the feed will
+ * look like after touching it.
  */
 @StringRes
 fun feedPresentationDescriptionOf(presentation: FeedPresentation): Int = when (presentation) {
@@ -162,7 +158,7 @@ fun feedPresentationDescriptionOf(presentation: FeedPresentation): Int = when (p
     FeedPresentation.Swipe -> R.string.settings_presentation_swipe_description
 }
 
-/** Convertit la fraction du domaine en pourcentage entier, bornes comprises. */
+/** Converts the domain fraction to a whole percentage, bounds included. */
 fun visibleFractionThresholdOf(settings: ReadingSettings): SettingsThreshold {
     val lowest = percentOf(ReadingSettings.VisibleFractionRange.start)
     val highest = percentOf(ReadingSettings.VisibleFractionRange.endInclusive)
@@ -174,7 +170,7 @@ fun visibleFractionThresholdOf(settings: ReadingSettings): SettingsThreshold {
     )
 }
 
-/** Convertit la durée du domaine en secondes entières, bornes comprises. */
+/** Converts the domain duration to whole seconds, bounds included. */
 fun continuousVisibilityThresholdOf(settings: ReadingSettings): SettingsThreshold {
     val lowest = secondsOf(ReadingSettings.ContinuousVisibilityRange.first)
     val highest = secondsOf(ReadingSettings.ContinuousVisibilityRange.last)
@@ -191,9 +187,9 @@ private fun percentOf(fraction: Float): Int = (fraction * PERCENT).roundToInt()
 private fun secondsOf(millis: Long): Int = (millis / MILLIS_PER_SECOND).toInt()
 
 /**
- * Nombre de crans intermédiaires d'un curseur couvrant [range] par pas de [step].
+ * Number of intermediate steps for a slider covering [range] in [step] increments.
  *
- * Retirer 1 est ce qui distingue les crans des positions : sans cela, le
- * curseur offrirait une position de plus que la plage n'en contient.
+ * Subtracting 1 distinguishes steps from positions: without it, the slider
+ * would offer one more position than the range contains.
  */
 private fun stepCountOf(range: IntRange, step: Int): Int = (range.last - range.first) / step - 1

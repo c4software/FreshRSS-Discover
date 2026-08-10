@@ -22,9 +22,9 @@ private const val LARGE_LIMIT = 100
 
 @RunWith(RobolectricTestRunner::class)
 class ArticleCacheTest {
-    // Base en mémoire : le cache s'éprouve avec le vrai moteur SQLite, seul
-    // capable de révéler une contrainte de clé ou une requête invalide qu'un
-    // faux DAO laisserait passer.
+    // In-memory database: the cache is exercised against the real SQLite
+    // engine, the only thing that can reveal a key constraint or invalid
+    // query a fake DAO would let through.
     private val database = Room
         .inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
@@ -61,8 +61,8 @@ class ArticleCacheTest {
 
     @Test
     fun anArticleWithoutUrlImageOrAuthorKeepsThoseFieldsAbsent() = runTest {
-        // Un flux mal formé produit réellement ces articles (SPECS.md §4.7) :
-        // une chaîne vide au lieu de `null` les rendrait cliquables vers rien.
+        // A malformed feed really produces such articles (SPECS.md §4.7): an
+        // empty string instead of `null` would make them clickable to nowhere.
         cache.save(listOf(article(id = 1L, url = null, imageUrl = null, author = null)))
 
         val restored = cache.observeArticles(LARGE_LIMIT).first().single()
@@ -83,24 +83,24 @@ class ArticleCacheTest {
 
     @Test
     fun anArticleReadLocallyStaysReadEvenIfTheServerStillReportsItUnread() = runTest {
-        // Le marquage part hors ligne et n'est transmis qu'au retour du réseau
-        // (SPECS.md §5.2) : entre-temps le serveur décrit toujours l'article
-        // comme non lu. L'écraser le ferait ressurgir dans le flux.
+        // Marks happen offline and are only sent when the network returns
+        // (SPECS.md §5.2): meanwhile the server still describes the article
+        // as unread. Overwriting it would bring it back into the feed.
         cache.save(listOf(article(id = 1L, isRead = true)))
 
         cache.save(listOf(article(id = 1L, isRead = false)))
 
-        // Il reste affiché — le flux du lancement garde les lus (SPECS.md §5.1)
-        // — et il reste lu : c'est lui qui porte la mémoire du « déjà lu » tant
-        // que le serveur l'ignore.
+        // Still displayed (the launch feed keeps read articles, SPECS.md
+        // §5.1) and still read: it carries the "already read" memory while
+        // the server is unaware.
         assertTrue(cache.observeArticles(LARGE_LIMIT).first().single().isRead)
     }
 
     @Test
     fun savingAnEmptyPageChangesNothing() = runTest {
-        // Le cas du lecteur qui a tout lu : le serveur rend une page vide, et
-        // l'upsert ne doit ni échouer — `IN ()` n'est pas du SQL valide — ni
-        // toucher à ce qui est là.
+        // The reader who has read everything: the server returns an empty
+        // page, and the upsert must neither fail (`IN ()` is not valid SQL)
+        // nor touch what is there.
         cache.save(listOf(article(id = 1L, isRead = true)))
 
         cache.save(emptyList())
@@ -110,8 +110,8 @@ class ArticleCacheTest {
 
     @Test
     fun anArticleReadElsewhereBecomesReadLocally() = runTest {
-        // Le sens inverse doit rester possible : lu dans l'interface web ou sur
-        // un autre appareil, l'article ne doit pas rester en tête du flux ici.
+        // The reverse direction must stay possible: read in the web UI or on
+        // another device, the article must not stay atop the feed here.
         cache.save(listOf(article(id = 1L, isRead = false)))
 
         cache.save(listOf(article(id = 1L, isRead = true)))
@@ -154,7 +154,7 @@ class ArticleCacheTest {
 
     @Test
     fun purgingNeverRemovesUnreadArticlesHoweverOldTheyAre() = runTest {
-        // SPECS.md §5.4 : les non lus sont le contenu même de l'application.
+        // SPECS.md §5.4: unread articles are the very content of the app.
         cache.save(listOf(article(id = 1L, isRead = false)))
         clock.advanceBy(365.days.inWholeMilliseconds)
 
@@ -175,8 +175,8 @@ class ArticleCacheTest {
 
     @Test
     fun clearingEmptiesTheCache() = runTest {
-        // Déconnexion (SPECS.md §3.5) : aucune trace du contenu d'un compte ne
-        // doit survivre sur l'appareil.
+        // Logout (SPECS.md §3.5): no trace of an account's content may
+        // survive on the device.
         cache.save(listOf(article(id = 1L, isRead = true), article(id = 2L)))
 
         cache.clear()
@@ -188,7 +188,7 @@ class ArticleCacheTest {
     fun anEmptyCacheObservesAnEmptyList() = runTest {
         assertTrue(cache.observeArticles(LARGE_LIMIT).first().isEmpty())
     }
-    // ----- Ce qu'il reste à lire (SPECS.md §4.9) ------------------------------
+    // ----- What remains to read (SPECS.md §4.9) -------------------------------
 
     @Test
     fun onlyUnreadArticlesAreOfferedToTheReminder() = runTest {
@@ -223,9 +223,9 @@ class ArticleCacheTest {
 
     @Test
     fun aFullyReadCacheOffersNothingRatherThanEverything() = runTest {
-        // Le cas qui décide s'il y a une notification ou non : le filtre doit
-        // être dans la requête, sans quoi une pile entièrement lue rapporterait
-        // deux cents lignes pour n'en garder aucune.
+        // The case deciding whether a notification fires: the filter must be
+        // in the query, otherwise a fully read pile would fetch two hundred
+        // rows to keep none.
         cache.save(List(5) { article(id = it.toLong(), isRead = true) })
 
         assertTrue(cache.unreadArticles(LARGE_LIMIT).isEmpty())
@@ -241,12 +241,12 @@ class ArticleCacheTest {
     }
 
     /**
-     * Les identifiants stockés, lus compris.
+     * Stored ids, including read articles.
      *
-     * Lu par le flux du cache — qui rend les articles lus depuis
-     * `GOAL-015-T08` — et non par une requête directe : le flux attend
-     * l'invalidation de Room, là où une lecture synchrone peut devancer une
-     * purge lancée en tâche de fond. Le test l'a appris en CI.
+     * Read through the cache flow (which returns read articles since
+     * `GOAL-015-T08`) rather than a direct query: the flow waits for Room's
+     * invalidation, whereas a synchronous read can outrun a purge running in
+     * the background. Observed as flaky in CI.
      */
     private suspend fun storedIds(): List<Long> =
         cache.observeArticles(LARGE_LIMIT).first().map { it.id.value }

@@ -13,14 +13,14 @@ import javax.inject.Singleton
 import kotlin.time.Duration
 
 /**
- * Cache local des articles.
+ * Local article cache.
  *
- * Seul point de contact entre le modèle de domaine et Room : les entités ne
- * franchissent pas cette frontière, sinon une annotation de persistance
- * finirait par contraindre la forme d'`Article` (ARCHITECTURE.md §2.1).
+ * Sole point of contact between the domain model and Room: entities do not
+ * cross this boundary, otherwise a persistence annotation would end up
+ * constraining the shape of `Article` (ARCHITECTURE.md §2.1).
  *
- * L'horloge est injectée — l'horodatage de mise en cache est une donnée
- * observable par la purge, un test doit pouvoir la piloter (AGENTS.md §2).
+ * The clock is injected — the caching timestamp is observable by the purge,
+ * and a test must be able to control it (AGENTS.md §2).
  */
 @Singleton
 internal class ArticleCache @Inject constructor(
@@ -28,15 +28,15 @@ internal class ArticleCache @Inject constructor(
     private val clock: Clock,
 ) {
     /**
-     * Enregistre des articles, en conservant l'état lu déjà présent localement.
+     * Saves articles, preserving any read state already present locally.
      *
-     * Le choix : l'état lu local ne recule jamais. Un marquage parti hors ligne
-     * n'est transmis qu'au retour du réseau (SPECS.md §5.2) ; jusque-là, le
-     * serveur continue de décrire l'article comme non lu. Écraser l'état local
-     * par le sien ferait réapparaître dans le flux ce que l'utilisateur vient
-     * de lire — la régression la plus visible qu'un cache puisse produire. Dans
-     * l'autre sens, un article lu ailleurs (interface web, autre appareil)
-     * arrive lu et le devient ici : « lu » se propage, « non lu » non.
+     * The local read state never regresses. A mark made offline is only
+     * transmitted once the network returns (SPECS.md §5.2); until then, the
+     * server still describes the article as unread. Overwriting the local
+     * state with the server's would make what the user just read reappear in
+     * the feed — the most visible regression a cache can produce. In the other
+     * direction, an article read elsewhere (web UI, another device) arrives
+     * read and becomes read here: "read" propagates, "unread" does not.
      */
     suspend fun save(articles: List<Article>) {
         val cachedAt = clock.nowEpochMillis()
@@ -44,27 +44,27 @@ internal class ArticleCache @Inject constructor(
     }
 
     /**
-     * Les [limit] articles les plus récents du cache, **lus compris**.
+     * The [limit] most recent cached articles, read ones included.
      *
-     * Sert l'affichage du lancement (SPECS.md §5.1) : le flux montre ce qu'il a
-     * déjà, et n'interroge le réseau que si cette liste est vide. Les articles
-     * lus y figurent pour que l'ensemble — donc l'ordre — ne change pas entre
-     * deux ouvertures ; voir `ArticleDao.observeArticles`.
+     * Serves the launch display (SPECS.md §5.1): the feed shows what it
+     * already has and only queries the network if this list is empty. Read
+     * articles are included so the set — hence the order — does not change
+     * between openings; see `ArticleDao.observeArticles`.
      */
     fun observeArticles(limit: Int): Flow<List<Article>> =
         dao.observeArticles(limit).map { entities -> entities.map(ArticleEntity::toDomain) }
 
-    /** Ce qu'il reste à lire, pour le rappel quotidien (SPECS.md §4.9). */
+    /** What remains to read, for the daily reminder (SPECS.md §4.9). */
     suspend fun unreadArticles(limit: Int): List<Article> =
         dao.unreadArticles(limit).map(ArticleEntity::toDomain)
 
     /**
-     * Marque des articles comme lus **localement**, sans rien transmettre.
+     * Marks articles as read locally, without transmitting anything.
      *
-     * C'est la moitié « optimiste » du marquage (SPECS.md §4.5) : l'état change
-     * tout de suite, la transmission suit. Passer par le cache plutôt que par le
-     * DAO garde la règle du projet — les entités Room ne franchissent pas cette
-     * frontière, et rien au-dessus n'a à connaître le nom d'une colonne.
+     * The optimistic half of marking (SPECS.md §4.5): the state changes
+     * immediately, transmission follows. Going through the cache rather than
+     * the DAO keeps the project rule — Room entities do not cross this
+     * boundary, and nothing above needs to know a column name.
      */
     suspend fun markAsRead(ids: Collection<ArticleId>) {
         if (ids.isEmpty()) return
@@ -72,13 +72,13 @@ internal class ArticleCache @Inject constructor(
     }
 
     /**
-     * Ne garde que [ids] — la réponse du rechargement — et ce dont le marquage
-     * n'est pas encore parti (SPECS.md §4.6, GOAL-027).
+     * Keeps only [ids] — the reload response — plus articles whose mark has
+     * not yet been transmitted (SPECS.md §4.6, GOAL-027).
      *
-     * L'aiguillage sur la liste vide n'est pas une précaution de style : Room
-     * n'engendre aucun paramètre pour une liste vide, `NOT IN ()` n'est pas du
-     * SQL valide, et le cas vide est justement celui du lecteur qui a tout lu —
-     * le plus fréquent des deux.
+     * The empty-list branch is not stylistic caution: Room generates no
+     * parameter for an empty list, `NOT IN ()` is not valid SQL, and the empty
+     * case is precisely the reader who has read everything — the more frequent
+     * of the two.
      */
     suspend fun retainOnly(ids: Collection<ArticleId>) {
         if (ids.isEmpty()) {
@@ -88,43 +88,41 @@ internal class ArticleCache @Inject constructor(
         }
     }
 
-    /** Vide le cache. Appelé à la déconnexion (SPECS.md §3.5). */
+    /** Empties the cache. Called on logout (SPECS.md §3.5). */
     suspend fun clear() {
         dao.deleteAll()
     }
 
     /**
-     * Purge les articles **lus et synchronisés** présents dans le cache depuis
-     * plus de [maxAge].
+     * Purges read and synchronized articles cached for longer than [maxAge].
      *
-     * Renvoie le nombre de lignes supprimées. Deux catégories sont épargnées
-     * quoi qu'il arrive (SPECS.md §5.4) : les articles **non lus**, qui sont le
-     * contenu même de l'application, et ceux dont le marquage **attend encore
-     * d'être transmis** — les effacer ferait réapparaître comme non lu ce que
-     * l'utilisateur vient de lire. Voir `ArticleDao.deleteReadCachedBefore`.
+     * Returns the number of deleted rows. Two categories are always spared
+     * (SPECS.md §5.4): unread articles, which are the application's very
+     * content, and those whose mark is still awaiting transmission — deleting
+     * them would make what the user just read reappear as unread. See
+     * `ArticleDao.deleteReadCachedBefore`.
      */
     suspend fun purgeReadOlderThan(maxAge: Duration): Int =
         dao.deleteReadCachedBefore(clock.nowEpochMillis() - maxAge.inWholeMilliseconds)
 
     /**
-     * Purge manuelle : la même règle, **sans condition d'ancienneté**.
+     * Manual purge: the same rule, without the age condition.
      *
-     * Un seuil explicitement infini plutôt qu'un `purgeReadOlderThan(ZERO)` :
-     * ce dernier compare à l'instant présent, et laisserait donc échapper
-     * exactement les articles enregistrés dans la même milliseconde — c'est-à-
-     * dire, sur une base fraîchement remplie, la totalité de ce que
-     * l'utilisateur voit. Un bouton qui annonce 812 articles et n'en supprime
-     * aucun n'a pas d'explication acceptable.
+     * An explicitly infinite threshold rather than `purgeReadOlderThan(ZERO)`:
+     * the latter compares to the present instant and would miss exactly the
+     * articles saved within the same millisecond — that is, on a freshly
+     * filled database, everything the user sees. A button announcing 812
+     * articles and deleting none has no acceptable explanation.
      */
     suspend fun purgeAllRead(): Int = dao.deleteReadCachedBefore(Long.MAX_VALUE)
 
     /**
-     * Ce que le cache contient, et ce qu'une purge en retirerait.
+     * What the cache contains, and what a purge would remove.
      *
-     * Les deux compteurs sont combinés ici plutôt que remontés séparément :
-     * l'écran les affiche côte à côte, et deux flux distincts le feraient passer
-     * par un état transitoire où le total a déjà baissé alors que le nombre
-     * d'articles purgeables n'a pas encore bougé.
+     * The two counters are combined here rather than exposed separately: the
+     * screen shows them side by side, and two distinct flows would pass
+     * through a transient state where the total has already dropped while the
+     * purgeable count has not yet moved.
      */
     fun observeCacheStatus(): Flow<CacheStatus> =
         combine(dao.observeArticleCount(), dao.observePurgeableCount()) { total, purgeable ->

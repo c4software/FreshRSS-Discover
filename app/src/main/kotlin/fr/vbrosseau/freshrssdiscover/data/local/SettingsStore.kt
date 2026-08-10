@@ -17,53 +17,50 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Conserve les seuils du marquage automatique entre deux lancements (SPECS.md §6).
+ * Persists the auto-mark thresholds across launches (SPECS.md §6).
  *
- * **Pourquoi ce stockage existe.** Avant lui, l'écran de réglages affichait des
- * constantes recopiées de `ReadDetector` dans `SettingsViewModel`. Deux
- * déclarations séparées, sans rien pour les relier : changer le défaut du
- * détecteur laissait l'écran annoncer l'ancienne valeur, et l'utilisateur
- * n'avait aucun moyen de s'apercevoir que le chiffre affiché n'était pas celui
- * appliqué. Ici, [ReadingSettings.Default] est la seule origine des valeurs
- * initiales, et c'est cette même donnée que l'écran affiche.
+ * Why this store exists: previously the settings screen showed constants
+ * copied from `ReadDetector` into `SettingsViewModel`. Two separate
+ * declarations with nothing linking them: changing the detector's default
+ * left the screen announcing the old value, with no way for the user to
+ * notice the displayed number was not the applied one. Here,
+ * [ReadingSettings.Default] is the single origin of initial values, and that
+ * same data is what the screen displays.
  *
- * Implémente directement [SettingsRepository] au lieu d'être enveloppé dans un
- * `DefaultSettingsRepository` : il n'y a ni source distante, ni secret à
- * chiffrer, ni conversion — une couche supplémentaire ne ferait que relayer
- * (AGENTS.md §2, ne pas anticiper). Le jour où un réglage viendra du serveur,
- * l'abstraction arrivera avec son deuxième cas d'usage.
+ * Implements [SettingsRepository] directly instead of being wrapped in a
+ * `DefaultSettingsRepository`: there is no remote source, no secret to
+ * encrypt, no conversion — an extra layer would only relay (AGENTS.md §2, no
+ * anticipation). The day a setting comes from the server, the abstraction
+ * will arrive with its second use case.
  *
- * Il conserve aussi le **mode de présentation du flux** (SPECS.md §4.8) : Liste
- * ou Balayage. Même stockage, parce que c'est la même nature de donnée — une
- * préférence que l'utilisateur choisit et que l'application doit retrouver au
- * lancement suivant.
+ * Also persists the feed presentation mode (SPECS.md §4.8): List or Swipe.
+ * Same store, because it is the same kind of data — a preference the user
+ * chooses and the application must restore at the next launch.
  *
- * Il partage le `DataStore<Preferences>` de l'application avec [SessionStore] :
- * ses clés sont préfixées `reading.` et `display.`, et une déconnexion — qui
- * n'efface que les clés `session.` — laisse donc les réglages en place. C'est
- * voulu : les seuils de lecture et le mode de présentation sont des préférences
- * d'usage, pas des données de compte.
+ * Shares the application's `DataStore<Preferences>` with [SessionStore]: its
+ * keys are prefixed `reading.` and `display.`, so a logout — which only wipes
+ * `session.` keys — leaves the settings in place. Deliberate: reading
+ * thresholds and presentation mode are usage preferences, not account data.
  */
 @Singleton
 internal class SettingsStore @Inject constructor(
     private val dataStore: DataStore<Preferences>,
 ) : SettingsRepository {
     /**
-     * **`distinctUntilChanged` n'est pas une optimisation ici.** DataStore émet
-     * à chaque écriture du **fichier**, pas de la clé : toucher à n'importe
-     * quelle préférence — la date du dernier contact serveur, par exemple, qui
-     * s'écrit à chaque page reçue — réémettrait ces réglages inchangés. Les
-     * ViewModels du flux reconstruisent leur détecteur de lecture sur chaque
-     * émission, et remettraient donc à zéro les chronomètres de visibilité en
-     * cours (SPECS.md §4.5) au beau milieu d'une lecture.
+     * `distinctUntilChanged` is not an optimization here. DataStore emits on
+     * every write of the file, not the key: touching any preference — the
+     * last server contact date, for instance, written on every received page —
+     * would re-emit these unchanged settings. The feed ViewModels rebuild
+     * their read detector on each emission, and would therefore reset the
+     * running visibility timers (SPECS.md §4.5) in the middle of a reading.
      *
-     * Une valeur illisible ou aberrante est **ramenée dans les bornes** plutôt
-     * que de faire échouer la lecture.
+     * An unreadable or aberrant value is coerced back into bounds rather than
+     * failing the read.
      *
-     * Le fichier de préférences peut avoir été écrit par une version antérieure
-     * aux bornes actuelles, ou restauré depuis une sauvegarde. Lever ici
-     * empêcherait l'application de démarrer pour un réglage secondaire ; la
-     * valeur corrigée sera réécrite au prochain geste de l'utilisateur.
+     * The preferences file may have been written by a version predating the
+     * current bounds, or restored from a backup. Throwing here would prevent
+     * the application from starting over a secondary setting; the corrected
+     * value is rewritten on the user's next action.
      */
     override fun observeReadingSettings(): Flow<ReadingSettings> =
         dataStore.data.map(::readSettings).distinctUntilChanged()
@@ -87,12 +84,12 @@ internal class SettingsStore @Inject constructor(
     }
 
     /**
-     * Le mode de présentation, relu à chaque changement du fichier.
+     * The presentation mode, re-read on every file change.
      *
-     * Même tolérance que les seuils, pour la même raison : un nom de mode
-     * inconnu — version antérieure, sauvegarde restaurée, fichier abîmé —
-     * retombe sur `Liste` plutôt que de faire échouer la lecture. Le détail est
-     * dans `FeedPresentation.fromStoredName`.
+     * Same tolerance as the thresholds, for the same reason: an unknown mode
+     * name — earlier version, restored backup, damaged file — falls back to
+     * List rather than failing the read. Details in
+     * `FeedPresentation.fromStoredName`.
      */
     override fun observeFeedPresentation(): Flow<FeedPresentation> =
         dataStore.data.map { FeedPresentation.fromStoredName(it[Keys.FeedPresentation]) }
@@ -103,9 +100,9 @@ internal class SettingsStore @Inject constructor(
     }
 
     /**
-     * Le rappel est actif tant que l'utilisateur n'a rien dit : l'absence de
-     * clé vaut `true`. Le contraire obligerait à aller l'allumer après avoir
-     * accordé la permission, c'est-à-dire à dire oui deux fois.
+     * The reminder is active until the user says otherwise: a missing key
+     * means `true`. The opposite would force the user to enable it after
+     * granting the permission, that is, to say yes twice.
      */
     override fun observeReminderEnabled(): Flow<Boolean> =
         dataStore.data.map { it[Keys.ReminderEnabled] ?: true }.distinctUntilChanged()
@@ -119,43 +116,44 @@ internal class SettingsStore @Inject constructor(
         continuousVisibilityMillis = preferences[Keys.ContinuousVisibilityMillis]
             ?: ReadingSettings.Default.continuousVisibilityMillis,
         /*
-         * L'absence de clé vaut « actif » : c'est le cas de toute installation
-         * antérieure au réglage, et changer son comportement à la mise à jour
-         * ferait passer le marquage pour en panne.
+         * A missing key means enabled: the case of every installation
+         * predating the setting, and changing its behavior on update would
+         * make marking appear broken.
          */
         autoMarkAsReadEnabled = preferences[Keys.AutoMarkAsReadEnabled]
             ?: ReadingSettings.Default.autoMarkAsReadEnabled,
     )
 
     /**
-     * Les clés, préfixées par ce dont elles relèvent.
+     * Keys, prefixed by what they belong to.
      *
-     * Trois familles cohabitent dans le même fichier : `session.` (effacée à la
-     * déconnexion), `reading.` (les seuils du marquage) et `display.` (ce que
-     * l'utilisateur voit). Le mode de présentation n'est pas un `reading.` : il
-     * ne dit rien de ce qui rend un article lu, il dit comment le flux se
-     * parcourt. Les mélanger rendrait impossible d'effacer une famille sans
-     * emporter les autres.
+     * Three families share the same file: `session.` (wiped on logout),
+     * `reading.` (marking thresholds) and `display.` (what the user sees).
+     * The presentation mode is not a `reading.` key: it says nothing about
+     * what makes an article read, it says how the feed is browsed. Mixing
+     * them would make it impossible to wipe one family without taking the
+     * others.
      */
     private object Keys {
         val VisibleFraction = floatPreferencesKey("reading.visible_fraction")
         val ContinuousVisibilityMillis = longPreferencesKey("reading.continuous_visibility_millis")
 
         /**
-         * `reading.` comme les deux seuils : il dit, comme eux, ce qui rend un
-         * article lu — et il se lit dans la même émission.
+         * `reading.` like the two thresholds: it says, as they do, what makes
+         * an article read — and it is read in the same emission.
          */
         val AutoMarkAsReadEnabled = booleanPreferencesKey("reading.auto_mark_as_read")
 
         /**
-         * Une chaîne et non un entier : voir `FeedPresentation.fromStoredName`,
-         * qui explique pourquoi l'`ordinal` serait piégeux.
+         * A string, not an integer: see `FeedPresentation.fromStoredName`,
+         * which explains why the `ordinal` would be a trap.
          */
         val FeedPresentation = stringPreferencesKey("display.feed_presentation")
 
         /**
-         * Ni `reading.` ni `display.` : le rappel ne dit rien de ce qui rend un
-         * article lu, et il agit précisément quand rien n'est affiché.
+         * Neither `reading.` nor `display.`: the reminder says nothing about
+         * what makes an article read, and it acts precisely when nothing is
+         * displayed.
          */
         val ReminderEnabled = booleanPreferencesKey("reminder.enabled")
     }

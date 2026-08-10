@@ -11,36 +11,35 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** Fenêtre utilisée par ces tests, indépendante de la valeur par défaut du domaine. */
+/** Window used by these tests, independent of the domain's default value. */
 private const val GROUPING_DELAY = 5_000L
 
-/** Nombre d'échantillons de visibilité couverts par une fenêtre, à la cadence de l'écran. */
+/** Number of visibility samples covered by one window, at screen cadence. */
 private const val FAST_MARKS = 5
 
-/** Cadence d'échantillonnage de la visibilité par l'écran. */
+/** Screen visibility sampling cadence. */
 private const val FAST_MARK_INTERVAL = 200L
 
-/** De combien un marquage tardif précède l'échéance de la fenêtre. */
+/** How far a late mark precedes the window's deadline. */
 private const val LATE_MARK_OFFSET = 1_000L
 
 /**
- * Ce que ces tests éprouvent : **le regroupement retarde la transmission sans
- * jamais l'égarer** (SPECS.md §4.5).
+ * Verifies that grouping delays transmission without ever losing it
+ * (SPECS.md §4.5).
  *
- * Le temps y est entièrement virtuel : la fenêtre se mesure à la milliseconde,
- * et chaque frontière est attaquée des deux côtés — juste avant l'échéance, puis
- * dessus.
+ * Time is entirely virtual: the window is measured to the millisecond, and
+ * each boundary is probed from both sides, just before the deadline and on it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReadTransmissionSchedulerTest {
-    /** Nombre de transmissions **commencées**, la seule chose que compte la fenêtre. */
+    /** Number of transmissions started, the only thing the window counts. */
     private var transmissionCount = 0
 
-    /** Transmissions en cours, et leur maximum : c'est ainsi que le chevauchement se constate. */
+    /** In-flight transmissions and their maximum: how overlap is observed. */
     private var runningTransmissions = 0
     private var maxSimultaneousTransmissions = 0
 
-    /** Retient la transmission en cours, pour reproduire un envoi lent. */
+    /** Holds the in-flight transmission, to reproduce a slow send. */
     private var suspender: CompletableDeferred<Unit>? = null
 
     private suspend fun transmit() {
@@ -59,12 +58,12 @@ class ReadTransmissionSchedulerTest {
         )
 
     /**
-     * Amène la fenêtre à échéance.
+     * Brings the window to its deadline.
      *
-     * `advanceUntilIdle` ne conviendrait pas : la fenêtre vit dans
-     * `backgroundScope`, et l'ordonnanceur de test n'avance pas le temps pour
-     * du travail d'arrière-plan — il l'exécute seulement une fois l'échéance
-     * atteinte, d'où le `runCurrent` final.
+     * `advanceUntilIdle` would not work: the window lives in
+     * `backgroundScope`, and the test scheduler does not advance time for
+     * background work; it only runs it once the deadline is reached, hence
+     * the final `runCurrent`.
      */
     private fun TestScope.elapseWindow() {
         advanceTimeBy(GROUPING_DELAY)
@@ -74,8 +73,8 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun schedulingTransmitsNothingBeforeTheGroupingDelay() =
         runTest {
-            // La moitié différée de SPECS.md §4.5 : le marquage local est déjà fait
-            // quand cette fenêtre s'ouvre, rien ne presse le réseau.
+            // The deferred half of SPECS.md §4.5: local marking is already
+            // done when this window opens, so the network is in no hurry.
             val scheduler = newScheduler()
 
             scheduler.schedule()
@@ -100,9 +99,8 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun severalMarksWithinTheWindowProduceASingleTransmission() =
         runTest {
-            // Le cas du défilement : un lot détecté toutes les 200 ms, et une seule
-            // requête au bout. C'est exactement ce que le regroupement existe pour
-            // faire.
+            // The scrolling case: a batch detected every 200 ms and a single
+            // request at the end. Exactly what grouping exists for.
             val scheduler = newScheduler()
 
             repeat(FAST_MARKS) {
@@ -117,10 +115,10 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun aMarkArrivingDuringTheWindowDoesNotPostponeTheTransmission() =
         runTest {
-            // L'échéance est fixe, et non glissante : sans cela, un défilement
-            // continu repousserait l'envoi indéfiniment, et la seule occasion de
-            // transmettre serait l'arrêt du défilement — souvent la fermeture de
-            // l'application.
+            // The deadline is fixed, not sliding: otherwise continuous
+            // scrolling would postpone the send indefinitely, and the only
+            // chance to transmit would be when scrolling stops, often at app
+            // close.
             val scheduler = newScheduler()
 
             scheduler.schedule()
@@ -149,8 +147,7 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun transmittingNowDoesNotWaitForTheGroupingDelay() =
         runTest {
-            // Le rejeu au démarrage : il n'y a rien à regrouper, seulement à
-            // rattraper.
+            // The startup replay: there is nothing to group, only to catch up.
             val scheduler = newScheduler()
 
             scheduler.transmitNow()
@@ -162,8 +159,8 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun transmittingNowConsumesTheOpenWindow() =
         runTest {
-            // Sans cela, l'envoi forcé serait suivi d'un second envoi à vide quand
-            // la fenêtre abandonnée arriverait à échéance.
+            // Otherwise the forced send would be followed by a second, empty
+            // send when the abandoned window reached its deadline.
             val scheduler = newScheduler()
 
             scheduler.schedule()
@@ -176,8 +173,9 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun aMarkArrivingDuringATransmissionIsTransmittedByTheNextWindow() =
         runTest {
-            // Le cas où un marquage pourrait se perdre : la transmission en cours a
-            // peut-être déjà lu la file. Il lui faut donc sa propre fenêtre.
+            // The case where a mark could get lost: the in-flight transmission
+            // may already have read the queue, so the mark needs its own
+            // window.
             val scheduler = newScheduler()
             suspender = CompletableDeferred()
             scheduler.schedule()
@@ -193,8 +191,8 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun twoTransmissionsNeverOverlap() =
         runTest {
-            // Deux envois simultanés liraient la même file avant que l'un des deux
-            // ne l'acquitte, et enverraient donc deux fois les mêmes articles.
+            // Two simultaneous sends would read the same queue before either
+            // acknowledged it, sending the same articles twice.
             val scheduler = newScheduler()
             suspender = CompletableDeferred()
             scheduler.schedule()
@@ -214,8 +212,8 @@ class ReadTransmissionSchedulerTest {
     @Test
     fun cancellingDropsTheScheduledTransmission() =
         runTest {
-            // La déconnexion : la file est abandonnée, la fenêtre n'a plus rien à
-            // dire au serveur.
+            // Sign-out: the queue is abandoned, the window has nothing left
+            // to tell the server.
             val scheduler = newScheduler()
 
             scheduler.schedule()

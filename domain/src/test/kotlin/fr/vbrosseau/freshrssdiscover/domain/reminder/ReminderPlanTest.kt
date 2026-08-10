@@ -9,9 +9,8 @@ import kotlin.test.assertTrue
 class ReminderPlanTest {
     @Test
     fun anEmptyCacheProducesNoReminderAtAll() {
-        // Un rappel annonçant qu'il n'y a rien à lire est une interruption sans
-        // contrepartie — et c'est exactement ce qui fait couper les
-        // notifications d'une application.
+        // A reminder announcing there is nothing to read is an interruption
+        // with no payoff, exactly what gets an app's notifications disabled.
         assertNull(reminderPlanFor(unread = emptyList(), dayIndex = 0))
     }
 
@@ -33,8 +32,9 @@ class ReminderPlanTest {
 
     @Test
     fun theReminderCountsEverythingEvenWhatItDoesNotName() {
-        // Le nombre porte sur la pile entière : citer deux titres sur douze et
-        // annoncer « 2 » ferait passer le rappel pour un inventaire complet.
+        // The count covers the whole backlog: quoting two titles out of twelve
+        // while announcing "2" would make the reminder look like a complete
+        // inventory.
         val plan = reminderPlanFor(unread = List(12) { article(id = it.toLong()) }, dayIndex = 0)
 
         assertEquals(12, plan?.unreadCount)
@@ -51,9 +51,8 @@ class ReminderPlanTest {
 
     @Test
     fun theSameDayAlwaysGivesTheSameMessage() {
-        // Une reprise après échec ou un redémarrage de l'appareil rejoue le
-        // même jour : un tirage au hasard donnerait deux messages pour un seul
-        // rappel.
+        // A retry after failure or a device reboot replays the same day: a
+        // random draw would give two messages for a single reminder.
         val unread = listOf(article(id = 1L))
 
         assertEquals(
@@ -64,8 +63,8 @@ class ReminderPlanTest {
 
     @Test
     fun twoConsecutiveDaysNeverShareTheirMessage() {
-        // C'est la raison d'être de la variation : l'œil apprend la forme d'un
-        // message quotidien identique et le balaie sans le lire.
+        // The point of the variation: the eye learns the shape of an
+        // identical daily message and skims past it without reading.
         val unread = listOf(article(id = 1L))
 
         for (day in 0L until 40L) {
@@ -79,8 +78,8 @@ class ReminderPlanTest {
 
     @Test
     fun everyToneIsUsedOverACompleteCycle() {
-        // Une formulation qui ne sortirait jamais serait du code mort déguisé
-        // en variété (AGENTS.md §2).
+        // A phrasing that never comes up would be dead code disguised as
+        // variety (AGENTS.md §2).
         val unread = listOf(article(id = 1L))
         val seen = (0L until ReminderTone.entries.size.toLong()).mapNotNull { reminderPlanFor(unread, it)?.tone }
 
@@ -89,9 +88,9 @@ class ReminderPlanTest {
 
     @Test
     fun aClockSetBeforeTheEpochStillProducesAMessage() {
-        // Un appareil dont l'horloge est manifestement fausse rend un numéro de
-        // jour négatif. Un reste négatif ferait échouer l'accès à la liste, et
-        // le rappel planterait au lieu d'être médiocre.
+        // A device with a blatantly wrong clock yields a negative day number.
+        // A negative remainder would make the list access fail, and the
+        // reminder would crash instead of merely being mediocre.
         val plan = reminderPlanFor(listOf(article(id = 1L)), dayIndex = -3L)
 
         assertTrue(plan?.tone in ReminderTone.entries)

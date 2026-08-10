@@ -25,29 +25,28 @@ import kotlin.test.assertFalse
 private const val NOW_MILLIS = 1_700_000_000_000L
 
 /**
- * Une page encore en vol ne survit pas au rechargement qui l'a désavouée
+ * A page still in flight does not survive the refresh that disowned it
  * (GOAL-028).
  *
- * **La course.** `refresh()` ne regarde jamais [le verrou de chargement] : une
- * page demandée **avant** le tirage reste en vol, et rien ne l'annule. Revenue
- * après le rechargement, elle s'ajoutait sous la liste rafraîchie et son
- * curseur **écrasait celui du rechargement** — la pagination reprenait en
- * silence le parcours abandonné. Depuis GOAL-027, son passage par le cache y
- * réinsérait de surcroît des lignes que le renouvellement venait d'emporter.
+ * The race: `refresh()` never checks the loading lock, so a page requested
+ * before the refresh stays in flight and nothing cancels it. When it returned
+ * after the refresh, it was appended under the refreshed list and its cursor
+ * overwrote the refresh's cursor, silently resuming the abandoned traversal.
+ * Since GOAL-027, its pass through the cache also reinserted rows the refresh
+ * had just removed.
  *
- * Le déclencheur est ordinaire : le bouton de la barre de titre reste pressable
- * pendant un `LoadingMore`, il suffit d'un réseau lent.
+ * The trigger is ordinary: the top-bar button stays pressable during a
+ * `LoadingMore`; a slow network is enough.
  *
- * **Pourquoi deux verrous distincts dans la Fake.** La course exige une page
- * suspendue *pendant* qu'un rechargement aboutit : un `pendingLoad` qui
- * suspendrait les deux appels rendrait l'ordre d'arrivée — tout l'objet de ces
- * cas — inobservable. D'où `pendingRefresh`, qui ne retient que le
- * rechargement.
+ * Why the Fake has two distinct locks: the race requires a page suspended
+ * while a refresh completes. A `pendingLoad` suspending both calls would make
+ * the arrival order, the whole point of these cases, unobservable. Hence
+ * `pendingRefresh`, which holds back only the refresh.
  *
- * Le curseur est éprouvé par [FakeArticleRepository.requestedCursors] : la
- * liste affichée ne suffit pas, un rechargement qui la remplace masquerait
- * l'écrasement du curseur — le défaut ne se verrait qu'à la page suivante,
- * servie depuis le mauvais bout du flux.
+ * The cursor is checked via [FakeArticleRepository.requestedCursors]: the
+ * displayed list is not enough, since a refresh replacing it would mask the
+ * cursor overwrite. The defect would only show on the next page, served from
+ * the wrong end of the feed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RefreshDiscardsStalePagesTest {
@@ -61,7 +60,7 @@ class RefreshDiscardsStalePagesTest {
     private val clock = FakeClock(NOW_MILLIS)
 
     private fun discoverViewModel(): DiscoverViewModel {
-        // La première page du flux, servie à l'amorçage sur cache vide.
+        // First feed page, served at startup on an empty cache.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
         return DiscoverViewModel(
             articleRepository = repository,
@@ -91,7 +90,7 @@ class RefreshDiscardsStalePagesTest {
 
         repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("r1"))
         viewModel.refresh()
-        // La page partie avant le tirage arrive **après** lui.
+        // The page requested before the refresh arrives after it.
         repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 3L)), PageCursor("c3"))))
 
         assertEquals(
@@ -100,17 +99,16 @@ class RefreshDiscardsStalePagesTest {
             "la page périmée ne doit pas s'ajouter sous la liste rafraîchie",
         )
 
-        // Et la pagination suit le curseur du rechargement, pas celui de la
-        // page désavouée — c'est l'écrasement silencieux que la liste seule ne
-        // montrerait pas.
+        // Pagination must follow the refresh's cursor, not the disowned
+        // page's: the silent overwrite the list alone would not show.
         repository.enqueuePage(listOf(article(id = 4L)), nextCursor = null)
         viewModel.loadMore()
         assertEquals(PageCursor("r1"), repository.requestedCursors.last())
     }
 
     /**
-     * L'échec périmé est jeté comme le succès : le signaler peindrait en panne
-     * un flux qui vient d'être remplacé sous les yeux de l'utilisateur.
+     * A stale failure is discarded like a stale success: reporting it would
+     * mark as broken a feed that was just replaced in front of the user.
      */
     @Test
     fun listModeDropsAStaleFailureToo() {
@@ -144,11 +142,10 @@ class RefreshDiscardsStalePagesTest {
     }
 
     /**
-     * L'autre porte de la même course, propre au Balayage : `loadMore` n'y
-     * vérifiait pas `isRefreshing` — le mode Liste le faisait — et le pagineur
-     * pouvait donc **démarrer** une page pendant le rechargement, avec le
-     * curseur de l'ancien parcours. La divergence exacte qu'ARCHITECTURE.md
-     * §9.6 dit de traquer.
+     * The other entry point of the same race, specific to Swipe mode:
+     * `loadMore` did not check `isRefreshing` (List mode did), so the pager
+     * could start a page during the refresh with the old traversal's cursor.
+     * Exactly the divergence ARCHITECTURE.md §9.6 says to track.
      */
     @Test
     fun swipeModeStartsNoPageDuringAReload() {

@@ -7,12 +7,12 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 
 /**
- * Maintient un abonné sur [flow] pendant toute la durée du test.
+ * Keeps a subscriber on [flow] for the whole duration of the test.
  *
- * Les ViewModels publient leur état en `WhileSubscribed` : sans écran — donc
- * sans abonné — les sources ne sont pas observées et `uiState.value` resterait
- * figé sur l'état initial. Le collecteur vit dans `backgroundScope` et meurt
- * avec le test.
+ * ViewModels publish their state with `WhileSubscribed`: without a screen,
+ * hence without a subscriber, sources are not observed and `uiState.value`
+ * would stay frozen on the initial state. The collector lives in
+ * `backgroundScope` and dies with the test.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun TestScope.keepCollecting(flow: Flow<*>) {

@@ -7,10 +7,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * La règle de SPECS.md §4.5 n'est observable qu'en conditions réelles de
- * défilement, où elle est impossible à vérifier à la milliseconde. Ces tests
- * sont donc le seul endroit où le double seuil est réellement constaté :
- * l'horloge pilotée permet d'attaquer chaque frontière des deux côtés.
+ * The rule from SPECS.md §4.5 is only observable under real scrolling
+ * conditions, where it cannot be verified to the millisecond. These tests are
+ * therefore the only place the dual threshold is actually checked: the
+ * controlled clock allows probing each boundary from both sides.
  */
 class ReadDetectorTest {
     private val clock = FakeClock()
@@ -21,8 +21,8 @@ class ReadDetectorTest {
 
     @Test
     fun anArticleBelowTheSurfaceThresholdIsNeverRead() {
-        // Un article à moitié visible en bord d'écran ne doit pas se marquer
-        // lu, même laissé là longtemps.
+        // An article half visible at the screen edge must not be marked read,
+        // even if left there for a long time.
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 0.5f)))
         clock.advanceBy(10_000L)
 
@@ -31,7 +31,7 @@ class ReadDetectorTest {
 
     @Test
     fun anArticleAboveTheSurfaceThresholdButTooBriefIsNotRead() {
-        // Le défilement rapide : la surface est atteinte, la durée non.
+        // Fast scrolling: the surface threshold is met, the duration is not.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(999L)
 
@@ -48,7 +48,7 @@ class ReadDetectorTest {
 
     @Test
     fun exactlyTheSurfaceThresholdCounts() {
-        // Le seuil est inclusif : SPECS.md §4.5 dit « au moins 60 % ».
+        // The threshold is inclusive: SPECS.md §4.5 says "at least 60%".
         detector.onVisibilityChanged(mapOf(first to 0.6f))
         clock.advanceBy(1_000L)
 
@@ -65,7 +65,7 @@ class ReadDetectorTest {
 
     @Test
     fun exactlyTheDurationCounts() {
-        // Même raisonnement : « au moins 1 seconde », donc 1000 ms suffisent.
+        // Same reasoning: "at least 1 second", so 1000 ms suffice.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(999L)
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
@@ -76,8 +76,8 @@ class ReadDetectorTest {
 
     @Test
     fun aVisibilityInterruptedBeforeTheDurationRestartsFromZero() {
-        // Sans remise à zéro, dix passages de 100 ms cumuleraient la seconde —
-        // exactement le défilement rapide que le seuil de durée écarte.
+        // Without a reset, ten 100 ms passes would accumulate the second,
+        // exactly the fast scrolling the duration threshold rules out.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(900L)
         detector.onVisibilityChanged(mapOf(first to 0.1f))
@@ -94,8 +94,8 @@ class ReadDetectorTest {
 
     @Test
     fun anArticleLeavingTheScreenBeforeTheThresholdIsForgotten() {
-        // Sortir de l'observation vaut interruption : au retour, le chronomètre
-        // repart de zéro.
+        // Leaving observation counts as an interruption: on return, the timer
+        // restarts from zero.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(900L)
         detector.onVisibilityChanged(emptyMap())
@@ -109,9 +109,9 @@ class ReadDetectorTest {
 
     @Test
     fun anArticleIsNeverReportedTwice() {
-        // Un article reste visible pendant des dizaines d'images de rendu après
-        // avoir franchi le seuil : le re-signaler produirait autant d'appels
-        // réseau inutiles.
+        // An article stays visible for dozens of rendered frames after
+        // crossing the threshold: re-reporting it would produce as many
+        // useless network calls.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(1_000L)
         assertEquals(setOf(first), detector.onVisibilityChanged(mapOf(first to 1.0f)))
@@ -136,8 +136,8 @@ class ReadDetectorTest {
 
     @Test
     fun severalArticlesAreTrackedIndependently() {
-        // Deux articles peuvent tenir à l'écran ; leurs chronomètres démarrent à
-        // des instants différents.
+        // Two articles can fit on screen; their timers start at different
+        // instants.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
         clock.advanceBy(600L)
         detector.onVisibilityChanged(mapOf(first to 1.0f, second to 0.7f))
@@ -151,8 +151,8 @@ class ReadDetectorTest {
 
     @Test
     fun severalArticlesCanBecomeReadInTheSameObservation() {
-        // Cas d'un défilement stoppé net : les deux chronomètres arrivent à
-        // échéance ensemble, et le lot doit les contenir tous les deux.
+        // Scrolling stopped abruptly: both timers expire together, and the
+        // batch must contain both.
         detector.onVisibilityChanged(mapOf(first to 0.6f, second to 1.0f))
         clock.advanceBy(1_000L)
 
@@ -164,8 +164,8 @@ class ReadDetectorTest {
 
     @Test
     fun customThresholdsReplaceTheDefaults() {
-        // SPECS.md §4.5 annonce que ces valeurs seront ajustées à l'usage : un
-        // réglage plus exigeant doit se substituer entièrement au défaut.
+        // SPECS.md §4.5 states these values will be tuned through use: a
+        // stricter setting must fully replace the default.
         val strict = ReadDetector(clock, visibleFractionThreshold = 0.9f, continuousVisibilityMillis = 3_000L)
 
         strict.onVisibilityChanged(mapOf(first to 0.8f))
@@ -182,8 +182,8 @@ class ReadDetectorTest {
 
     @Test
     fun aLenientThresholdMarksSoonerThanTheDefault() {
-        // L'autre sens : un réglage plus permissif que le défaut doit marquer
-        // là où le détecteur par défaut ne marquerait pas.
+        // The other direction: a setting more permissive than the default
+        // must mark where the default detector would not.
         val lenient = ReadDetector(clock, visibleFractionThreshold = 0.2f, continuousVisibilityMillis = 100L)
 
         lenient.onVisibilityChanged(mapOf(first to 0.3f))
@@ -200,8 +200,8 @@ class ReadDetectorTest {
 
     @Test
     fun aSingleObservationNeverSufficesHoweverVisible() {
-        // Le premier appel ne fait que démarrer le chronomètre : conclure dès
-        // là marquerait tout l'écran au premier rendu.
+        // The first call only starts the timer: concluding there would mark
+        // the whole screen on the first render.
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
     }
 }

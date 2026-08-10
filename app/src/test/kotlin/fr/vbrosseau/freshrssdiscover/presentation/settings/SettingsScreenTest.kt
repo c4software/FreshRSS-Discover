@@ -30,9 +30,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * La locale est figée : les nombres affichés sont mis en forme selon la
- * configuration, et une machine réglée autrement produirait « 1,240 » là où
- * l'application montre « 1 240 ».
+ * The locale is pinned: displayed numbers are formatted per configuration, and
+ * a differently configured machine would produce "1,240" where the app shows
+ * "1 240".
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
@@ -42,7 +42,7 @@ class SettingsScreenTest {
 
     private val account = SettingsAccount(serverAddress = "https://rss.exemple.org", username = "alice")
 
-    /** Deux seuils distincts des défauts, pour que l'affichage ne puisse pas passer par hasard. */
+    /** Two thresholds distinct from the defaults, so the display cannot pass by accident. */
     private val other = ReadingSettings(visibleFraction = 0.4f, continuousVisibilityMillis = 3_000L)
 
     private fun show(
@@ -71,9 +71,10 @@ class SettingsScreenTest {
     }
 
     /**
-     * Un montage propre au mode de parcours plutôt qu'un huitième paramètre à
-     * [show] : la liste de rappels de l'écran a atteint le seuil que Detekt
-     * accepte, et l'allonger pour deux tests rendrait les six autres illisibles.
+     * A dedicated setup for the presentation mode rather than an eighth
+     * parameter on [show]: the screen's callback list has reached the
+     * threshold Detekt accepts, and lengthening it for two tests would make
+     * the six others unreadable.
      */
     private fun showPresentation(
         presentation: FeedPresentation = FeedPresentation.Default,
@@ -106,8 +107,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * La description suit le mode sélectionné : c'est elle qui dit ce que le
-     * flux montrera, ce que deux mots de segment ne peuvent pas faire.
+     * The description follows the selected mode: it is what says what the feed
+     * will show, which two words on a segment cannot.
      */
     @Test
     fun theSwipePresentationIsSelectedAndDescribedWhenItIsTheStoredOne() {
@@ -142,9 +143,9 @@ class SettingsScreenTest {
     }
 
     /**
-     * Le contrôle ne mémorise rien : il remonte le choix et attend que l'état
-     * revienne. Sans cela, l'écran montrerait un mode sélectionné que
-     * l'enregistrement n'aurait pas retenu.
+     * The control stores nothing: it reports the choice and waits for the
+     * state to come back. Otherwise the screen would show a selected mode the
+     * persistence had not retained.
      */
     @Test
     fun theSegmentsShowTheStateRatherThanTheLastTap() {
@@ -157,9 +158,9 @@ class SettingsScreenTest {
     }
 
     /**
-     * Montage propre au rappel, pour la raison qui a déjà valu le sien au mode
-     * de parcours : la liste de rappels de [show] est au seuil que Detekt
-     * accepte.
+     * Dedicated setup for the reminder, for the same reason as the
+     * presentation mode: the callback list of [show] is at the threshold
+     * Detekt accepts.
      */
     private fun showReminder(
         isReminderEnabled: Boolean = true,
@@ -181,7 +182,7 @@ class SettingsScreenTest {
         }
     }
 
-    /** SPECS.md §4.9 : le rappel est actif tant qu'on ne l'éteint pas. */
+    /** SPECS.md §4.9: the reminder is active until turned off. */
     @Test
     fun theReminderSwitchFollowsTheState() {
         showReminder(isReminderEnabled = true)
@@ -217,8 +218,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * L'interrupteur n'a pas de mémoire propre : il remonte le geste et attend
-     * que l'état revienne, comme les segments du mode de parcours.
+     * The switch has no memory of its own: it reports the gesture and waits
+     * for the state to come back, like the presentation segments.
      */
     @Test
     fun theReminderSwitchShowsTheStateRatherThanTheLastTap() {
@@ -230,8 +231,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * SPECS.md §7.1 : la cible fait au moins 48 dp. Un `Switch` de Material 3
-     * n'en mesure que 32 de haut — c'est la rangée entière qui porte l'action.
+     * SPECS.md §7.1: the target is at least 48 dp. A Material 3 `Switch` is
+     * only 32 dp tall; the whole row carries the action.
      */
     @Test
     fun theReminderSwitchIsBigEnoughToBeTapped() {
@@ -245,8 +246,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * L'heure du rappel est déduite de l'usage : ne pas la dire ferait passer
-     * une notification du soir pour un caprice de l'application.
+     * The reminder time is inferred from usage: not saying so would make an
+     * evening notification look arbitrary.
      */
     @Test
     fun theReminderExplainsWhenItGoesOff() {
@@ -285,11 +286,11 @@ class SettingsScreenTest {
     }
 
     /**
-     * Le curseur est piloté par l'état, pas par une mémoire locale.
+     * The slider is driven by state, not by local memory.
      *
-     * S'il conservait sa position lui-même, l'écran continuerait d'afficher la
-     * valeur relâchée même si l'enregistrement échouait — précisément le
-     * mensonge que GOAL-011-T04 supprime.
+     * If it kept its own position, the screen would keep showing the released
+     * value even when persistence failed: precisely the lie GOAL-011-T04
+     * removes.
      */
     @Test
     fun theDisplayedThresholdsFollowTheState() {
@@ -330,8 +331,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * Les crans bornent le geste : une valeur hors plage ferait lever le dépôt,
-     * et l'utilisateur ne doit jamais pouvoir la produire.
+     * The steps bound the gesture: an out-of-range value would make the
+     * repository throw, and the user must never be able to produce one.
      */
     @Test
     fun theSlidersNeverReportAValueOutsideTheAllowedRange() {
@@ -346,9 +347,9 @@ class SettingsScreenTest {
     }
 
     /**
-     * Un montage propre au marquage automatique, pour la raison déjà donnée à
-     * [showReminder] : la liste de rappels de [show] est au seuil que Detekt
-     * accepte.
+     * Dedicated setup for automatic marking, for the reason already given at
+     * [showReminder]: the callback list of [show] is at the threshold Detekt
+     * accepts.
      */
     private fun showAutomaticMarking(
         isAutoMarkAsReadEnabled: Boolean = true,
@@ -373,7 +374,7 @@ class SettingsScreenTest {
         }
     }
 
-    /** SPECS.md §4.5 : le marquage a lieu tant qu'on ne l'éteint pas. */
+    /** SPECS.md §4.5: marking happens until turned off. */
     @Test
     fun theAutomaticMarkingSwitchFollowsTheState() {
         showAutomaticMarking(isAutoMarkAsReadEnabled = true)
@@ -408,7 +409,7 @@ class SettingsScreenTest {
         assertEquals(true, reported)
     }
 
-    /** SPECS.md §7.1 : la rangée entière est la cible, et elle fait 48 dp. */
+    /** SPECS.md §7.1: the whole row is the target, and it is 48 dp. */
     @Test
     fun theAutomaticMarkingSwitchIsBigEnoughToBeTapped() {
         showAutomaticMarking()
@@ -421,10 +422,10 @@ class SettingsScreenTest {
     }
 
     /**
-     * Ce que l'extinction ne coupe pas.
+     * What turning it off does not cut.
      *
-     * Sans cette phrase, l'utilisateur croirait avoir suspendu tout marquage et
-     * prendrait pour un défaut la disparition d'un article qu'il vient d'ouvrir
+     * Without this sentence, the user would believe all marking is suspended
+     * and take the disappearance of a just-opened article for a defect
      * (SPECS.md §4.7).
      */
     @Test
@@ -440,8 +441,8 @@ class SettingsScreenTest {
     }
 
     /**
-     * Les deux seuils restent **affichés** quand le marquage est éteint : les
-     * cacher ferait disparaître deux réglages sans dire pourquoi.
+     * Both thresholds stay displayed when marking is off: hiding them would
+     * make two settings vanish without saying why.
      */
     @Test
     fun withAutomaticMarkingOffTheThresholdsAreStillShown() {
@@ -451,7 +452,7 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 1 s")
     }
 
-    /** Grisés, parce que proposer d'ajuster ce qui ne s'applique plus est un piège. */
+    /** Grayed out: offering to adjust what no longer applies is a trap. */
     @Test
     fun withAutomaticMarkingOffTheThresholdSlidersAreDisabled() {
         showAutomaticMarking(isAutoMarkAsReadEnabled = false)
@@ -477,16 +478,16 @@ class SettingsScreenTest {
     }
 
     /**
-     * La taille du cache est un nombre d'articles, pas un poids : c'est le seul
-     * chiffre qui dise ce qu'une purge retirerait (voir `CacheStatus`).
+     * The cache size is an article count, not a byte size: the only number
+     * that says what a purge would remove (see `CacheStatus`).
      */
     @Test
     fun theCacheSizeIsDisplayedAsACountOfArticles() {
         show(SettingsUiState(account = account, cache = SettingsCache(articleCount = 1_240, purgeableCount = 812)))
 
-        // Le séparateur de milliers est celui de la locale du test (`fr-rFR`) :
-        // l'écrire en dur figerait un caractère d'espace que la plateforme a
-        // déjà changé une fois.
+        // The thousands separator comes from the test locale (`fr-rFR`):
+        // hard-coding it would pin a space character the platform has already
+        // changed once.
         val grouped = NumberFormat.getIntegerInstance(Locale.FRANCE).format(1_240)
         composeRule.onNodeWithTag(SettingsTestTags.CACHE_SIZE).assertTextEquals("$grouped articles")
         composeRule.onNodeWithTag(SettingsTestTags.CACHE_PURGEABLE)
@@ -502,7 +503,7 @@ class SettingsScreenTest {
             .assertTextEquals("dont 1 déjà lu et transmis au serveur")
     }
 
-    /** Un bouton actif qui ne supprimerait rien ferait douter de la purge. */
+    /** An enabled button that would delete nothing would cast doubt on the purge. */
     @Test
     fun withNothingToPurgeTheButtonIsDisabled() {
         show(SettingsUiState(account = account, cache = SettingsCache(articleCount = 3, purgeableCount = 0)))
@@ -513,11 +514,11 @@ class SettingsScreenTest {
     }
 
     /**
-     * La purge part au premier appui, sans boîte de dialogue.
+     * The purge fires on the first press, without a dialog.
      *
-     * Elle n'emporte que des articles lus et déjà transmis au serveur ; la
-     * confirmation reste réservée à la déconnexion, qui efface le jeton, les
-     * non-lus et les marquages en attente (SPECS.md §3.5).
+     * It only removes articles already read and reported to the server;
+     * confirmation stays reserved for sign-out, which erases the token, the
+     * unread articles, and the pending marks (SPECS.md §3.5).
      */
     @Test
     fun purgingAsksNothingAndReportsTheGestureImmediately() {
@@ -570,8 +571,8 @@ class SettingsScreenTest {
             onSignOutConfirm = { confirmed++ },
         )
 
-        // La colonne défile : le bouton de déconnexion ferme la liste et peut
-        // se trouver hors écran, où un clic ne l'atteindrait pas.
+        // The column scrolls: the sign-out button closes the list and may be
+        // off-screen, where a click would not reach it.
         composeRule.onNodeWithTag(SettingsTestTags.SIGN_OUT).performScrollTo().performClick()
 
         assertEquals(1, requested)

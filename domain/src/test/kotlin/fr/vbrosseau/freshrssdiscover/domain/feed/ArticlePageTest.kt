@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class ArticlePageTest {
     @Test
     fun anAbsentCursorMeansTheFeedIsExhausted() {
-        // C'est le seul signal de fin : l'API ne renvoie aucun compteur total.
+        // The only end-of-feed signal: the API returns no total count.
         val page = ArticlePage(articles = listOf(article()), nextCursor = null)
 
         assertFalse(page.hasMore)
@@ -23,9 +23,9 @@ class ArticlePageTest {
 
     @Test
     fun aFullPageWithoutACursorIsALegitimateEnd() {
-        // Le serveur n'émet `continuation` que s'il *peut* rester quelque
-        // chose. Une page pleine sans curseur n'est donc pas une anomalie, et
-        // la traiter comme telle ferait redemander indéfiniment.
+        // The server only emits `continuation` when something may remain. A
+        // full page without a cursor is therefore not an anomaly, and
+        // treating it as one would cause endless re-requests.
         val page = ArticlePage(articles = List(40) { article(id = it.toLong()) }, nextCursor = null)
 
         assertEquals(40, page.articles.size)
@@ -34,8 +34,8 @@ class ArticlePageTest {
 
     @Test
     fun anEmptyPageWithACursorStillHasMore() {
-        // Cas réel : tous les articles de la page ont été filtrés côté serveur.
-        // S'arrêter là masquerait les articles suivants.
+        // Real case: every article on the page was filtered server-side.
+        // Stopping there would hide the following articles.
         val page = ArticlePage(articles = emptyList(), nextCursor = PageCursor("45219"))
 
         assertTrue(page.hasMore)
@@ -43,9 +43,9 @@ class ArticlePageTest {
 
     @Test
     fun aCursorIsNotAPlainStringByAccident() {
-        // Le type dédié empêche de fabriquer un curseur depuis n'importe quoi :
-        // un curseur invalide est silencieusement ramené au début du flux par
-        // le serveur, ce qui répéterait la première page sans jamais échouer.
+        // The dedicated type prevents building a cursor from arbitrary input:
+        // the server silently resets an invalid cursor to the start of the
+        // feed, repeating the first page without ever failing.
         assertEquals("45219", PageCursor("45219").value)
         assertEquals(PageCursor("45219"), PageCursor("45219"))
     }

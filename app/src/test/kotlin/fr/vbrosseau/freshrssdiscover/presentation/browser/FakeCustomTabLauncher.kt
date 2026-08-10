@@ -3,14 +3,14 @@ package fr.vbrosseau.freshrssdiscover.presentation.browser
 import android.content.ActivityNotFoundException
 
 /**
- * Double de [CustomTabLauncher] qui enregistre ce qu'on lui demande d'ouvrir.
+ * [CustomTabLauncher] fake that records what it is asked to open.
  *
- * [launchedUrls] est ce qui permet d'affirmer qu'un lien refusé n'a **rien**
- * déclenché : constater le résultat retourné ne suffirait pas, une intention
- * pourrait partir quand même.
+ * [launchedUrls] is what allows asserting that a refused link triggered
+ * nothing: checking the returned result would not suffice, an intent could
+ * still go out.
  *
- * @param browserInstalled à faux, reproduit un appareil sans application
- *   capable d'afficher une page web.
+ * @param browserInstalled when false, reproduces a device without any app
+ *   able to display a web page.
  */
 internal class FakeCustomTabLauncher(private val browserInstalled: Boolean = true) : CustomTabLauncher {
     val launchedUrls = mutableListOf<String>()

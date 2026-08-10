@@ -5,20 +5,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Les comparaisons sont faites à une tolérance près, comme dans
- * `SwipeVisibilityTest` et pour une raison voisine : une rotation nulle sort du
- * calcul sous la forme `-0,0`, que `Float.equals` distingue de `0,0` alors
- * qu'aucun rendu ne les distingue.
+ * Comparisons use a tolerance, as in `SwipeVisibilityTest` and for a similar
+ * reason: a null rotation comes out of the computation as `-0.0`, which
+ * `Float.equals` distinguishes from `0.0` while no rendering does.
  */
 private const val TOLERANCE = 1e-4f
 
 /**
- * La géométrie de la pile de cartes, éprouvée sans rien rendre.
+ * Card-stack geometry, tested without rendering.
  *
- * Ce que ces tests protègent n'est pas l'esthétique — elle se regarde sur les
- * captures et sur l'appareil — mais les propriétés qu'aucune capture ne montre :
- * qu'à aucun instant du geste une carte ne devient invisible, renversée, ou
- * dessinée devant celle qui devrait la couvrir.
+ * These tests protect properties no screenshot shows: at no instant of the
+ * gesture may a card become invisible, upside down, or drawn in front of the
+ * one that should cover it.
  */
 class SwipeCardTransformTest {
 
@@ -34,8 +32,8 @@ class SwipeCardTransformTest {
 
     @Test
     fun aCardOnItsWayOutLeansTowardsWhereItIsGoing() {
-        // Le décalage positif dit « vers la gauche » : le sommet penche du même
-        // côté, donc une rotation négative.
+        // A positive offset means "leaving to the left": the top leans the
+        // same way, hence a negative rotation.
         val transform = swipeCardTransform(0.5f)
 
         assertTrue(transform.rotationDegrees < 0f, "inclinaison ${transform.rotationDegrees}")
@@ -43,14 +41,14 @@ class SwipeCardTransformTest {
 
     @Test
     fun aCardOnItsWayOutKeepsThePagerMovement() {
-        // Rien n'est ajouté au déplacement : c'est le pagineur qui la sort de
-        // l'écran, et le doigt doit la sentir suivre.
+        // Nothing is added to the translation: the pager moves it off screen,
+        // and the finger must feel it follow.
         assertEquals(0f, swipeCardTransform(0.5f).translationXFraction, TOLERANCE)
     }
 
     @Test
     fun theCardUnderneathStaysCentredInsteadOfSlidingIn() {
-        // Le pagineur l'a posée à +0,6 largeur ; on ajoute exactement l'opposé.
+        // The pager placed it at +0.6 width; exactly the opposite is added.
         assertEquals(-0.6f, swipeCardTransform(-0.6f).translationXFraction, TOLERANCE)
     }
 
@@ -66,8 +64,8 @@ class SwipeCardTransformTest {
 
     @Test
     fun theCardUnderneathNeverTiltsNorFades() {
-        // Elle attend : la faire pencher ferait deux cartes en mouvement, et le
-        // regard ne saurait plus laquelle il est en train de quitter.
+        // It waits: tilting it would put two cards in motion, and the eye
+        // would no longer know which one it is leaving.
         val transform = swipeCardTransform(-0.5f)
 
         assertEquals(0f, transform.rotationDegrees, TOLERANCE)
@@ -76,17 +74,17 @@ class SwipeCardTransformTest {
 
     @Test
     fun theFlyingCardIsAlwaysDrawnOverTheDeck() {
-        // Vrai dans les deux sens : en arrière, c'est la carte précédente qui
-        // revient par la gauche, décalage positif, et elle doit se reposer
-        // **sur** la pile et non se glisser dessous.
+        // True in both directions: going back, the previous card returns from
+        // the left with a positive offset, and it must land on the deck rather
+        // than slide underneath.
         assertTrue(swipeCardTransform(0.4f).drawOrder > swipeCardTransform(-0.6f).drawOrder)
         assertTrue(swipeCardTransform(0.6f).drawOrder > swipeCardTransform(-0.4f).drawOrder)
     }
 
     @Test
     fun aCardNeverBecomesInvisibleWhileStillOnScreen() {
-        // Une carte qui s'efface complètement avant d'avoir quitté le cadre se
-        // dissout sur place, alors que le geste dit qu'on la met de côté.
+        // A card that fades out completely before leaving the frame dissolves
+        // in place, while the gesture says it is being set aside.
         var offset = 0f
         while (offset <= 1f) {
             assertTrue(swipeCardTransform(offset).alpha >= EXPECTED_MIN_ALPHA, "à $offset")
@@ -104,8 +102,8 @@ class SwipeCardTransformTest {
 
     @Test
     fun aCardBeyondTheScreenIsNotPushedFurtherThanTheEdgeValues() {
-        // Le pagineur compose parfois au-delà d'une page : sans borne, la
-        // rotation continuerait de croître et l'opacité passerait sous zéro.
+        // The pager sometimes composes beyond one page: without a bound, the
+        // rotation would keep growing and the alpha would go below zero.
         val far = swipeCardTransform(2.5f)
 
         assertEquals(swipeCardTransform(1f).rotationDegrees, far.rotationDegrees, TOLERANCE)
@@ -121,7 +119,7 @@ class SwipeCardTransformTest {
     }
 
     private companion object {
-        /** L'opacité résiduelle annoncée par le module, reprise ici comme attente. */
+        /** The residual alpha declared by the module, restated here as an expectation. */
         const val EXPECTED_MIN_ALPHA = 0.4f
     }
 }

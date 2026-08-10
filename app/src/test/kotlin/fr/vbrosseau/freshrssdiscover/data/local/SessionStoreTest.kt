@@ -75,8 +75,8 @@ class SessionStoreTest {
 
     @Test
     fun theTokenIsNeverWrittenInClear() = runTest {
-        // Le cœur du sujet : une écriture en clair rendrait le jeton lisible
-        // par toute lecture du fichier de préférences.
+        // The heart of the matter: a clear-text write would make the token
+        // readable to anything reading the preferences file.
         val store = store()
         store.save(session)
 
@@ -87,7 +87,7 @@ class SessionStoreTest {
 
     @Test
     fun theServerAndUsernameStayReadable() = runTest {
-        // Ce ne sont pas des secrets, et les lire aide à diagnostiquer.
+        // Not secrets, and reading them helps diagnosis.
         val store = store()
         store.save(session)
 
@@ -110,8 +110,8 @@ class SessionStoreTest {
 
     @Test
     fun savingWithoutAModificationTokenRemovesAPreviousOne() = runTest {
-        // Sans cela, un jeton de modification périmé survivrait à une
-        // reconnexion et ferait échouer le premier marquage comme lu.
+        // Otherwise a stale modification token would survive a reconnection
+        // and fail the first mark-as-read.
         val store = store()
         store.save(session.copy(modificationToken = ModificationToken("ancien")))
         store.save(session)
@@ -132,9 +132,8 @@ class SessionStoreTest {
 
     @Test
     fun invalidatingTokensKeepsTheSignInHint() = runTest {
-        // SPECS.md §3.4 : ramener à l'écran de connexion sans faire tout
-        // retaper. L'utilisateur n'a probablement qu'un mot de passe API à
-        // renouveler.
+        // SPECS.md §3.4: return to the login screen without retyping
+        // everything. The user probably only has an API password to renew.
         val store = store()
         store.save(session)
 
@@ -148,8 +147,8 @@ class SessionStoreTest {
 
     @Test
     fun signingOutErasesTheSignInHintToo() = runTest {
-        // Geste délibéré de l'utilisateur : il n'a aucune raison de laisser
-        // une trace de son serveur sur l'appareil.
+        // A deliberate user action: no reason to leave a trace of their
+        // server on the device.
         val store = store()
         store.save(session)
 
@@ -165,8 +164,8 @@ class SessionStoreTest {
 
     @Test
     fun aLostKeystoreKeyStillLeavesTheSignInHint() = runTest {
-        // Le rappel de saisie ne passe pas par le chiffreur : une clé perdue
-        // ne doit pas obliger à retaper l'adresse.
+        // The sign-in hint does not go through the cipher: a lost key must
+        // not force retyping the address.
         val store = store()
         store.save(session)
         cipher.keyIsLost = true
@@ -176,9 +175,9 @@ class SessionStoreTest {
 
     @Test
     fun aLostKeystoreKeyIsReportedAsNoSessionRatherThanCrashing() = runTest {
-        // Cas réel : changement de verrouillage d'écran, ou restauration d'une
-        // sauvegarde sur un autre appareil. Le secret devient illisible ; la
-        // seule conduite utile est de ramener à l'écran de connexion.
+        // Real case: screen-lock change, or a backup restored on another
+        // device. The secret becomes unreadable; the only useful behavior is
+        // to return to the login screen.
         val store = store()
         store.save(session)
 
@@ -189,9 +188,9 @@ class SessionStoreTest {
 
     @Test
     fun aSessionWhoseServerBecameUnparsableIsIgnored() = runTest {
-        // Défend contre une donnée corrompue ou écrite par une version
-        // antérieure : mieux vaut redemander la connexion que propager une
-        // adresse inexploitable dans toute l'application.
+        // Guards against data corrupted or written by an earlier version:
+        // better to ask for login again than to propagate an unusable
+        // address through the app.
         val store = store()
         store.save(session)
         dataStore.edit { it[stringPreferencesKey("session.server_base_url")] = "" }

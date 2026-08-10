@@ -9,37 +9,32 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 
 /**
- * La permission qu'exige le rappel de lecture, à partir d'Android 13.
+ * Permission required by the reading reminder from Android 13 on.
  *
- * Elle est déclarée au manifeste quelle que soit la version : en dessous
- * d'Android 13, le système l'ignore et les notifications sont accordées
- * d'office.
+ * Declared in the manifest regardless of version: below Android 13 the system
+ * ignores it and notifications are granted by default.
  */
 private const val NOTIFICATION_PERMISSION = Manifest.permission.POST_NOTIFICATIONS
 
 /**
- * Y a-t-il lieu de demander la permission de notifier (SPECS.md §4.9) ?
+ * Decides whether to ask for the notification permission (SPECS.md §4.9).
  *
- * Fonction pure, séparée du geste qu'elle décide : c'est la seule part de cette
- * demande qui contienne une règle, et la seule qui se vérifie sans appareil.
+ * Pure function, separated from the gesture it decides: it is the only part
+ * of this request containing a rule, and the only one verifiable without a
+ * device.
  *
- * Les trois conditions se lisent dans l'ordre où elles éliminent :
+ * - [isFirstCreation]: a screen rotation recreates the activity without any
+ *   user action. Asking again then would show the system dialog on every
+ *   configuration change, exactly the insistence §4.9 rejects.
+ * - [sdkInt]: below Android 13 there is no notification permission. Asking
+ *   would not fail loudly; it would be silently denied, which would look
+ *   like a user refusal.
+ * - [isGranted]: re-asking for a granted permission shows nothing.
  *
- * - **[isFirstCreation]** — une rotation d'écran recrée l'activité sans que
- *   l'utilisateur ait rien demandé. Redemander à cette occasion ferait
- *   réapparaître la boîte de dialogue système à chaque changement de
- *   configuration, ce qui est exactement l'insistance que §4.9 refuse.
- * - **[sdkInt]** — sous Android 13 il n'existe aucune permission de
- *   notification. La demander n'échouerait pas bruyamment ; elle serait
- *   simplement refusée en silence, ce qui laisserait croire à un refus de
- *   l'utilisateur.
- * - **[isGranted]** — redemander une permission déjà accordée n'affiche rien,
- *   mais dit du même coup que l'appelant ne sait pas ce qu'il possède.
- *
- * Aucune quatrième condition sur un refus passé : le système cesse de lui-même
- * d'afficher la demande une fois l'utilisateur ferme, et lui superposer une
- * explication insistante serait précisément ce que §4.9 écarte. Un refus ne
- * retire rien d'autre à l'application — seul le rappel reste muet.
+ * No fourth condition on a past refusal: the system stops showing the dialog
+ * on its own after a firm denial, and layering an insistent explanation on
+ * top is precisely what §4.9 rules out. A refusal takes nothing else from the
+ * app; only the reminder stays silent.
  */
 fun shouldAskForNotificationPermission(
     sdkInt: Int,
@@ -48,29 +43,27 @@ fun shouldAskForNotificationPermission(
 ): Boolean = isFirstCreation && sdkInt >= Build.VERSION_CODES.TIRAMISU && !isGranted
 
 /**
- * La demande de permission d'une activité, enregistrée puis lancée au besoin.
+ * An activity's permission request, registered then launched when needed.
  *
- * Une classe et non une fonction : le contrat de résultat doit être enregistré
- * **avant** que l'activité n'atteigne l'état démarré, alors que la demande, elle,
- * part depuis `onCreate`. Les deux moments ne peuvent donc pas tenir dans un
- * seul appel.
+ * A class rather than a function: the result contract must be registered
+ * before the activity reaches the started state, while the request itself
+ * departs from `onCreate`. The two moments cannot fit in a single call.
  */
 class NotificationPermissionRequest(private val activity: ComponentActivity) {
 
     /**
-     * Le résultat est volontairement ignoré.
+     * The result is deliberately ignored.
      *
-     * Rien n'en dépend : ni écran, ni chargement, ni réglage. Un refus laisse
-     * l'application entière fonctionner, le rappel de §4.9 restant simplement
-     * sans voix — et l'interrupteur des réglages permet toujours de l'éteindre
-     * pour de bon.
+     * Nothing depends on it: no screen, no loading, no setting. A refusal
+     * leaves the whole app working, the §4.9 reminder simply stays silent,
+     * and the settings switch can still turn it off for good.
      */
     private val launcher: ActivityResultLauncher<String> =
         activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     /**
-     * @param isFirstCreation vrai lorsque l'activité n'est pas recréée, c'est-à-dire
-     *   lorsque `savedInstanceState` est nul.
+     * @param isFirstCreation true when the activity is not being recreated,
+     *   i.e. when `savedInstanceState` is null.
      */
     fun askIfNeeded(isFirstCreation: Boolean) {
         val granted = ContextCompat.checkSelfPermission(activity, NOTIFICATION_PERMISSION) ==

@@ -5,16 +5,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Le gabarit réel de `feed_article_share_text`, recopié : la décision testée
- * est la **composition** — le titre puis l'URL, et rien d'autre —, pas la
- * capacité d'Android à lire un fichier de ressources.
+ * The real `feed_article_share_text` template, copied: the decision under test
+ * is the composition (title then URL, nothing else), not Android's ability to
+ * read a resource file.
  */
 private const val SHARE_TEXT_FORMAT = "%1\$s\n%2\$s"
 
 /**
- * Aucune API Android ici, et c'est le but : ce qui se partage se décide en JVM
- * pure, et s'observe sur le **lanceur** — ce qui est parti, ou rien. Le contenu
- * de l'intention est éprouvé à part, par [ArticleShareIntentTest].
+ * No Android API here, by design: what gets shared is decided in pure JVM and
+ * observed on the launcher (what left, or nothing). The intent content is
+ * tested separately by [ArticleShareIntentTest].
  */
 class ArticleSharerTest {
     private val launcher = FakeArticleShareLauncher()
@@ -70,9 +70,9 @@ class ArticleSharerTest {
     }
 
     /**
-     * Le lien vient d'un flux tiers non maîtrisé, et le sélecteur remettrait
-     * ce texte tel quel à l'application choisie : refuser à l'ouverture sans
-     * refuser au partage laisserait la porte entrouverte.
+     * The link comes from an untrusted third-party feed, and the chooser would
+     * hand this text as-is to the chosen app: refusing on open without
+     * refusing on share would leave the door ajar.
      */
     @Test
     fun aJavascriptLinkIsRefused() {

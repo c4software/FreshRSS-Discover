@@ -1,54 +1,53 @@
 package fr.vbrosseau.freshrssdiscover.domain.feed
 
 /**
- * Identifiant d'un article, sous sa forme **décimale**.
+ * Article identifier, in decimal form.
  *
- * L'API expose le même entier sous deux bases : hexadécimal dans `items[].id`,
- * décimal dans `continuation` et dans le paramètre `i` d'`edit-tag`
- * (docs/freshrss-api.md §3.4). La conversion appartient à la couche `data` ; le
- * domaine n'en connaît qu'une seule forme, sans quoi la confusion se
- * propagerait jusqu'au marquage comme lu — où elle échouerait en silence.
+ * The API exposes the same integer in two bases: hexadecimal in `items[].id`,
+ * decimal in `continuation` and in the `i` parameter of `edit-tag`
+ * (docs/freshrss-api.md §3.4). Conversion belongs to the `data` layer; the
+ * domain knows a single form, otherwise the confusion would propagate to
+ * mark-as-read, where it would fail silently.
  */
 @JvmInline
 value class ArticleId(val value: Long)
 
 /**
- * Flux d'origine d'un article.
+ * Source feed of an article.
  *
- * Le titre voyage avec l'article plutôt que d'être résolu à l'affichage : dans
- * un flux mélangé, la source est ce qui rend l'article intelligible (SPECS.md
- * §4.3), et une résolution différée la ferait apparaître après coup.
+ * The title travels with the article instead of being resolved at display
+ * time: in a mixed feed, the source is what makes an article intelligible
+ * (SPECS.md §4.3), and deferred resolution would make it appear late.
  */
 data class FeedRef(
-    /** Identifiant de flux tel que l'API le désigne, par exemple `feed/12`. */
+    /** Feed identifier as the API names it, e.g. `feed/12`. */
     val id: String,
     val title: String,
 )
 
 /**
- * Un article du flux Discover.
+ * An article of the Discover feed.
  *
- * Ne contient que ce que SPECS.md §4.3 demande d'afficher. Le contenu intégral
- * n'y figure pas : l'application ouvre l'article d'origine dans le navigateur
- * (§4.7), et conserver le corps entier de chaque article gonflerait le cache
- * sans servir.
+ * Contains only what SPECS.md §4.3 requires to display. Full content is
+ * absent: the app opens the original article in the browser (§4.7), and
+ * keeping the full body of every article would bloat the cache for nothing.
  */
 data class Article(
     val id: ArticleId,
     val title: String,
     /**
-     * Lien vers l'article d'origine, `null` s'il est inexploitable.
+     * Link to the original article, `null` when unusable.
      *
-     * Un article sans lien existe — flux mal formé, contenu purement local.
-     * SPECS.md §4.7 demande alors de le rendre non cliquable plutôt que
-     * d'ouvrir une page vide.
+     * Articles without a link exist (malformed feed, purely local content).
+     * SPECS.md §4.7 then requires rendering it non-clickable rather than
+     * opening an empty page.
      */
     val url: String?,
-    /** Date de publication, en secondes depuis l'époque Unix. */
+    /** Publication date, in seconds since the Unix epoch. */
     val publishedAtEpochSeconds: Long,
-    /** Extrait, éventuellement vide. Le serveur le tronque déjà. */
+    /** Excerpt, possibly empty. The server already truncates it. */
     val summary: String,
-    /** Illustration, `null` si l'article n'en a pas. Aucune image de remplacement. */
+    /** Illustration, `null` when the article has none. No placeholder image. */
     val imageUrl: String?,
     val author: String?,
     val feed: FeedRef,

@@ -1,16 +1,14 @@
 package fr.vbrosseau.freshrssdiscover.domain.auth
 
 /**
- * Identifiants saisis par l'utilisateur.
+ * Credentials entered by the user.
  *
- * [apiPassword] est le **mot de passe API** de FreshRSS, distinct du mot de
- * passe de connexion (SPECS.md §3.1). Les confondre est la première cause
- * d'échec de connexion.
+ * [apiPassword] is the FreshRSS API password, distinct from the login password
+ * (SPECS.md §3.1). Confusing the two is the leading cause of sign-in failures.
  *
- * `toString` est redéfini pour masquer le secret. Ce n'est pas de la prudence
- * excessive : une `data class` produirait un `toString` complet, qu'un simple
- * `Timber.d("credentials=%s", …)` — ou le message d'une exception — suffirait à
- * écrire dans les journaux du terminal.
+ * `toString` is overridden to mask the secret: a `data class` would generate a
+ * full `toString`, which a simple `Timber.d("credentials=%s", …)` or an
+ * exception message would write to the device logs.
  */
 class Credentials(
     val username: String,

@@ -20,25 +20,24 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
-/** Plus large que ce que les tests écrivent : la borne n'est jamais ce qu'ils éprouvent. */
+/** Larger than what the tests write: the limit is never what they exercise. */
 private const val LARGE_LIMIT = 100
 
-/** Un peu au-delà du seuil de sept jours (SPECS.md §8, question 3). */
+/** Slightly past the seven-day threshold (SPECS.md §8, question 3). */
 private val BEYOND_MAX_AGE = 8.days
 
 /**
- * La purge, vue de l'entretien du cache.
+ * The purge, from the cache-maintenance side.
  *
- * Ce qui se joue ici n'est pas la suppression mais ce qu'elle **épargne** : un
- * article non lu, et surtout un article lu dont le marquage n'a pas encore
- * atteint le serveur. Purger le second ferait réapparaître dans le flux, comme
- * jamais lu, un article que l'utilisateur a lu — et rien dans l'application ne
- * le signalerait.
+ * What matters here is not the deletion but what it spares: an unread
+ * article, and above all a read article whose mark has not yet reached the
+ * server. Purging the latter would make an article the user has read
+ * reappear in the feed as never read, with nothing in the app to signal it.
  */
 @RunWith(RobolectricTestRunner::class)
 class CacheMaintenanceTest {
-    // Base en mémoire : le vrai moteur SQLite, seul à exécuter réellement la
-    // sous-requête sur `pending_marks` qui porte toute la garantie.
+    // In-memory database: the real SQLite engine, the only thing that
+    // actually runs the `pending_marks` subquery carrying the guarantee.
     private val database = Room
         .inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
@@ -59,11 +58,11 @@ class CacheMaintenanceTest {
     private fun TestScope.maintenance() = CacheMaintenance(cache, this)
 
     /**
-     * Les identifiants **encore en base**, lus compris.
+     * The ids still in the database, read articles included.
      *
-     * Le flux du cache ne rend que les non-lus — c'est ce que l'écran affiche —
-     * alors qu'une purge se juge sur ce qui reste réellement stocké. D'où la
-     * lecture directe du DAO ici, seul endroit du dépôt qui en a besoin.
+     * The cache flow only returns unread articles (what the screen shows),
+     * while a purge is judged on what is actually stored. Hence the direct
+     * DAO read here, the only place in the repository that needs it.
      */
     private suspend fun cachedIds(): List<Long> =
         cache.observeArticles(LARGE_LIMIT).first().map { it.id.value }
@@ -92,7 +91,7 @@ class CacheMaintenanceTest {
 
     @Test
     fun theStartupPurgeNeverRemovesAnUnreadArticle() = runTest {
-        // SPECS.md §5.4 : les non lus sont le contenu même de l'application.
+        // SPECS.md §5.4: unread articles are the very content of the app.
         cache.save(listOf(article(id = 1L, isRead = false)))
         clock.advanceBy(365.days.inWholeMilliseconds)
 
@@ -104,10 +103,10 @@ class CacheMaintenanceTest {
 
     @Test
     fun theStartupPurgeNeverRemovesAMarkNotYetTransmitted() = runTest {
-        // Le cas qui coûte cher : hors ligne plus longtemps que le seuil.
-        // Purger l'article emporterait la mémoire locale du « déjà lu » —
-        // `upsertPreservingLocalReadState` la lit dans cette table — et le
-        // prochain rafraîchissement le ferait réapparaître comme non lu.
+        // The expensive case: offline longer than the threshold. Purging the
+        // article would take the local "already read" memory with it
+        // (`upsertPreservingLocalReadState` reads it from this table), and
+        // the next refresh would bring it back as unread.
         cache.save(listOf(article(id = 1L, isRead = true)))
         queue.enqueue(listOf(ArticleId(1L)))
         clock.advanceBy(365.days.inWholeMilliseconds)
@@ -133,8 +132,8 @@ class CacheMaintenanceTest {
 
     @Test
     fun theManualPurgeRemovesReadArticlesWithoutWaitingForTheThreshold() = runTest {
-        // La purge manuelle est la même règle sans la condition d'ancienneté :
-        // l'article vient d'entrer dans le cache et part quand même.
+        // The manual purge is the same rule without the age condition: the
+        // article just entered the cache and is removed anyway.
         cache.save(listOf(article(id = 1L, isRead = true), article(id = 2L, isRead = true)))
 
         assertEquals(2, maintenance().purgeReadArticles())
@@ -169,8 +168,8 @@ class CacheMaintenanceTest {
         )
         queue.enqueue(listOf(ArticleId(2L)))
 
-        // Trois articles conservés, un seul supprimable : le non lu est hors
-        // d'atteinte, et le marquage en attente aussi.
+        // Three articles kept, one purgeable: the unread one is out of
+        // reach, and so is the pending mark.
         assertEquals(
             CacheStatus(articleCount = 3, purgeableCount = 1),
             maintenance().observeCacheStatus().first(),
@@ -184,8 +183,8 @@ class CacheMaintenanceTest {
 
     @Test
     fun theStatusFallsAfterAManualPurge() = runTest {
-        // Le chiffre affiché doit suivre le geste : c'est le seul retour que
-        // l'utilisateur obtient, la purge ne demandant pas de confirmation.
+        // The displayed count must follow the action: it is the only
+        // feedback the user gets, since the purge asks no confirmation.
         cache.save(listOf(article(id = 1L, isRead = true), article(id = 2L, isRead = false)))
         val maintenance = maintenance()
 

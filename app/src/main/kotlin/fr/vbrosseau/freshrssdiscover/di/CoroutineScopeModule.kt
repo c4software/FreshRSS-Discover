@@ -14,8 +14,8 @@ import javax.inject.Singleton
 object CoroutineScopeModule {
 
     /**
-     * `SupervisorJob` : l'échec d'un cycle de synchronisation ne doit pas
-     * emporter les suivants.
+     * `SupervisorJob`: a failed sync cycle must not take down the following
+     * ones.
      */
     @Provides
     @Singleton

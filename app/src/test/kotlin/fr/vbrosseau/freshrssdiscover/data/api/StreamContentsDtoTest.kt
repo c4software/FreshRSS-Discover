@@ -6,13 +6,12 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Le JSON employé ici reproduit ce que produit `FreshRSS_Entry::toGReader` en
- * mode `compat` — le seul mode que `stream/contents` expose.
+ * The JSON here reproduces what `FreshRSS_Entry::toGReader` produces in
+ * `compat` mode, the only mode `stream/contents` exposes.
  *
- * Il est **littéral** et non simplifié : c'est ce qui permet de constater que
- * la désérialisation encaisse les champs absents, les unités hétérogènes et les
- * clés inconnues, plutôt que de vérifier qu'elle lit un JSON qu'on aurait
- * façonné pour elle.
+ * Literal, not simplified: this verifies deserialization handles absent
+ * fields, mixed units, and unknown keys, rather than reading JSON shaped for
+ * it.
  */
 class StreamContentsDtoTest {
     private fun decode(json: String) = FreshRssJson.decodeFromString(StreamContentsDto.serializer(), json)
@@ -71,8 +70,8 @@ class StreamContentsDtoTest {
 
     @Test
     fun theReadStateIsCarriedByCategoriesAndNothingElse() {
-        // Il n'existe aucun champ booléen. Chercher `isRead` reviendrait à
-        // lire « non lu » pour tous les articles.
+        // There is no boolean field. Looking for `isRead` would read every
+        // article as unread.
         val item = decode(completeResponse).items.single()
 
         assertTrue("user/-/state/com.google/read" in item.categories)
@@ -88,9 +87,9 @@ class StreamContentsDtoTest {
 
     @Test
     fun anItemWithoutAuthorEnclosureOrHtmlUrlIsPerfectlyNormal() {
-        // `Entry::toGReader` ne les émet que s'ils existent, et leur présence
-        // dépend du flux RSS source. Les exiger ferait échouer la lecture d'un
-        // flux parfaitement normal.
+        // `Entry::toGReader` only emits them when they exist, and their
+        // presence depends on the source RSS feed. Requiring them would fail
+        // reading a perfectly normal feed.
         val decoded = decode(
             """
             {
@@ -122,9 +121,9 @@ class StreamContentsDtoTest {
 
     @Test
     fun anEnclosureTypeMayBeTheBareWordImage() {
-        // Quand le flux source ne précise rien, FreshRSS se rabat sur `image`
-        // plutôt que sur un type MIME complet. Comparer à « image/… » raterait
-        // ces illustrations.
+        // When the source feed specifies nothing, FreshRSS falls back to
+        // `image` rather than a full MIME type. Comparing against "image/..."
+        // would miss those illustrations.
         val decoded = decode(
             """{"items":[{"id":"tag:x/1","enclosure":[{"href":"https://exemple.org/i.png","type":"image"}]}]}""",
         )

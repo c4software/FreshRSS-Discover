@@ -10,28 +10,26 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * Nom du travail unique portant le rappel.
+ * Name of the unique work carrying the reminder.
  *
- * Constant, et c'est tout l'intérêt : c'est lui qui fait qu'une centaine
- * d'ouvertures de l'application ne laissent qu'un seul rappel en attente, et
- * que [WorkManagerReminderScheduler.cancel] sait quoi annuler sans tenir de
- * registre d'identifiants.
+ * Constant by design: it ensures a hundred app openings leave a single
+ * pending reminder, and lets [WorkManagerReminderScheduler.cancel] know what
+ * to cancel without an id registry.
  */
 internal const val REMINDER_WORK_NAME = "rappel-de-lecture"
 
 /**
- * Programme le rappel avec WorkManager (SPECS.md §4.9).
+ * Schedules the reminder with WorkManager (SPECS.md §4.9).
  *
- * **Un travail ponctuel réarmé, et non un travail périodique.** L'heure du
- * rappel n'est pas un intervalle : elle est celle de l'ouverture de la veille,
- * et elle change donc d'un jour à l'autre. `PeriodicWorkRequest` ne sait
- * exprimer qu'une période, et sa fenêtre d'exécution dérive — le rappel finirait
- * par tomber à une heure que personne n'a choisie.
+ * A re-armed one-time work, not a periodic one. The reminder time is not an
+ * interval: it is the previous day's opening time, and changes from day to
+ * day. `PeriodicWorkRequest` can only express a period, and its execution
+ * window drifts; the reminder would end up at a time nobody chose.
  *
- * **Volontairement sans portée `@Singleton`.** L'objet ne retient rien, et sa
- * `ZoneId` est lue à sa construction : un singleton figerait pour toute la vie
- * du processus le fuseau du démarrage, et l'utilisateur qui change de pays
- * verrait son rappel rester à l'heure de l'ancien.
+ * Deliberately not `@Singleton`. The object holds nothing, and its `ZoneId`
+ * is read at construction: a singleton would freeze the startup time zone
+ * for the life of the process, keeping the reminder on the old time for a
+ * user who changes country.
  */
 internal class WorkManagerReminderScheduler @Inject constructor(
     private val workManager: WorkManager,
@@ -41,12 +39,12 @@ internal class WorkManagerReminderScheduler @Inject constructor(
 ) : ReminderScheduler {
 
     /**
-     * Sans heure enregistrée, **rien n'est programmé**.
+     * Without a recorded time, nothing is scheduled.
      *
-     * Le cas se produit à la toute première ouverture, avant que
-     * l'[OpeningRecorder] n'ait écrit quoi que ce soit. Choisir une heure par
-     * défaut serait exactement ce que §4.9 refuse — un rappel à une heure de
-     * développeur — et la prochaine ouverture programmera de toute façon.
+     * This happens on the very first opening, before the [OpeningRecorder]
+     * has written anything. Picking a default time would be exactly what
+     * §4.9 refuses (a developer-chosen hour), and the next opening will
+     * schedule anyway.
      */
     override suspend fun scheduleNext() {
         val minute = openingRecorder.openingMinute() ?: return

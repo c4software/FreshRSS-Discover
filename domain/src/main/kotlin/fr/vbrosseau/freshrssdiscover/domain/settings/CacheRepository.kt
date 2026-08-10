@@ -5,96 +5,91 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
 /**
- * Ce que le cache local contient, tel que l'écran de réglages doit le montrer
+ * Contents of the local cache, as the settings screen must show them
  * (SPECS.md §6).
  *
- * **Deux nombres d'articles, et aucun octet.** Le poids du fichier de base est
- * accessible, mais il ne mesure pas le cache : SQLite ne rend pas ses pages au
- * système quand des lignes disparaissent, il les garde pour les réécrire. Une
- * purge laisserait donc le nombre de mégaoctets **inchangé**, et l'utilisateur
- * lirait cela comme une purge sans effet. Le poids réel de l'application est
- * par ailleurs déjà donné, correctement et en un seul endroit, par les réglages
- * de stockage d'Android : le redire ici n'ajouterait qu'une seconde source,
- * moins juste.
+ * Two article counts, and no byte count. The database file size is accessible
+ * but does not measure the cache: SQLite does not return its pages to the
+ * system when rows disappear, it keeps them for rewriting. A purge would
+ * therefore leave the megabyte count unchanged, which the user would read as a
+ * purge with no effect. The app's real footprint is already given, correctly
+ * and in one place, by Android's storage settings; repeating it here would
+ * only add a second, less accurate source.
  *
- * [purgeableCount] est le chiffre qui manque partout ailleurs : il répond à la
- * seule question que pose un bouton « Purger » — *qu'est-ce que je perds ?* —
- * et il bouge à vue quand on appuie dessus.
+ * [purgeableCount] answers the only question a "Purge" button raises: what is
+ * lost. It visibly changes when the button is pressed.
  */
 data class CacheStatus(
-    /** Tous les articles conservés, lus comme non lus. */
+    /** All retained articles, read and unread alike. */
     val articleCount: Int,
     /**
-     * Ceux que la purge emporterait : **lus et synchronisés** (SPECS.md §5.4).
+     * Articles a purge would remove: read and synchronized (SPECS.md §5.4).
      *
-     * Un article lu dont le marquage n'est pas encore parti n'en fait pas
-     * partie — voir la garantie décrite sur [purgeReadArticles].
+     * A read article whose marking has not yet been transmitted is excluded;
+     * see the guarantee described on [purgeReadArticles].
      */
     val purgeableCount: Int,
 ) {
     companion object {
-        /** Cache vide : valeur initiale, avant toute lecture de la base. */
+        /** Empty cache: initial value, before any database read. */
         val Empty: CacheStatus = CacheStatus(articleCount = 0, purgeableCount = 0)
     }
 }
 
 /**
- * Mesure et purge du cache local (SPECS.md §5.4, §6).
+ * Measurement and purge of the local cache (SPECS.md §5.4, §6).
  *
- * Séparé de `SettingsRepository` : celui-ci décrit des préférences que
- * l'utilisateur choisit, celui-là un état de l'appareil qu'il constate. Les
- * réunir obligerait l'écran de réglages à ne plus savoir laquelle de ses deux
- * moitiés il observe.
+ * Separate from `SettingsRepository`: that one describes preferences the user
+ * chooses, this one a device state the user observes. Merging them would blur
+ * which half of the settings screen observes what.
  */
 interface CacheRepository {
     /**
-     * L'état du cache, observable.
+     * Observable cache state.
      *
-     * Un [Flow] et non une lecture ponctuelle : le nombre d'articles change
-     * pendant que l'écran est ouvert — une purge manuelle le fait tomber, une
-     * synchronisation en arrière-plan le fait monter — et un chiffre figé
-     * ferait douter de la purge qu'on vient de déclencher.
+     * A [Flow] rather than a one-shot read: the article count changes while
+     * the screen is open (a manual purge lowers it, a sync raises it), and a
+     * frozen number would cast doubt on the purge just triggered.
      */
     fun observeCacheStatus(): Flow<CacheStatus>
 
     /**
-     * Purge **maintenant** tout ce qui est lu et synchronisé, sans condition
-     * d'ancienneté. Renvoie le nombre d'articles supprimés.
+     * Purges immediately everything read and synchronized, with no age
+     * condition. Returns the number of deleted articles.
      *
-     * C'est la purge manuelle de SPECS.md §6 : la même règle que la purge
-     * automatique, seul le seuil d'ancienneté tombe. Elle ne peut donc emporter
-     * ni un article non lu, ni un article dont le marquage attend encore d'être
-     * transmis — ce qui est précisément ce qui la rend sûre à déclencher sans
-     * confirmation.
+     * The manual purge of SPECS.md §6: same rule as the automatic purge, only
+     * the age threshold is dropped. It can therefore remove neither an unread
+     * article nor one whose marking is still awaiting transmission, which is
+     * exactly what makes it safe to trigger without confirmation.
      */
     suspend fun purgeReadArticles(): Int
 
     companion object {
         /**
-         * Seuil d'ancienneté de la purge automatique — **7 jours**.
+         * Age threshold of the automatic purge: 7 days.
          *
-         * Réponse à SPECS.md §8, question 3. Ce que le seuil arbitre : au-delà,
-         * un article lu n'a plus aucun lecteur. En deçà, il en a deux.
+         * Answer to SPECS.md §8, question 3. Past the threshold, a read
+         * article has no reader left. Below it, it has two.
          *
-         * Le premier est le **défilement arrière**. Le flux est continu et sans
-         * repère (SPECS.md §1) ; y remonter est le seul moyen de retrouver ce
-         * qu'on a survolé la veille. Un seuil de 24 h ferait disparaître ce
-         * passé entre deux lancements, et le trou serait visible. Une semaine
-         * couvre le rythme réel d'usage — on revient le lundi et on retrouve
-         * son flux là où on l'avait laissé le vendredi.
+         * The first is backward scrolling. The feed is continuous and without
+         * landmarks (SPECS.md §1); scrolling back is the only way to find
+         * again what was skimmed the day before. A 24 h threshold would erase
+         * that past between launches, visibly. A week covers real usage
+         * rhythms: coming back on Monday finds the feed where it was left on
+         * Friday.
          *
-         * Le second est la **mémoire du « déjà lu »** : c'est la table des
-         * articles qui la porte (`upsertPreservingLocalReadState`). La condition
-         * de synchronisation garantit qu'un article purgé est déjà connu du
-         * serveur comme lu, donc que sa mémoire est ailleurs — mais elle ne
-         * garantit rien sur les jours d'avance que le serveur conserve. Une
-         * semaine laisse au serveur le temps de rendre la même réponse.
+         * The second is the "already read" memory, carried by the articles
+         * table (`upsertPreservingLocalReadState`). The sync condition
+         * guarantees a purged article is already known read by the server, so
+         * its memory lives elsewhere, but it guarantees nothing about how many
+         * days the server keeps. A week leaves the server time to return the
+         * same response.
          *
-         * Pourquoi pas 30 jours : le cache quadruplerait pour du contenu déjà
-         * consommé, dont le seul lecteur serait un défilement arrière d'un mois
-         * que personne ne fait. À 40 articles par page (SPECS.md §8, question 1)
-         * et quelques pages par session, 7 jours plafonnent le cache à quelques
-         * milliers d'articles.
+         * Not 30 days: the cache would quadruple with already-consumed
+         * content whose only reader would be a month-long backward scroll
+         * nobody performs. At 40 articles per page (SPECS.md §8, question 1)
+         * and a few pages per session, 7 days cap the cache at a few thousand
+         * articles.
          */
         val MaxAge: Duration = 7.days
     }

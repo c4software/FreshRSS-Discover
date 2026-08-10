@@ -1,16 +1,15 @@
 package fr.vbrosseau.freshrssdiscover.data.security
 
 /**
- * Chiffrement de test : réversible, observable, et volontairement **pas**
- * sécurisé.
+ * Test cipher: reversible, observable, and deliberately not secure.
  *
- * Robolectric ne simule pas `AndroidKeyStore` ; sans ce double, rien de ce qui
- * entoure le chiffrement ne serait éprouvable. Le préfixe rend visible dans les
- * assertions qu'une valeur est bien passée par le chiffreur — une écriture en
- * clair sauterait aux yeux.
+ * Robolectric does not simulate `AndroidKeyStore`; without this fake, nothing
+ * around the encryption would be testable. The prefix makes it visible in
+ * assertions that a value went through the cipher; a plain-text write would
+ * stand out.
  */
 internal class FakeSecretCipher(
-    /** Simule une clé de *keystore* perdue : tout déchiffrement échoue. */
+    /** Simulates a lost keystore key: every decryption fails. */
     var keyIsLost: Boolean = false,
 ) : SecretCipher {
     override fun encrypt(plainText: String): String = PREFIX + plainText.reversed()
