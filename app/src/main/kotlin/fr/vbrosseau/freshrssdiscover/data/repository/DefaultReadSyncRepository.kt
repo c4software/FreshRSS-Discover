@@ -2,13 +2,13 @@ package fr.vbrosseau.freshrssdiscover.data.repository
 
 import fr.vbrosseau.freshrssdiscover.data.api.ApiOutcome
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
-import fr.vbrosseau.freshrssdiscover.data.api.ModificationToken
 import fr.vbrosseau.freshrssdiscover.data.local.SessionStore
 import fr.vbrosseau.freshrssdiscover.data.local.room.ArticleCache
 import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkQueue
 import fr.vbrosseau.freshrssdiscover.di.ApplicationScope
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
+import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadTransmissionScheduler
@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken as StoredModificationToken
 
 /**
  * Nombre d'articles transmis par requête `edit-tag`.
@@ -133,7 +132,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
      * §2.3).
      */
     private suspend fun transmit(session: AuthSession) {
-        var token = session.modificationToken?.let { ModificationToken(it.value) }
+        var token = session.modificationToken
         var done = false
 
         while (!done) {
@@ -225,7 +224,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
     private suspend fun requestModificationToken(session: AuthSession): ApiOutcome<ModificationToken> {
         val outcome = api.modificationToken(session.server, session.token)
         if (outcome is ApiOutcome.Success) {
-            sessionStore.save(session.copy(modificationToken = StoredModificationToken(outcome.value.value)))
+            sessionStore.save(session.copy(modificationToken = outcome.value))
         }
         return outcome
     }

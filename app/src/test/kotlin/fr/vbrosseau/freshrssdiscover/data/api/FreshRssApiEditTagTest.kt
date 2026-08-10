@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.data.api
 
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
+import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId

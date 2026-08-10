@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.data.api
 
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
+import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
@@ -268,16 +269,6 @@ internal class FreshRssApi @Inject constructor(
         const val COMPATIBILITY_PROBE_TOKEN = "x/y"
     }
 }
-
-/**
- * Jeton de modification exigé par les écritures de l'API (`edit-tag`, …).
- *
- * Distinct du jeton de session ([AuthToken]) et purement propre au protocole :
- * il n'a donc rien à faire dans le domaine, et s'arrête à la couche `data`
- * (ARCHITECTURE.md §2.1, AGENTS.md §2).
- */
-@JvmInline
-internal value class ModificationToken(val value: String)
 
 /**
  * Rend l'identifiant tel que FreshRSS l'attend : en décimal **non signé**.

@@ -2079,7 +2079,7 @@ mechanism in one place. ARCHITECTURE.md §9.10 records the supersession.
       unread by every caller), drop `observePendingCount` and its DAO→Queue→Repo
       chain, `ReadDetector.trackedArticleCount`, `Outcome.valueOrNull/errorOrNull`,
       `FeedPresentation.storedName`
-- [ ] `GOAL-029-T02` One `ModificationToken`: data consumes the domain type, as
+- [x] `GOAL-029-T02` One `ModificationToken`: data consumes the domain type, as
       it already does for `AuthToken`
 - [ ] `GOAL-029-T03` Dead data code: `SubscriptionListDto`/`SubscriptionDto`,
       never-read DTO fields, `unreadOnly` parameter, `retainOnly`'s unread `Int`,
