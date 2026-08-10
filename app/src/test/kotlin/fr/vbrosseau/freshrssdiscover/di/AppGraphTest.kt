@@ -37,7 +37,6 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
@@ -274,7 +273,12 @@ class AppGraphTest {
         try {
             assertEquals(SessionGate.Unknown, sessionGate.gate.value)
             assertFalse(login.uiState.value.isSubmitting)
-            assertEquals(DiscoverPhase.InitialLoading, discover.uiState.value.phase)
+            // Not the phase: the feed engine races ahead on real dispatchers —
+            // empty cache, then a load that fails for want of a session — and
+            // on a slow machine the phase has already moved past
+            // `InitialLoading` when this line runs (seen on CI, v1.8.0). What
+            // this test establishes is construction, not timing.
+            assertFalse(discover.uiState.value.isRefreshing)
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {
             // Jobs launched in an `init` would otherwise outlive the test and
