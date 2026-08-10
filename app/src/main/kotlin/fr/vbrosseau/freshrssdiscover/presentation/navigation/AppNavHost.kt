@@ -87,6 +87,7 @@ private fun DiscoverRoute(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
         onFeedRefreshChange = onFeedRefreshChange,
+        hideWhileRefreshing = true,
     )
 
     DiscoverScreen(
@@ -188,15 +189,26 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
  * publication. Without `onDispose`, leaving the feed for settings would keep
  * a button wired to a ViewModel no longer on screen, and switching from List
  * to Swipe would keep the previous mode's.
+ *
+ * [hideWhileRefreshing] withdraws the action while a refresh runs, for
+ * destinations that already display their own progress indicator; publishing
+ * `null` reuses the "nothing to refresh here" path rather than adding a
+ * disabled state to the button.
  */
 @Composable
-private fun PublishFeedRefresh(
+internal fun PublishFeedRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onFeedRefreshChange: (FeedRefresh?) -> Unit,
+    hideWhileRefreshing: Boolean = false,
 ) {
-    DisposableEffect(isRefreshing, onRefresh, onFeedRefreshChange) {
-        onFeedRefreshChange(FeedRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh))
+    DisposableEffect(isRefreshing, onRefresh, onFeedRefreshChange, hideWhileRefreshing) {
+        val refresh = if (hideWhileRefreshing && isRefreshing) {
+            null
+        } else {
+            FeedRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh)
+        }
+        onFeedRefreshChange(refresh)
         onDispose { onFeedRefreshChange(null) }
     }
 }

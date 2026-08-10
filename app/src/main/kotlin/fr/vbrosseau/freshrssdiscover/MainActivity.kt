@@ -31,7 +31,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
-import fr.vbrosseau.freshrssdiscover.presentation.feed.RefreshButton
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefreshAction
 import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReadFlushOnBackgroundObserver
 import fr.vbrosseau.freshrssdiscover.presentation.lifecycle.ReminderOnForegroundObserver
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginScreen
@@ -183,9 +183,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                 // On the title row: it is a command for the whole screen, and
                 // overlaid on the content it always covered part of it.
                 actions = {
-                    feedRefresh?.let { refresh ->
-                        RefreshButton(isRefreshing = refresh.isRefreshing, onRefresh = refresh.onRefresh)
-                    }
+                    FeedRefreshAction(refresh = feedRefresh)
                 },
             )
         },
