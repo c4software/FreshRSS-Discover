@@ -9,5 +9,18 @@
     <outline text="LinuxFr" type="rss" xmlUrl="https://linuxfr.org/news.atom"/>
     <outline text="NASA" type="rss" xmlUrl="https://www.nasa.gov/feed/"/>
     <outline text="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index"/>
+    <!--
+      Ajoutés pour la mesure du défilement continu : la hauteur d'une carte
+      dépend de la présence d'une illustration et de la longueur de l'extrait,
+      et c'est cette hauteur qui décide de la fraction visible. Un jeu de flux
+      trop homogène mesurerait une seule forme de carte.
+    -->
+    <outline text="Numerama" type="rss" xmlUrl="https://www.numerama.com/feed/"/>
+    <outline text="Next INpact" type="rss" xmlUrl="https://next.ink/feed/"/>
+    <outline text="The Verge" type="rss" xmlUrl="https://www.theverge.com/rss/index.xml"/>
+    <outline text="Phoronix" type="rss" xmlUrl="https://www.phoronix.com/rss.php"/>
+    <outline text="Le Monde — International" type="rss" xmlUrl="https://www.lemonde.fr/international/rss_full.xml"/>
+    <outline text="France Info" type="rss" xmlUrl="https://www.francetvinfo.fr/titres.rss"/>
+    <outline text="Slashdot" type="rss" xmlUrl="https://rss.slashdot.org/Slashdot/slashdotMain"/>
   </body>
 </opml>

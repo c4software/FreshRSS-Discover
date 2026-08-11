@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fr.vbrosseau.freshrssdiscover.READ_SYNC_TAG
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 /**
  * One-shot facts the screen surfaces as a toast.
@@ -462,6 +464,18 @@ abstract class FeedSessionViewModel(
         _uiState.update { it.markingRead(ids) }
 
         val unreported = ids - alreadyReported
+        /*
+         * Both sets, and that is the point: an empty `unreported` on a
+         * non-empty `ids` is not a defect, it is the filter doing its job, and
+         * logging only the transmitted half would make the two
+         * indistinguishable from logcat. The absence of any line here, during
+         * a scroll, is what would indict the detector.
+         */
+        Timber.tag(READ_SYNC_TAG).d(
+            "lus détectés : %s, à transmettre : %s",
+            ids.map(ArticleId::value),
+            unreported.map(ArticleId::value),
+        )
         if (unreported.isEmpty()) return
 
         alreadyReported += unreported

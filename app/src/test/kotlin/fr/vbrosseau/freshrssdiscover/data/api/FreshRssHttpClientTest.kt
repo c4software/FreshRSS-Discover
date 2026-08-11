@@ -3,12 +3,14 @@ package fr.vbrosseau.freshrssdiscover.data.api
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.http.parameters
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -108,6 +110,65 @@ class FreshRssHttpClientTest {
         val logged = lines.joinToString("\n")
         assertTrue(logged.isNotEmpty(), "la journalisation détaillée devrait produire des lignes")
         assertFalse("alice/c0ffee" in logged, "le jeton ne doit jamais atteindre les journaux")
+    }
+
+    /**
+     * The two halves of the same rule, and neither is worth much alone.
+     *
+     * Bodies are logged because `edit-tag`'s is the only place where the `i`
+     * fields actually sent are visible — and since the endpoint answers `OK`
+     * with no per-article report (docs/freshrss-api.md §4.1), an identifier the
+     * server ignores leaves no other trace. What keeps the API password out is
+     * the filter on [CLIENT_LOGIN_PATH], not the level. Locking only one of the
+     * two would let the other silently drift: raising the level without the
+     * filter leaks the password, adding the filter without the level makes the
+     * whole thing pointless.
+     */
+    @Test
+    fun theClientLoginBodyNeverReachesTheLogs() = runTest {
+        val lines = mutableListOf<String>()
+        val client = clientRespondingWith(
+            status = HttpStatusCode.OK,
+            body = "SID=x\nAuth=alice/c0ffee\n",
+            contentType = "text/plain",
+            verboseLogging = true,
+            logger = recordingLogger(lines),
+        )
+
+        client.submitForm(
+            url = "https://exemple.org/api/greader.php$CLIENT_LOGIN_PATH",
+            formParameters = parameters {
+                append("Email", "alice")
+                append("Passwd", "motDePasseApi")
+            },
+        ).bodyAsText()
+
+        val logged = lines.joinToString("\n")
+        assertFalse("motDePasseApi" in logged, "le mot de passe API ne doit jamais atteindre les journaux")
+        assertFalse("Passwd" in logged, "le corps de ClientLogin ne doit pas être journalisé du tout")
+    }
+
+    @Test
+    fun theEditTagBodyReachesTheLogsWithItsItems() = runTest {
+        val lines = mutableListOf<String>()
+        val client = clientRespondingWith(
+            status = HttpStatusCode.OK,
+            body = "OK",
+            contentType = "text/plain",
+            verboseLogging = true,
+            logger = recordingLogger(lines),
+        )
+
+        client.submitForm(
+            url = "https://exemple.org/api/greader.php/reader/api/0/edit-tag",
+            formParameters = parameters {
+                append("a", "user/-/state/com.google/read")
+                append("i", "1743158400000042")
+            },
+        ).bodyAsText()
+
+        val logged = lines.joinToString("\n")
+        assertTrue("1743158400000042" in logged, "les identifiants envoyés doivent être lisibles dans les journaux")
     }
 
     @Test

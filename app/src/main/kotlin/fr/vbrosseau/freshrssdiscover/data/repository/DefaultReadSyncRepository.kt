@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.data.repository
 
+import fr.vbrosseau.freshrssdiscover.READ_SYNC_TAG
 import fr.vbrosseau.freshrssdiscover.data.api.ApiOutcome
 import fr.vbrosseau.freshrssdiscover.data.api.FreshRssApi
 import fr.vbrosseau.freshrssdiscover.data.api.HTTP_UNAUTHORIZED
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -94,6 +96,7 @@ internal class DefaultReadSyncRepository @Inject constructor(
             val ordered = ids.toList()
             articleCache.markAsRead(ordered)
             queue.enqueue(ordered)
+            Timber.tag(READ_SYNC_TAG).d("mise en file : %s", ordered.map(ArticleId::value))
             scheduler.schedule()
         }
     }
@@ -137,7 +140,23 @@ internal class DefaultReadSyncRepository @Inject constructor(
                 done = true
                 continue
             }
-            when (val outcome = sendBatch(session, batch, token)) {
+            /*
+             * The outcome is the trace that matters most on this path: it is
+             * the only place where `Sent` (queue acknowledged) and `Deferred`
+             * (queue kept, replayed later) part ways, and nothing outside this
+             * loop can tell them apart. A run of `Deferred` says the marks are
+             * piling up; a `Sent` on articles the server still returns as
+             * unread says `edit-tag` accepted and ignored them.
+             */
+            val outcome = sendBatch(session, batch, token)
+            Timber.tag(READ_SYNC_TAG).d(
+                "lot de %d %s : %s",
+                batch.size,
+                batch.map(ArticleId::value),
+                outcome.javaClass.simpleName,
+            )
+
+            when (outcome) {
                 is BatchOutcome.Sent -> {
                     // Acknowledgement follows confirmation, never the send: a
                     // row removed too early would be a lost article.

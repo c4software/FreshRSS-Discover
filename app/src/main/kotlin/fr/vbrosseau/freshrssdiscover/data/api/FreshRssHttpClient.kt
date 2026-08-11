@@ -8,6 +8,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.HttpHeaders
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import timber.log.Timber
@@ -76,10 +77,23 @@ internal fun createFreshRssHttpClient(
         install(Logging) {
             this.logger = logger
 
-            // HEADERS rather than BODY: the `ClientLogin` body contains the
-            // API password in clear text. Headers are genuinely useful for
-            // diagnostics, provided the one carrying the token is masked.
-            level = LogLevel.HEADERS
+            /*
+             * Bodies included, and the secret is kept out by the filter below
+             * rather than by the level. The distinction matters: `HEADERS`
+             * protected the `ClientLogin` password by sacrificing every other
+             * body, `edit-tag`'s included — and that body is the only place
+             * where the `i` fields actually sent are visible. Since `edit-tag`
+             * answers `OK` with no per-article report
+             * (docs/freshrss-api.md §4.1), an identifier the server does not
+             * recognize is lost without a trace anywhere else.
+             *
+             * The header carrying the token is still masked: it appears on
+             * every request, and the filter cannot exclude them all.
+             */
+            level = LogLevel.ALL
+            // `encodedPath` is an extension on `URLBuilder`, not a member: it
+            // needs its own import.
+            filter { request -> !request.url.encodedPath.endsWith(CLIENT_LOGIN_PATH) }
             sanitizeHeader { header -> header.equals(HttpHeaders.Authorization, ignoreCase = true) }
         }
     }

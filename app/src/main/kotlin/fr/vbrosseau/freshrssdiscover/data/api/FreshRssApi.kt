@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.data.api
 
+import fr.vbrosseau.freshrssdiscover.READ_SYNC_TAG
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthToken
 import fr.vbrosseau.freshrssdiscover.domain.auth.Credentials
 import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
@@ -17,8 +18,19 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
 import kotlinx.serialization.SerializationException
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Session-opening path.
+ *
+ * At file level, unlike the other paths: this is the only request whose body
+ * carries a secret, and `createFreshRssHttpClient` excludes it from logging by
+ * this very path. Two copies of the string would let the exclusion silently
+ * stop matching the endpoint it protects.
+ */
+internal const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
 
 /**
  * Single point of contact with the Google Reader-compatible FreshRSS API.
@@ -183,19 +195,29 @@ internal class FreshRssApi @Inject constructor(
         modificationToken: ModificationToken,
         articleIds: List<ArticleId>,
     ): ApiOutcome<Unit> = call {
+        val items = articleIds.map { it.toUnsignedDecimal() }
+        Timber.tag(READ_SYNC_TAG).d("edit-tag : %d i envoyés, %s", items.size, items)
+
         val response = httpClient.submitForm(
             url = address.apiEndpoint + EDIT_TAG_PATH,
             formParameters = parameters {
                 append(PARAM_MODIFICATION_TOKEN, modificationToken.value)
                 append(PARAM_ADD_STATE, READ_STATE)
-                articleIds.forEach { append(PARAM_ITEM, it.toUnsignedDecimal()) }
+                items.forEach { append(PARAM_ITEM, it) }
             },
         ) {
             header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
         }
+        val body = response.bodyAsText().trim()
+        // The body is traced even when it is `OK`: that answer is precisely
+        // the one that says nothing about what was actually marked, and
+        // reading it next to the `i` above is the only way to tell a real
+        // acknowledgement from a no-op.
+        Timber.tag(READ_SYNC_TAG).d("edit-tag : statut %d, corps « %s »", response.status.value, body)
+
         when {
-            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
-            response.bodyAsText().trim() == EDIT_TAG_RESPONSE -> ApiOutcome.Success(Unit)
+            !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, body)
+            body == EDIT_TAG_RESPONSE -> ApiOutcome.Success(Unit)
             else -> ApiOutcome.MalformedResponse("edit-tag n'a pas répondu « $EDIT_TAG_RESPONSE »")
         }
     }
@@ -239,7 +261,6 @@ internal class FreshRssApi @Inject constructor(
     }
 
     private companion object {
-        const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
         const val COMPATIBILITY_PATH = "/check/compatibility"
         const val STREAM_CONTENTS_PATH = "/reader/api/0/stream/contents/reading-list"
         const val TOKEN_PATH = "/reader/api/0/token"
