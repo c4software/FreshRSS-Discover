@@ -45,7 +45,8 @@
     <string name="settings_visible_fraction_label">Proportion visible</string>
     <string name="settings_visible_fraction_value">au moins %1$d %%</string>
     <string name="settings_continuous_visibility_label">Durée continue</string>
-    <string name="settings_continuous_visibility_value">au moins %1$d s</string>
+    <string name="settings_continuous_visibility_value_millis">au moins %1$d ms</string>
+    <string name="settings_continuous_visibility_value_seconds">au moins %1$.1f s</string>
 
     <!--
       Rappel de lecture (SPECS.md §4.9, §6).

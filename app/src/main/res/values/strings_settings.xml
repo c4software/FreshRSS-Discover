@@ -44,7 +44,14 @@
     <string name="settings_visible_fraction_label">Visible proportion</string>
     <string name="settings_visible_fraction_value">at least %1$d %%</string>
     <string name="settings_continuous_visibility_label">Continuous duration</string>
-    <string name="settings_continuous_visibility_value">at least %1$d s</string>
+    <!--
+      Two units for one slider: it runs from 150 ms to 5 s, and neither unit
+      reads well over the whole span. "0.2 s" hides the precision the low end
+      exists for, "5000 ms" has to be counted digit by digit. The switch
+      happens at one second, in `continuousVisibilityLabelOf`.
+    -->
+    <string name="settings_continuous_visibility_value_millis">at least %1$d ms</string>
+    <string name="settings_continuous_visibility_value_seconds">at least %1$.1f s</string>
 
     <!--
       Reading reminder (SPECS.md §4.9, §6).

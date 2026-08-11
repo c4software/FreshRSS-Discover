@@ -40,7 +40,6 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
-import kotlin.math.roundToInt
 
 /**
  * Minimum touch target height (SPECS.md §7.1).
@@ -297,7 +296,7 @@ private fun ReadingSection(
         )
         ThresholdSlider(
             label = stringResource(R.string.settings_visible_fraction_label),
-            value = stringResource(R.string.settings_visible_fraction_value, uiState.visibleFraction.value),
+            value = stringResource(uiState.visibleFraction.label.resId, uiState.visibleFraction.label.argument),
             threshold = uiState.visibleFraction,
             onValueChange = onVisibleFractionChange,
             valueTestTag = SettingsTestTags.VISIBLE_FRACTION,
@@ -307,8 +306,8 @@ private fun ReadingSection(
         ThresholdSlider(
             label = stringResource(R.string.settings_continuous_visibility_label),
             value = stringResource(
-                R.string.settings_continuous_visibility_value,
-                uiState.continuousVisibility.value,
+                uiState.continuousVisibility.label.resId,
+                uiState.continuousVisibility.label.argument,
             ),
             threshold = uiState.continuousVisibility,
             onValueChange = onContinuousVisibilityChange,
@@ -361,11 +360,10 @@ private fun ThresholdSlider(
         Slider(
             enabled = enabled,
             value = threshold.value.toFloat(),
-            // Rounding is imposed by `Slider`, which only works in `Float`:
-            // the steps land it on an exact position, but the conversion must
-            // be explicit so the repository receives one of the values it
-            // accepts.
-            onValueChange = { onValueChange(it.roundToInt()) },
+            // `Slider` only works in `Float`, and a continuous one emits every
+            // intermediate value: the threshold snaps the position back onto
+            // an increment the repository accepts.
+            onValueChange = { onValueChange(threshold.snapped(it)) },
             valueRange = threshold.range.first.toFloat()..threshold.range.last.toFloat(),
             steps = threshold.stepCount,
             modifier = Modifier

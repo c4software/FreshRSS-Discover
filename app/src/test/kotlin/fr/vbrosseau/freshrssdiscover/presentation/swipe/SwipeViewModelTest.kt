@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.PageCursor
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
+import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
@@ -27,8 +28,15 @@ import kotlin.test.assertTrue
 
 private const val NOW_SECONDS = 1_700_000_000L
 
-/** Continuous display duration required by SPECS.md §4.5, restated for readability. */
-private const val VISIBILITY_THRESHOLD_MILLIS = 1_000L
+/**
+ * Continuous display duration the detector actually applies.
+ *
+ * Derived, never copied: these cases probe the threshold from both sides, and
+ * a literal repeated in three files would keep asserting an old value after a
+ * change to the default — passing while describing behaviour the application
+ * no longer has.
+ */
+private val VISIBILITY_THRESHOLD_MILLIS = ReadingSettings.Default.continuousVisibilityMillis
 
 /** A full-screen article is fully visible: the whole point of SPECS.md §4.8. */
 private const val FULL_SCREEN = 1f

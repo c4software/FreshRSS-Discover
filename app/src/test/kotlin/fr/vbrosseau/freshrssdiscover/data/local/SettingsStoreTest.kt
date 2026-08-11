@@ -112,7 +112,7 @@ class SettingsStoreTest {
         val store = store()
         dataStore.edit { it[longPreferencesKey("reading.continuous_visibility_millis")] = -1L }
 
-        assertEquals(1_000L, store.observeReadingSettings().first().continuousVisibilityMillis)
+        assertEquals(150L, store.observeReadingSettings().first().continuousVisibilityMillis)
     }
 
     @Test

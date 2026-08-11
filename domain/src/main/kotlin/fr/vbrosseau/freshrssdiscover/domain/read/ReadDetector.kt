@@ -6,16 +6,23 @@ import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 /** Displayed-height fraction above which an article counts as seen (SPECS.md §4.5). */
 private const val DEFAULT_VISIBLE_FRACTION_THRESHOLD = 0.6f
 
-/** Continuous display duration required before concluding a read (SPECS.md §4.5). */
-private const val DEFAULT_CONTINUOUS_VISIBILITY_MILLIS = 1_000L
+/**
+ * Continuous display duration required before concluding a read.
+ *
+ * 200 ms, where SPECS.md §4.5 says one second. The second was measured
+ * unusable for a feed one scrolls: see `ReadingSettings.ContinuousVisibilityRange`,
+ * which carries the measurement and must keep the same value as this one.
+ */
+private const val DEFAULT_CONTINUOUS_VISIBILITY_MILLIS = 200L
 
 /**
  * Decides when an article becomes read based on its on-screen visibility.
  *
- * SPECS.md §4.5 sets a double threshold: at least 60% of the height displayed,
- * for at least 1 continuous second. Both are necessary and neither suffices:
- * surface alone would mark articles crossed by a fast scroll, duration alone
- * would mark an article barely peeking at the screen edge.
+ * SPECS.md §4.5 sets a double threshold: a minimum share of the height
+ * displayed, held for a minimum continuous duration. Both are necessary and
+ * neither suffices: surface alone would mark articles crossed by a fast
+ * scroll, duration alone would mark an article barely peeking at the screen
+ * edge.
  *
  * Both values are named parameters: SPECS.md states they will be tuned with
  * usage, and scattered constants could not be exposed in the settings

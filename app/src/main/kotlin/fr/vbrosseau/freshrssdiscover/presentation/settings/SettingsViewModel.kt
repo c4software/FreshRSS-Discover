@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val PERCENT = 100f
-private const val MILLIS_PER_SECOND = 1_000L
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -118,8 +117,16 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.setVisibleFraction(percent / PERCENT) }
     }
 
-    fun setContinuousVisibilitySeconds(seconds: Int) {
-        viewModelScope.launch { settingsRepository.setContinuousVisibilityMillis(seconds * MILLIS_PER_SECOND) }
+    /**
+     * The slider works in the stored unit, so nothing is converted.
+     *
+     * It used to hand over seconds, and the multiplication lived here. The
+     * range now starts at 150 ms, which no whole number of seconds can
+     * express: the unit had to become the domain's own, and the conversion
+     * disappeared with it.
+     */
+    fun setContinuousVisibilityMillis(millis: Int) {
+        viewModelScope.launch { settingsRepository.setContinuousVisibilityMillis(millis.toLong()) }
     }
 
     /**

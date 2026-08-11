@@ -67,31 +67,51 @@ data class ReadingSettings(
         val VisibleFractionRange: ClosedFloatingPointRange<Float> = 0.2f..1.0f
 
         /**
-         * Required continuous display duration, between 1 s and 5 s inclusive.
+         * Required continuous display duration, between 150 ms and 5 s
+         * inclusive.
          *
-         * The floor is the SPECS.md §4.5 value: already the shortest duration
-         * that separates a read from a fast scroll. Zero or a negative
-         * duration would satisfy the condition on the first observation,
-         * cancelling the second threshold; fast-scrolled articles would become
-         * read again, exactly the case the double threshold excludes.
+         * The floor was 1 s, the SPECS.md §4.5 value, and measurement on a
+         * real device showed it unusable for the gesture the Discover feed is
+         * built around. Sampling raw visibility at 5 Hz while scrolling
+         * continuously: 63 articles crossed the screen, 1 was marked read.
+         * 54 of the 62 lost had reached the surface threshold — most filled
+         * the viewport entirely — and failed on duration alone, each being
+         * fully visible for a single 200 ms sample. The setting could not
+         * compensate, since 1 s was also the lowest value it offered.
+         *
+         * The floor is therefore 150 ms, just under one sampling period
+         * (the screen samples visibility every 200 ms): the shortest value
+         * that still requires two consecutive observations, hence a genuine
+         * presence on screen rather than a single sample caught in flight.
+         * Below one period the second threshold would collapse — the first
+         * observation would satisfy it — and articles merely crossed by a
+         * fling would become read, exactly what the double threshold exists
+         * to exclude.
          *
          * The ceiling is 5 s because beyond it, in normal scrolling, no
          * article would ever reach the threshold: the setting would then be
          * indistinguishable from broken marking.
          */
-        val ContinuousVisibilityRange: LongRange = 1_000L..5_000L
+        val ContinuousVisibilityRange: LongRange = 150L..5_000L
 
         /**
-         * SPECS.md §4.5 values, applied while nothing is stored.
+         * Values applied while nothing is stored.
          *
          * They must stay identical to the `ReadDetector` defaults: the only
          * guarantee that a fresh install applies what the settings screen
          * displays.
+         *
+         * The duration is 200 ms rather than the 1 s of SPECS.md §4.5. One
+         * sampling period is what separates "seen while scrolling" from
+         * "crossed the screen": at 200 ms an article must be present in two
+         * consecutive observations, which a fling does not produce, while the
+         * former default demanded five and missed almost everything the user
+         * actually read (see [ContinuousVisibilityRange]).
          */
         val Default: ReadingSettings =
             ReadingSettings(
                 visibleFraction = 0.6f,
-                continuousVisibilityMillis = 1_000L,
+                continuousVisibilityMillis = 200L,
                 /*
                  * Enabled: the current behavior, the one SPECS.md §1
                  * describes. An existing installation must see nothing change.

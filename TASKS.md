@@ -2198,6 +2198,70 @@ silence.
 
 ---
 
+## GOAL-032 — Read-on-scroll: observable at last, and a threshold that survives scrolling
+
+**Status: DONE**
+
+Reported by the author: an article seen in the feed came back on top after a
+pull-to-refresh, suspected to be the `edit-tag` call not leaving. Investigated
+on the envTest stack, and the suspicion was measured wrong twice over: a `curl`
+probe on the container showed the server accepts both `i` forms (settling
+docs/freshrss-api.md §6 line 5's neighbour, §4.1 — decimal works), and on the
+emulator every fired detection went all the way to `Sent`, verified server-side
+by `unread-count`.
+
+What the measurement did show, once raw visibility was sampled at 5 Hz: in a
+continuous List-mode scroll, **63 articles crossed the screen and 1 was marked
+read**. 54 of the 62 lost had filled the viewport and failed on duration alone
+— fully visible for a single 200 ms sample against a 1 s threshold whose floor
+the setting could not lower. The threshold was tuned for a stopped reader in a
+feed built to be scrolled; the returning articles were simply those the server
+had legitimately never been told about.
+
+Two causes, two tasks — the diagnosis was impossible before being trivial,
+because not one line of the marking path was logged and Ktor's `HEADERS` level
+hid the only body that mattered:
+
+- [x] `GOAL-032-T01` Make the marking path observable, permanently: a single
+      `ReadSync` tag from detection (`FeedSessionViewModel.markRead`, both sets
+      — detected and after the `alreadyReported` filter) through the queue and
+      the `BatchOutcome` (`DefaultReadSyncRepository`) down to the exact `i`
+      values and response body (`FreshRssApi.markAsRead`). Ktor moves to
+      `LogLevel.ALL` with a `filter` excluding `CLIENT_LOGIN_PATH` — the level
+      no longer protects the API password, the filter does — and a test locks
+      both halves: `Passwd` absent from the logs, `i` present. Seven feeds
+      added to envTest so card heights vary
+- [x] `GOAL-032-T02` Default duration 200 ms (one sampling period: still two
+      consecutive observations, no longer five), floor of the adjustable range
+      150 ms. The slider becomes continuous — 97 tick marks would be a comb —
+      snapped to 50 ms by `SettingsThreshold.snapped`, and the label picks its
+      unit ("200 ms" / "1,2 s") in the ViewModel-derived state, not in the
+      Composable. SPECS.md §4.5 carries the measurement; §8 question 4's
+      justification rewritten, its premise ("at most one read per second")
+      having fallen. Re-measured on device: same fast fling, 1 → 5 detections;
+      reading pace unchanged at 14/17, every count matching `unread-count`
+
+### Decisions taken
+
+| Decision | Reason |
+|---|---|
+| `READ_SYNC_TAG` lives at the root package of `:app` | The trace's whole value is one logcat stream across three layers that must not import each other; the root sits above them all, like `R`. `:domain` stays silent (no Timber there), and the 5 s window is read from the gap between enqueue and transmit lines |
+| The traces are permanent, not debug scaffolding | Their absence is why this defect cost a stack session to locate. They log counts and article ids, never a token or password |
+| Floor at 150 ms, not lower | Below one 200 ms sampling period a single observation would satisfy the duration and the double threshold would collapse into a single one |
+| `VISIBILITY_SAMPLING_PERIOD_MILLIS` untouched | At 5 Hz, presence shorter than ~400 ms yields one sample, so a violent fling still caps near 5 detections and 150 ms behaves like 200 ms. Known, accepted: the battery trade-off of 5 Hz is documented in place, and the reading-pace case — the one reported — loses nothing |
+| Test threshold constants derived from `ReadingSettings.Default` | Three files carried `1_000L` literals; they would have kept passing while describing behaviour the application no longer has |
+
+### Debt knowingly left
+
+- `SettingsThresholdLabel.argument` is `Any`: the two resources take different
+  number types and `stringResource` accepts both. Documented at the
+  declaration.
+- The slider's useful zone (150–500 ms) occupies the left 7 % of a track that
+  runs to 5 000 ms. A non-linear track or a lower ceiling would fix it if use
+  proves it awkward.
+
+---
+
 ## Blocked points
 
 Just one, out of our hands:

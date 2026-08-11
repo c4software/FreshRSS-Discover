@@ -17,10 +17,11 @@ import kotlin.test.assertTrue
 class ReadingSettingsTest {
     @Test
     fun theDefaultsAreThoseOfTheSpecification() {
-        // SPECS.md §4.5: at least 60% of the displayed height, for at least 1
-        // continuous second.
+        // SPECS.md §4.5 sets 60% of the displayed height. Its one continuous
+        // second did not survive measurement on a device: 200 ms, one sampling
+        // period, is what the range's documentation justifies.
         assertEquals(0.6f, ReadingSettings.Default.visibleFraction)
-        assertEquals(1_000L, ReadingSettings.Default.continuousVisibilityMillis)
+        assertEquals(200L, ReadingSettings.Default.continuousVisibilityMillis)
     }
 
     /**
@@ -46,7 +47,7 @@ class ReadingSettingsTest {
 
         // Just under each boundary, then exactly on it: two differently tuned
         // detectors could not return the same answers.
-        val observations = listOf(0.59f to 0L, 0.6f to 0L, 0.6f to 999L, 0.6f to 1L)
+        val observations = listOf(0.59f to 0L, 0.6f to 0L, 0.6f to 199L, 0.6f to 1L)
         val fromCompiled =
             observations.map { (fraction, elapsed) ->
                 compiledClock.advanceBy(elapsed)
@@ -99,13 +100,15 @@ class ReadingSettingsTest {
 
     @Test
     fun aContinuousVisibilityOnEitherBoundIsAccepted() {
-        assertEquals(1_000L, settings(millis = 1_000L).continuousVisibilityMillis)
+        assertEquals(150L, settings(millis = 150L).continuousVisibilityMillis)
         assertEquals(5_000L, settings(millis = 5_000L).continuousVisibilityMillis)
     }
 
     @Test
     fun aContinuousVisibilityJustBelowTheLowerBoundIsRejected() {
-        assertFailsWith<IllegalArgumentException> { settings(millis = 999L) }
+        // Below one 200 ms sampling period, a single observation would satisfy
+        // the duration and the double threshold would collapse to a single one.
+        assertFailsWith<IllegalArgumentException> { settings(millis = 149L) }
     }
 
     @Test
@@ -130,7 +133,7 @@ class ReadingSettingsTest {
 
     @Test
     fun coercingLeavesValuesAlreadyInRangeUntouched() {
-        assertEquals(ReadingSettings.Default, ReadingSettings.coerced(0.6f, 1_000L))
+        assertEquals(ReadingSettings.Default, ReadingSettings.coerced(0.6f, 200L))
     }
 
     @Test
@@ -138,7 +141,7 @@ class ReadingSettingsTest {
         val coerced = ReadingSettings.coerced(visibleFraction = -5f, continuousVisibilityMillis = 0L)
 
         assertEquals(0.2f, coerced.visibleFraction)
-        assertEquals(1_000L, coerced.continuousVisibilityMillis)
+        assertEquals(150L, coerced.continuousVisibilityMillis)
     }
 
     @Test
@@ -153,7 +156,7 @@ class ReadingSettingsTest {
     fun coercingReplacesNotANumberByTheDefaultRatherThanABound() {
         // `coerceIn` would let `NaN` through: none of its comparisons is
         // true, and the value would come out unchanged.
-        assertEquals(0.6f, ReadingSettings.coerced(Float.NaN, 1_000L).visibleFraction)
+        assertEquals(0.6f, ReadingSettings.coerced(Float.NaN, 200L).visibleFraction)
     }
 
     @Test
@@ -161,15 +164,15 @@ class ReadingSettingsTest {
         // The setting has no bounds but takes the same disk read-back path:
         // if it did not, a recorded off state would come back on at the next
         // launch.
-        assertFalse(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = false).autoMarkAsReadEnabled)
-        assertTrue(ReadingSettings.coerced(0.6f, 1_000L, autoMarkAsReadEnabled = true).autoMarkAsReadEnabled)
+        assertFalse(ReadingSettings.coerced(0.6f, 200L, autoMarkAsReadEnabled = false).autoMarkAsReadEnabled)
+        assertTrue(ReadingSettings.coerced(0.6f, 200L, autoMarkAsReadEnabled = true).autoMarkAsReadEnabled)
     }
 
     @Test
     fun coercingAssumesAutomaticMarkingWhenNothingSaysOtherwise() {
         // The case of a preferences file written before the setting existed:
         // no value means enabled.
-        assertTrue(ReadingSettings.coerced(0.6f, 1_000L).autoMarkAsReadEnabled)
+        assertTrue(ReadingSettings.coerced(0.6f, 200L).autoMarkAsReadEnabled)
     }
 
     @Test

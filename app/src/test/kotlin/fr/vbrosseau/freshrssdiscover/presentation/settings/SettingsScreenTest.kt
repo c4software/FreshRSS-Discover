@@ -282,7 +282,7 @@ class SettingsScreenTest {
         show(SettingsUiState(account = account))
 
         composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION).assertTextEquals("au moins 60 %")
-        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 1 s")
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 200 ms")
     }
 
     /**
@@ -303,7 +303,7 @@ class SettingsScreenTest {
         )
 
         composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION).assertTextEquals("au moins 40 %")
-        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 3 s")
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 3,0 s")
     }
 
     @Test
@@ -319,15 +319,17 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun movingTheContinuousVisibilitySliderReportsTheSeconds() {
+    fun movingTheContinuousVisibilitySliderSnapsToTheRounding() {
         var reported: Int? = null
         show(SettingsUiState(account = account), onContinuousVisibilityChange = { reported = it })
 
+        // The slider is continuous, so it offers 1 234 ms; what reaches the
+        // repository is the nearest 50 ms.
         composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY_SLIDER)
             .performScrollTo()
-            .performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(1_234f) }
 
-        assertEquals(4, reported)
+        assertEquals(1_250, reported)
     }
 
     /**
@@ -449,7 +451,7 @@ class SettingsScreenTest {
         showAutomaticMarking(isAutoMarkAsReadEnabled = false)
 
         composeRule.onNodeWithTag(SettingsTestTags.VISIBLE_FRACTION).assertTextEquals("au moins 60 %")
-        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 1 s")
+        composeRule.onNodeWithTag(SettingsTestTags.CONTINUOUS_VISIBILITY).assertTextEquals("au moins 200 ms")
     }
 
     /** Grayed out: offering to adjust what no longer applies is a trap. */

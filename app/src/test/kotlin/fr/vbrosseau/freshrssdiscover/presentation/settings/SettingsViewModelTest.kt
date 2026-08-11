@@ -67,10 +67,10 @@ class SettingsViewModelTest {
     fun theAutomaticReadingThresholdsAreExposedInTheirDisplayedUnits() = runTest {
         observe()
 
-        // SPECS.md §4.5: at least 60% of the displayed height, for at least
-        // 1 continuous second.
+        // 60% of the displayed height (SPECS.md §4.5), held for one sampling
+        // period. The duration is in milliseconds, the unit it is stored in.
         assertEquals(60, viewModel.uiState.value.visibleFraction.value)
-        assertEquals(1, viewModel.uiState.value.continuousVisibility.value)
+        assertEquals(200, viewModel.uiState.value.continuousVisibility.value)
     }
 
     /**
@@ -84,7 +84,7 @@ class SettingsViewModelTest {
         observe()
 
         assertEquals(80, viewModel.uiState.value.visibleFraction.value)
-        assertEquals(4, viewModel.uiState.value.continuousVisibility.value)
+        assertEquals(4_000, viewModel.uiState.value.continuousVisibility.value)
     }
 
     @Test
@@ -101,10 +101,12 @@ class SettingsViewModelTest {
     fun changingTheContinuousVisibilityStoresItInMilliseconds() = runTest {
         observe()
 
-        viewModel.setContinuousVisibilitySeconds(3)
+        // A sub-second value, the case the seconds-based slider could not
+        // express and for which the unit was changed.
+        viewModel.setContinuousVisibilityMillis(350)
 
-        assertEquals(3_000L, settings.current.continuousVisibilityMillis)
-        assertEquals(3, viewModel.uiState.value.continuousVisibility.value)
+        assertEquals(350L, settings.current.continuousVisibilityMillis)
+        assertEquals(350, viewModel.uiState.value.continuousVisibility.value)
     }
 
     @Test
@@ -178,10 +180,13 @@ class SettingsViewModelTest {
         val visible = viewModel.uiState.value.visibleFraction
         val continuous = viewModel.uiState.value.continuousVisibility
         assertEquals(20..100, visible.range)
-        assertEquals(1..5, continuous.range)
+        assertEquals(150..5_000, continuous.range)
         // Five positions, so three steps between the endpoints.
         assertEquals(3, visible.stepCount)
-        assertEquals(3, continuous.stepCount)
+        // Continuous: ninety-six graduations would be an unreadable comb, so
+        // the value is snapped instead of stepped.
+        assertEquals(0, continuous.stepCount)
+        assertEquals(50, continuous.rounding)
     }
 
     @Test

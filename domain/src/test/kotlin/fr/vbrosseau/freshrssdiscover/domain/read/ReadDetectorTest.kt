@@ -33,7 +33,7 @@ class ReadDetectorTest {
     fun anArticleAboveTheSurfaceThresholdButTooBriefIsNotRead() {
         // Fast scrolling: the surface threshold is met, the duration is not.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
-        clock.advanceBy(999L)
+        clock.advanceBy(199L)
 
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
     }
@@ -65,9 +65,9 @@ class ReadDetectorTest {
 
     @Test
     fun exactlyTheDurationCounts() {
-        // Same reasoning: "at least 1 second", so 1000 ms suffice.
+        // Same reasoning: "at least" the duration, so exactly 200 ms suffice.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
-        clock.advanceBy(999L)
+        clock.advanceBy(199L)
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
 
         clock.advanceBy(1L)
@@ -76,16 +76,16 @@ class ReadDetectorTest {
 
     @Test
     fun aVisibilityInterruptedBeforeTheDurationRestartsFromZero() {
-        // Without a reset, ten 100 ms passes would accumulate the second,
-        // exactly the fast scrolling the duration threshold rules out.
+        // Without a reset, two 150 ms passes would accumulate the threshold,
+        // exactly the fast scrolling the duration condition rules out.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
-        clock.advanceBy(900L)
+        clock.advanceBy(150L)
         detector.onVisibilityChanged(mapOf(first to 0.1f))
 
-        clock.advanceBy(100L)
+        clock.advanceBy(150L)
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
 
-        clock.advanceBy(999L)
+        clock.advanceBy(199L)
         assertEquals(emptySet(), detector.onVisibilityChanged(mapOf(first to 1.0f)))
 
         clock.advanceBy(1L)
@@ -139,13 +139,14 @@ class ReadDetectorTest {
         // Two articles can fit on screen; their timers start at different
         // instants.
         detector.onVisibilityChanged(mapOf(first to 1.0f))
-        clock.advanceBy(600L)
+        clock.advanceBy(120L)
         detector.onVisibilityChanged(mapOf(first to 1.0f, second to 0.7f))
 
-        clock.advanceBy(400L)
+        // 200 ms for the first, which started alone; the second is only 80 ms in.
+        clock.advanceBy(80L)
         assertEquals(setOf(first), detector.onVisibilityChanged(mapOf(first to 1.0f, second to 0.7f)))
 
-        clock.advanceBy(600L)
+        clock.advanceBy(120L)
         assertEquals(setOf(second), detector.onVisibilityChanged(mapOf(first to 1.0f, second to 0.7f)))
     }
 

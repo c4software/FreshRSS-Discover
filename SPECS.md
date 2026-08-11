@@ -270,7 +270,27 @@ scrolling is not interrupted.
 ### 4.5 Automatic marking as read
 
 An article is considered read once it has been **visible enough**: at least
-**60 % of its height** displayed for at least **1 continuous second**.
+**60 % of its height** displayed for at least **200 continuous milliseconds**.
+
+The duration was **1 second until it was measured on a device**, and the
+measurement is the reason it is no longer. Sampling raw visibility at 5 Hz
+during a continuous scroll in List mode: **63 articles crossed the screen, 1
+was marked as read**. Of the 62 lost, **54 had reached the surface threshold**
+— most filled the viewport entirely — and failed on duration alone, each being
+fully visible for a single 200 ms sample. The setting could not compensate,
+since 1 second was also the lowest value it offered.
+
+Those articles stayed unread on the server, so the next reload legitimately
+returned them: "I saw it, I reloaded, it is back at the top" was the reported
+symptom, and it was the threshold, never the marking request, which reached the
+server correctly whenever detection fired.
+
+200 ms is **one sampling period**: the shortest duration that still requires
+two consecutive observations, hence a genuine presence on screen rather than a
+single sample caught in flight. It is the floor of the adjustable range too
+(§6), 150 ms, that follows this reasoning — below one period the duration would
+be satisfied by the first observation and the double threshold would collapse
+into a single one.
 
 This mechanism is **optional**. A switch in the settings (§6) turns it off and
 back on, and it is **on by default** — that is the principle of §1, "reading is
@@ -697,7 +717,7 @@ it, then **written down here** — not left implicit in the code.
 | 1 | API page size (`n`) | **40 articles.** Measured on a real feed: median summary of 1,324 characters, 90th percentile at 4,379. A page of 40 therefore weighs about 55 kB, which stays reasonable on a mobile network while leaving enough lead for scrolling not to be interrupted (§4.4). The server accepts far higher values — `n=100000` returned 4,645 articles without flinching — but asking for everything at once would only serve to delay the first display. |
 | 2 | Exact formulation of the interleaving algorithm | **Recency wins over spreading the sources out**, with a hard bound of seven positions, expressed in ranks and not in duration (§4.2). The two rules are structurally incompatible beyond a certain amplitude, and it had to be said which one wins. |
 | 3 | Age threshold for purging the cache | **7 days.** Beyond that, a read article no longer has a reader; below it, it has two. **Scrolling back** first: the feed is continuous and without landmarks, going back up it is the only way to find again what you skimmed over the day before — at 24 h the past would vanish between two launches. A week covers the real rhythm: you come back on Monday, you find your Friday feed again. The **memory of "already read"** next, carried by the cache itself. 30 days would quadruple the cache for content already consumed. |
-| 4 | Batch size and grouping delay for markings | **100 articles, 5-second window at fixed expiry.** The floor of the delay is the continuous second of visibility of §4.5: at the maximum rate only one read article appears per second, so a shorter window would close on a **single** article — the per-article request that §4.5 rules out. The ceiling is the gesture of leaving the application: during the window, the read is known only to the device. At 5 s that remains the exception; at 30 s it would be the common case. A **fixed and not sliding** window: with a continuous scroll producing a batch every 200 ms, a restartable window would never close as long as the user is reading. |
+| 4 | Batch size and grouping delay for markings | **100 articles, 5-second window at fixed expiry.** The floor of the delay used to be the continuous second of visibility of §4.5, on the reasoning that at most one article could become read per second. That reasoning fell with the threshold: at 200 ms a scroll can produce a read article at every sample, and grouping now matters **more**, not less — a window shorter than the second it already was would multiply the requests the batching exists to avoid. The ceiling is the gesture of leaving the application: during the window, the read is known only to the device. At 5 s that remains the exception; at 30 s it would be the common case. A **fixed and not sliding** window: with a continuous scroll producing a batch every 200 ms, a restartable window would never close as long as the user is reading. |
 | 6 | Origin of the illustration image | **`enclosure` first, then the first `<img>` tag in the content.** The order is that of reliability: an `enclosure` is a declared illustration, an `<img>` may be a tracking pixel or a logo. But sticking to `enclosure` would cover **33 %** of articles, against **73 %** with the fallback — measured on 60 real articles. Depriving two thirds of the feed of an illustration would impoverish exactly what makes a Discover feed. |
 | 7 | Length of the displayed excerpt | **240 characters, cut on a word boundary.** Three lines of `bodyMedium` over 411 dp hold about 180 characters, 210 at the smallest system font size; 240 leaves the margin for the visible cut to be the ellipsis and not text stopping dead. A word cut in half reads as a defect, hence the cut at the preceding space. Without that, each card would have up to 34,777 characters measured on every recomposition. |
 | 12 | What to do with an illustration smaller than its slot? | **It is not enlarged**: displayed at its own size, over a blurred background drawn from itself (§4.3). The threshold is not a figure but **measured** — only what would have to be enlarged is treated, which stays right at any screen density. Under Android 12, where the system blur does not exist, the stretching remains: a second mechanism would have cost its writing and its tests for a minority of devices, and a sharp, duplicated background would have been worse than the defect. |
