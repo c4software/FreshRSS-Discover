@@ -9,6 +9,7 @@ local.properties
 captures
 .externalNativeBuild
 .cxx
+plans/
 
 # Réglages Claude Code personnels (chemins machine, JAVA_HOME)
 .claude/settings.local.json
