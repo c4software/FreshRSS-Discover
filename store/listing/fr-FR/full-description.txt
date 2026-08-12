@@ -1,0 +1,51 @@
+FreshRSS Discover est un client Android pour votre propre serveur FreshRSS. Il ne cherche pas à être un lecteur classique de plus — une liste de flux, une boîte de réception, un compteur de non-lus à ramener à zéro. Il propose l'inverse : un unique fil vertical, tous vos abonnements entrelacés, sans fin visible. Vous faites défiler, et ce qui est resté assez longtemps à l'écran devient lu.
+
+Ce n'est pas un lecteur autonome. Un serveur FreshRSS, API activée, est nécessaire — cette application se contente de le lire.
+
+UN SEUL FIL, AUCUNE DÉCISION À PRENDRE
+
+• Tous vos abonnements dans un fil unique, les sources entrelacées pour qu'aucun flux ne monopolise l'écran.
+• Défilement sans fin : la page suivante se charge avant que vous n'atteigniez le bas.
+• Aucun compteur de non-lus culpabilisant, aucun dossier à trier, aucun flux par lequel commencer.
+• Les abonnements restent là où ils doivent être : dans FreshRSS.
+
+DEUX FAÇONS DE PARCOURIR LE MÊME FIL
+
+• Liste : plusieurs articles à l'écran, que l'on fait défiler verticalement.
+• Swipe : un article en plein écran, écarté d'un geste horizontal, comme une carte prise sur un paquet.
+Les deux modes montrent exactement les mêmes articles, dans le même ordre. Seule la manière de les parcourir change.
+
+LIRE, C'EST FAIRE DÉFILER
+
+Un article devient lu lorsqu'il est resté suffisamment visible à l'écran — la proportion visible et la durée se règlent, et le marquage automatique peut être coupé entièrement. Les statuts de lecture repartent vers votre serveur, y compris après une coupure : ce qui n'a pas pu être transmis attend en file et part à la première occasion.
+
+DISCRÈTE PAR CONSTRUCTION
+
+• Le lancement rouvre le fil exactement tel que vous l'aviez laissé, sans interroger le serveur. Rafraîchir est un geste que vous faites, pas quelque chose qui arrive dans votre dos.
+• Une invitation discrète lorsque le fil affiché a plus de six heures — écartée d'un geste, absente hors ligne.
+• Les articles déjà lus gardent leur place, signalés comme tels, jusqu'au prochain rafraîchissement.
+• Un rappel de lecture quotidien, à l'heure à laquelle vous aviez ouvert l'application la veille, citant de vrais titres. Il lit le cache local et n'ouvre aucune connexion.
+
+HORS LIGNE, ET DES ILLUSTRATIONS TRAITÉES CORRECTEMENT
+
+• Un cache local garde le fil lisible sans réseau, et se purge tout seul.
+• Une vignette trop petite est montrée à sa taille réelle, sur un fond flou tiré d'elle-même, plutôt qu'étirée et floue.
+
+CONFIDENTIALITÉ
+
+• L'application ne parle qu'à votre serveur FreshRSS. Aucune télémétrie, aucun service tiers, aucune publicité, aucun compte chez nous.
+• Les seules autres connexions sortantes sont les images des articles et l'ouverture d'un lien dans votre navigateur, toutes deux à votre initiative.
+• Aucune synchronisation en arrière-plan : rien n'est récupéré pendant que l'application est fermée.
+
+PRÉREQUIS
+
+• Un serveur FreshRSS dont l'accès API est activé (Administration → Authentification → Autoriser l'accès à l'API).
+• Un mot de passe d'API, distinct du mot de passe de connexion (Profil → Mot de passe API). C'est la première cause d'échec de connexion.
+• Android 8.0 ou ultérieur. Les adresses en HTTP sont acceptées pour les instances auto-hébergées sur un réseau local, et l'écran de connexion dit clairement que la liaison n'est pas chiffrée.
+
+CODE OUVERT
+
+Licence MIT. Le code source complet, la spécification fonctionnelle et les notes d'architecture sont publics :
+https://github.com/c4software/FreshRSS-Discover
+
+FreshRSS est un projet libre. Cette application est un client indépendant, sans affiliation avec le projet FreshRSS, ni approbation ni parrainage de sa part.

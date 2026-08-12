@@ -1,0 +1,8 @@
+First public release.
+
+• All your FreshRSS subscriptions in one endless vertical stream, sources interleaved.
+• Two modes over the same feed: List, or Swipe one article at a time.
+• Reading is scrolling: articles visible long enough become read, with adjustable thresholds.
+• Read statuses sent back to your server, queued and retried after an outage.
+• Local cache readable offline, automatic purge, daily reading reminder.
+• Talks only to your server: no telemetry, no third party, no background sync.

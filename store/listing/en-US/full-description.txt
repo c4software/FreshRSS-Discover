@@ -1,0 +1,51 @@
+FreshRSS Discover is an Android client for your own FreshRSS server. It does not try to be one more classic reader — a list of feeds, an inbox, an unread counter to bring down to zero. It offers the opposite: a single vertical stream, all your subscriptions interleaved, with no visible end. You scroll, and whatever has stayed on screen long enough becomes read.
+
+It is not a reader on its own. A FreshRSS server, with its API enabled, is required — this app simply reads it.
+
+ONE STREAM, NO DECISIONS
+
+• All your subscriptions in a single feed, sources interleaved so that no feed monopolises the screen.
+• Infinite scrolling: the next page loads before you reach the bottom.
+• No unread counter to feel guilty about, no folder to sort, no feed to pick first.
+• Subscriptions stay where they belong: in FreshRSS.
+
+TWO WAYS THROUGH THE SAME STREAM
+
+• List: several articles on screen, scrolled through vertically.
+• Swipe: one article full screen, set aside with a horizontal gesture, like a card off a deck.
+Both modes show exactly the same articles, in the same order. Only the way you go through them changes.
+
+READING IS SCROLLING
+
+An article becomes read once it has stayed visible on screen long enough — both the visible proportion and the duration are yours to adjust, and automatic marking can be turned off entirely. Read statuses are sent back to your server, including after an outage: what could not be sent is queued and transmitted at the next opportunity.
+
+QUIET BY DESIGN
+
+• Launching reopens the feed exactly as you left it, without querying the server. Refreshing is a gesture you make, not something that happens behind your back.
+• A discreet notice when the displayed feed is more than six hours old — dismissed with a gesture, absent when offline.
+• Articles already read keep their place, flagged as such, until the next refresh.
+• A daily reading reminder, at the time you opened the app the day before, quoting real titles. It reads the local cache and opens no connection.
+
+OFFLINE, AND ILLUSTRATIONS TREATED FAIRLY
+
+• A local cache keeps the feed readable with no network, and purges itself.
+• A thumbnail too small is shown at its own size over a blurred background drawn from itself, rather than stretched and blurry.
+
+PRIVACY
+
+• The app talks only to your FreshRSS server. No telemetry, no third-party service, no advertising, no account of ours.
+• The only other outgoing connections are article images and opening a link in your browser, both at your initiative.
+• No background synchronisation: nothing is fetched while the app is closed.
+
+REQUIREMENTS
+
+• A FreshRSS server with API access enabled (Administration → Authentication → Allow API access).
+• An API password, distinct from your login password (Profile → API password). It is the main cause of failed connections.
+• Android 8.0 or later. HTTP addresses are accepted for self-hosted instances on a local network, and the connection screen says plainly when the link is not encrypted.
+
+OPEN SOURCE
+
+MIT licence. The whole source code, the functional specification and the architecture notes are public:
+https://github.com/c4software/FreshRSS-Discover
+
+FreshRSS is a free software project. This app is an independent client and is not affiliated with, endorsed by or sponsored by the FreshRSS project.

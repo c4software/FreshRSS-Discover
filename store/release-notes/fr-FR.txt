@@ -1,0 +1,8 @@
+Première version publique.
+
+• Tous vos abonnements FreshRSS en un fil vertical sans fin, sources entrelacées.
+• Deux modes sur le même flux : Liste, ou Swipe article par article.
+• Lire, c'est faire défiler : un article assez longtemps visible devient lu, seuils réglables.
+• Statuts de lecture renvoyés au serveur, mis en file et retentés après une coupure.
+• Cache local lisible hors ligne, purge automatique, rappel de lecture quotidien.
+• Ne parle qu'à votre serveur : aucune télémétrie, aucun tiers, aucune synchro en arrière-plan.
