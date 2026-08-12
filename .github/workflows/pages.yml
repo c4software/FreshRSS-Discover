@@ -1,0 +1,136 @@
+name: Politique de confidentialité
+
+# Publie les politiques de confidentialité sur GitHub Pages.
+#
+# La Play Console exige une URL publique, stable et accessible sans
+# authentification : c'est la seule raison d'être de ce site. Il ne contient que
+# les deux politiques, générées depuis les fichiers du dépôt — le texte déclaré
+# à Google ne peut donc pas diverger de celui qui est versionné.
+#
+# Déclenché sur `main`, et seulement quand ces fichiers changent : republier à
+# chaque commit consommerait du crédit pour un résultat identique. C'est la même
+# frugalité que celle qui neutralise `ci.yml` sur `push`.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'store/privacy-policy-*.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Générer et déployer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Python-Markdown plutôt que pandoc : l'image des exécuteurs n'embarque
+      # plus ce dernier, et une dépendance installable en deux secondes vaut
+      # mieux qu'un paquet système de plusieurs centaines de mégaoctets.
+      - name: Installer le convertisseur Markdown
+        run: python3 -m pip install --quiet 'markdown==3.10'
+
+      - name: Générer le site
+        run: |
+          set -euo pipefail
+          mkdir -p site
+
+          cat > site/style.css <<'CSS'
+          :root { color-scheme: light dark; }
+          body {
+            margin: 0 auto; padding: 2rem 1.25rem; max-width: 44rem;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+          }
+          h1, h2 { line-height: 1.25; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #8884; padding: .5rem; text-align: left; vertical-align: top; }
+          code { font-size: .95em; }
+          nav { margin-bottom: 2rem; font-size: .95em; }
+          CSS
+
+          python3 - <<'PY'
+          import markdown
+
+          GABARIT = """<!doctype html>
+          <html lang="{lang}">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>{titre}</title>
+              <link rel="stylesheet" href="style.css">
+            </head>
+            <body>
+          <nav><a href="index.html">&#8592; FreshRSS Discover</a></nav>
+          {corps}
+            </body>
+          </html>
+          """
+
+          pages = [
+              ("store/privacy-policy-en.md", "en",
+               "Privacy Policy — FreshRSS Discover", "site/privacy-en.html"),
+              ("store/privacy-policy-fr.md", "fr",
+               "Politique de confidentialité — FreshRSS Discover", "site/privacy-fr.html"),
+          ]
+
+          for source, lang, titre, cible in pages:
+              with open(source, encoding="utf-8") as f:
+                  corps = markdown.markdown(f.read(), extensions=["tables"])
+              with open(cible, "w", encoding="utf-8") as f:
+                  f.write(GABARIT.format(lang=lang, titre=titre, corps=corps))
+              print(f"{source} -> {cible}")
+          PY
+
+          cat > site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>FreshRSS Discover — Privacy Policy</title>
+              <link rel="stylesheet" href="style.css">
+            </head>
+            <body>
+              <h1>FreshRSS Discover</h1>
+              <p>Privacy policy / Politique de confidentialité :</p>
+              <ul>
+                <li><a href="privacy-en.html">English</a></li>
+                <li><a href="privacy-fr.html">Français</a></li>
+              </ul>
+              <p><a href="https://github.com/c4software/FreshRSS-Discover">Source code</a> — MIT licence.</p>
+            </body>
+          </html>
+          HTML
+
+      # Pages doit être activé une fois pour toutes sur le dépôt, en mode
+      # « construction par workflow » :
+      #
+      #     gh api -X POST repos/c4software/FreshRSS-Discover/pages -f build_type=workflow
+      #
+      # `enablement: true` aurait évité cette commande, mais le `GITHUB_TOKEN`
+      # d'un workflow ne peut pas créer le site : l'API réclame un droit
+      # d'administration qu'aucune permission de workflow n'accorde.
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

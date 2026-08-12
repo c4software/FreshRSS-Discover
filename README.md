@@ -148,6 +148,28 @@ succeed. None of this is written in the repository.
 The `release.yml` workflow does the same in CI. It is **never** triggered by a
 `push`: only by hand, or by a `v*` tag.
 
+### Publishing to the Play Store
+
+> Groundwork checked on paper, **not yet proven**: it will be completed at the
+> first real submission to the Play Console.
+
+Everything to upload — the texts of both listings, screenshots, icon, feature
+graphic, answers to the console's questionnaires and the privacy policy — is
+gathered in **[`store/`](./store)**, together with the order in which to enter
+it.
+
+The privacy policy publishes itself: `pages.yml` regenerates it on GitHub Pages
+from `store/privacy-policy-*.md` whenever those files change on `main`, so the
+text declared to Google cannot drift from the one held here.
+
+1. Enable GitHub Pages once, in "build by workflow" mode — the command is in
+   [`store/README.md`](./store/README.md).
+2. Provide a demonstration account for the reviewer: the app is a client, and
+   without a server there is nothing to see.
+3. Create a release keystore, **outside the repository**, and put it in the
+   repository secrets (see *Production build* above).
+4. Place a `v*` tag: the workflow builds and signs.
+
 ---
 
 ## Structure
@@ -172,6 +194,7 @@ The details are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 | [AGENTS.md](./AGENTS.md) | The development rules |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute |
 | [docs/freshrss-api.md](./docs/freshrss-api.md) | A survey of the FreshRSS API |
+| [store/README.md](./store/README.md) | The Play Store submission file |
 | [PROMPT.md](./PROMPT.md) | The initial intent, frozen |
 
 ---
