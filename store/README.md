@@ -57,14 +57,16 @@ déclarées (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`,
    https://c4software.github.io/FreshRSS-Discover/privacy-fr.html
    ```
 
-   **Pages n'est pas encore activé sur ce dépôt.** Une fois, en mode
-   « construction par workflow » :
+   **Pages est activé**, en mode « construction par workflow », et les deux URL
+   répondent (`HTTP 200`, vérifié le 13 août 2026). Il n'y a donc rien à cocher
+   dans l'interface, rien à refaire. Pour mémoire, l'activation s'est faite en
+   une commande — le `GITHUB_TOKEN` d'un workflow n'y suffit pas :
 
    ```bash
    gh api -X POST repos/c4software/FreshRSS-Discover/pages -f build_type=workflow
    ```
 
-   Puis vérifier que les deux URL répondent avant de les déclarer — une
+   Revérifier tout de même que les deux URL répondent le jour de l'envoi : une
    politique injoignable fait rejeter la fiche.
 2. **Fournir un compte de démonstration à l'examinateur.** C'est le seul trou
    du dossier, et il ne peut pas être bouché depuis le dépôt : voir

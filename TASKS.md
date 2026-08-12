@@ -2292,7 +2292,10 @@ questionnaires answered in Markdown next to them.
       [`app-content.md`](./store/app-content.md), and the privacy policy written
       in both languages, then published on GitHub Pages by
       [`pages.yml`](./.github/workflows/pages.yml) — the URL Google requires
-      cannot diverge from the text held in the repository
+      cannot diverge from the text held in the repository. Pages was enabled on
+      the repository ("build by workflow"), and the three URLs answer `HTTP 200`
+      — the first run failed on exactly that missing switch, which no workflow
+      token can flip
 
 ### Decisions taken
 
@@ -2311,8 +2314,6 @@ questionnaires answered in Markdown next to them.
   its API refuses `demo` / `demo` (`HTTP 401`). A publicly reachable instance
   with API access must be exposed before submitting — recorded at the top of
   `app-content.md` rather than filled with plausible values.
-- **GitHub Pages is not enabled on the repository yet.** One command, quoted in
-  `store/README.md`; a workflow's `GITHUB_TOKEN` cannot do it itself.
 - No tablet screenshots: optional until the app is featured on large screens.
 
 ---
