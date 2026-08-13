@@ -26,3 +26,6 @@ keystore.properties
 
 # Journal de l'émulateur de la pile de test (éphémère)
 envTest/.emulator.log
+
+# Cache local de wrangler (déploiement du serveur de démo)
+.wrangler/

@@ -1,0 +1,9 @@
+FreshRSS Discover is a client for FreshRSS, a self-hosted RSS aggregator. Every user signs in to their own server, so a demo instance is provided for this review.
+
+1. Server address: https://freshrss-discover-demo.freshrss-discover-demo.workers.dev
+2. Username: demo
+3. API password: demo
+
+The third field is the FreshRSS API password (Profile -> API password), which is different from the website login password. This is the most common cause of a failed sign-in. Here both are "demo".
+
+After signing in, the Discover screen shows the feed: scroll vertically. The Settings tab switches to Swipe mode, where each article fills the screen and is dismissed with a horizontal gesture.

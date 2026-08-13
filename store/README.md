@@ -21,7 +21,8 @@ Version des captures : construite depuis `v1.10.0-1-gb5d2c92` (`app-debug`)
 | Image mise en avant | [`graphics/feature-graphic-*.png`](./graphics) | 1 024 × 500, PNG 32 bits | conforme |
 | Captures téléphone | [`screenshots/phone/en-US/`](./screenshots/phone/en-US), [`screenshots/phone/fr-FR/`](./screenshots/phone/fr-FR) | 2 à 8, ratio 9:16, 1 080 × 2 400 | 4 par langue |
 | Sécurité des données | [`data-safety.md`](./data-safety.md) | formulaire | rédigé |
-| Contenu de l'application | [`app-content.md`](./app-content.md) | questionnaire | rédigé, **sauf le compte de démonstration** |
+| Contenu de l'application | [`app-content.md`](./app-content.md) | questionnaire | rédigé |
+| Accès à l'application | [`demo-server/`](./demo-server/README.md) | identifiants pour l'examinateur | Worker déployé, parcours vérifié |
 | Politique de confidentialité | [`privacy-policy-en.md`](./privacy-policy-en.md), [`privacy-policy-fr.md`](./privacy-policy-fr.md) | URL publique | publiée par la CI sur GitHub Pages |
 
 Pas de fichier de déclarations de permissions : aucune des quatre permissions
@@ -68,10 +69,17 @@ déclarées (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`,
 
    Revérifier tout de même que les deux URL répondent le jour de l'envoi : une
    politique injoignable fait rejeter la fiche.
-2. **Fournir un compte de démonstration à l'examinateur.** C'est le seul trou
-   du dossier, et il ne peut pas être bouché depuis le dépôt : voir
-   [`app-content.md`](./app-content.md), § *Accès à l'application*.
-   `demo.freshrss.org` a été essayé et son API refuse `demo` / `demo`.
+2. **Vérifier que le serveur de démonstration répond.** L'examinateur n'a pas
+   de serveur FreshRSS ; le dossier lui en fournit un, décrit dans
+   [`demo-server/`](./demo-server/README.md) et déployé sur Cloudflare Workers :
+
+   ```bash
+   curl -s https://freshrss-discover-demo.freshrss-discover-demo.workers.dev/api/greader.php
+   ```
+
+   Doit répondre `OK`. Un examinateur bloqué sur l'écran de connexion rejette
+   la fiche, et le Worker sert aussi à **chaque mise à jour** ultérieure — il
+   n'est pas jetable après la première soumission.
 3. **Créer le keystore de production** hors du dépôt, et déposer les quatre
    secrets `RELEASE_KEYSTORE`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
    `RELEASE_KEY_PASSWORD` dans le dépôt GitHub — voir le README racine,

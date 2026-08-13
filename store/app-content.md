@@ -44,33 +44,40 @@ nous** : c'est celui de l'utilisateur sur son propre serveur FreshRSS. La
 Play Console exige alors des identifiants de démonstration pour l'examinateur.
 Sans eux, il ne verra que l'écran de connexion et la fiche sera rejetée.
 
-⚠️ **Ce champ est le seul du dossier qui reste à compléter, et il ne peut pas
-l'être depuis le dépôt.** L'instance publique `https://demo.freshrss.org` a été
-essayée le 13 août 2026 : son API refuse `demo` / `demo` (`HTTP 401
-Unauthorized`). Elle ne peut donc pas servir de compte de démonstration.
+L'instance publique `https://demo.freshrss.org` a été essayée le 13 août 2026 :
+son API refuse `demo` / `demo` (`HTTP 401 Unauthorized`). Elle ne peut donc pas
+servir de compte de démonstration.
 
-Il faut, avant l'envoi, **exposer une instance FreshRSS joignable depuis
-l'extérieur** — la pile de test locale ne convient pas, elle n'est pas publique
-— avec l'accès API activé et un compte dédié à l'examen, puis coller ceci en
-remplaçant les trois valeurs :
+Le dossier fournit à la place un **serveur de démonstration**, déployé sur
+Cloudflare Workers : [`demo-server/`](./demo-server/README.md). Il imite le
+chemin nominal de l'API FreshRSS et sert douze articles fictifs, sans que
+l'application soit modifiée. Parcours vérifié de bout en bout sur l'émulateur
+le 13 août 2026.
 
-> L'application est un client d'un serveur FreshRSS personnel : il faut une
-> instance et un compte pour dépasser l'écran de connexion.
+Réponses à saisir — « Toutes les fonctionnalités sont accessibles avec des
+identifiants », nom d'utilisateur `demo`, mot de passe `demo`, puis dans les
+instructions :
+
+> L'application est un client pour FreshRSS, un agrégateur RSS auto-hébergé.
+> Chaque utilisateur se connecte à son propre serveur ; l'adresse ci-dessous
+> est une instance de démonstration fournie pour l'examen.
 >
-> - Adresse du serveur : `https://…`
-> - Identifiant : `…`
-> - Mot de passe d'API : `…`
+> 1. Adresse du serveur :
+>    `https://freshrss-discover-demo.freshrss-discover-demo.workers.dev`
+> 2. Identifiant : `demo`
+> 3. Mot de passe d'API : `demo`
 >
-> Attention : le champ demandé par l'application est le **mot de passe d'API**
-> de FreshRSS (Profil → Mot de passe API), distinct du mot de passe de
-> connexion au site. C'est la première cause d'échec de connexion.
+> Le troisième champ est le **mot de passe d'API** de FreshRSS (Profil → Mot de
+> passe API), distinct du mot de passe de connexion au site. C'est la première
+> cause d'échec de connexion. Ici les deux valent `demo`.
 >
 > Une fois connecté, l'écran Discover affiche le flux : faire défiler
 > verticalement. L'onglet Paramètres permet de passer en mode « Swipe », où
 > chaque article occupe l'écran et s'écarte d'un geste horizontal.
 
 Ne jamais laisser d'identifiants morts dans ce champ : un examinateur qui reste
-bloqué sur l'écran de connexion rejette la fiche.
+bloqué sur l'écran de connexion rejette la fiche. Le Worker doit donc rester en
+ligne après la première soumission — Google le réutilise à chaque mise à jour.
 
 ## Application gouvernementale, finance, santé
 
