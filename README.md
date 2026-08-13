@@ -114,6 +114,49 @@ Install on a connected device:
 ./gradlew :app:installDebug
 ```
 
+### Trying it by hand
+
+Tests and screenshots have never been enough: what lives below the transport
+layer — the manifest, the network policy, the platform — only shows itself when
+the application actually runs. [`envTest/`](./envTest/README.md) exists for
+that, and holds an emulator plus a **real** FreshRSS instance.
+
+```bash
+./envTest/test-stack.sh init       # once: AVD, container, user, feeds, install
+./envTest/test-stack.sh run        # afterwards: restart, refresh, reinstall
+./envTest/test-stack.sh emulator   # the emulator alone, with its window
+./envTest/test-stack.sh stop       # at the end of every Goal
+```
+
+`emulator` starts nothing else — no container, no build, no install — and is
+the one to use to try the application by hand, on the local stack or on the
+demonstration server of [`store/demo-server/`](./store/demo-server/README.md),
+which needs no FreshRSS at all. What is already installed on the AVD stays
+there, open session included.
+
+The window is the default, not a constraint. `WITH_WINDOW=0` starts the same
+emulator headless — for automated checks, an SSH session, or a machine with no
+display server:
+
+```bash
+WITH_WINDOW=0 ./envTest/test-stack.sh emulator
+```
+
+`init` and `run` are unchanged: still `-no-window`, still software rendering.
+
+Once it is up:
+
+```bash
+adb shell am start -n fr.vbrosseau.freshrssdiscover/.MainActivity
+adb shell pm clear fr.vbrosseau.freshrssdiscover   # back to the sign-in screen
+adb exec-out screencap -p > screen.png
+adb logcat -s FreshRssApi ReadSync                 # API calls, read sync
+```
+
+**Shut it down at the end of every Goal.** Stopping destroys nothing — the AVD,
+the container, the user, the feeds and the accumulated read state all survive,
+and `run` finds them again.
+
 ### Version
 
 It is **not written in the repository**: `versionName` and `versionCode` are
@@ -164,8 +207,9 @@ text declared to Google cannot drift from the one held here.
 
 1. Enable GitHub Pages once, in "build by workflow" mode — the command is in
    [`store/README.md`](./store/README.md).
-2. Provide a demonstration account for the reviewer: the app is a client, and
-   without a server there is nothing to see.
+2. Keep the demonstration server alive: the app is a client, and without a
+   server the reviewer sees nothing but the sign-in screen. A Cloudflare Worker
+   plays that part — [`store/demo-server/`](./store/demo-server/README.md).
 3. Create a release keystore, **outside the repository**, and put it in the
    repository secrets (see *Production build* above).
 4. Place a `v*` tag: the workflow builds and signs.
@@ -195,6 +239,8 @@ The details are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute |
 | [docs/freshrss-api.md](./docs/freshrss-api.md) | A survey of the FreshRSS API |
 | [store/README.md](./store/README.md) | The Play Store submission file |
+| [store/demo-server/README.md](./store/demo-server/README.md) | The demonstration server given to the reviewer |
+| [envTest/README.md](./envTest/README.md) | The local test stack: emulator and real FreshRSS |
 | [PROMPT.md](./PROMPT.md) | The initial intent, frozen |
 
 ---

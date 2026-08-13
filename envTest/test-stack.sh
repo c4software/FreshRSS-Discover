@@ -3,8 +3,9 @@
 # Pile de test locale : un émulateur Android et une instance FreshRSS réelle.
 # Voir envTest/README.md pour le pourquoi et le mode d'emploi.
 #
-#   ./envTest/test-stack.sh init   fabrique tout, une fois
-#   ./envTest/test-stack.sh run    relance ce qui existe déjà
+#   ./envTest/test-stack.sh init      fabrique tout, une fois
+#   ./envTest/test-stack.sh run       relance ce qui existe déjà
+#   ./envTest/test-stack.sh emulator  l'émulateur seul, avec sa fenêtre
 #
 set -euo pipefail
 
@@ -49,11 +50,13 @@ adb() {
 # Elles échouent tôt et disent quoi faire. Une pile qui démarre à moitié coûte
 # plus de temps à diagnostiquer qu'un refus net.
 
-require_tools() {
+# Ce que réclame l'émulateur seul. Séparé de `require_tools` pour que
+# « emulator » ne refuse pas de démarrer faute de docker : cette commande ne
+# touche jamais au conteneur.
+require_emulator_tools() {
     [ -n "${ANDROID_HOME:-}" ] || die "ANDROID_HOME n'est pas définie (AGENTS.md §5)."
     [ -x "$ANDROID_HOME/emulator/emulator" ] || die "L'émulateur est absent de $ANDROID_HOME/emulator."
     [ -x "$ANDROID_HOME/platform-tools/adb" ] || die "adb est absent de $ANDROID_HOME/platform-tools."
-    command -v docker >/dev/null || die "docker est introuvable."
 
     [ -d "$ANDROID_HOME/$SYSTEM_IMAGE" ] || {
         warn "Images système présentes :"
@@ -65,6 +68,11 @@ require_tools() {
     # Sans KVM l'émulateur démarre quand même, mais si lentement que la boucle
     # d'attente expirerait. Mieux vaut le dire que laisser croire à une panne.
     [ -w /dev/kvm ] || warn "/dev/kvm n'est pas accessible : le démarrage sera très lent."
+}
+
+require_tools() {
+    require_emulator_tools
+    command -v docker >/dev/null || die "docker est introuvable."
 }
 
 # ─── Émulateur ────────────────────────────────────────────────────────────────
@@ -133,9 +141,19 @@ start_emulator() {
     fi
 
     say "Démarrage de l'émulateur"
-    # `-no-window` : la pile sert à des captures prises par adb, pas à regarder
-    # une fenêtre. Retirez-le pour suivre à l'œil.
+    # Deux jeux de drapeaux, pour deux usages.
     #
+    # Sans fenêtre — le cas de `init` et `run` : la pile sert à des captures
+    # prises par adb, pas à regarder un écran, et le rendu logiciel suffit.
+    #
+    # Avec fenêtre — le cas de `emulator` : ni `-no-window`, ni `-no-boot-anim`,
+    # et **pas** de `-gpu` imposé. Laisser l'émulateur choisir donne le rendu
+    # matériel ; forcer `swiftshader_indirect` ferait défiler une interface
+    # rendue par le processeur, ce qui est précisément ce qu'on ne veut pas
+    # quand on regarde à l'œil.
+    local flags=(-no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot)
+    [ "${WITH_WINDOW:-0}" = 1 ] && flags=(-no-audio -no-snapshot)
+
     # `setsid` et non un simple `&` : sans lui l'émulateur reste **enfant du
     # script**, et le script l'attend à sa sortie — `init` ne rendait jamais la
     # main, alors que tout son travail était fait. Constaté à la première
@@ -144,8 +162,7 @@ start_emulator() {
     # pour que rien ne le réclame.
     (
         cd "$ANDROID_HOME/emulator" || exit 1
-        setsid ./emulator -avd "$AVD_NAME" -no-window -no-audio -no-boot-anim \
-                          -gpu swiftshader_indirect -no-snapshot \
+        setsid ./emulator -avd "$AVD_NAME" "${flags[@]}" \
                           < /dev/null > "$HERE/.emulator.log" 2>&1 &
         disown
     )
@@ -317,6 +334,21 @@ stop_stack() {
     printf '\n  Pile éteinte. « run » la relance avec son contenu intact.\n\n'
 }
 
+emulator_summary() {
+    cat <<EOF
+
+┌─ Émulateur prêt ────────────────────────────────────────────────────────────
+│  Rien d'autre n'a été démarré : ni conteneur FreshRSS, ni construction.
+│
+│  Lancer l'application    adb shell am start -n ${APP_ID}/.MainActivity
+│  Réinstaller             ./gradlew :app:installDebug
+│  Repartir à zéro         adb shell pm clear ${APP_ID}
+│
+│  Éteindre                ./envTest/test-stack.sh stop
+└─────────────────────────────────────────────────────────────────────────────
+EOF
+}
+
 summary() {
     cat <<EOF
 
@@ -364,6 +396,23 @@ case "${1:-}" in
         install_app
         summary
         ;;
+    emulator)
+        # L'émulateur seul, avec sa fenêtre, et rien d'autre : ni conteneur, ni
+        # construction, ni installation. C'est la commande de l'essai à la main
+        # — sur la pile locale comme sur le serveur de démonstration de
+        # store/demo-server/, qui n'a besoin d'aucun FreshRSS ici.
+        #
+        # Ce qui est déjà installé sur l'AVD le reste, session ouverte comprise.
+        #
+        # La fenêtre est le défaut, mais elle se refuse : `WITH_WINDOW=0` rend
+        # la commande utilisable sans écran — validation automatisée, session
+        # SSH, machine sans serveur graphique — là où `init` et `run`
+        # imposeraient le conteneur FreshRSS dont ces cas n'ont que faire.
+        require_emulator_tools
+        [ -d "$AVD_DIR" ] || die "L'AVD $AVD_NAME n'existe pas. Lancez « init » d'abord."
+        WITH_WINDOW="${WITH_WINDOW:-1}" start_emulator
+        emulator_summary
+        ;;
     stop)
         stop_stack
         ;;
@@ -375,6 +424,10 @@ Pile de test locale — un émulateur Android et une instance FreshRSS réelle.
                                  flux, puis construit et installe l'application
   ./envTest/test-stack.sh run    relance ce qui existe déjà, rafraîchit les
                                  flux et réinstalle l'application
+  ./envTest/test-stack.sh emulator
+                                 l'émulateur seul, **avec sa fenêtre**, pour
+                                 essayer à la main : ni conteneur, ni
+                                 construction, ni installation
   ./envTest/test-stack.sh stop   éteint émulateur et conteneur, sans rien
                                  détruire — à faire à la fin de chaque Goal
 

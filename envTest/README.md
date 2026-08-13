@@ -5,9 +5,10 @@ de développement en deux commandes. Optionnel : rien dans la vérification
 d'[AGENTS.md](../AGENTS.md) §5 n'en dépend, et la CI l'ignore.
 
 ```bash
-./envTest/test-stack.sh init   # une fois : fabrique tout
-./envTest/test-stack.sh run    # ensuite : relance et réinstalle
-./envTest/test-stack.sh stop   # à la fin de chaque Goal : éteint tout
+./envTest/test-stack.sh init       # une fois : fabrique tout
+./envTest/test-stack.sh run        # ensuite : relance et réinstalle
+./envTest/test-stack.sh emulator   # l'émulateur seul, avec sa fenêtre
+./envTest/test-stack.sh stop       # à la fin de chaque Goal : éteint tout
 ```
 
 > **Éteindre à la fin de chaque Goal, toujours** ([AGENTS.md](../AGENTS.md)
@@ -78,6 +79,38 @@ contenu**, ce qui emporte l'état lu accumulé par les essais précédents.
 | AVD | créé (réécrit s'il existe) | réutilisé | conservé |
 | Émulateur | démarré | démarré s'il ne l'est pas | **éteint** |
 | Conteneur FreshRSS | créé — **refuse** s'il existe déjà | redémarré | **arrêté**, non supprimé |
+
+### `emulator`, à part
+
+`emulator` ne fait qu'une chose : démarrer l'AVD **avec sa fenêtre**, sans
+conteneur, sans construction, sans installation. C'est la commande de l'essai à
+la main, quand on veut regarder l'application plutôt que la photographier.
+
+La différence de drapeaux n'est pas cosmétique. `init` et `run` lancent en
+`-no-window -gpu swiftshader_indirect` : le rendu est logiciel, ce qui suffit à
+une capture prise par `adb`. `emulator` laisse l'émulateur choisir son GPU —
+forcer le rendu logiciel donnerait une interface qui défile au processeur,
+exactement ce qu'on ne veut pas sous les yeux.
+
+Elle n'exige pas `docker`, n'y touchant jamais, et se contente de l'AVD
+existant : ce qui y est installé le reste, session ouverte comprise. Elle sert
+aussi bien à essayer l'application contre le [serveur de démonstration du
+dossier Play](../store/demo-server/README.md), qui n'a besoin d'aucune instance
+FreshRSS locale.
+
+La fenêtre est le défaut, pas une obligation :
+
+```bash
+WITH_WINDOW=0 ./envTest/test-stack.sh emulator
+```
+
+démarre le même émulateur **sans écran**, drapeaux de `init` et `run` compris.
+C'est la forme à employer pour une validation automatisée, une session SSH ou
+une machine sans serveur graphique — les cas où `init` et `run` imposeraient un
+conteneur FreshRSS dont on n'a que faire.
+
+`init` et `run`, eux, sont **inchangés** : toujours `-no-window`, toujours le
+rendu logiciel. Rien de ce qui produisait les captures existantes n'a bougé.
 | Utilisateur, mot de passe API, flux | créés | conservés | conservés |
 | Flux | récupérés | rafraîchis | — |
 | Application | construite et installée | construite et installée | — |
