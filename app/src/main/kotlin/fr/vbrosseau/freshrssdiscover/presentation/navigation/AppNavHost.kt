@@ -277,6 +277,11 @@ internal fun PublishFeedReselect(
 /**
  * The List-mode reaction to a tab reselection: back to the top, then reload.
  *
+ * Inert when the list already sits at the top (SPECS.md §4.6): there is
+ * nowhere to bring the reader back to, and a reload there would empty a feed
+ * they did not ask to lose — the pull gesture and the title-bar button remain
+ * the deliberate ways to reload from the top.
+ *
  * Sequenced, not simultaneous: `animateScrollToItem` suspends until the list
  * has settled at the top, so the reload — which replaces the content and
  * snaps back to the first article (SPECS.md §4.6) — never races the
@@ -294,9 +299,14 @@ internal fun rememberScrollToTopThenRefresh(
 
     return remember<() -> Unit>(scope, listState, onRefresh) {
         {
-            scope.launch {
-                listState.animateScrollToItem(0)
-                onRefresh()
+            val isAtTop = listState.firstVisibleItemIndex == 0 &&
+                listState.firstVisibleItemScrollOffset == 0
+
+            if (!isAtTop) {
+                scope.launch {
+                    listState.animateScrollToItem(0)
+                    onRefresh()
+                }
             }
         }
     }

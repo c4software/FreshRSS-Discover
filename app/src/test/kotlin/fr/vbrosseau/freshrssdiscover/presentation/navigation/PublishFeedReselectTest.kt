@@ -102,6 +102,45 @@ class PublishFeedReselectTest {
         // return a decoration that never shows.
         assertEquals(0, indexAtRefresh)
     }
+
+    @Test
+    fun aReselectionAtTheTopOfTheListDoesNothing() {
+        // A reload empties the feed (SPECS.md §4.6): fired from the top, it
+        // would destroy content the tap never asked to lose.
+        var refreshed = false
+
+        composeRule.setContent {
+            val listState = rememberLazyListState()
+
+            PublishFeedReselect(
+                onFeedReselectChange = { published = it },
+                onReselect = rememberScrollToTopThenRefresh(
+                    listState = listState,
+                    onRefresh = { refreshed = true },
+                ),
+            )
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.height(ListHeight),
+            ) {
+                items(count = 100) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(ItemHeight),
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        val reselect = assertNotNull(published)
+        composeRule.runOnIdle { reselect() }
+        composeRule.waitForIdle()
+
+        assertEquals(false, refreshed)
+    }
 }
 
 private val ListHeight = 200.dp

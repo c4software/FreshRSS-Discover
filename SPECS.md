@@ -362,7 +362,7 @@ Three commands trigger it, and they do exactly the same thing:
 |---|---|---|
 | **Pull to refresh** | List mode, **with or without articles** | The conventional gesture on a vertical feed |
 | **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
-| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Swipe mode there is nothing to scroll, the reload restarts the deck on its own |
+| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Swipe mode there is nothing to scroll, the reload restarts the deck on its own. **At the top of the list the tap does nothing**: there is nowhere to bring the reader back to, and a reload would empty a feed the tap never asked to lose — reloading from the top stays with the pull and the button, which are deliberate |
 
 The gesture long stopped where the list stopped: a screen with no article had
 no list, therefore no pull. The reasoning was that those screens already had
