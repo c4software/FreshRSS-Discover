@@ -173,6 +173,14 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
      */
     var feedRefresh by remember { mutableStateOf<FeedRefresh?>(null) }
 
+    /*
+     * Same publication pattern for the tab reselection: the feed destination
+     * decides what tapping its already selected tab does (scroll back to the
+     * top, then reload — SPECS.md §4.6). `null` where nothing is published,
+     * as on the settings screen, where the tap stays inert.
+     */
+    var feedReselect by remember { mutableStateOf<(() -> Unit)?>(null) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -191,6 +199,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
             AppNavigationBar(
                 currentRoute = currentRoute,
                 onSelect = navController::navigateToTopLevel,
+                onReselect = { feedReselect?.invoke() },
             )
         },
     ) { innerPadding ->
@@ -198,6 +207,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             onFeedRefreshChange = { feedRefresh = it },
+            onFeedReselectChange = { feedReselect = it },
         )
     }
 }

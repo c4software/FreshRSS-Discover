@@ -1,8 +1,12 @@
 package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -22,6 +26,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Navigation graph.
@@ -35,6 +40,7 @@ fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+    onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -50,8 +56,15 @@ fun AppNavHost(
             val presentation by presentationViewModel.presentation.collectAsStateWithLifecycle()
 
             when (presentation) {
-                FeedPresentation.List -> DiscoverRoute(onFeedRefreshChange = onFeedRefreshChange)
-                FeedPresentation.Swipe -> SwipeRoute(onFeedRefreshChange = onFeedRefreshChange)
+                FeedPresentation.List -> DiscoverRoute(
+                    onFeedRefreshChange = onFeedRefreshChange,
+                    onFeedReselectChange = onFeedReselectChange,
+                )
+
+                FeedPresentation.Swipe -> SwipeRoute(
+                    onFeedRefreshChange = onFeedRefreshChange,
+                    onFeedReselectChange = onFeedReselectChange,
+                )
             }
         }
 
@@ -65,9 +78,22 @@ fun AppNavHost(
 private fun DiscoverRoute(
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+    onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
 ) {
     val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Hoisted from the screen so the tab reselection can drive the scroll:
+    // the screen's own default state would be out of this route's reach.
+    val listState = rememberLazyListState()
+
+    PublishFeedReselect(
+        onFeedReselectChange = onFeedReselectChange,
+        onReselect = rememberScrollToTopThenRefresh(
+            listState = listState,
+            onRefresh = viewModel::refresh,
+        ),
+    )
 
     // The opener is built here, under `AppTheme`: it reads the bar color from
     // it, and needs the Activity `Context` so the tab stays in the app's task
@@ -117,6 +143,7 @@ private fun DiscoverRoute(
         // means nobody is listening, and automatic marking would stay inert.
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
+        listState = listState,
     )
 }
 
@@ -124,11 +151,20 @@ private fun DiscoverRoute(
 private fun SwipeRoute(
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+    onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
 ) {
     val viewModel: SwipeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articleOpener = rememberArticleOpener()
     val articleSharer = rememberArticleSharer()
+
+    // No list to scroll back in this mode: reselecting the tab goes straight
+    // to the reload, which already restarts the deck from the top
+    // (SPECS.md §4.6).
+    PublishFeedReselect(
+        onFeedReselectChange = onFeedReselectChange,
+        onReselect = viewModel::refresh,
+    )
 
     AskTheServerWhenShownEmpty(viewModel::onScreenShown)
 
@@ -215,6 +251,54 @@ internal fun PublishFeedRefresh(
         }
         onFeedRefreshChange(refresh)
         onDispose { onFeedRefreshChange(null) }
+    }
+}
+
+/**
+ * Publishes what tapping the already selected Discover tab should do
+ * (SPECS.md §4.6).
+ *
+ * Same shape as [PublishFeedRefresh], for the same reason: the navigation bar
+ * belongs to the scaffold while the reaction belongs to the displayed
+ * destination, and `onDispose` withdraws the callback so leaving the feed
+ * never leaves the bar wired to a ViewModel no longer on screen.
+ */
+@Composable
+internal fun PublishFeedReselect(
+    onFeedReselectChange: ((() -> Unit)?) -> Unit,
+    onReselect: () -> Unit,
+) {
+    DisposableEffect(onFeedReselectChange, onReselect) {
+        onFeedReselectChange(onReselect)
+        onDispose { onFeedReselectChange(null) }
+    }
+}
+
+/**
+ * The List-mode reaction to a tab reselection: back to the top, then reload.
+ *
+ * Sequenced, not simultaneous: `animateScrollToItem` suspends until the list
+ * has settled at the top, so the reload — which replaces the content and
+ * snaps back to the first article (SPECS.md §4.6) — never races the
+ * animation it would otherwise interrupt.
+ *
+ * Remembered so [PublishFeedReselect] keys on a stable callback: a fresh
+ * lambda each recomposition would republish on every frame.
+ */
+@Composable
+internal fun rememberScrollToTopThenRefresh(
+    listState: LazyListState,
+    onRefresh: () -> Unit,
+): () -> Unit {
+    val scope = rememberCoroutineScope()
+
+    return remember<() -> Unit>(scope, listState, onRefresh) {
+        {
+            scope.launch {
+                listState.animateScrollToItem(0)
+                onRefresh()
+            }
+        }
     }
 }
 

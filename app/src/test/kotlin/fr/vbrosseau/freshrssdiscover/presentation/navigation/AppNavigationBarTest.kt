@@ -53,6 +53,24 @@ class AppNavigationBarTest {
     }
 
     @Test
+    fun clickingTheAlreadySelectedItemReportsAReselectionNotAMove() {
+        var selected: AppDestination? = null
+        var reselected: AppDestination? = null
+        composeRule.setContent {
+            AppNavigationBar(
+                currentRoute = AppRoutes.DISCOVER,
+                onSelect = { selected = it },
+                onReselect = { reselected = it },
+            )
+        }
+
+        composeRule.onNodeWithTag(NavigationTestTags.item(AppDestination.DISCOVER)).performClick()
+
+        assertEquals(AppDestination.DISCOVER, reselected)
+        assertEquals(null, selected)
+    }
+
+    @Test
     fun anUnknownRouteSelectsNothing() {
         // Real case: a destination reached outside the bar, or the transient
         // state before the graph has published its first route.

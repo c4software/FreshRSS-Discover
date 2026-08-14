@@ -17,12 +17,19 @@ import androidx.navigation.NavHostController
  *
  * Driven by the [AppDestination] enum: adding a destination requires no
  * change here.
+ *
+ * @param onReselect tap on the already selected item. Split from [onSelect]
+ *   because the two gestures mean different things: one is a move, the other
+ *   a "bring me back to the start" on the destination already shown. Routing
+ *   both through [onSelect] would force every caller to re-derive what the
+ *   bar already knows.
  */
 @Composable
 fun AppNavigationBar(
     currentRoute: String?,
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
+    onReselect: (AppDestination) -> Unit = {},
 ) {
     val current = AppDestination.forRoute(currentRoute)
 
@@ -30,7 +37,9 @@ fun AppNavigationBar(
         AppDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = destination == current,
-                onClick = { onSelect(destination) },
+                onClick = {
+                    if (destination == current) onReselect(destination) else onSelect(destination)
+                },
                 icon = {
                     Icon(
                         painter = painterResource(destination.iconRes),

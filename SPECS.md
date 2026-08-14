@@ -356,12 +356,13 @@ Associated behaviour:
 Reloading starts from scratch: it **empties what is displayed**, reloads the
 beginning of the feed, and **automatically returns to the first article**.
 
-Two commands trigger it, and they do exactly the same thing:
+Three commands trigger it, and they do exactly the same thing:
 
 | Command | Available in | Why |
 |---|---|---|
 | **Pull to refresh** | List mode, **with or without articles** | The conventional gesture on a vertical feed |
 | **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
+| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Swipe mode there is nothing to scroll, the reload restarts the deck on its own |
 
 The gesture long stopped where the list stopped: a screen with no article had
 no list, therefore no pull. The reasoning was that those screens already had
@@ -371,10 +372,12 @@ no error to retry, only an empty screen, and the pull is the first thing they
 try on it. So it is armed there too; the button and "Retry" stay where they
 were.
 
-The button is therefore not a duplicate of the gesture: it is the **only**
-command of Swipe mode — superimposing a vertical pull on it would give two
-competing gestures on the same surface — and it is the alternative to the
-gesture in List mode, where nothing replaced it.
+The button is therefore not a duplicate of the gesture: it is the only command
+**on the content surface** of Swipe mode — superimposing a vertical pull on it
+would give two competing gestures on the same surface — and it is the
+alternative to the gesture in List mode, where nothing replaced it. The tab
+re-tap duplicates neither: it lives on the navigation bar, where a tap on the
+current tab would otherwise do nothing at all.
 
 - What is displayed is replaced, not added to. What was there disappears —
   **and it disappears from the cache too**, so that killing the application does
