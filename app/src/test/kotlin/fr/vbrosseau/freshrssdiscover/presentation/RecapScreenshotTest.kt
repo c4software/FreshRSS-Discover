@@ -21,24 +21,20 @@ class RecapScreenshotTest : ScreenshotTest() {
             RecapSheetContent(
                 state = RecapSheetState.Digest(
                     segments = listOf(
+                        RecapSegmentUi(text = "La semaine s'ouvre sur la bêta publique de ", url = null),
+                        RecapSegmentUi(text = "GNOME 51", url = "https://exemple.org/gnome"),
                         RecapSegmentUi(
-                            text = "La semaine s'ouvre sur GNOME 51, dont la bêta publique retouche " +
-                                "la plupart des applications de base",
-                            url = "https://exemple.org/gnome",
-                        ),
-                        RecapSegmentUi(
-                            text = ", pendant que deux articles se répondent autour du Tensor G6 : ",
+                            text = ", pendant que deux articles se répondent autour du ",
                             url = null,
                         ),
+                        RecapSegmentUi(text = "Tensor G6", url = "https://exemple.org/tensor"),
                         RecapSegmentUi(
-                            text = "ses gains tiennent à l'efficacité énergétique plus qu'à la puissance",
-                            url = "https://exemple.org/tensor",
+                            text = " : ses gains tiennent à l'efficacité énergétique plus qu'à la " +
+                                "puissance, ce que le test long terme du ",
+                            url = null,
                         ),
-                        RecapSegmentUi(
-                            text = ", ce que le test long terme du Find X9 Pro confirme en creux",
-                            url = "https://exemple.org/oppo",
-                        ),
-                        RecapSegmentUi(text = ".", url = null),
+                        RecapSegmentUi(text = "Find X9 Pro", url = "https://exemple.org/oppo"),
+                        RecapSegmentUi(text = " confirme en creux.", url = null),
                     ),
                     isGenerating = false,
                     canLoadMore = true,

@@ -9,37 +9,69 @@ data class RecapSegment(
     val articleIndex: Int?,
 )
 
-/** `[N]`, swallowing the space before it so no gap is left behind. */
-private val Marker = Regex("""\s*\[(\d+)]""")
+/**
+ * `{key words}[N]`, or a bare `[N]`: the braces are the demanded form, the
+ * bare marker the drift small models produce anyway.
+ */
+private val LinkedRun = Regex("""\{([^{}]+)}\s*\[(\d+)]|\s*\[(\d+)]""")
 
-/** A `[12` still being streamed: hidden until its closing bracket arrives. */
-private val TrailingPartialMarker = Regex("""\s*\[\d*$""")
+/** A `{key wo` or `[12` still being streamed: hidden until it closes. */
+private val TrailingPartial = Regex("""\s*\{[^{}]*(]\s*\[\d*)?$|\s*\[\d*$""")
+
+/** The last couple of words: what a bare marker binds instead of its run. */
+private val TrailingWords = Regex("""\S+(?:\s+\S+)?\s*$""")
+
+private const val BRACED_WORDS_GROUP = 1
+private const val BRACED_INDEX_GROUP = 2
+private const val BARE_INDEX_GROUP = 3
 
 /**
- * Splits the model's brief into segments, each bound to the article whose
- * marker closes it.
+ * Splits the model's brief into segments, binding to each article only the
+ * **few words** its marker designates — braced key words when the model
+ * followed the format, the last two words before a bare marker otherwise:
+ * binding the whole run underlined entire sentences (seen on device,
+ * GOAL-037-T16).
  *
- * Built to run on a **partial** text: generation streams, and the sheet
- * renders the prose as it grows — a half-written marker is hidden rather
- * than shown raw. A brief with no marker at all comes back as one unlinked
- * segment: a model that drops the format degrades to a plain readable
- * paragraph, never to a blank sheet.
+ * Built to run on a **partial** text: generation streams, and a half-written
+ * brace or marker is hidden rather than shown raw. A brief with no marker at
+ * all comes back as one unlinked segment — a model that drops the format
+ * degrades to a plain readable paragraph, never to a blank sheet.
  */
 fun parseRecapBrief(output: String): List<RecapSegment> {
-    val visible = output.replace(TrailingPartialMarker, "")
+    val visible = output.replace(TrailingPartial, "")
     if (visible.isBlank()) return emptyList()
 
     val segments = mutableListOf<RecapSegment>()
-    var consumed = 0
-    Marker.findAll(visible).forEach { marker ->
-        val text = visible.substring(consumed, marker.range.first)
-        if (text.isNotBlank()) {
-            segments += RecapSegment(text = text, articleIndex = marker.groupValues[1].toIntOrNull())
-        }
-        consumed = marker.range.last + 1
+
+    fun addPlain(text: String) {
+        val cleaned = text.replace("{", "").replace("}", "")
+        if (cleaned.isNotBlank()) segments += RecapSegment(text = cleaned, articleIndex = null)
     }
-    val remainder = visible.substring(consumed)
-    if (remainder.isNotBlank()) segments += RecapSegment(text = remainder, articleIndex = null)
+
+    var consumed = 0
+    LinkedRun.findAll(visible).forEach { match ->
+        val before = visible.substring(consumed, match.range.first)
+        val bracedWords = match.groupValues[BRACED_WORDS_GROUP]
+        if (bracedWords.isNotEmpty()) {
+            addPlain(before)
+            segments +=
+                RecapSegment(
+                    text = bracedWords,
+                    articleIndex = match.groupValues[BRACED_INDEX_GROUP].toIntOrNull(),
+                )
+        } else {
+            val index = match.groupValues[BARE_INDEX_GROUP].toIntOrNull()
+            val keyWords = index?.let { TrailingWords.find(before) }
+            if (keyWords == null) {
+                addPlain(before)
+            } else {
+                addPlain(before.substring(0, keyWords.range.first))
+                segments += RecapSegment(text = keyWords.value.trimEnd(), articleIndex = index)
+            }
+        }
+        consumed = match.range.last + 1
+    }
+    addPlain(visible.substring(consumed))
 
     return segments
 }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -160,7 +159,7 @@ private fun Brief(
 
     Column(
         modifier = Modifier
-            .heightIn(max = DigestMaxHeight)
+            .height(DigestHeight)
             .verticalScroll(scrollState)
             .testTag(RecapTestTags.DIGEST),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -272,10 +271,12 @@ private const val BYTES_PER_MEGABYTE = 1_048_576L
 private fun Long.toWholeMegabytes(): Int = (this / BYTES_PER_MEGABYTE).toInt()
 
 /**
- * Roughly half a tall screen: enough cards to read comfortably, while the
- * feed behind stays visible enough to remember what the sheet talks about.
+ * Fixed, not a maximum (author's call, GOAL-037-T16): the sheet must not
+ * resize as the prose streams or as "load more" swaps the batch. Roughly
+ * half a tall screen, the feed behind staying visible enough to remember
+ * what the sheet talks about.
  */
-private val DigestMaxHeight = 420.dp
+private val DigestHeight = 420.dp
 
 private val SkeletonBarHeight = 12.dp
 private const val SKELETON_FULL_LINES = 3
@@ -292,17 +293,11 @@ private fun RecapSheetContentDigestPreview() {
         RecapSheetContent(
             state = RecapSheetState.Digest(
                 segments = listOf(
-                    RecapSegmentUi(
-                        text = "La semaine s'ouvre sur GNOME 51, dont la bêta publique retouche " +
-                            "la plupart des applications de base",
-                        url = "https://exemple.org/gnome",
-                    ),
-                    RecapSegmentUi(text = ", pendant que deux articles se répondent sur le Tensor G6 : ", url = null),
-                    RecapSegmentUi(
-                        text = "ses gains tiennent à l'efficacité énergétique plus qu'à la puissance",
-                        url = "https://exemple.org/tensor",
-                    ),
-                    RecapSegmentUi(text = ".", url = null),
+                    RecapSegmentUi(text = "La semaine s'ouvre sur la bêta publique de ", url = null),
+                    RecapSegmentUi(text = "GNOME 51", url = "https://exemple.org/gnome"),
+                    RecapSegmentUi(text = ", pendant que le ", url = null),
+                    RecapSegmentUi(text = "Tensor G6", url = "https://exemple.org/tensor"),
+                    RecapSegmentUi(text = " gagne surtout en efficacité énergétique.", url = null),
                 ),
                 isGenerating = false,
                 canLoadMore = true,

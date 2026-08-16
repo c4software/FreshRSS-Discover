@@ -60,7 +60,7 @@ class RecapViewModelTest {
     @Test
     fun requestingWithAReadyModelStreamsTheDigest() = runTest {
         articles.unreadInCache = listOf(article(title = "Le seul titre", url = "https://exemple.org/a"))
-        generator.chunks = listOf("Un début", " et une fin [1].")
+        generator.chunks = listOf("Un début et ", "{une fin}[1].")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
@@ -68,7 +68,8 @@ class RecapViewModelTest {
         assertEquals(
             RecapSheetState.Digest(
                 segments = listOf(
-                    RecapSegmentUi(text = "Un début et une fin", url = "https://exemple.org/a"),
+                    RecapSegmentUi(text = "Un début et ", url = null),
+                    RecapSegmentUi(text = "une fin", url = "https://exemple.org/a"),
                     RecapSegmentUi(text = ".", url = null),
                 ),
                 isGenerating = false,
@@ -210,7 +211,7 @@ class RecapViewModelTest {
         articles.unreadInCache = (1L..3L).map {
             article(id = it, title = "Titre $it", url = "https://exemple.org/$it")
         }
-        generator.chunks = listOf("Le premier de l'écran [1].")
+        generator.chunks = listOf("Le premier de {l'écran}[1].")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(3L), ArticleId(1L)))
@@ -220,7 +221,7 @@ class RecapViewModelTest {
         assertIs<RecapSheetState.Digest>(sheet)
         // Marker [1] is the batch's first article, which is the screen's
         // first — id 3, not the cache's first.
-        assertEquals("https://exemple.org/3", sheet.segments.first().url)
+        assertEquals("https://exemple.org/3", sheet.segments.first { it.url != null }.url)
     }
 
     @Test
@@ -238,7 +239,7 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals("https://exemple.org/30", sheet.segments.first().url)
+        assertEquals("https://exemple.org/30", sheet.segments.first { it.url != null }.url)
     }
 
     @Test
@@ -250,7 +251,7 @@ class RecapViewModelTest {
             article(id = 2, title = "Non lu ensuite"),
         )
         articles.unreadInCache = listOf(article(id = 2, title = "Non lu ensuite"))
-        generator.chunks = listOf("Le lu d'abord [1].")
+        generator.chunks = listOf("Le {lu}[1] d'abord.")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(1L), ArticleId(2L)))
@@ -258,7 +259,7 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals("https://exemple.org/lu", sheet.segments.first().url)
+        assertEquals("https://exemple.org/lu", sheet.segments.first { it.url != null }.url)
     }
 
     @Test

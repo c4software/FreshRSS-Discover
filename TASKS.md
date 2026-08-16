@@ -2583,6 +2583,13 @@ the download, with progress, before generating.
       splits the prose into linked segments, and a model that drops the
       markers degrades to a plain readable paragraph. Cards go away; the
       skeleton becomes paragraph lines; "load more" and read-marking stay
+- [x] `GOAL-037-T16` on device the whole prose came out underlined — the
+      model marks statements, and a statement is the whole sentence. The
+      link must cover **one or two significant words**: the model now wraps
+      them in braces (`{Tensor G6}[2]`), and a bare marker without braces
+      falls back to the couple of words before it, never the whole run. The
+      brief's viewport also becomes **fixed-height**: the sheet must not
+      resize as the prose streams or batches swap
 
 ---
 

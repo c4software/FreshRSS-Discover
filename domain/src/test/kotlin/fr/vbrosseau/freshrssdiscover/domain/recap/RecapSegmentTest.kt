@@ -6,18 +6,35 @@ import kotlin.test.assertTrue
 
 /**
  * The brief parser, tested on what a streaming small model actually
- * produces: markers mid-prose, connective text between them, a truncated
- * marker at the tail, and prose that ignores the format altogether.
+ * produces: braced key words, bare markers, a truncated tail, and prose
+ * that ignores the format altogether. What matters throughout: only a
+ * couple of words end up bound, never a whole sentence.
  */
 class RecapSegmentTest {
     @Test
-    fun aMarkerBindsThePrecedingProseToItsArticle() {
-        val segments = parseRecapBrief("GNOME ouvre sa bêta [1]. Le Tensor G6 progresse [2].")
+    fun bracedKeyWordsAloneAreBoundToTheirArticle() {
+        val segments = parseRecapBrief("La bêta de {GNOME 51}[1] retouche tout.")
 
         assertEquals(
             listOf(
-                RecapSegment(text = "GNOME ouvre sa bêta", articleIndex = 1),
-                RecapSegment(text = ". Le Tensor G6 progresse", articleIndex = 2),
+                RecapSegment(text = "La bêta de ", articleIndex = null),
+                RecapSegment(text = "GNOME 51", articleIndex = 1),
+                RecapSegment(text = " retouche tout.", articleIndex = null),
+            ),
+            segments,
+        )
+    }
+
+    @Test
+    fun aBareMarkerBindsOnlyTheCoupleOfWordsBeforeIt() {
+        // The drift seen on device: the model marks whole statements, and
+        // binding the full run underlined entire sentences.
+        val segments = parseRecapBrief("Toute une phrase sur le même procès [2].")
+
+        assertEquals(
+            listOf(
+                RecapSegment(text = "Toute une phrase sur le ", articleIndex = null),
+                RecapSegment(text = "même procès", articleIndex = 2),
                 RecapSegment(text = ".", articleIndex = null),
             ),
             segments,
@@ -25,29 +42,22 @@ class RecapSegmentTest {
     }
 
     @Test
-    fun theSpaceBeforeAMarkerLeavesNoGapBehind() {
-        assertEquals("Une phrase", parseRecapBrief("Une phrase [3].").first().text)
-    }
-
-    @Test
-    fun consecutiveMarkersKeepOnlyTheFirstBinding() {
-        val segments = parseRecapBrief("Deux sources racontent le même procès [2][4].")
-
-        assertEquals(listOf(2), segments.mapNotNull { it.articleIndex })
-        assertEquals("Deux sources racontent le même procès", segments.first().text)
-    }
-
-    @Test
-    fun aHalfStreamedMarkerStaysHidden() {
-        val segments = parseRecapBrief("Le début du brief [1]. La suite arrive [2")
-
+    fun aHalfStreamedBraceOrMarkerStaysHidden() {
         assertEquals(
-            listOf(
-                RecapSegment(text = "Le début du brief", articleIndex = 1),
-                RecapSegment(text = ". La suite arrive", articleIndex = null),
-            ),
-            segments,
+            listOf(RecapSegment(text = "Le début", articleIndex = null)),
+            parseRecapBrief("Le début {Tensor G"),
         )
+        assertEquals(
+            listOf(RecapSegment(text = "Le début", articleIndex = null)),
+            parseRecapBrief("Le début [1"),
+        )
+    }
+
+    @Test
+    fun strayBracesWithoutAMarkerDisappearFromTheProse() {
+        val segments = parseRecapBrief("Des {accolades} sans numéro restent lisibles.")
+
+        assertEquals("Des accolades sans numéro restent lisibles.", segments.single().text)
     }
 
     @Test
@@ -64,8 +74,8 @@ class RecapSegmentTest {
 
     @Test
     fun anAbsurdNumberKeepsItsProseUnlinked() {
-        val segments = parseRecapBrief("Débordement [99999999999999999999].")
+        val segments = parseRecapBrief("Débordement massif [99999999999999999999].")
 
-        assertEquals(RecapSegment(text = "Débordement", articleIndex = null), segments.first())
+        assertEquals(RecapSegment(text = "Débordement massif", articleIndex = null), segments.first())
     }
 }

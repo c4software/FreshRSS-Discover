@@ -121,6 +121,7 @@ class RecapPromptTest {
         val prompt = RecapPrompt.build(listOf(article()), language = "French")
 
         assertContains(prompt, "ONE short paragraph")
-        assertContains(prompt, "square brackets, like [2]")
+        assertContains(prompt, "{Tensor G6}[2]")
+        assertContains(prompt, "Never brace more than two words.")
     }
 }
