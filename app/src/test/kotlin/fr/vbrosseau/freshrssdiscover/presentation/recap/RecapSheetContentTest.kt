@@ -1,7 +1,11 @@
 package fr.vbrosseau.freshrssdiscover.presentation.recap
 
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,13 +28,27 @@ class RecapSheetContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun show(state: RecapSheetState, onDownloadConfirm: () -> Unit = {}) {
+    private fun show(
+        state: RecapSheetState,
+        onDownloadConfirm: () -> Unit = {},
+        onItemClick: (String) -> Unit = {},
+    ) {
         composeRule.setContent {
             AppTheme(dynamicColor = false) {
-                RecapSheetContent(state = state, onDownloadConfirm = onDownloadConfirm)
+                RecapSheetContent(
+                    state = state,
+                    onDownloadConfirm = onDownloadConfirm,
+                    onItemClick = onItemClick,
+                )
             }
         }
     }
+
+    private fun item(
+        title: String? = "Le titre",
+        summary: String = "Le résumé.",
+        url: String? = "https://exemple.org/article",
+    ) = RecapItemUi(title = title, summary = summary, url = url)
 
     @Test
     fun theOfferExplainsAndItsButtonStartsTheDownload() {
@@ -71,36 +89,63 @@ class RecapSheetContentTest {
     }
 
     @Test
-    fun beforeTheFirstWordsTheSheetSaysItIsSummarizing() {
-        // The spark pulses forever: without freezing the clock, waiting for
-        // idle would never end.
+    fun beforeTheFirstSummaryTheSkeletonShimmers() {
+        // The shimmer sweeps forever: without freezing the clock, waiting
+        // for idle would never end.
         composeRule.mainClock.autoAdvance = false
-        show(RecapSheetState.Digest(text = "", isGenerating = true))
+        show(RecapSheetState.Digest(items = emptyList(), isGenerating = true))
 
-        composeRule.onNodeWithText("Résumé en cours…").assertIsDisplayed()
+        composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(3)
     }
 
     @Test
-    fun theStreamingTextEndsOnTheInsertionMark() {
-        composeRule.mainClock.autoAdvance = false
-        show(RecapSheetState.Digest(text = "Un début", isGenerating = true))
+    fun eachSummaryShowsItsArticleTitleAndText() {
+        show(
+            RecapSheetState.Digest(
+                items = listOf(item(title = "GNOME 51", summary = "La bêta est ouverte.")),
+                isGenerating = false,
+            ),
+        )
 
-        composeRule.onNodeWithText("Un début▍").assertIsDisplayed()
+        composeRule.onNodeWithText("GNOME 51").assertIsDisplayed()
+        composeRule.onNodeWithText("La bêta est ouverte.").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingASummaryOpensItsArticle() {
+        var opened: String? = null
+        show(
+            RecapSheetState.Digest(items = listOf(item(url = "https://exemple.org/a")), isGenerating = false),
+            onItemClick = { opened = it },
+        )
+
+        composeRule.onNodeWithTag(RecapTestTags.ITEM).performClick()
+
+        assertEquals("https://exemple.org/a", opened)
+    }
+
+    @Test
+    fun anUnlinkedSummaryIsNotTappable() {
+        show(
+            RecapSheetState.Digest(
+                items = listOf(item(title = null, url = null)),
+                isGenerating = false,
+            ),
+        )
+
+        composeRule.onAllNodesWithTag(RecapTestTags.ITEM).onFirst().assertHasNoClickAction()
     }
 
     @Test
     fun theModelMarkdownIsRenderedInsteadOfShownRaw() {
-        show(RecapSheetState.Digest(text = "* **Thème :** le texte", isGenerating = false))
+        show(
+            RecapSheetState.Digest(
+                items = listOf(item(summary = "* **Thème :** le texte")),
+                isGenerating = false,
+            ),
+        )
 
         composeRule.onNodeWithText("• Thème : le texte").assertIsDisplayed()
-    }
-
-    @Test
-    fun theDigestTextIsDisplayed() {
-        show(RecapSheetState.Digest(text = "• Le récap du jour.", isGenerating = false))
-
-        composeRule.onNodeWithTag(RecapTestTags.DIGEST).assertIsDisplayed()
-        composeRule.onNodeWithText("• Le récap du jour.").assertIsDisplayed()
     }
 
     @Test

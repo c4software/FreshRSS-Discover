@@ -42,10 +42,24 @@ sealed interface RecapSheetState {
     data object Empty : RecapSheetState
 
     /**
-     * The digest as generated so far. [isGenerating] tells the sheet to keep
-     * its progress indicator while chunks are still arriving.
+     * The summaries as parsed so far, one per article. [isGenerating] tells
+     * the sheet to shimmer the row still being written.
      */
-    data class Digest(val text: String, val isGenerating: Boolean) : RecapSheetState
+    data class Digest(val items: List<RecapItemUi>, val isGenerating: Boolean) : RecapSheetState
 
     data object GenerationFailed : RecapSheetState
 }
+
+/**
+ * One summary row of the digest.
+ *
+ * [title] and [url] come from the article the model's numbering points to;
+ * both are `null` when the model ignored the demanded format and the raw
+ * text is shown whole — readable, just not clickable, like an article
+ * without a link in the feed (SPECS.md §4.7).
+ */
+data class RecapItemUi(
+    val title: String?,
+    val summary: String,
+    val url: String?,
+)

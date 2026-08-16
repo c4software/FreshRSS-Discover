@@ -56,14 +56,23 @@ class RecapViewModelTest {
 
     @Test
     fun requestingWithAReadyModelStreamsTheDigest() = runTest {
-        articles.unreadInCache = listOf(article(title = "Le seul titre"))
-        generator.chunks = listOf("Un début", ", une fin.")
+        articles.unreadInCache = listOf(article(title = "Le seul titre", url = "https://exemple.org/a"))
+        generator.chunks = listOf("1. Un début", ", une fin.")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
 
         assertEquals(
-            RecapSheetState.Digest(text = "Un début, une fin.", isGenerating = false),
+            RecapSheetState.Digest(
+                items = listOf(
+                    RecapItemUi(
+                        title = "Le seul titre",
+                        summary = "Un début, une fin.",
+                        url = "https://exemple.org/a",
+                    ),
+                ),
+                isGenerating = false,
+            ),
             viewModel.uiState.value.sheet,
         )
     }
@@ -122,8 +131,12 @@ class RecapViewModelTest {
         viewModel.onRecapRequested()
         viewModel.onDownloadConfirmed()
 
+        // Prose without numbers degrades to one unlinked item, not a blank.
         assertEquals(
-            RecapSheetState.Digest(text = "Le récap.", isGenerating = false),
+            RecapSheetState.Digest(
+                items = listOf(RecapItemUi(title = null, summary = "Le récap.", url = null)),
+                isGenerating = false,
+            ),
             viewModel.uiState.value.sheet,
         )
     }

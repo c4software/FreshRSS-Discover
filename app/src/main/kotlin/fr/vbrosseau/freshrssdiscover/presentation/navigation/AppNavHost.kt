@@ -73,9 +73,14 @@ fun AppNavHost(
                 onFeedRecapChange = onFeedRecapChange,
             )
 
+            // The same opener as the feed cards: a summary's detail is the
+            // original article, nothing of ours.
+            val recapArticleOpener = rememberArticleOpener()
+
             RecapSheet(
                 state = recapUiState.sheet,
                 onDownloadConfirm = recapViewModel::onDownloadConfirmed,
+                onItemClick = recapArticleOpener::open,
                 onDismiss = recapViewModel::onSheetDismissed,
             )
 

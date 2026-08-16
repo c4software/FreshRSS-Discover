@@ -5,30 +5,31 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 /**
  * Articles kept in the prompt.
  *
- * The Prompt API truncates or refuses beyond ~4000 input tokens. Twenty
- * articles of a title plus a bounded excerpt stay well under that ceiling
- * while covering everything a normal reading session leaves unread; beyond
- * twenty, a digest stops being a digest.
+ * Ten, the author's cap (GOAL-037-T07): each article gets its own clickable
+ * summary line, and a sheet of more than ten rows stops being a recap. It
+ * also keeps the input far under the Prompt API's ~4000-token ceiling.
  */
-const val RECAP_MAX_ARTICLES = 20
+const val RECAP_MAX_ARTICLES = 10
 
 /**
  * Longest excerpt quoted per article, in characters.
  *
  * Aligned with what the list itself shows (`EXCERPT_MAX_LENGTH`): the recap
  * summarizes what the user could have read, and one prolific feed must not
- * consume the token budget of the nineteen others.
+ * consume the token budget of the nine others.
  */
 const val RECAP_EXCERPT_MAX_CHARS = 240
 
 /**
  * Builds the on-device prompt for the recap of unread articles.
  *
- * Pure construction, tested in plain JVM. The instructions are written in
- * English — what small instruction-tuned models follow most reliably — but
- * the output language is dictated by [language], the device language spelled
- * out in English (e.g. "French"): the recap must come out in whatever the
- * user reads, with no allow-list in the code.
+ * One numbered line in, one numbered line out: the number is what lets the
+ * output be parsed back to its article ([parseRecapLines]) so each summary
+ * can open the original. Pure construction, tested in plain JVM. The
+ * instructions are written in English — what small instruction-tuned models
+ * follow most reliably — but the output language is dictated by [language],
+ * the device language spelled out in English (e.g. "French"): the recap must
+ * come out in whatever the user reads, with no allow-list in the code.
  */
 object RecapPrompt {
     /**
@@ -44,26 +45,23 @@ object RecapPrompt {
         require(articles.isNotEmpty()) { "Nothing to recap: the article list is empty." }
 
         val lines =
-            articles.take(RECAP_MAX_ARTICLES).map { article ->
+            articles.take(RECAP_MAX_ARTICLES).mapIndexed { position, article ->
                 val excerpt =
                     article.summary.trim().let {
                         if (it.length > RECAP_EXCERPT_MAX_CHARS) it.take(RECAP_EXCERPT_MAX_CHARS) + "…" else it
                     }
                 val body = if (excerpt.isEmpty()) "" else " — $excerpt"
-                "- ${article.title} (${article.feed.title})$body"
+                "${position + 1}. ${article.title} (${article.feed.title})$body"
             }
 
         return buildString {
             appendLine("You are given the unread articles of a personal news feed, one per line,")
-            appendLine("as: title (source) — excerpt.")
-            appendLine("Write a short digest of what happened, grouped by theme, as concise")
-            appendLine("bullet points. Do not list the articles one by one, do not add an")
-            appendLine("introduction or a conclusion.")
-            // Small models sprinkle Markdown by default, and the sheet shows
-            // text: asked for here AND neutralized at display, belt and braces.
-            appendLine("Plain text only: no Markdown syntax, no asterisks; start each bullet")
-            appendLine("with \"• \".")
-            appendLine("Answer only with the digest, written in $language.")
+            appendLine("numbered, as: \"N. title (source) — excerpt\".")
+            appendLine("For each article, write one short sentence saying what happened.")
+            appendLine("Answer with exactly one line per article, in the same order, formatted")
+            appendLine("\"N. summary\", and nothing else — no introduction, no conclusion.")
+            appendLine("Plain text only: no Markdown syntax, no asterisks.")
+            appendLine("Every summary is written in $language.")
             appendLine()
             appendLine("Articles:")
             lines.forEach(::appendLine)

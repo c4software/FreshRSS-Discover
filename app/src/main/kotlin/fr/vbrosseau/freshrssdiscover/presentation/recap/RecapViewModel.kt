@@ -3,12 +3,14 @@ package fr.vbrosseau.freshrssdiscover.presentation.recap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.recap.RECAP_MAX_ARTICLES
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapGenerator
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapPrompt
+import fr.vbrosseau.freshrssdiscover.domain.recap.parseRecapLines
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,14 +107,18 @@ class RecapViewModel @Inject constructor(
                 return@launch
             }
 
-            _uiState.update { it.copy(sheet = RecapSheetState.Digest(text = "", isGenerating = true)) }
+            _uiState.update { it.copy(sheet = RecapSheetState.Digest(emptyList(), isGenerating = true)) }
             var text = ""
             try {
                 generator.generate(RecapPrompt.build(articles, language.displayName())).collect { chunk ->
                     text += chunk
-                    _uiState.update { it.copy(sheet = RecapSheetState.Digest(text, isGenerating = true)) }
+                    _uiState.update {
+                        it.copy(sheet = RecapSheetState.Digest(itemsOf(text, articles), isGenerating = true))
+                    }
                 }
-                _uiState.update { it.copy(sheet = RecapSheetState.Digest(text, isGenerating = false)) }
+                _uiState.update {
+                    it.copy(sheet = RecapSheetState.Digest(itemsOf(text, articles), isGenerating = false))
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (
@@ -124,5 +130,27 @@ class RecapViewModel @Inject constructor(
                 _uiState.update { it.copy(sheet = RecapSheetState.GenerationFailed) }
             }
         }
+    }
+}
+
+/**
+ * The model's numbering is what ties a summary back to its article — and to
+ * the tap that opens it. A number pointing outside the list keeps its text
+ * unlinked, and a model that ignored the format degrades to the raw text
+ * whole rather than to a blank sheet.
+ */
+private fun itemsOf(
+    text: String,
+    articles: List<Article>,
+): List<RecapItemUi> {
+    val lines = parseRecapLines(text)
+    if (lines.isEmpty()) {
+        val raw = text.trim()
+        return if (raw.isEmpty()) emptyList() else listOf(RecapItemUi(title = null, summary = raw, url = null))
+    }
+
+    return lines.map { line ->
+        val article = articles.getOrNull(line.index - 1)
+        RecapItemUi(title = article?.title, summary = line.text, url = article?.url)
     }
 }

@@ -36,7 +36,7 @@ class RecapPromptTest {
                 language = "French",
             )
 
-        assertContains(prompt, "- Le titre (Le flux) — L'extrait.")
+        assertContains(prompt, "1. Le titre (Le flux) — L'extrait.")
     }
 
     @Test
@@ -47,7 +47,7 @@ class RecapPromptTest {
                 language = "French",
             )
 
-        assertContains(prompt, "- Sans extrait (Un flux)\n")
+        assertContains(prompt, "1. Sans extrait (Un flux)\n")
         assertFalse(prompt.contains("Sans extrait (Un flux) —"))
     }
 
@@ -101,7 +101,7 @@ class RecapPromptTest {
     fun theInstructionsComeBeforeTheArticles() {
         val prompt = RecapPrompt.build(listOf(article(title = "Un titre")), language = "French")
 
-        assertTrue(prompt.indexOf("Articles:") < prompt.indexOf("- Un titre"))
+        assertTrue(prompt.indexOf("Articles:") < prompt.indexOf("1. Un titre"))
     }
 
     @Test
@@ -110,6 +110,9 @@ class RecapPromptTest {
 
         val prompt = RecapPrompt.build(articles, language = "French")
 
-        assertEquals(2, prompt.lines().count { it.startsWith("- ") })
+        assertEquals(
+            listOf("1. Premier (Un flux) — Un extrait.", "2. Second (Un flux) — Un extrait."),
+            prompt.lines().filter { parseRecapLines(it).isNotEmpty() },
+        )
     }
 }

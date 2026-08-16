@@ -2532,6 +2532,12 @@ the download, with progress, before generating.
       device too: a generation animation in the AI idiom — a pulsing spark
       before the first words, a blinking cursor at the end of the streaming
       text. The author tests on their device themselves
+- [x] `GOAL-037-T07` second device pass, author's verdict "ça fait ancien":
+      the digest becomes **one clickable summary per article** — capped at
+      ten, numbered output parsed back to its article, tap opens the
+      original like the feed does — rendered as modern cards; the spark and
+      cursor give way to a **shimmer** over the streaming text and skeleton
+      rows before the first words
 
 ---
 

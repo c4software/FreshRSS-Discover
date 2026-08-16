@@ -29,8 +29,6 @@
     <!-- Le cache n'a rien de non lu : il n'y a rien à résumer. -->
     <string name="recap_empty">Aucun article non lu à résumer.</string>
 
-    <!-- Sous l'indicateur tant que les premiers mots ne sont pas arrivés. -->
-    <string name="recap_generating">Résumé en cours…</string>
     <!--
         Pas de bouton réessayer : un second échec immédiat est probable, et le
         bouton de la barre reste le nouvel essai. Fermer est la sortie.

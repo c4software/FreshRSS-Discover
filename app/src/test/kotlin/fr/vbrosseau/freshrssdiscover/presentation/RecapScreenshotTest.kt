@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation
 
+import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapItemUi
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheetContent
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheetState
 import org.junit.Test
@@ -9,8 +10,8 @@ import org.junit.Test
  *
  * The content, not the modal: `ModalBottomSheet` renders in its own window,
  * out of the capture's reach. What can silently rot is here anyway — the
- * digest typography, the download offer's button, both against the sheet
- * background in dark theme.
+ * summary cards against the sheet background, the download offer's button,
+ * both in dark theme.
  */
 class RecapScreenshotTest : ScreenshotTest() {
 
@@ -19,12 +20,30 @@ class RecapScreenshotTest : ScreenshotTest() {
         capture("recap-digest") {
             RecapSheetContent(
                 state = RecapSheetState.Digest(
-                    text = "• L'actualité Android tient en deux annonces, dont une sur l'IA locale.\n" +
-                        "• Trois flux parlent du même procès, sans verdict encore.\n" +
-                        "• Le reste est plus léger : deux tests de claviers et une rétrospective.",
+                    items = listOf(
+                        RecapItemUi(
+                            title = "GNOME 51 passe en bêta publique",
+                            summary = "L'environnement de bureau ouvre sa bêta, avec des retouches " +
+                                "dans la plupart des applications de base.",
+                            url = "https://exemple.org/gnome",
+                        ),
+                        RecapItemUi(
+                            title = "Le Tensor G6 décortiqué",
+                            summary = "Le nouveau processeur progresse surtout en efficacité " +
+                                "énergétique, pas en puissance brute.",
+                            url = "https://exemple.org/tensor",
+                        ),
+                        RecapItemUi(
+                            title = "Une rétrospective claviers",
+                            summary = "Deux tests de claviers mécaniques et un retour sur dix ans " +
+                                "de frappe.",
+                            url = "https://exemple.org/claviers",
+                        ),
+                    ),
                     isGenerating = false,
                 ),
                 onDownloadConfirm = {},
+                onItemClick = {},
             )
         }
     }
@@ -35,6 +54,7 @@ class RecapScreenshotTest : ScreenshotTest() {
             RecapSheetContent(
                 state = RecapSheetState.DownloadOffer,
                 onDownloadConfirm = {},
+                onItemClick = {},
             )
         }
     }

@@ -6,35 +6,34 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
@@ -55,6 +54,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 fun RecapSheet(
     state: RecapSheetState,
     onDownloadConfirm: () -> Unit,
+    onItemClick: (String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -64,7 +64,7 @@ fun RecapSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag(RecapTestTags.SHEET),
     ) {
-        RecapSheetContent(state = state, onDownloadConfirm = onDownloadConfirm)
+        RecapSheetContent(state = state, onDownloadConfirm = onDownloadConfirm, onItemClick = onItemClick)
     }
 }
 
@@ -76,6 +76,7 @@ fun RecapSheet(
 internal fun RecapSheetContent(
     state: RecapSheetState,
     onDownloadConfirm: () -> Unit,
+    onItemClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -115,10 +116,10 @@ internal fun RecapSheetContent(
             RecapSheetState.Empty -> Text(text = stringResource(R.string.recap_empty))
 
             is RecapSheetState.Digest ->
-                if (state.text.isEmpty()) {
-                    GeneratingSpark()
+                if (state.items.isEmpty()) {
+                    DigestSkeleton()
                 } else {
-                    Digest(state)
+                    Digest(state, onItemClick)
                 }
 
             RecapSheetState.GenerationFailed -> Text(text = stringResource(R.string.recap_failed))
@@ -127,85 +128,167 @@ internal fun RecapSheetContent(
 }
 
 /**
- * The digest in a bounded viewport that follows the stream.
+ * One card per summary in a bounded viewport that follows the stream.
  *
  * Bounded because an unbounded sheet grows with every chunk and ends up
  * covering the whole feed — seen on the first device run. The viewport
- * sticks to the bottom while generating, so the newest words stay visible;
- * once done it stays where the reader leaves it.
+ * sticks to the bottom while generating, so the newest card stays visible;
+ * once done it stays where the reader leaves it. The row still being
+ * written shimmers instead of showing a cursor or a bar (author's call on
+ * the second run).
  */
 @Composable
-private fun Digest(state: RecapSheetState.Digest) {
+private fun Digest(
+    state: RecapSheetState.Digest,
+    onItemClick: (String) -> Unit,
+) {
     val scrollState = rememberScrollState()
 
     if (state.isGenerating) {
-        LaunchedEffect(state.text) {
+        LaunchedEffect(state.items) {
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
 
-    val digest = remember(state.text) { digestAnnotated(state.text) }
-
     Column(
         modifier = Modifier
             .heightIn(max = DigestMaxHeight)
-            .verticalScroll(scrollState),
+            .verticalScroll(scrollState)
+            .testTag(RecapTestTags.DIGEST),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        state.items.forEachIndexed { index, item ->
+            RecapItemCard(
+                item = item,
+                isBeingWritten = state.isGenerating && index == state.items.lastIndex,
+                onItemClick = onItemClick,
+            )
+        }
+    }
+}
+
+/**
+ * A summary as a tappable card: the summary is the invitation, the article
+ * is the detail, opened like a feed card opens it (SPECS.md §4.10). An
+ * unlinked item — the model ignored the format, or the article has no URL —
+ * keeps the same card without the tap, like a linkless article in the feed
+ * (§4.7).
+ */
+@Composable
+private fun RecapItemCard(
+    item: RecapItemUi,
+    isBeingWritten: Boolean,
+    onItemClick: (String) -> Unit,
+) {
+    if (item.url != null) {
+        Surface(
+            onClick = { onItemClick(item.url) },
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(RecapTestTags.ITEM),
+        ) {
+            RecapItemBody(item, isBeingWritten)
+        }
+    } else {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(RecapTestTags.ITEM),
+        ) {
+            RecapItemBody(item, isBeingWritten)
+        }
+    }
+}
+
+@Composable
+private fun RecapItemBody(
+    item: RecapItemUi,
+    isBeingWritten: Boolean,
+) {
+    val summary = remember(item.summary) { digestAnnotated(item.summary) }
+
+    Column(
+        modifier = Modifier.padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        item.title?.let {
+            Text(text = it, style = MaterialTheme.typography.titleSmall)
+        }
         Text(
-            text = if (state.isGenerating) digest.withStreamingCursor() else digest,
-            modifier = Modifier.testTag(RecapTestTags.DIGEST),
+            text = summary,
+            style = if (isBeingWritten) {
+                LocalTextStyle.current.copy(brush = shimmerBrush())
+            } else {
+                LocalTextStyle.current
+            },
         )
     }
 }
 
 /**
- * The blinking insertion mark at the end of the streaming text — the idiom
- * that says "being written" without reserving a progress-bar row.
+ * Skeleton rows while the first summary has not arrived — the shimmer says
+ * "being written" the way every modern feed does, without a spinner.
  */
 @Composable
-private fun AnnotatedString.withStreamingCursor(): AnnotatedString {
-    val blink by rememberInfiniteTransition(label = "cursor").animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = CURSOR_BLINK_MILLIS, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cursorAlpha",
-    )
-    val color = LocalContentColor.current
-
-    return buildAnnotatedString {
-        append(this@withStreamingCursor)
-        withStyle(SpanStyle(color = color.copy(alpha = blink))) { append(STREAMING_CURSOR) }
+private fun DigestSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        repeat(SKELETON_ROWS) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(RecapTestTags.SKELETON),
+            ) {
+                Column(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    SkeletonBar(widthFraction = TITLE_BAR_FRACTION)
+                    SkeletonBar(widthFraction = 1f)
+                }
+            }
+        }
     }
 }
 
-/** The spark, pulsing while the first words have not arrived. */
 @Composable
-private fun GeneratingSpark() {
-    val pulse by rememberInfiniteTransition(label = "spark").animateFloat(
-        initialValue = 1f,
-        targetValue = SPARK_PULSE_SCALE,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = SPARK_PULSE_MILLIS),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "sparkScale",
-    )
-
-    Icon(
-        painter = painterResource(R.drawable.ic_recap),
-        // Decorative: the label below already says what happens.
-        contentDescription = null,
+private fun SkeletonBar(widthFraction: Float) {
+    Box(
         modifier = Modifier
-            .size(SparkSize)
-            .graphicsLayer {
-                scaleX = pulse
-                scaleY = pulse
-            },
+            .fillMaxWidth(widthFraction)
+            .height(SkeletonBarHeight)
+            .background(brush = shimmerBrush(), shape = RoundedCornerShape(percent = 50)),
     )
-    Text(text = stringResource(R.string.recap_generating))
+}
+
+/**
+ * A highlight sweeping left to right forever — restarting, not reversing:
+ * a reversing sweep reads as a glitchy bounce.
+ */
+@Composable
+private fun shimmerBrush(): Brush {
+    val sweep by rememberInfiniteTransition(label = "shimmer").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = SHIMMER_SWEEP_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmerSweep",
+    )
+    val base = MaterialTheme.colorScheme.onSurfaceVariant
+    val start = sweep * (SHIMMER_WIDTH_PX + SHIMMER_TRAVEL_PX) - SHIMMER_WIDTH_PX
+
+    return Brush.linearGradient(
+        colors = listOf(base.copy(alpha = SHIMMER_DIM_ALPHA), base, base.copy(alpha = SHIMMER_DIM_ALPHA)),
+        start = Offset(start, 0f),
+        end = Offset(start + SHIMMER_WIDTH_PX, 0f),
+    )
 }
 
 @Composable
@@ -224,16 +307,18 @@ private const val BYTES_PER_MEGABYTE = 1_048_576L
 private fun Long.toWholeMegabytes(): Int = (this / BYTES_PER_MEGABYTE).toInt()
 
 /**
- * Roughly half a tall screen: enough lines to read comfortably, while the
+ * Roughly half a tall screen: enough cards to read comfortably, while the
  * feed behind stays visible enough to remember what the sheet talks about.
  */
-private val DigestMaxHeight = 360.dp
+private val DigestMaxHeight = 420.dp
 
-private val SparkSize = 32.dp
-private const val SPARK_PULSE_SCALE = 1.25f
-private const val SPARK_PULSE_MILLIS = 600
-private const val CURSOR_BLINK_MILLIS = 500
-private const val STREAMING_CURSOR = "▍"
+private val SkeletonBarHeight = 12.dp
+private const val SKELETON_ROWS = 3
+private const val TITLE_BAR_FRACTION = 0.45f
+private const val SHIMMER_SWEEP_MILLIS = 1_100
+private const val SHIMMER_WIDTH_PX = 400f
+private const val SHIMMER_TRAVEL_PX = 900f
+private const val SHIMMER_DIM_ALPHA = 0.35f
 
 @Preview
 @Composable
@@ -241,10 +326,22 @@ private fun RecapSheetContentDigestPreview() {
     AppTheme(dynamicColor = false) {
         RecapSheetContent(
             state = RecapSheetState.Digest(
-                text = "• L'actualité du jour tient en deux lignes.\n• Et la seconde est optimiste.",
+                items = listOf(
+                    RecapItemUi(
+                        title = "GNOME 51 en bêta publique",
+                        summary = "L'environnement arrive en bêta avec des retouches partout.",
+                        url = "https://exemple.org/gnome",
+                    ),
+                    RecapItemUi(
+                        title = "Tensor G6 décortiqué",
+                        summary = "Le nouveau processeur gagne surtout en efficacité.",
+                        url = "https://exemple.org/tensor",
+                    ),
+                ),
                 isGenerating = false,
             ),
             onDownloadConfirm = {},
+            onItemClick = {},
         )
     }
 }
@@ -256,6 +353,7 @@ private fun RecapSheetContentDownloadOfferPreview() {
         RecapSheetContent(
             state = RecapSheetState.DownloadOffer,
             onDownloadConfirm = {},
+            onItemClick = {},
         )
     }
 }

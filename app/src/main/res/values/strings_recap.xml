@@ -29,8 +29,6 @@
     <!-- The cache holds nothing unread: there is nothing to summarize. -->
     <string name="recap_empty">Nothing left unread to summarize.</string>
 
-    <!-- Under the indicator while the first words have not arrived yet. -->
-    <string name="recap_generating">Summarizing…</string>
     <!--
         No retry button: generation failing twice in a row is likely, and the
         button in the title bar remains the retry. Closing is the way out.
