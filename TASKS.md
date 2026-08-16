@@ -2574,6 +2574,15 @@ the download, with progress, before generating.
       beside it, the refresh button vanishing during a List refresh read as
       a glitch — it now stays put, **disabled**, keeping its spinner only
       in Swipe mode where nothing else shows progress
+- [x] `GOAL-037-T15` the author found per-article summaries redundant with
+      the list itself — "c'est la même chose" — and chose the **narrative
+      brief**: one flowing paragraph telling what happened across the five
+      articles and what connects them, where the passages drawn from one
+      article are **underlined and tappable** to the original. The model
+      marks its sentences with the article number (`[N]`); a pure parser
+      splits the prose into linked segments, and a model that drops the
+      markers degrades to a plain readable paragraph. Cards go away; the
+      skeleton becomes paragraph lines; "load more" and read-marking stay
 
 ---
 

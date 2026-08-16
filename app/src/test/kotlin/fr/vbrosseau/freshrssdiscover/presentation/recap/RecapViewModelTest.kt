@@ -60,21 +60,17 @@ class RecapViewModelTest {
     @Test
     fun requestingWithAReadyModelStreamsTheDigest() = runTest {
         articles.unreadInCache = listOf(article(title = "Le seul titre", url = "https://exemple.org/a"))
-        generator.chunks = listOf("1. Un début", ", une fin.")
+        generator.chunks = listOf("Un début", " et une fin [1].")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
 
         assertEquals(
             RecapSheetState.Digest(
-                items = listOf(
-                    RecapItemUi(
-                        title = "Le seul titre",
-                        summary = "Un début, une fin.",
-                        url = "https://exemple.org/a",
-                    ),
+                segments = listOf(
+                    RecapSegmentUi(text = "Un début et une fin", url = "https://exemple.org/a"),
+                    RecapSegmentUi(text = ".", url = null),
                 ),
-                plannedCount = 1,
                 isGenerating = false,
                 canLoadMore = false,
             ),
@@ -136,11 +132,10 @@ class RecapViewModelTest {
         viewModel.onRecapRequested()
         viewModel.onDownloadConfirmed()
 
-        // Prose without numbers degrades to one unlinked item, not a blank.
+        // Prose without markers degrades to one unlinked segment, not a blank.
         assertEquals(
             RecapSheetState.Digest(
-                items = listOf(RecapItemUi(title = null, summary = "Le récap.", url = null)),
-                plannedCount = 1,
+                segments = listOf(RecapSegmentUi(text = "Le récap.", url = null)),
                 isGenerating = false,
                 canLoadMore = false,
             ),
@@ -176,21 +171,23 @@ class RecapViewModelTest {
     }
 
     @Test
-    fun loadMoreReplacesTheCardsWithTheNextBatch() = runTest {
-        articles.unreadInCache = (1L..7L).map { article(id = it, title = "Titre $it") }
-        generator.chunks = listOf("1. R1\n2. R2\n3. R3\n4. R4\n5. R5")
+    fun loadMoreReplacesTheBriefWithTheNextBatch() = runTest {
+        articles.unreadInCache = (1L..7L).map {
+            article(id = it, title = "Titre $it", url = "https://exemple.org/$it")
+        }
+        generator.chunks = listOf("Un premier brief [1].")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
-        generator.chunks = listOf("1. R6\n2. R7")
+        generator.chunks = listOf("La suite [1].")
         viewModel.onLoadMore()
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        // A page of five, not a pile: only the next batch remains on show,
-        // and no already-summarized article comes back.
-        assertEquals(listOf("Titre 6", "Titre 7"), sheet.items.map { it.title })
-        assertEquals(2, sheet.plannedCount)
+        // One paragraph, not a pile: only the next batch remains on show,
+        // and its marker [1] points into the NEW batch — article 6.
+        assertEquals("La suite", sheet.segments.first().text)
+        assertEquals("https://exemple.org/6", sheet.segments.first().url)
         assertFalse(sheet.canLoadMore)
         assertFalse(sheet.isGenerating)
     }
@@ -198,7 +195,7 @@ class RecapViewModelTest {
     @Test
     fun moreUnreadThanTheCapOffersToLoadMore() = runTest {
         articles.unreadInCache = (1L..6L).map { article(id = it) }
-        generator.chunks = listOf("1. R1")
+        generator.chunks = listOf("Un brief [1].")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
@@ -209,9 +206,11 @@ class RecapViewModelTest {
     }
 
     @Test
-    fun theSummariesFollowTheOrderDisplayedOnScreen() = runTest {
-        articles.unreadInCache = (1L..3L).map { article(id = it, title = "Titre $it") }
-        generator.chunks = listOf("1. R1\n2. R2\n3. R3")
+    fun theMarkersResolveAgainstTheOrderDisplayedOnScreen() = runTest {
+        articles.unreadInCache = (1L..3L).map {
+            article(id = it, title = "Titre $it", url = "https://exemple.org/$it")
+        }
+        generator.chunks = listOf("Le premier de l'écran [1].")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(3L), ArticleId(1L)))
@@ -219,17 +218,19 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        // Displayed articles first, in screen order; the rest after, in
-        // cache order.
-        assertEquals(listOf("Titre 3", "Titre 1", "Titre 2"), sheet.items.map { it.title })
+        // Marker [1] is the batch's first article, which is the screen's
+        // first — id 3, not the cache's first.
+        assertEquals("https://exemple.org/3", sheet.segments.first().url)
     }
 
     @Test
-    fun aDisplayedArticleDeepInTheCacheStillComesFirst() = runTest {
+    fun aDisplayedArticleDeepInTheCacheStillLeadsTheBatch() = runTest {
         // Regression: the pool used to be six articles in the cache's own
         // order, so a screen-first article beyond it missed the batch.
-        articles.unreadInCache = (1L..30L).map { article(id = it, title = "Titre $it") }
-        generator.chunks = listOf("1. R1")
+        articles.unreadInCache = (1L..30L).map {
+            article(id = it, title = "Titre $it", url = "https://exemple.org/$it")
+        }
+        generator.chunks = listOf("Un brief [1].")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(30L)))
@@ -237,7 +238,7 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals("Titre 30", sheet.items.first().title)
+        assertEquals("https://exemple.org/30", sheet.segments.first().url)
     }
 
     @Test
@@ -245,11 +246,11 @@ class RecapViewModelTest {
         // The author's ruling after two read articles sat above the first
         // summary: the recap covers the list as displayed, read included.
         articles.cachedArticles.value = listOf(
-            article(id = 1, title = "Lu en tête", isRead = true),
+            article(id = 1, title = "Lu en tête", isRead = true, url = "https://exemple.org/lu"),
             article(id = 2, title = "Non lu ensuite"),
         )
         articles.unreadInCache = listOf(article(id = 2, title = "Non lu ensuite"))
-        generator.chunks = listOf("1. R1\n2. R2")
+        generator.chunks = listOf("Le lu d'abord [1].")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(1L), ArticleId(2L)))
@@ -257,7 +258,7 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals(listOf("Lu en tête", "Non lu ensuite"), sheet.items.map { it.title })
+        assertEquals("https://exemple.org/lu", sheet.segments.first().url)
     }
 
     @Test
@@ -266,7 +267,7 @@ class RecapViewModelTest {
             article(id = 1, title = "Déjà lu", isRead = true),
             article(id = 2, title = "Non lu"),
         )
-        generator.chunks = listOf("1. R1\n2. R2")
+        generator.chunks = listOf("Un brief [1] et sa suite [2].")
 
         val viewModel = viewModel()
         viewModel.onDisplayedOrderChanged(listOf(ArticleId(1L), ArticleId(2L)))
@@ -280,16 +281,14 @@ class RecapViewModelTest {
     @Test
     fun reopeningTheSheetStartsAFreshRecap() = runTest {
         articles.unreadInCache = listOf(article(title = "Le seul titre"))
-        generator.chunks = listOf("1. R1")
+        generator.chunks = listOf("Un brief [1].")
 
         val viewModel = viewModel()
         viewModel.onRecapRequested()
         viewModel.onSheetDismissed()
         viewModel.onRecapRequested()
 
-        val sheet = viewModel.uiState.value.sheet
-        assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals(1, sheet.items.size)
+        assertIs<RecapSheetState.Digest>(viewModel.uiState.value.sheet)
         assertEquals(2, generator.receivedPrompts.size)
     }
 

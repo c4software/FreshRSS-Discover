@@ -19,7 +19,7 @@ class RecapPromptTest {
     fun thePromptDemandsTheGivenLanguage() {
         val prompt = RecapPrompt.build(listOf(article()), language = "French")
 
-        assertContains(prompt, "written in French")
+        assertContains(prompt, "The paragraph is written in French.")
     }
 
     @Test
@@ -105,14 +105,22 @@ class RecapPromptTest {
     }
 
     @Test
-    fun exactlyOneLinePerArticle() {
+    fun exactlyOneNumberedLinePerArticle() {
         val articles = listOf(article(id = 1, title = "Premier"), article(id = 2, title = "Second"))
 
         val prompt = RecapPrompt.build(articles, language = "French")
 
         assertEquals(
             listOf("1. Premier (Un flux) — Un extrait.", "2. Second (Un flux) — Un extrait."),
-            prompt.lines().filter { parseRecapLines(it).isNotEmpty() },
+            prompt.lines().filter { it.matches(Regex("\\d+\\. .*")) },
         )
+    }
+
+    @Test
+    fun theInstructionsDemandMarkedProse() {
+        val prompt = RecapPrompt.build(listOf(article()), language = "French")
+
+        assertContains(prompt, "ONE short paragraph")
+        assertContains(prompt, "square brackets, like [2]")
     }
 }

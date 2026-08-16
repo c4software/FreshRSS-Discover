@@ -22,15 +22,16 @@ const val RECAP_MAX_ARTICLES = 5
 const val RECAP_EXCERPT_MAX_CHARS = 240
 
 /**
- * Builds the on-device prompt for the recap of unread articles.
+ * Builds the on-device prompt for the narrative brief.
  *
- * One numbered line in, one numbered line out: the number is what lets the
- * output be parsed back to its article ([parseRecapLines]) so each summary
- * can open the original. Pure construction, tested in plain JVM. The
- * instructions are written in English — what small instruction-tuned models
- * follow most reliably — but the output language is dictated by [language],
- * the device language spelled out in English (e.g. "French"): the recap must
- * come out in whatever the user reads, with no allow-list in the code.
+ * Numbered lines in, marked prose out: the `[N]` markers are what let the
+ * paragraph be parsed back into article-bound segments ([parseRecapBrief])
+ * so each underlined passage can open its original. Pure construction,
+ * tested in plain JVM. The instructions are written in English — what small
+ * instruction-tuned models follow most reliably — but the output language is
+ * dictated by [language], the device language spelled out in English (e.g.
+ * "French"): the brief must come out in whatever the user reads, with no
+ * allow-list in the code.
  */
 object RecapPrompt {
     /**
@@ -56,13 +57,16 @@ object RecapPrompt {
             }
 
         return buildString {
-            appendLine("You are given the unread articles of a personal news feed, one per line,")
+            appendLine("You are given the articles of a personal news feed, one per line,")
             appendLine("numbered, as: \"N. title (source) — excerpt\".")
-            appendLine("For each article, write one short sentence saying what happened.")
-            appendLine("Answer with exactly one line per article, in the same order, formatted")
-            appendLine("\"N. summary\", and nothing else — no introduction, no conclusion.")
+            appendLine("Write ONE short paragraph, three to six sentences, telling what")
+            appendLine("happened across these articles — and, when several cover related")
+            appendLine("stories, what connects them.")
+            appendLine("Right after each statement drawn from an article, put that article's")
+            appendLine("number in square brackets, like [2].")
+            appendLine("Flowing prose only: no list, no introduction, no conclusion.")
             appendLine("Plain text only: no Markdown syntax, no asterisks.")
-            appendLine("Every summary is written in $language.")
+            appendLine("The paragraph is written in $language.")
             appendLine()
             appendLine("Articles:")
             lines.forEach(::appendLine)

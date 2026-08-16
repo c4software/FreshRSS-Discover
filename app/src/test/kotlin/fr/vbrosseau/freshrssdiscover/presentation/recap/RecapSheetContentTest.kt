@@ -1,11 +1,9 @@
 package fr.vbrosseau.freshrssdiscover.presentation.recap
 
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -46,11 +44,10 @@ class RecapSheetContentTest {
         }
     }
 
-    private fun item(
-        title: String? = "Le titre",
-        summary: String = "Le résumé.",
+    private fun segment(
+        text: String = "Le brief.",
         url: String? = "https://exemple.org/article",
-    ) = RecapItemUi(title = title, summary = summary, url = url)
+    ) = RecapSegmentUi(text = text, url = url)
 
     @Test
     fun theOfferExplainsAndItsButtonStartsTheDownload() {
@@ -91,74 +88,29 @@ class RecapSheetContentTest {
     }
 
     @Test
-    fun beforeTheFirstSummaryTheSkeletonShimmers() {
+    fun beforeTheFirstWordsTheParagraphSkeletonShimmers() {
         // The shimmer sweeps forever: without freezing the clock, waiting
         // for idle would never end.
         composeRule.mainClock.autoAdvance = false
-        show(RecapSheetState.Digest(items = emptyList(), plannedCount = 5, isGenerating = true, canLoadMore = false))
+        show(RecapSheetState.Digest(segments = emptyList(), isGenerating = true, canLoadMore = false))
 
-        composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(5)
+        composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(4)
     }
 
     @Test
-    fun eachSummaryShowsItsArticleTitleAndText() {
+    fun theBriefReadsAsOneParagraph() {
         show(
             RecapSheetState.Digest(
-                items = listOf(item(title = "GNOME 51", summary = "La bêta est ouverte.")),
-                plannedCount = 1,
+                segments = listOf(
+                    segment(text = "GNOME ouvre sa bêta"),
+                    segment(text = ", et le procès continue.", url = null),
+                ),
                 isGenerating = false,
                 canLoadMore = false,
             ),
         )
 
-        composeRule.onNodeWithText("GNOME 51").assertIsDisplayed()
-        composeRule.onNodeWithText("La bêta est ouverte.").assertIsDisplayed()
-    }
-
-    @Test
-    fun tappingASummaryOpensItsArticle() {
-        var opened: String? = null
-        show(
-            RecapSheetState.Digest(
-                items = listOf(item(url = "https://exemple.org/a")),
-                plannedCount = 1,
-                isGenerating = false,
-                canLoadMore = false,
-            ),
-            onItemClick = { opened = it },
-        )
-
-        composeRule.onNodeWithTag(RecapTestTags.ITEM).performClick()
-
-        assertEquals("https://exemple.org/a", opened)
-    }
-
-    @Test
-    fun anUnlinkedSummaryIsNotTappable() {
-        show(
-            RecapSheetState.Digest(
-                items = listOf(item(title = null, url = null)),
-                plannedCount = 1,
-                isGenerating = false,
-                canLoadMore = false,
-            ),
-        )
-
-        composeRule.onAllNodesWithTag(RecapTestTags.ITEM).onFirst().assertHasNoClickAction()
-    }
-
-    @Test
-    fun theModelMarkdownIsRenderedInsteadOfShownRaw() {
-        show(
-            RecapSheetState.Digest(
-                items = listOf(item(summary = "* **Thème :** le texte")),
-                plannedCount = 1,
-                isGenerating = false,
-                canLoadMore = false,
-            ),
-        )
-
-        composeRule.onNodeWithText("• Thème : le texte").assertIsDisplayed()
+        composeRule.onNodeWithText("GNOME ouvre sa bêta, et le procès continue.").assertIsDisplayed()
     }
 
     @Test
@@ -166,8 +118,7 @@ class RecapSheetContentTest {
         var more = 0
         show(
             RecapSheetState.Digest(
-                items = listOf(item()),
-                plannedCount = 1,
+                segments = listOf(segment()),
                 isGenerating = false,
                 canLoadMore = true,
             ),
@@ -184,8 +135,7 @@ class RecapSheetContentTest {
         composeRule.mainClock.autoAdvance = false
         show(
             RecapSheetState.Digest(
-                items = listOf(item()),
-                plannedCount = 2,
+                segments = listOf(segment()),
                 isGenerating = true,
                 canLoadMore = true,
             ),

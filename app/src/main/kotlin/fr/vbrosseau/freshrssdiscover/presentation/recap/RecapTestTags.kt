@@ -11,7 +11,6 @@ object RecapTestTags {
     const val SHEET = "recap:sheet"
     const val DOWNLOAD = "recap:download"
     const val DIGEST = "recap:digest"
-    const val ITEM = "recap:item"
     const val SKELETON = "recap:skeleton"
     const val LOAD_MORE = "recap:loadMore"
 }

@@ -1,6 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation
 
-import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapItemUi
+import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSegmentUi
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheetContent
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheetState
 import org.junit.Test
@@ -10,37 +10,36 @@ import org.junit.Test
  *
  * The content, not the modal: `ModalBottomSheet` renders in its own window,
  * out of the capture's reach. What can silently rot is here anyway — the
- * summary cards against the sheet background, the download offer's button,
+ * underlined passages against the plain prose, the download offer's button,
  * both in dark theme.
  */
 class RecapScreenshotTest : ScreenshotTest() {
 
     @Test
-    fun recapSheetWithADigest() {
+    fun recapSheetWithABrief() {
         capture("recap-digest") {
             RecapSheetContent(
                 state = RecapSheetState.Digest(
-                    items = listOf(
-                        RecapItemUi(
-                            title = "GNOME 51 passe en bêta publique",
-                            summary = "L'environnement de bureau ouvre sa bêta, avec des retouches " +
-                                "dans la plupart des applications de base.",
+                    segments = listOf(
+                        RecapSegmentUi(
+                            text = "La semaine s'ouvre sur GNOME 51, dont la bêta publique retouche " +
+                                "la plupart des applications de base",
                             url = "https://exemple.org/gnome",
                         ),
-                        RecapItemUi(
-                            title = "Le Tensor G6 décortiqué",
-                            summary = "Le nouveau processeur progresse surtout en efficacité " +
-                                "énergétique, pas en puissance brute.",
+                        RecapSegmentUi(
+                            text = ", pendant que deux articles se répondent autour du Tensor G6 : ",
+                            url = null,
+                        ),
+                        RecapSegmentUi(
+                            text = "ses gains tiennent à l'efficacité énergétique plus qu'à la puissance",
                             url = "https://exemple.org/tensor",
                         ),
-                        RecapItemUi(
-                            title = "Une rétrospective claviers",
-                            summary = "Deux tests de claviers mécaniques et un retour sur dix ans " +
-                                "de frappe.",
-                            url = "https://exemple.org/claviers",
+                        RecapSegmentUi(
+                            text = ", ce que le test long terme du Find X9 Pro confirme en creux",
+                            url = "https://exemple.org/oppo",
                         ),
+                        RecapSegmentUi(text = ".", url = null),
                     ),
-                    plannedCount = 3,
                     isGenerating = false,
                     canLoadMore = true,
                 ),

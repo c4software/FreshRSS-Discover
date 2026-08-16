@@ -13,7 +13,7 @@ import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapGenerator
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapPrompt
-import fr.vbrosseau.freshrssdiscover.domain.recap.parseRecapLines
+import fr.vbrosseau.freshrssdiscover.domain.recap.parseRecapBrief
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -148,15 +148,14 @@ class RecapViewModel @Inject constructor(
             }
             val canLoadMore = remaining.size > articles.size
 
-            // Each batch replaces the previous cards (author's call on the
-            // fifth device run): the sheet is a page of five, not a pile —
-            // only the id exclusion above remembers what was already shown.
+            // Each batch replaces the previous brief (author's call on the
+            // fifth device run): the sheet is one paragraph, not a pile —
+            // only the id exclusion above remembers what was already told.
             fun digest(
-                items: List<RecapItemUi>,
+                segments: List<RecapSegmentUi>,
                 isGenerating: Boolean,
             ) = RecapSheetState.Digest(
-                items = items,
-                plannedCount = articles.size,
+                segments = segments,
                 isGenerating = isGenerating,
                 canLoadMore = canLoadMore,
             )
@@ -166,7 +165,7 @@ class RecapViewModel @Inject constructor(
             try {
                 generator.generate(RecapPrompt.build(articles, language.displayName())).collect { chunk ->
                     text += chunk
-                    _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = true)) }
+                    _uiState.update { it.copy(sheet = digest(segmentsOf(text, articles), isGenerating = true)) }
                 }
                 summarizedIds += articles.map { it.id }
                 // Reading the summary is reading the article (SPECS.md §4.10),
@@ -175,7 +174,7 @@ class RecapViewModel @Inject constructor(
                 // transmission.
                 val unreadShown = articles.filterNot(Article::isRead).map(Article::id).toSet()
                 if (unreadShown.isNotEmpty()) readSyncRepository.markAsRead(unreadShown)
-                _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = false)) }
+                _uiState.update { it.copy(sheet = digest(segmentsOf(text, articles), isGenerating = false)) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (
@@ -191,23 +190,16 @@ class RecapViewModel @Inject constructor(
 }
 
 /**
- * The model's numbering is what ties a summary back to its article — and to
- * the tap that opens it. A number pointing outside the list keeps its text
- * unlinked, and a model that ignored the format degrades to the raw text
- * whole rather than to a blank sheet.
+ * The model's markers are what tie a passage back to its article — and to
+ * the tap that opens it. A marker pointing outside the batch keeps its
+ * prose unlinked, and a model that dropped the format degrades to one
+ * plain readable paragraph rather than to a blank sheet.
  */
-private fun itemsOf(
+private fun segmentsOf(
     text: String,
     articles: List<Article>,
-): List<RecapItemUi> {
-    val lines = parseRecapLines(text)
-    if (lines.isEmpty()) {
-        val raw = text.trim()
-        return if (raw.isEmpty()) emptyList() else listOf(RecapItemUi(title = null, summary = raw, url = null))
+): List<RecapSegmentUi> =
+    parseRecapBrief(text).map { segment ->
+        val article = segment.articleIndex?.let { index -> articles.getOrNull(index - 1) }
+        RecapSegmentUi(text = segment.text, url = article?.url)
     }
-
-    return lines.map { line ->
-        val article = articles.getOrNull(line.index - 1)
-        RecapItemUi(title = article?.title, summary = line.text, url = article?.url)
-    }
-}

@@ -21,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -30,7 +29,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -132,7 +130,7 @@ internal fun RecapSheetContent(
 
             RecapSheetState.Empty -> Text(text = stringResource(R.string.recap_empty))
 
-            is RecapSheetState.Digest -> Digest(state, onItemClick, onLoadMore)
+            is RecapSheetState.Digest -> Brief(state, onItemClick, onLoadMore)
 
             RecapSheetState.GenerationFailed -> Text(text = stringResource(R.string.recap_failed))
         }
@@ -140,26 +138,24 @@ internal fun RecapSheetContent(
 }
 
 /**
- * One card slot per planned summary, all present from the first frame.
- *
- * The layout never grows, it fills (author's call on the third device run):
- * every slot shows as a shimmering skeleton immediately, and each one turns
- * into its summary as its line completes — so the sheet's height is settled
- * before the model has said a word. Still bounded and scrollable for small
- * screens, but with five slots the scroll is the exception.
+ * The brief: one flowing paragraph telling what happened across the batch,
+ * its article-bound passages underlined and tappable (author's call on the
+ * seventh device run — per-article cards only paraphrased the list). While
+ * the prose streams, its tail shimmers; before the first words, skeleton
+ * lines hold the paragraph's place.
  */
 @Composable
-private fun Digest(
+private fun Brief(
     state: RecapSheetState.Digest,
     onItemClick: (String) -> Unit,
     onLoadMore: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
 
-    // A batch replaces the cards wholesale: without this, the viewport
+    // A batch replaces the paragraph wholesale: without this, the viewport
     // would stay where the previous batch's "load more" pill was.
     LaunchedEffect(state.isGenerating) {
-        if (state.isGenerating && state.items.isEmpty()) scrollState.scrollTo(0)
+        if (state.isGenerating && state.segments.isEmpty()) scrollState.scrollTo(0)
     }
 
     Column(
@@ -167,23 +163,36 @@ private fun Digest(
             .heightIn(max = DigestMaxHeight)
             .verticalScroll(scrollState)
             .testTag(RecapTestTags.DIGEST),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        state.items.forEachIndexed { index, item ->
-            RecapItemCard(
-                item = item,
-                isBeingWritten = state.isGenerating && index == state.items.lastIndex,
-                onItemClick = onItemClick,
+        if (state.segments.isEmpty() && state.isGenerating) {
+            BriefSkeleton()
+        } else {
+            Text(
+                text = briefAnnotated(
+                    segments = state.segments,
+                    linkColor = MaterialTheme.colorScheme.primary,
+                    onSegmentClick = onItemClick,
+                    tailBrush = if (state.isGenerating) shimmerBrush() else null,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
             )
-        }
-        if (state.isGenerating) {
-            repeat((state.plannedCount - state.items.size).coerceAtLeast(0)) {
-                SkeletonCard()
-            }
         }
         if (!state.isGenerating && state.canLoadMore) {
             LoadMorePill(onLoadMore)
         }
+    }
+}
+
+/**
+ * Paragraph-shaped placeholder — full lines and a short last one — so the
+ * wait already has the silhouette of what will replace it.
+ */
+@Composable
+private fun BriefSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        repeat(SKELETON_FULL_LINES) { SkeletonBar(widthFraction = 1f) }
+        SkeletonBar(widthFraction = LAST_LINE_FRACTION)
     }
 }
 
@@ -211,98 +220,14 @@ private fun LoadMorePill(onLoadMore: () -> Unit) {
     }
 }
 
-/**
- * A summary as a tappable card: the summary is the invitation, the article
- * is the detail, opened like a feed card opens it (SPECS.md §4.10). An
- * unlinked item — the model ignored the format, or the article has no URL —
- * keeps the same card without the tap, like a linkless article in the feed
- * (§4.7).
- */
-@Composable
-private fun RecapItemCard(
-    item: RecapItemUi,
-    isBeingWritten: Boolean,
-    onItemClick: (String) -> Unit,
-) {
-    if (item.url != null) {
-        Surface(
-            onClick = { onItemClick(item.url) },
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(RecapTestTags.ITEM),
-        ) {
-            RecapItemBody(item, isBeingWritten)
-        }
-    } else {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(RecapTestTags.ITEM),
-        ) {
-            RecapItemBody(item, isBeingWritten)
-        }
-    }
-}
-
-@Composable
-private fun RecapItemBody(
-    item: RecapItemUi,
-    isBeingWritten: Boolean,
-) {
-    val summary = remember(item.summary) { digestAnnotated(item.summary) }
-
-    Column(
-        modifier = Modifier.padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        item.title?.let {
-            Text(text = it, style = MaterialTheme.typography.titleSmall)
-        }
-        Text(
-            text = summary,
-            style = if (isBeingWritten) {
-                LocalTextStyle.current.copy(brush = shimmerBrush())
-            } else {
-                LocalTextStyle.current
-            },
-        )
-    }
-}
-
-/**
- * A summary slot whose text has not arrived — the shimmer says "being
- * written" the way every modern feed does, without a spinner.
- */
-@Composable
-private fun SkeletonCard() {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(RecapTestTags.SKELETON),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            SkeletonBar(widthFraction = TITLE_BAR_FRACTION)
-            SkeletonBar(widthFraction = 1f)
-        }
-    }
-}
-
 @Composable
 private fun SkeletonBar(widthFraction: Float) {
     Box(
         modifier = Modifier
             .fillMaxWidth(widthFraction)
             .height(SkeletonBarHeight)
-            .background(brush = shimmerBrush(), shape = RoundedCornerShape(percent = 50)),
+            .background(brush = shimmerBrush(), shape = RoundedCornerShape(percent = 50))
+            .testTag(RecapTestTags.SKELETON),
     )
 }
 
@@ -353,7 +278,8 @@ private fun Long.toWholeMegabytes(): Int = (this / BYTES_PER_MEGABYTE).toInt()
 private val DigestMaxHeight = 420.dp
 
 private val SkeletonBarHeight = 12.dp
-private const val TITLE_BAR_FRACTION = 0.45f
+private const val SKELETON_FULL_LINES = 3
+private const val LAST_LINE_FRACTION = 0.6f
 private const val SHIMMER_SWEEP_MILLIS = 1_100
 private const val SHIMMER_WIDTH_PX = 400f
 private const val SHIMMER_TRAVEL_PX = 900f
@@ -365,19 +291,19 @@ private fun RecapSheetContentDigestPreview() {
     AppTheme(dynamicColor = false) {
         RecapSheetContent(
             state = RecapSheetState.Digest(
-                items = listOf(
-                    RecapItemUi(
-                        title = "GNOME 51 en bêta publique",
-                        summary = "L'environnement arrive en bêta avec des retouches partout.",
+                segments = listOf(
+                    RecapSegmentUi(
+                        text = "La semaine s'ouvre sur GNOME 51, dont la bêta publique retouche " +
+                            "la plupart des applications de base",
                         url = "https://exemple.org/gnome",
                     ),
-                    RecapItemUi(
-                        title = "Tensor G6 décortiqué",
-                        summary = "Le nouveau processeur gagne surtout en efficacité.",
+                    RecapSegmentUi(text = ", pendant que deux articles se répondent sur le Tensor G6 : ", url = null),
+                    RecapSegmentUi(
+                        text = "ses gains tiennent à l'efficacité énergétique plus qu'à la puissance",
                         url = "https://exemple.org/tensor",
                     ),
+                    RecapSegmentUi(text = ".", url = null),
                 ),
-                plannedCount = 2,
                 isGenerating = false,
                 canLoadMore = true,
             ),

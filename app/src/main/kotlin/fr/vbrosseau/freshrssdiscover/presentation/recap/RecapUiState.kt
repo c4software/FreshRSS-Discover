@@ -42,19 +42,15 @@ sealed interface RecapSheetState {
     data object Empty : RecapSheetState
 
     /**
-     * The summaries as parsed so far, one per article. [plannedCount] is how
-     * many the generation was asked for: the sheet shows that many cards
-     * from the first frame — skeletons shimmering until their summary
-     * arrives — so the layout never grows, it fills. [isGenerating] tells it
-     * whether the missing slots are still coming.
+     * The brief's prose as parsed so far, in segments. [isGenerating] tells
+     * the sheet the paragraph is still being written — its tail shimmers.
      */
     data class Digest(
-        val items: List<RecapItemUi>,
-        val plannedCount: Int,
+        val segments: List<RecapSegmentUi>,
         val isGenerating: Boolean,
         /**
          * Unread articles remain beyond the summarized ones: a "load more"
-         * element closes the list once generation is done, never during it.
+         * element closes the sheet once generation is done, never during it.
          */
         val canLoadMore: Boolean,
     ) : RecapSheetState
@@ -63,15 +59,12 @@ sealed interface RecapSheetState {
 }
 
 /**
- * One summary row of the digest.
- *
- * [title] and [url] come from the article the model's numbering points to;
- * both are `null` when the model ignored the demanded format and the raw
- * text is shown whole — readable, just not clickable, like an article
- * without a link in the feed (SPECS.md §4.7).
+ * One run of the brief. [url] comes from the article the model's marker
+ * points to; `null` for connective prose, a marker pointing outside the
+ * batch, or a model that dropped the format — readable, just not tappable,
+ * like an article without a link in the feed (SPECS.md §4.7).
  */
-data class RecapItemUi(
-    val title: String?,
-    val summary: String,
+data class RecapSegmentUi(
+    val text: String,
     val url: String?,
 )

@@ -556,11 +556,16 @@ defect.
 
 ### 4.10 On-device recap of the feed
 
-A button on the title row, next to the refresh button, produces a **digest of
-the feed** — one tappable summary per article — in a bottom sheet over the
-feed. A sheet and not a screen: the digest is transient reading, regenerated
-at every request, and a screen would promise a way back to a text that no
-longer exists.
+A button on the title row, next to the refresh button, produces a **narrative
+brief of the feed** in a bottom sheet: one flowing paragraph telling what
+happened across five articles — and what connects them, when several cover
+related stories. The passages drawn from one article are **underlined and
+tappable** to the original. Prose and not one summary per article (author's
+decision, 2026-08-16): per-article summaries only paraphrased the excerpts
+the list already shows, while connecting stories is what a list cannot do. A
+sheet and not a screen: the brief is transient reading, regenerated at every
+request, and a screen would promise a way back to a text that no longer
+exists.
 
 **Generation is entirely on the device.** The model is Gemini Nano, served by
 AICore through ML Kit's Prompt API: the feed's text is never sent anywhere,
@@ -595,9 +600,12 @@ as the list (§4.5) — reading the summary is the recap's way of reading the
 article. Already-read ones are not re-marked.
 
 **The text streams in as it is generated.** On-device inference takes
-seconds; a digest that builds up on screen is the difference between working
-and frozen. Dismissing the sheet cancels the work — nobody reads behind a
-closed sheet, and the chip is better released.
+seconds; a paragraph that builds up on screen — its tail shimmering while it
+is written — is the difference between working and frozen. The model marks
+each statement with its article's number; a marker the model drops degrades
+that passage to plain, untappable prose, never to a blank sheet. Dismissing
+the sheet cancels the work — nobody reads behind a closed sheet, and the
+chip is better released.
 
 ---
 
