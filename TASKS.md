@@ -2392,9 +2392,13 @@ shows the histogram — the reminder's reasoning made visible.
       opening minute. `ReminderTime` model (Automatic | Fixed), target at the
       **start** of the dominant hour — the reminder arrives before the habit,
       not after it. 5 tests
-- [ ] `GOAL-035-T03` **The histogram is persisted and fed**:
-      `ReadingHistogramStore` (DataStore, defensive parse), recording wired
-      into `DefaultReadSyncRepository.markAsRead`
+- [x] `GOAL-035-T03` **The histogram is persisted and fed**:
+      `ReadingHistogramStore` (DataStore, one string key under `reminder.`,
+      defensive parse — an unreadable value reads as empty and the next
+      session repairs it), recording wired into
+      `DefaultReadSyncRepository.markAsRead` behind a `Provider` so the
+      singleton does not freeze the time zone. 8 store tests, 2 repository
+      tests
 - [ ] `GOAL-035-T04` **The scheduler aims at the new target**:
       `WorkManagerReminderScheduler` resolves the target hour; changing the
       setting reschedules

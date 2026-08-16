@@ -19,6 +19,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedRef
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
+import fr.vbrosseau.freshrssdiscover.reminder.FakeReadingSessionRecorder
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
@@ -120,6 +121,8 @@ class DefaultReadSyncRepositoryTest {
         }
     }
 
+    private val sessionRecorder = FakeReadingSessionRecorder()
+
     private lateinit var sessionStore: SessionStore
     private lateinit var repository: DefaultReadSyncRepository
 
@@ -148,6 +151,7 @@ class DefaultReadSyncRepositoryTest {
         sessionStore = sessionStore,
         articleCache = ArticleCache(articleDao, Clock { 0L }),
         queue = queue,
+        readingSessionRecorder = { sessionRecorder },
         ioDispatcher = dispatcher,
         applicationScope = transmissionScope,
     )
@@ -217,6 +221,22 @@ class DefaultReadSyncRepositoryTest {
         repository.markAsRead(setOf(ArticleId(1L), ArticleId(2L)))
 
         assertEquals(listOf(1L, 2L), pendingIds())
+    }
+
+    @Test
+    fun markingAnArticleRecordsAReadingSession() = runTest {
+        // The histogram behind the reminder hour (SPECS.md §4.9) is fed here,
+        // the single point both presentation modes pass through.
+        repository.markAsRead(setOf(ArticleId(1L)))
+
+        assertEquals(1, sessionRecorder.recordedSessions)
+    }
+
+    @Test
+    fun markingNothingRecordsNoReadingSession() = runTest {
+        repository.markAsRead(emptySet())
+
+        assertEquals(0, sessionRecorder.recordedSessions)
     }
 
     @Test
@@ -593,6 +613,7 @@ class DefaultReadSyncRepositoryTest {
         sessionStore = sessionStore,
         articleCache = ArticleCache(articleDao, Clock { 0L }),
         queue = queue,
+        readingSessionRecorder = { sessionRecorder },
         ioDispatcher = dispatcher,
         applicationScope = transmissionScope,
     )

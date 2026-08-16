@@ -8,9 +8,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import fr.vbrosseau.freshrssdiscover.data.local.ReadingHistogramStore
 import fr.vbrosseau.freshrssdiscover.data.local.ReminderTimeStore
 import fr.vbrosseau.freshrssdiscover.reminder.AndroidReminderNotifier
 import fr.vbrosseau.freshrssdiscover.reminder.OpeningRecorder
+import fr.vbrosseau.freshrssdiscover.reminder.ReadingSessionRecorder
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderNotifier
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import fr.vbrosseau.freshrssdiscover.reminder.WorkManagerReminderScheduler
@@ -29,6 +31,9 @@ internal abstract class ReminderModule {
 
     @Binds
     abstract fun bindOpeningRecorder(implementation: ReminderTimeStore): OpeningRecorder
+
+    @Binds
+    abstract fun bindReadingSessionRecorder(implementation: ReadingHistogramStore): ReadingSessionRecorder
 
     /**
      * The worker depends only on the interface, which makes it testable

@@ -14,12 +14,14 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ModificationToken
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadTransmissionScheduler
+import fr.vbrosseau.freshrssdiscover.reminder.ReadingSessionRecorder
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
@@ -55,6 +57,13 @@ internal class DefaultReadSyncRepository @Inject constructor(
     private val sessionStore: SessionStore,
     private val articleCache: ArticleCache,
     private val queue: PendingMarkQueue,
+    /**
+     * A [Provider], not the recorder itself: this repository is a singleton
+     * while the recorder reads the time zone at construction — held directly,
+     * it would date every session in the zone of process start (see
+     * `ReminderModule.provideZoneId`).
+     */
+    private val readingSessionRecorder: Provider<ReadingSessionRecorder>,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:ApplicationScope applicationScope: CoroutineScope,
 ) : ReadSyncRepository {
@@ -96,6 +105,11 @@ internal class DefaultReadSyncRepository @Inject constructor(
             val ordered = ids.toList()
             articleCache.markAsRead(ordered)
             queue.enqueue(ordered)
+            // Marking articles read IS the reading session (SPECS.md §4.9):
+            // this call is the single point every read passes through — both
+            // presentation modes and the open-article marking — which is why
+            // the histogram is fed here and not in the ViewModels.
+            readingSessionRecorder.get().recordSession()
             Timber.tag(READ_SYNC_TAG).d("mise en file : %s", ordered.map(ArticleId::value))
             scheduler.schedule()
         }
