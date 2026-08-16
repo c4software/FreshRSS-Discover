@@ -9,14 +9,20 @@ data class RecapSegment(
     val articleIndex: Int?,
 )
 
+/*
+ * `\}` and `\]` are escaped even where the desktop JVM would not require
+ * it: Android's ICU regex engine rejects them bare, and the JVM tests
+ * cannot see that — the first device run crashed on class load.
+ */
+
 /**
  * `{key words}[N]`, or a bare `[N]`: the braces are the demanded form, the
  * bare marker the drift small models produce anyway.
  */
-private val LinkedRun = Regex("""\{([^{}]+)}\s*\[(\d+)]|\s*\[(\d+)]""")
+private val LinkedRun = Regex("""\{([^{}]+)\}\s*\[(\d+)\]|\s*\[(\d+)\]""")
 
-/** A `{key wo` or `[12` still being streamed: hidden until it closes. */
-private val TrailingPartial = Regex("""\s*\{[^{}]*(]\s*\[\d*)?$|\s*\[\d*$""")
+/** A `{key wo`, `{key}[12` or `[12` still streaming: hidden until it closes. */
+private val TrailingPartial = Regex("""\s*\{[^{}]*(\}\s*\[\d*)?$|\s*\[\d*$""")
 
 /** The last couple of words: what a bare marker binds instead of its run. */
 private val TrailingWords = Regex("""\S+(?:\s+\S+)?\s*$""")

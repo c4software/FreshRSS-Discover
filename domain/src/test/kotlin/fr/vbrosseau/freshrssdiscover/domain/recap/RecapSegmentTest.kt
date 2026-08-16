@@ -51,6 +51,10 @@ class RecapSegmentTest {
             listOf(RecapSegment(text = "Le début", articleIndex = null)),
             parseRecapBrief("Le début [1"),
         )
+        assertEquals(
+            listOf(RecapSegment(text = "Le début", articleIndex = null)),
+            parseRecapBrief("Le début {Tensor G6}[1"),
+        )
     }
 
     @Test
