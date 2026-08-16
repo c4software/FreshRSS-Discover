@@ -16,9 +16,8 @@ import androidx.compose.ui.Modifier
  * Title-bar slot for the feed refresh action.
  *
  * Appearance and withdrawal are animated: the action comes and goes with the
- * displayed destination, and in List mode for the duration of a refresh;
- * popping in and out instantly reads as a rendering glitch rather than a
- * state change.
+ * displayed destination, and popping in and out instantly reads as a
+ * rendering glitch rather than a state change.
  *
  * The last published action is retained for the exit transition: animating
  * out needs content to draw while [refresh] is already `null`.
@@ -35,7 +34,11 @@ fun FeedRefreshAction(refresh: FeedRefresh?, modifier: Modifier = Modifier) {
         exit = fadeOut() + scaleOut(),
     ) {
         lastPublished?.let {
-            RefreshButton(isRefreshing = it.isRefreshing, onRefresh = it.onRefresh)
+            RefreshButton(
+                isRefreshing = it.isRefreshing,
+                showsProgress = it.showsProgress,
+                onRefresh = it.onRefresh,
+            )
         }
     }
 }

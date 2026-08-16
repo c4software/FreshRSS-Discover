@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -26,10 +27,18 @@ class RefreshButtonTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun show(isRefreshing: Boolean = false, onRefresh: () -> Unit = {}) {
+    private fun show(
+        isRefreshing: Boolean = false,
+        showsProgress: Boolean = true,
+        onRefresh: () -> Unit = {},
+    ) {
         composeRule.setContent {
             AppTheme(dynamicColor = false) {
-                RefreshButton(isRefreshing = isRefreshing, onRefresh = onRefresh)
+                RefreshButton(
+                    isRefreshing = isRefreshing,
+                    showsProgress = showsProgress,
+                    onRefresh = onRefresh,
+                )
             }
         }
     }
@@ -61,6 +70,17 @@ class RefreshButtonTest {
         show(isRefreshing = true)
 
         composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutItsOwnProgressItGreysOutInsteadOfSpinning() {
+        // List mode: the pull indicator already animates, and the button
+        // vanishing next to the recap one read as a glitch (GOAL-037-T14).
+        var reloads = 0
+        show(isRefreshing = true, showsProgress = false, onRefresh = { reloads++ })
+
+        composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed().assertIsNotEnabled()
+        assertEquals(0, reloads)
     }
 
     @Test

@@ -168,7 +168,9 @@ private fun DiscoverRoute(
         isRefreshing = uiState.isRefreshing,
         onRefresh = viewModel::refresh,
         onFeedRefreshChange = onFeedRefreshChange,
-        hideWhileRefreshing = true,
+        // The pull indicator already animates: the bar button stays put,
+        // disabled, instead of doubling the spinner or vanishing.
+        showsProgress = false,
     )
 
     DiscoverScreen(
@@ -286,25 +288,22 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
  * a button wired to a ViewModel no longer on screen, and switching from List
  * to Swipe would keep the previous mode's.
  *
- * [hideWhileRefreshing] withdraws the action while a refresh runs, for
- * destinations that already display their own progress indicator; publishing
- * `null` reuses the "nothing to refresh here" path rather than adding a
- * disabled state to the button.
+ * [showsProgress] is `false` for destinations that already display their own
+ * progress indicator: the button then stays published but disabled during
+ * the refresh — withdrawing it used to shift the recap button beside it
+ * (GOAL-037-T14).
  */
 @Composable
 internal fun PublishFeedRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onFeedRefreshChange: (FeedRefresh?) -> Unit,
-    hideWhileRefreshing: Boolean = false,
+    showsProgress: Boolean = true,
 ) {
-    DisposableEffect(isRefreshing, onRefresh, onFeedRefreshChange, hideWhileRefreshing) {
-        val refresh = if (hideWhileRefreshing && isRefreshing) {
-            null
-        } else {
-            FeedRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh)
-        }
-        onFeedRefreshChange(refresh)
+    DisposableEffect(isRefreshing, onRefresh, onFeedRefreshChange, showsProgress) {
+        onFeedRefreshChange(
+            FeedRefresh(isRefreshing = isRefreshing, showsProgress = showsProgress, onRefresh = onRefresh),
+        )
         onDispose { onFeedRefreshChange(null) }
     }
 }

@@ -46,26 +46,29 @@ private val IndicatorStroke = 2.dp
  * a filled background would have been needed to stay legible over an
  * arbitrary image.
  *
- * It turns into an indicator while refreshing rather than dimming or
- * disappearing: a dimmed button reads as "unavailable" rather than "in
- * progress", and a vanishing button leaves the user unsure the tap was
- * registered. It also stays inert while the refresh lasts: `onClick` is
- * unwired, making a double tap ineffective here in addition to the ViewModel
- * guard.
+ * While refreshing it either turns into an indicator ([showsProgress]) or
+ * stays put disabled: which one is the destination's call — Swipe has no
+ * other progress to show, List already animates its pull indicator and a
+ * second spinner would double it, while a vanishing button next to the
+ * recap one read as a glitch (GOAL-037-T14). Either way it stays inert
+ * while the refresh lasts, making a double tap ineffective here in
+ * addition to the ViewModel guard.
  */
 @Composable
 fun RefreshButton(
     isRefreshing: Boolean,
+    showsProgress: Boolean,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     IconButton(
         onClick = { if (!isRefreshing) onRefresh() },
+        enabled = showsProgress || !isRefreshing,
         modifier = modifier
             .size(MinTouchTarget)
             .testTag(RefreshTestTags.BUTTON),
     ) {
-        if (isRefreshing) {
+        if (isRefreshing && showsProgress) {
             CircularProgressIndicator(
                 modifier = Modifier.size(IndicatorSize),
                 strokeWidth = IndicatorStroke,

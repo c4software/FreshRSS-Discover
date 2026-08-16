@@ -16,5 +16,13 @@ package fr.vbrosseau.freshrssdiscover.presentation.feed
  */
 data class FeedRefresh(
     val isRefreshing: Boolean,
+    /**
+     * Whether the button itself animates while [isRefreshing]. List mode
+     * says no — its pull indicator already animates, and the button then
+     * stays put, merely disabled: withdrawing it next to the recap button
+     * read as a glitch (GOAL-037-T14). Swipe keeps the spinner, nothing
+     * else shows progress there.
+     */
+    val showsProgress: Boolean,
     val onRefresh: () -> Unit,
 )

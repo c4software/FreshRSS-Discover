@@ -35,7 +35,7 @@ class FeedRefreshActionTest {
 
     @Test
     fun aPublishedActionShowsTheButton() {
-        refresh = FeedRefresh(isRefreshing = false, onRefresh = {})
+        refresh = FeedRefresh(isRefreshing = false, showsProgress = true, onRefresh = {})
         show()
 
         composeRule.onNodeWithTag(RefreshTestTags.BUTTON).assertIsDisplayed()
@@ -43,7 +43,7 @@ class FeedRefreshActionTest {
 
     @Test
     fun aWithdrawnActionRemovesTheButton() {
-        refresh = FeedRefresh(isRefreshing = false, onRefresh = {})
+        refresh = FeedRefresh(isRefreshing = false, showsProgress = true, onRefresh = {})
         show()
 
         refresh = null
@@ -55,7 +55,7 @@ class FeedRefreshActionTest {
     @Test
     fun theButtonStaysWiredToThePublishedAction() {
         var reloads = 0
-        refresh = FeedRefresh(isRefreshing = false, onRefresh = { reloads++ })
+        refresh = FeedRefresh(isRefreshing = false, showsProgress = true, onRefresh = { reloads++ })
         show()
 
         composeRule.onNodeWithTag(RefreshTestTags.BUTTON).performClick()

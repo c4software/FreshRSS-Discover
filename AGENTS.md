@@ -95,6 +95,10 @@ The `/status` command produces this reading automatically.
   (No waiver in force; any exception is recorded in ARCHITECTURE.md §9.2 so as
   to be visible rather than tacit.)
 - ❌ Writing a `TODO` without a matching task in [TASKS.md](./TASKS.md).
+- ❌ Writing a comment that adds nothing: a paraphrase of the code, a
+  narration of the next line, or a justification aimed at a reviewer. A
+  comment states a constraint or a **why** the code cannot show (§9);
+  anything else is deleted, not softened.
 - ❌ Using a deprecated Android API.
 - ❌ Importing `android.*`, `androidx.*`, Room, DataStore, Ktor, Hilt or Compose
   from `:domain`.

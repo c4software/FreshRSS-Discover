@@ -2568,6 +2568,12 @@ the download, with progress, before generating.
       **marked read** like the list marks what it shows. Needs a new
       repository door — cached articles by id, in the asked order — since
       the unread-only door cannot serve read ones
+- [x] `GOAL-037-T14` two leftovers from the device: back on the sheet still
+      took two presses — the sheet passed through its half-height state, so
+      it now skips it and one back dismisses; and with the recap button
+      beside it, the refresh button vanishing during a List refresh read as
+      a glitch — it now stays put, **disabled**, keeping its spinner only
+      in Swipe mode where nothing else shows progress
 
 ---
 

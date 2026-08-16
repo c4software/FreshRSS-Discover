@@ -9,8 +9,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -25,50 +25,42 @@ class PublishFeedRefreshTest {
     private var isRefreshing by mutableStateOf(false)
     private var published: FeedRefresh? = null
 
-    private fun show(hideWhileRefreshing: Boolean) {
+    private fun show(showsProgress: Boolean) {
         composeRule.setContent {
             PublishFeedRefresh(
                 isRefreshing = isRefreshing,
                 onRefresh = {},
                 onFeedRefreshChange = { published = it },
-                hideWhileRefreshing = hideWhileRefreshing,
+                showsProgress = showsProgress,
             )
         }
     }
 
     @Test
-    fun aRunningRefreshWithdrawsTheActionWhenTheScreenShowsItsOwnIndicator() {
-        // List mode: the pull indicator animates for every refresh; keeping
-        // the bar button's spinner too would run two animations at once.
-        show(hideWhileRefreshing = true)
-
-        isRefreshing = true
-        composeRule.waitForIdle()
-
-        assertNull(published)
-    }
-
-    @Test
-    fun theActionComesBackOnceTheRefreshEnds() {
-        show(hideWhileRefreshing = true)
-        isRefreshing = true
-        composeRule.waitForIdle()
-
-        isRefreshing = false
-        composeRule.waitForIdle()
-
-        assertNotNull(published)
-    }
-
-    @Test
-    fun byDefaultTheActionStaysPublishedWhileRefreshing() {
-        // Swipe mode has no other indicator: the button itself shows progress.
-        show(hideWhileRefreshing = false)
+    fun aRunningRefreshKeepsTheActionPublishedWithoutItsSpinner() {
+        // List mode: the pull indicator animates for every refresh; the bar
+        // button stays put, disabled — withdrawing it used to shift the
+        // recap button beside it (GOAL-037-T14).
+        show(showsProgress = false)
 
         isRefreshing = true
         composeRule.waitForIdle()
 
         val refresh = assertNotNull(published)
         assertTrue(refresh.isRefreshing)
+        assertFalse(refresh.showsProgress)
+    }
+
+    @Test
+    fun byDefaultTheActionStaysPublishedWhileRefreshing() {
+        // Swipe mode has no other indicator: the button itself shows progress.
+        show(showsProgress = true)
+
+        isRefreshing = true
+        composeRule.waitForIdle()
+
+        val refresh = assertNotNull(published)
+        assertTrue(refresh.isRefreshing)
+        assertTrue(refresh.showsProgress)
     }
 }

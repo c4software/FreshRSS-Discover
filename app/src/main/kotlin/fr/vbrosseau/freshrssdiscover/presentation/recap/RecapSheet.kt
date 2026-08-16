@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +66,9 @@ fun RecapSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        // No half-height stop: with it, the first back only shrank the sheet
+        // and a second was needed to close — seen on device, twice.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         modifier = modifier.testTag(RecapTestTags.SHEET),
     ) {
         // Inside the sheet's own window, so it owns the back gesture: seen
