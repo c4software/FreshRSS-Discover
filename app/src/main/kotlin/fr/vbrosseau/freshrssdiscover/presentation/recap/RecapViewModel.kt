@@ -97,7 +97,6 @@ class RecapViewModel @Inject constructor(
     fun onSheetDismissed() {
         work?.cancel()
         work = null
-        shownItems = emptyList()
         summarizedIds.clear()
         _uiState.update { it.copy(sheet = RecapSheetState.Hidden) }
     }
@@ -109,9 +108,6 @@ class RecapViewModel @Inject constructor(
 
         generate()
     }
-
-    /** The cards already on the sheet, kept across "load more" batches. */
-    private var shownItems: List<RecapItemUi> = emptyList()
 
     /**
      * Identity, not position: `unreadFromCache` serves a shuffled list, so
@@ -144,18 +140,20 @@ class RecapViewModel @Inject constructor(
                 .sortedBy { rank[it.id] ?: Int.MAX_VALUE }
             val articles = remaining.take(RECAP_MAX_ARTICLES)
             if (articles.isEmpty()) {
-                if (shownItems.isEmpty()) _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
+                if (summarizedIds.isEmpty()) _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
                 return@launch
             }
             val canLoadMore = remaining.size > articles.size
-            val base = shownItems
 
+            // Each batch replaces the previous cards (author's call on the
+            // fifth device run): the sheet is a page of five, not a pile —
+            // only the id exclusion above remembers what was already shown.
             fun digest(
                 items: List<RecapItemUi>,
                 isGenerating: Boolean,
             ) = RecapSheetState.Digest(
-                items = base + items,
-                plannedCount = base.size + articles.size,
+                items = items,
+                plannedCount = articles.size,
                 isGenerating = isGenerating,
                 canLoadMore = canLoadMore,
             )
@@ -167,7 +165,6 @@ class RecapViewModel @Inject constructor(
                     text += chunk
                     _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = true)) }
                 }
-                shownItems = base + itemsOf(text, articles)
                 summarizedIds += articles.map { it.id }
                 _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = false)) }
             } catch (cancellation: CancellationException) {

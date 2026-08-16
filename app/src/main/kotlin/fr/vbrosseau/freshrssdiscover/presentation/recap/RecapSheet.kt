@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.recap
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -26,6 +27,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -65,6 +67,10 @@ fun RecapSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag(RecapTestTags.SHEET),
     ) {
+        // Inside the sheet's own window, so it owns the back gesture: seen
+        // on device, back reached the navigation behind and left the sheet
+        // hanging over the wrong screen.
+        BackHandler(onBack = onDismiss)
         RecapSheetContent(
             state = state,
             onDownloadConfirm = onDownloadConfirm,
@@ -144,10 +150,18 @@ private fun Digest(
     onItemClick: (String) -> Unit,
     onLoadMore: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
+
+    // A batch replaces the cards wholesale: without this, the viewport
+    // would stay where the previous batch's "load more" pill was.
+    LaunchedEffect(state.isGenerating) {
+        if (state.isGenerating && state.items.isEmpty()) scrollState.scrollTo(0)
+    }
+
     Column(
         modifier = Modifier
             .heightIn(max = DigestMaxHeight)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .testTag(RecapTestTags.DIGEST),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {

@@ -2552,6 +2552,11 @@ the download, with progress, before generating.
       list on screen**, not the cache's own shuffle: both feed modes
       publish their displayed order to the recap, which sorts its batches
       on it — articles not on screen come after, in cache order
+- [x] `GOAL-037-T11` fifth device pass: the back gesture must close the
+      sheet, not navigate the app behind it — an explicit back handler
+      inside the sheet's own window; and "load more" **replaces** the shown
+      cards with the next batch instead of appending, the exclusion by
+      article id staying so no batch repeats
 
 ---
 

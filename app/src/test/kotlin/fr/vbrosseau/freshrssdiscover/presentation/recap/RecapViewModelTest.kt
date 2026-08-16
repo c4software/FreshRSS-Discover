@@ -174,7 +174,7 @@ class RecapViewModelTest {
     }
 
     @Test
-    fun loadMoreAppendsTheNextBatchWithoutRepeatingAnArticle() = runTest {
+    fun loadMoreReplacesTheCardsWithTheNextBatch() = runTest {
         articles.unreadInCache = (1L..7L).map { article(id = it, title = "Titre $it") }
         generator.chunks = listOf("1. R1\n2. R2\n3. R3\n4. R4\n5. R5")
 
@@ -185,8 +185,10 @@ class RecapViewModelTest {
 
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
-        assertEquals(7, sheet.items.size)
-        assertEquals(List(7) { "Titre ${it + 1}" }, sheet.items.map { it.title })
+        // A page of five, not a pile: only the next batch remains on show,
+        // and no already-summarized article comes back.
+        assertEquals(listOf("Titre 6", "Titre 7"), sheet.items.map { it.title })
+        assertEquals(2, sheet.plannedCount)
         assertFalse(sheet.canLoadMore)
         assertFalse(sheet.isGenerating)
     }
