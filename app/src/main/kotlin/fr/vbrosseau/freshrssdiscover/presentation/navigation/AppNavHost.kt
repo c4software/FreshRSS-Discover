@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -15,9 +16,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleSharer
+import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
@@ -89,11 +92,13 @@ fun AppNavHost(
                 FeedPresentation.List -> DiscoverRoute(
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
+                    onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
                 )
 
                 FeedPresentation.Swipe -> SwipeRoute(
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
+                    onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
                 )
             }
         }
@@ -123,9 +128,12 @@ private fun DiscoverRoute(
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
+    onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
 ) {
     val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange)
 
     // Hoisted from the screen so the tab reselection can drive the scroll:
     // the screen's own default state would be out of this route's reach.
@@ -196,9 +204,12 @@ private fun SwipeRoute(
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
+    onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
 ) {
     val viewModel: SwipeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange)
     val articleOpener = rememberArticleOpener()
     val articleSharer = rememberArticleSharer()
 
@@ -295,6 +306,23 @@ internal fun PublishFeedRefresh(
         }
         onFeedRefreshChange(refresh)
         onDispose { onFeedRefreshChange(null) }
+    }
+}
+
+/**
+ * Publishes the on-screen article order to whoever asked (the recap): the
+ * summaries must follow the list as the user sees it, and only the displayed
+ * mode knows that order. Keyed on the ids, not the models: read-state or
+ * illustration changes must not republish an unchanged order.
+ */
+@Composable
+private fun PublishDisplayedArticles(
+    articles: List<ArticleUiModel>,
+    onDisplayedArticlesChange: (List<ArticleId>) -> Unit,
+) {
+    val ids = articles.map { ArticleId(it.id) }
+    LaunchedEffect(ids, onDisplayedArticlesChange) {
+        onDisplayedArticlesChange(ids)
     }
 }
 

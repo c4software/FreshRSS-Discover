@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.recap
 
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.recap.FakeRecapGenerator
@@ -201,6 +202,22 @@ class RecapViewModelTest {
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
         assertTrue(sheet.canLoadMore)
+    }
+
+    @Test
+    fun theSummariesFollowTheOrderDisplayedOnScreen() = runTest {
+        articles.unreadInCache = (1L..3L).map { article(id = it, title = "Titre $it") }
+        generator.chunks = listOf("1. R1\n2. R2\n3. R3")
+
+        val viewModel = viewModel()
+        viewModel.onDisplayedOrderChanged(listOf(ArticleId(3L), ArticleId(1L)))
+        viewModel.onRecapRequested()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        // Displayed articles first, in screen order; the rest after, in
+        // cache order.
+        assertEquals(listOf("Titre 3", "Titre 1", "Titre 2"), sheet.items.map { it.title })
     }
 
     @Test

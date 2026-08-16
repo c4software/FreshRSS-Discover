@@ -2548,6 +2548,10 @@ the download, with progress, before generating.
       pill that summarizes the next five unread articles and appends their
       cards, shown only while unread articles remain and never during a
       generation
+- [x] `GOAL-037-T10` the summaries must follow the **order of the Discover
+      list on screen**, not the cache's own shuffle: both feed modes
+      publish their displayed order to the recap, which sorts its batches
+      on it — articles not on screen come after, in cache order
 
 ---
 

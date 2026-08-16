@@ -120,12 +120,28 @@ class RecapViewModel @Inject constructor(
      */
     private val summarizedIds = mutableSetOf<ArticleId>()
 
+    /**
+     * The feed as the user sees it, published by the displayed mode. The
+     * recap follows this order, not the cache's own shuffle: summarizing in
+     * an order the screen contradicts would read as random.
+     */
+    private var displayedOrder: List<ArticleId> = emptyList()
+
+    fun onDisplayedOrderChanged(ids: List<ArticleId>) {
+        displayedOrder = ids
+    }
+
     private fun generate() {
         work = viewModelScope.launch {
             // One extra beyond the batch: its presence is what proves more
             // unread articles remain behind the ones about to be shown.
             val poolSize = summarizedIds.size + RECAP_MAX_ARTICLES + 1
-            val remaining = articleRepository.unreadFromCache(poolSize).filter { it.id !in summarizedIds }
+            // Sorting is stable: articles not on screen keep the cache's
+            // order among themselves, after every displayed one.
+            val rank = displayedOrder.withIndex().associate { it.value to it.index }
+            val remaining = articleRepository.unreadFromCache(poolSize)
+                .filter { it.id !in summarizedIds }
+                .sortedBy { rank[it.id] ?: Int.MAX_VALUE }
             val articles = remaining.take(RECAP_MAX_ARTICLES)
             if (articles.isEmpty()) {
                 if (shownItems.isEmpty()) _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
