@@ -2437,14 +2437,18 @@ shows the histogram — the reminder's reasoning made visible.
 
 ### Debt knowingly left
 
-- **The scheduler's learned hour is not yet observed on a device.** The picker,
-  the settings section and the statistics screen **were** seen running on the
-  author's Pixel on 2026-08-16 ("ça fonctionne", then "parfait" after
-  GOAL-036's rework). What remains unobserved is the scheduling itself: after
-  a few days of reading, the reminder work should appear in
-  `dumpsys jobscheduler` at the dominant hour rather than at the opening time.
-  Unit tests prove the computation; only a device shows WorkManager carrying
-  it.
+- ~~The scheduler's learned hour is not yet observed on a device.~~ **Lifted
+  on 2026-08-16, on the emulator.** The picker, the settings section and the
+  statistics screen had already been seen on the author's Pixel ("ça
+  fonctionne", then "parfait" after GOAL-036's rework). The scheduling itself
+  was then observed without waiting days of reading: a sufficient histogram
+  (dominant hour 21, weight 5.0) was **injected into the DataStore** — the
+  preferences file is protobuf, and appending a duplicate map entry overrides
+  the key without parsing — the app relaunched, and `dumpsys jobscheduler`
+  showed `ReadingReminderWorker` armed with `Minimum latency: +5h41m21s` at
+  15:18:38, i.e. **21:00:00 sharp**: the start of the dominant hour, not the
+  opening time. The injection script survives in the session scratchpad only;
+  nothing of it belongs in the repository.
 
 ---
 
