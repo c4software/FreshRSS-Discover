@@ -91,6 +91,13 @@ class RecapPromptTest {
     }
 
     @Test
+    fun theInstructionsForbidMarkdown() {
+        val prompt = RecapPrompt.build(listOf(article()), language = "French")
+
+        assertContains(prompt, "no Markdown syntax")
+    }
+
+    @Test
     fun theInstructionsComeBeforeTheArticles() {
         val prompt = RecapPrompt.build(listOf(article(title = "Un titre")), language = "French")
 

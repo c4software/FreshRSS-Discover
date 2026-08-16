@@ -72,9 +72,27 @@ class RecapSheetContentTest {
 
     @Test
     fun beforeTheFirstWordsTheSheetSaysItIsSummarizing() {
+        // The spark pulses forever: without freezing the clock, waiting for
+        // idle would never end.
+        composeRule.mainClock.autoAdvance = false
         show(RecapSheetState.Digest(text = "", isGenerating = true))
 
         composeRule.onNodeWithText("Résumé en cours…").assertIsDisplayed()
+    }
+
+    @Test
+    fun theStreamingTextEndsOnTheInsertionMark() {
+        composeRule.mainClock.autoAdvance = false
+        show(RecapSheetState.Digest(text = "Un début", isGenerating = true))
+
+        composeRule.onNodeWithText("Un début▍").assertIsDisplayed()
+    }
+
+    @Test
+    fun theModelMarkdownIsRenderedInsteadOfShownRaw() {
+        show(RecapSheetState.Digest(text = "* **Thème :** le texte", isGenerating = false))
+
+        composeRule.onNodeWithText("• Thème : le texte").assertIsDisplayed()
     }
 
     @Test

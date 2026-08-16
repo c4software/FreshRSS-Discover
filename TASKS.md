@@ -2515,15 +2515,23 @@ the download, with progress, before generating.
 - [x] `GOAL-037-T04` presentation: `RecapViewModel` and the `RecapSheet`
       bottom sheet — download offer with progress, streamed digest, empty
       and failure states — with ViewModel and Composable tests
-- [-] `GOAL-037-T05` finish: Roborazzi references recorded (`recap-digest`,
+- [x] `GOAL-037-T05` finish: Roborazzi references recorded (`recap-digest`,
       `recap-telechargement-propose`, light and dark, **looked at**),
       SPECS.md §4.10 + §7.4 + settled question 14, ARCHITECTURE.md §9 and
-      §9.1. **Remains:** the on-device check on the author's Pixel — no
-      device was reachable over adb when everything else finished
-      (2026-08-16). To run: install, check the button appears, download the
-      model, watch a digest stream in the device language, and confirm no
-      network leaves during generation (airplane mode after loading the
-      feed)
+      §9.1. Checked on the author's Pixel 10 Pro over adb (2026-08-16,
+      "ok, ça fonctionne"): the button appeared, the download offer showed,
+      generation chained by itself and streamed a French, theme-grouped
+      digest. The no-network measure was not run — cutting the network
+      would have cut the adb link too; the architectural guarantee (the
+      port's signature reaches no network type) stands in its place
+- [x] `GOAL-037-T06` polish seen on device: the digest gets a bounded
+      viewport that follows the stream to the bottom (the sheet grew
+      unbounded while generating), and the Markdown the model returns
+      (`* ` bullets, `**bold**`) is rendered instead of shown raw — the
+      prompt now demands plain text as well, belt and braces. Asked on
+      device too: a generation animation in the AI idiom — a pulsing spark
+      before the first words, a blinking cursor at the end of the streaming
+      text. The author tests on their device themselves
 
 ---
 

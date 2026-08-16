@@ -59,6 +59,10 @@ object RecapPrompt {
             appendLine("Write a short digest of what happened, grouped by theme, as concise")
             appendLine("bullet points. Do not list the articles one by one, do not add an")
             appendLine("introduction or a conclusion.")
+            // Small models sprinkle Markdown by default, and the sheet shows
+            // text: asked for here AND neutralized at display, belt and braces.
+            appendLine("Plain text only: no Markdown syntax, no asterisks; start each bullet")
+            appendLine("with \"• \".")
             appendLine("Answer only with the digest, written in $language.")
             appendLine()
             appendLine("Articles:")
