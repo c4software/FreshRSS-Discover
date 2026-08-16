@@ -554,6 +554,43 @@ the user arrives; leaving it in the shade would make it a leftover.
 notification permission to withdraw, and a reminder you cannot turn off is a
 defect.
 
+### 4.10 On-device recap of the unread articles
+
+A button on the title row, next to the refresh button, produces a **digest of
+the unread articles** — what happened, grouped by theme — in a bottom sheet
+over the feed. A sheet and not a screen: the digest is transient reading,
+regenerated at every request, and a screen would promise a way back to a text
+that no longer exists.
+
+**Generation is entirely on the device.** The model is Gemini Nano, served by
+AICore through ML Kit's Prompt API: the feed's text is never sent anywhere,
+which is what keeps §7.4 true word for word. The consequence is accepted
+rather than hidden: quality is that of a small local model, and the feature
+costs a one-time model download.
+
+**The button only exists where the model does.** The application asks the
+platform at each arrival on the feed; on a device AICore cannot serve, the
+button never appears — invisible, not greyed out, because no gesture of the
+user can make an unsupported chip supported. When the model is merely **not
+downloaded yet**, the button shows and the first tap offers the download,
+with its progress, then generates without another gesture.
+
+**The digest speaks the device's language.** Whatever it is: the output
+language is passed to the model at each request, with no allow-list — an
+allow-list would be the developer deciding which languages deserve the
+feature.
+
+**It summarizes what the application has.** Title and excerpt of the unread
+articles in the cache (at most twenty, the excerpts bounded), because the full
+content is deliberately not stored (§4.7) and no request leaves without a
+user gesture (§2). An empty pile says so instead of inventing; a generation
+failure says so instead of showing half a digest as a whole one.
+
+**The text streams in as it is generated.** On-device inference takes
+seconds; a digest that builds up on screen is the difference between working
+and frozen. Dismissing the sheet cancels the work — nobody reads behind a
+closed sheet, and the chip is better released.
+
 ---
 
 ## 5. Network behaviour
@@ -725,6 +762,11 @@ telemetry, no third-party service, no advertising. The only other outgoing
 connections are the loading of article images and the opening of a link in the
 browser, both at the user's initiative.
 
+The recap (§4.10) does not eat into this: generation runs **on the device**
+through a system service, and the feed's text leaves for no server. The one
+download it causes — the model, once, at the user's explicit request — comes
+from the platform, not from us, and carries nothing of the user's.
+
 ---
 
 ## 8. What is left to settle
@@ -746,6 +788,7 @@ it, then **written down here** — not left implicit in the code.
 | 11 | Does the feed order come from the server? | **No: it is recomputed on the publication date.** The server sorts its `reading-list` by **retrieval** date — observed on a real instance, an article published two days earlier opened the first page. That order differs from the cache's, sorted by publication: the launch screen then depended on which of the disk or the network answered first. Each page is therefore brought back to publication order before interleaving, which expects it anyway (§4.2, rule 2). |
 | 10 | Does launching reload the feed? | **No.** Author's decision (2026-08-08): launching shows the cache, stable, and no request leaves without a gesture — apart from an empty cache, where there is nothing to show. The automatic request on launch created a race between the disk and the network, whose outcome decided the screen; and a feed that moves when you open it reads as a feed that reinterleaves itself. Reloading is a gesture (§4.6), recalled by the staleness notice beyond six hours. |
 | 13 | Parameters of the learned reminder hour (§4.9) | **24 hour-bins, daily decay 0.9, sufficiency at 3 weighted sessions, target at the start of the dominant hour, at most one session per day and per hour.** One-hour bins because the reminder's precision is the hour, not the minute. A 0.9 decay halves a habit in about a week: a new routine wins within days, one unusual evening barely dents two weeks of habit. Three sessions because below that a single recording would decide the hour on its own — the one-sample fragility the histogram replaces. The start of the hour so the reminder arrives before the habit, not after it. Ties break on the earliest hour, deterministically, for the same reason the wording rotation refuses a random draw. |
+| 14 | Which on-device API for the recap (§4.10)? | **ML Kit's GenAI Prompt API**, not the dedicated Summarization API. The latter would have cost less integration, but it only outputs English, Japanese and Korean — and §4.10 requires the device's language, whatever it is. The Prompt API takes free-form instructions, so the output language is a parameter; AICore picks the best Gemini Nano the device owns behind the same code, which is why no per-device branch exists. The API is beta with no deprecation policy: a breakage lands on one adapter class, accepted. |
 | 9 | Threshold beyond which the displayed feed is "old" (§4.6) | **6 hours.** Nothing synchronises in the background (§2), so the screen shows the cache until the user asks for something else: with no landmark, yesterday's feed is indistinguishable from a fresh one. A short threshold — one or two hours — would turn the invitation into a daily reflex, and an invitation you learn to ignore no longer says anything. Six hours clearly separates the session resumed within the hour, where the feed is still the one you left, from the reopening the next morning. |
 
 ### Still open

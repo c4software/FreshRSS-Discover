@@ -2515,9 +2515,15 @@ the download, with progress, before generating.
 - [x] `GOAL-037-T04` presentation: `RecapViewModel` and the `RecapSheet`
       bottom sheet — download offer with progress, streamed digest, empty
       and failure states — with ViewModel and Composable tests
-- [ ] `GOAL-037-T05` finish: Roborazzi references (light and dark, looked
-      at), SPECS.md (feed section and §7.4 privacy), ARCHITECTURE.md §9
-      package map, and the on-device check on the author's Pixel
+- [-] `GOAL-037-T05` finish: Roborazzi references recorded (`recap-digest`,
+      `recap-telechargement-propose`, light and dark, **looked at**),
+      SPECS.md §4.10 + §7.4 + settled question 14, ARCHITECTURE.md §9 and
+      §9.1. **Remains:** the on-device check on the author's Pixel — no
+      device was reachable over adb when everything else finished
+      (2026-08-16). To run: install, check the button appears, download the
+      model, watch a digest stream in the device language, and confirm no
+      network leaves during generation (airplane mode after loading the
+      feed)
 
 ---
 

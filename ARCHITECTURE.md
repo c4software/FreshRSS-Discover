@@ -513,6 +513,7 @@ domain/                       Pure Kotlin/JVM — decides, knows neither HTTP no
 ├── core/                     Outcome<value, error>
 ├── feed/                     article, page, cursor, repository contracts
 ├── read/                     read detection, marking queue, scheduling
+├── recap/                    on-device digest: availability, generator port, prompt
 ├── reminder/                 time, content and learned hour of the reading reminder
 ├── settings/                 reading settings, cache
 ├── shuffle/                  source interleaving
@@ -523,6 +524,7 @@ app/
 │   ├── api/                  FreshRSS: client, endpoints, DTOs, conversions
 │   ├── local/                DataStore (scalars) and room/ (collections)
 │   ├── network/              connectivity
+│   ├── recap/                Gemini Nano through ML Kit, behind the domain port
 │   ├── repository/           implementations of the domain contracts
 │   └── security/             encryption of secrets at rest
 ├── di/                       one Hilt module per family of dependencies
@@ -535,6 +537,7 @@ app/
     ├── login/                sign-in
     ├── navigation/           destinations, graph, presentation mode
     ├── permission/           the permission to notify, asked for at the right moment
+    ├── recap/                digest of the unread: title-bar action, sheet, states
     ├── settings/             settings
     ├── stats/                reading statistics: the histogram behind the reminder hour
     ├── swipe/                feed as a card stack, one article per screen
@@ -590,6 +593,7 @@ detached a domain decision from its caller.
 | `FeedFreshnessRepository` | `DefaultArticleRepository` in **writing** (every valid server response) and `FeedStalenessWatcher` in **reading** |
 | `CacheRepository` | `SettingsViewModel` — cache state and manual purge |
 | `SettingsRepository` | `SettingsViewModel`, both feed ViewModels for the thresholds, and `FeedPresentationViewModel` for the presentation mode |
+| `RecapGenerator`, `RecapPrompt` | `RecapViewModel` — availability makes the title-bar button exist, the prompt and the streamed generation feed the sheet (SPECS.md §4.10) |
 
 On the `:app` side, the mechanisms the section used to flag as absent are in
 place and covered: the cache feeds the first display (SPECS.md §5.1) and offline
