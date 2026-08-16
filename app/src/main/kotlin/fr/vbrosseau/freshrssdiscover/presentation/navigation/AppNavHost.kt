@@ -23,6 +23,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
+import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheet
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
@@ -70,6 +71,12 @@ fun AppNavHost(
                 isModelUsable = recapUiState.isModelUsable,
                 onRecap = recapViewModel::onRecapRequested,
                 onFeedRecapChange = onFeedRecapChange,
+            )
+
+            RecapSheet(
+                state = recapUiState.sheet,
+                onDownloadConfirm = recapViewModel::onDownloadConfirmed,
+                onDismiss = recapViewModel::onSheetDismissed,
             )
 
             when (presentation) {

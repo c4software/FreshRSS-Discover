@@ -6,4 +6,34 @@
         tap will do. "Summarize" alone would not say what gets summarized.
     -->
     <string name="recap_button">Summarize the unread articles</string>
+
+    <!-- Sheet headline, common to every state: it names what the sheet is. -->
+    <string name="recap_title">Recap of your unread articles</string>
+
+    <!--
+        Shown before the one-time model download. It says three things the
+        user needs to consent with: it is a download, it happens once, and
+        the summary is produced on the device — nothing is sent anywhere.
+    -->
+    <string name="recap_download_offer">The summary is produced on your device, and nothing leaves it. This needs a one-time download of the model.</string>
+    <!-- Serves as first offer and as retry: the action is the same. -->
+    <string name="recap_download_action">Download the model</string>
+
+    <!--
+        Megabytes, not a percentage: the platform does not announce the total
+        size, and a made-up denominator would produce a lying bar.
+    -->
+    <string name="recap_downloading">Downloading the model… %1$d MB</string>
+    <string name="recap_download_failed">The download failed. Check your connection and try again.</string>
+
+    <!-- The cache holds nothing unread: there is nothing to summarize. -->
+    <string name="recap_empty">Nothing left unread to summarize.</string>
+
+    <!-- Under the indicator while the first words have not arrived yet. -->
+    <string name="recap_generating">Summarizing…</string>
+    <!--
+        No retry button: generation failing twice in a row is likely, and the
+        button in the title bar remains the retry. Closing is the way out.
+    -->
+    <string name="recap_failed">The summary could not be generated. Try again later.</string>
 </resources>

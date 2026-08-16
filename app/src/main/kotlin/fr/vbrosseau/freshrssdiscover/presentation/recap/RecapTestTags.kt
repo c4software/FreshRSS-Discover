@@ -8,4 +8,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.recap
  */
 object RecapTestTags {
     const val BUTTON = "recap:button"
+    const val SHEET = "recap:sheet"
+    const val DOWNLOAD = "recap:download"
+    const val DIGEST = "recap:digest"
 }

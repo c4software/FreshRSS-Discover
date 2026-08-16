@@ -1,41 +1,47 @@
 package fr.vbrosseau.freshrssdiscover.presentation.recap
 
+import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
+import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.recap.FakeRecapGenerator
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
+import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * The rule that makes the button dynamic lives here: unusable hides it, and
- * a merely-not-downloaded model still shows it, since the sheet will offer
- * the download.
+ * The recap sequencing: the button rule (unusable hides it, not-downloaded
+ * still shows it), the download that flows into generation, and the failures
+ * that each land on their own sheet state.
  */
 class RecapViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private val generator = FakeRecapGenerator()
+    private val articles = FakeArticleRepository()
+
+    private fun viewModel(language: String = "French") =
+        RecapViewModel(generator, articles, { language })
 
     @Test
     fun anUnsupportedDeviceKeepsTheButtonHidden() = runTest {
         generator.availability = RecapAvailability.Unavailable
 
-        val viewModel = RecapViewModel(generator)
-
-        assertFalse(viewModel.uiState.value.isModelUsable)
+        assertFalse(viewModel().uiState.value.isModelUsable)
     }
 
     @Test
     fun anAvailableModelShowsTheButton() = runTest {
         generator.availability = RecapAvailability.Available
 
-        val viewModel = RecapViewModel(generator)
-
-        assertTrue(viewModel.uiState.value.isModelUsable)
+        assertTrue(viewModel().uiState.value.isModelUsable)
     }
 
     @Test
@@ -45,17 +51,120 @@ class RecapViewModelTest {
         // download is offered behind it.
         generator.availability = RecapAvailability.Downloadable
 
-        val viewModel = RecapViewModel(generator)
-
-        assertTrue(viewModel.uiState.value.isModelUsable)
+        assertTrue(viewModel().uiState.value.isModelUsable)
     }
 
     @Test
-    fun requestingTheRecapOpensTheSheet() = runTest {
-        val viewModel = RecapViewModel(generator)
+    fun requestingWithAReadyModelStreamsTheDigest() = runTest {
+        articles.unreadInCache = listOf(article(title = "Le seul titre"))
+        generator.chunks = listOf("Un début", ", une fin.")
 
+        val viewModel = viewModel()
         viewModel.onRecapRequested()
 
-        assertTrue(viewModel.uiState.value.isSheetOpen)
+        assertEquals(
+            RecapSheetState.Digest(text = "Un début, une fin.", isGenerating = false),
+            viewModel.uiState.value.sheet,
+        )
+    }
+
+    @Test
+    fun thePromptCarriesTheArticlesAndTheDeviceLanguage() = runTest {
+        articles.unreadInCache = listOf(article(title = "Le seul titre"))
+
+        viewModel(language = "Italian").onRecapRequested()
+
+        val prompt = generator.receivedPrompts.single()
+        assertContains(prompt, "Le seul titre")
+        assertContains(prompt, "written in Italian")
+    }
+
+    @Test
+    fun anEmptyCacheShowsTheEmptyStateWithoutTouchingTheModel() = runTest {
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+
+        assertEquals(RecapSheetState.Empty, viewModel.uiState.value.sheet)
+        assertTrue(generator.receivedPrompts.isEmpty())
+    }
+
+    @Test
+    fun aGenerationFailureLandsOnTheFailedState() = runTest {
+        articles.unreadInCache = listOf(article())
+        generator.chunks = listOf("Un début")
+        generator.generationFailure = IllegalStateException("le modèle est mort")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+
+        // What arrived is discarded: half a digest reads as a whole one.
+        assertEquals(RecapSheetState.GenerationFailed, viewModel.uiState.value.sheet)
+    }
+
+    @Test
+    fun aMissingModelOffersTheDownloadInsteadOfGenerating() = runTest {
+        generator.availability = RecapAvailability.Downloadable
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+
+        assertEquals(RecapSheetState.DownloadOffer, viewModel.uiState.value.sheet)
+        assertTrue(generator.receivedPrompts.isEmpty())
+    }
+
+    @Test
+    fun aConfirmedDownloadFlowsStraightIntoGeneration() = runTest {
+        generator.availability = RecapAvailability.Downloadable
+        articles.unreadInCache = listOf(article())
+        generator.chunks = listOf("Le récap.")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        viewModel.onDownloadConfirmed()
+
+        assertEquals(
+            RecapSheetState.Digest(text = "Le récap.", isGenerating = false),
+            viewModel.uiState.value.sheet,
+        )
+    }
+
+    @Test
+    fun aFailedDownloadOffersTheRetry() = runTest {
+        generator.availability = RecapAvailability.Downloadable
+        generator.downloadEvents = listOf(
+            RecapDownloadEvent.Progress(totalBytesDownloaded = 1_024L),
+            RecapDownloadEvent.Failed,
+        )
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        viewModel.onDownloadConfirmed()
+
+        assertEquals(RecapSheetState.DownloadFailed, viewModel.uiState.value.sheet)
+    }
+
+    @Test
+    fun dismissingTheSheetHidesIt() = runTest {
+        articles.unreadInCache = listOf(article())
+        generator.chunks = listOf("Le récap.")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        viewModel.onSheetDismissed()
+
+        assertEquals(RecapSheetState.Hidden, viewModel.uiState.value.sheet)
+    }
+
+    @Test
+    fun aSecondTapWhileTheSheetIsOpenRestartsNothing() = runTest {
+        articles.unreadInCache = listOf(article())
+        generator.chunks = listOf("Le récap.")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        viewModel.onRecapRequested()
+
+        assertIs<RecapSheetState.Digest>(viewModel.uiState.value.sheet)
+        assertEquals(1, generator.receivedPrompts.size)
     }
 }

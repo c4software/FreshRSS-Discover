@@ -2512,7 +2512,7 @@ the download, with progress, before generating.
       pattern, published by the feed destination via `PublishFeedRecap`,
       wired into `MainActivity` next to the refresh action, with tests
       mirroring the refresh ones
-- [ ] `GOAL-037-T04` presentation: `RecapViewModel` and the `RecapSheet`
+- [x] `GOAL-037-T04` presentation: `RecapViewModel` and the `RecapSheet`
       bottom sheet — download offer with progress, streamed digest, empty
       and failure states — with ViewModel and Composable tests
 - [ ] `GOAL-037-T05` finish: Roborazzi references (light and dark, looked
