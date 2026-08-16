@@ -26,10 +26,12 @@ complexity:
     # en deux interfaces obligerait à répartir des requêtes qui portent sur la
     # même table.
     #
-    # 13 et non 12 : le seuil est la valeur **à laquelle** Detekt signale, pas
-    # celle qu'il tolère. Douze requêtes passent, la treizième rouvrira la
-    # question.
-    thresholdInInterfaces: 13
+    # Le seuil est la valeur **à laquelle** Detekt signale, pas celle qu'il
+    # tolère. La question s'est rouverte en GOAL-037 avec la treizième requête
+    # — lire des articles par identifiants pour le récap — et la réponse reste
+    # la même : une requête d'une ligne sur la même table. Treize passent, la
+    # quatorzième rouvrira la question.
+    thresholdInInterfaces: 14
 
 naming:
   FunctionNaming:

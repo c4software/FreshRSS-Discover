@@ -5,10 +5,10 @@
         A verb rather than a noun, like `feed_refresh`: it announces what the
         tap will do. "Summarize" alone would not say what gets summarized.
     -->
-    <string name="recap_button">Summarize the unread articles</string>
+    <string name="recap_button">Summarize the articles</string>
 
     <!-- Sheet headline, common to every state: it names what the sheet is. -->
-    <string name="recap_title">Recap of your unread articles</string>
+    <string name="recap_title">Recap of your articles</string>
 
     <!--
         Shown before the one-time model download. It says three things the
@@ -26,8 +26,8 @@
     <string name="recap_downloading">Downloading the model… %1$d MB</string>
     <string name="recap_download_failed">The download failed. Check your connection and try again.</string>
 
-    <!-- The cache holds nothing unread: there is nothing to summarize. -->
-    <string name="recap_empty">Nothing left unread to summarize.</string>
+    <!-- Neither the screen nor the cache has anything to summarize. -->
+    <string name="recap_empty">Nothing left to summarize.</string>
 
     <!--
         Closes the list while unread articles remain. "Summarize", not

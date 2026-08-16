@@ -102,6 +102,16 @@ class FakeArticleRepository : ArticleRepository {
 
     override suspend fun unreadFromCache(limit: Int): List<Article> = unreadInCache.take(limit)
 
+    /**
+     * Served from [cachedArticles] then [unreadInCache], in the order of
+     * [ids], like the contract demands: a recap test seeds whichever of the
+     * two is convenient without wiring both.
+     */
+    override suspend fun cachedByIds(ids: List<ArticleId>): List<Article> {
+        val byId = (cachedArticles.value + unreadInCache).associateBy(Article::id)
+        return ids.mapNotNull(byId::get)
+    }
+
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cachedArticles.map { articles -> articles.take(limit) }
 

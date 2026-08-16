@@ -50,6 +50,10 @@ internal interface ArticleDao {
     @Query("SELECT id FROM articles WHERE is_read = 1 AND id IN (:ids)")
     suspend fun readArticleIdsAmong(ids: List<Long>): List<Long>
 
+    /** In SQLite's order, not the caller's: `IN` promises nothing there. */
+    @Query("SELECT * FROM articles WHERE id IN (:ids)")
+    suspend fun articlesByIds(ids: List<Long>): List<ArticleEntity>
+
     /**
      * Unread cached articles, newest first.
      *

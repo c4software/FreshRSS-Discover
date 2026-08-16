@@ -46,6 +46,6 @@ class RecapButtonTest {
         // SPECS.md §7.1: an icon alone means nothing without a description.
         show()
 
-        composeRule.onNodeWithContentDescription("Résumer les articles non lus").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Résumer les articles").assertIsDisplayed()
     }
 }

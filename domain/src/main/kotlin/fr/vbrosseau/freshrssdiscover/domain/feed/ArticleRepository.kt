@@ -109,4 +109,19 @@ interface ArticleRepository {
      * issue a request without a user action (§7.4).
      */
     suspend fun unreadFromCache(limit: Int): List<Article>
+
+    /**
+     * The cached articles among [ids], returned **in the order of [ids]**;
+     * absent ones are skipped, not reported.
+     *
+     * Exists for the recap (SPECS.md §4.10), which summarizes the feed as
+     * displayed — read articles included, which is exactly what
+     * [unreadFromCache] cannot serve. The caller owns the order because only
+     * it knows the on-screen one; a repository-side sort would reintroduce
+     * the cache's own order through the back door.
+     *
+     * No `FeedResult`, like [unreadFromCache]: the cache cannot fail, and an
+     * unknown id is well expressed by its absence.
+     */
+    suspend fun cachedByIds(ids: List<ArticleId>): List<Article>
 }

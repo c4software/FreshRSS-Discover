@@ -87,7 +87,7 @@ class RecapSheetContentTest {
     fun anEmptyFeedSaysSo() {
         show(RecapSheetState.Empty)
 
-        composeRule.onNodeWithText("Aucun article non lu à résumer.").assertIsDisplayed()
+        composeRule.onNodeWithText("Aucun article à résumer.").assertIsDisplayed()
     }
 
     @Test

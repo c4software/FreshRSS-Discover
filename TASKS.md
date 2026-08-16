@@ -2561,6 +2561,13 @@ the download, with progress, before generating.
       the sort was six articles in the cache's own order, so a screen-first
       article beyond it missed its batch — the pool is now the feed's own
       bound (`CACHED_FEED_LIMIT`), pinned by a regression test
+- [x] `GOAL-037-T13` author's ruling after seeing two read articles sit
+      above the first summary: the recap covers **the list as displayed,
+      read articles included** (the sheet stops saying "unread"), then
+      continues with the remaining unread; and every summarized article is
+      **marked read** like the list marks what it shows. Needs a new
+      repository door — cached articles by id, in the asked order — since
+      the unread-only door cannot serve read ones
 
 ---
 

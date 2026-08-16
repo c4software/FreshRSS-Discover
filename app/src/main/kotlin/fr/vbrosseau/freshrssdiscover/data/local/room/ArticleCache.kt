@@ -59,6 +59,17 @@ internal class ArticleCache @Inject constructor(
         dao.unreadArticles(limit).map(ArticleEntity::toDomain)
 
     /**
+     * The cached articles among [ids], in the order of [ids] — restored
+     * here because SQLite's `IN` returns its own order.
+     */
+    suspend fun articlesByIds(ids: List<ArticleId>): List<Article> {
+        if (ids.isEmpty()) return emptyList()
+        val byId = dao.articlesByIds(ids.map(ArticleId::value))
+            .associateBy { ArticleId(it.id) }
+        return ids.mapNotNull { id -> byId[id]?.toDomain() }
+    }
+
+    /**
      * Marks articles as read locally, without transmitting anything.
      *
      * The optimistic half of marking (SPECS.md §4.5): the state changes

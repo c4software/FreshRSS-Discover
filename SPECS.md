@@ -554,13 +554,13 @@ the user arrives; leaving it in the shade would make it a leftover.
 notification permission to withdraw, and a reminder you cannot turn off is a
 defect.
 
-### 4.10 On-device recap of the unread articles
+### 4.10 On-device recap of the feed
 
 A button on the title row, next to the refresh button, produces a **digest of
-the unread articles** — what happened, grouped by theme — in a bottom sheet
-over the feed. A sheet and not a screen: the digest is transient reading,
-regenerated at every request, and a screen would promise a way back to a text
-that no longer exists.
+the feed** — one tappable summary per article — in a bottom sheet over the
+feed. A sheet and not a screen: the digest is transient reading, regenerated
+at every request, and a screen would promise a way back to a text that no
+longer exists.
 
 **Generation is entirely on the device.** The model is Gemini Nano, served by
 AICore through ML Kit's Prompt API: the feed's text is never sent anywhere,
@@ -580,11 +580,19 @@ language is passed to the model at each request, with no allow-list — an
 allow-list would be the developer deciding which languages deserve the
 feature.
 
-**It summarizes what the application has.** Title and excerpt of the unread
-articles in the cache (at most twenty, the excerpts bounded), because the full
-content is deliberately not stored (§4.7) and no request leaves without a
-user gesture (§2). An empty pile says so instead of inventing; a generation
-failure says so instead of showing half a digest as a whole one.
+**It summarizes the list as displayed** — read articles included, in the
+screen's exact order, then the remaining unread beyond it (author's decision,
+2026-08-16: two read articles sitting above the first summary read as a
+broken order, and the recap's job is to mirror the screen). Matter is title
+and excerpt from the cache (five per batch, the excerpts bounded), because
+the full content is deliberately not stored (§4.7) and no request leaves
+without a user gesture (§2). An empty pile says so instead of inventing; a
+generation failure says so instead of showing half a digest as a whole one.
+
+**A summarized article is a read article.** Each batch marks its articles
+read the moment its summaries are shown, through the same optimistic marking
+as the list (§4.5) — reading the summary is the recap's way of reading the
+article. Already-read ones are not re-marked.
 
 **The text streams in as it is generated.** On-device inference takes
 seconds; a digest that builds up on screen is the difference between working

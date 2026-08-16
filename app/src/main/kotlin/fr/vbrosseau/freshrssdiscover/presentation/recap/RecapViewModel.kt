@@ -7,6 +7,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.CACHED_FEED_LIMIT
+import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.recap.RECAP_MAX_ARTICLES
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
@@ -38,6 +39,7 @@ import javax.inject.Inject
 class RecapViewModel @Inject constructor(
     private val generator: RecapGenerator,
     private val articleRepository: ArticleRepository,
+    private val readSyncRepository: ReadSyncRepository,
     private val language: RecapLanguage,
 ) : ViewModel() {
 
@@ -130,16 +132,15 @@ class RecapViewModel @Inject constructor(
 
     private fun generate() {
         work = viewModelScope.launch {
-            // The feed's own bound, not just the batch size: the pool must
-            // contain every displayed article before the sort, otherwise the
-            // screen's first articles can miss the pool entirely and the
-            // batch comes out in the cache's order — seen on device.
-            // Sorting is stable: articles not on screen keep the cache's
-            // order among themselves, after every displayed one.
-            val rank = displayedOrder.withIndex().associate { it.value to it.index }
-            val remaining = articleRepository.unreadFromCache(CACHED_FEED_LIMIT)
-                .filter { it.id !in summarizedIds }
-                .sortedBy { rank[it.id] ?: Int.MAX_VALUE }
+            // The list as displayed, read articles included (author's
+            // ruling, sixth device run): the recap follows the screen
+            // literally. The remaining unread come after — they are what the
+            // screen would show next.
+            val displayed = articleRepository.cachedByIds(displayedOrder)
+            val displayedIds = displayed.map(Article::id).toSet()
+            val beyondScreen = articleRepository.unreadFromCache(CACHED_FEED_LIMIT)
+                .filter { it.id !in displayedIds }
+            val remaining = (displayed + beyondScreen).filter { it.id !in summarizedIds }
             val articles = remaining.take(RECAP_MAX_ARTICLES)
             if (articles.isEmpty()) {
                 if (summarizedIds.isEmpty()) _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
@@ -168,6 +169,12 @@ class RecapViewModel @Inject constructor(
                     _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = true)) }
                 }
                 summarizedIds += articles.map { it.id }
+                // Reading the summary is reading the article (SPECS.md §4.10),
+                // like the list marks what it shows. Only the still-unread
+                // ones: re-marking a read article would enqueue a useless
+                // transmission.
+                val unreadShown = articles.filterNot(Article::isRead).map(Article::id).toSet()
+                if (unreadShown.isNotEmpty()) readSyncRepository.markAsRead(unreadShown)
                 _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = false)) }
             } catch (cancellation: CancellationException) {
                 throw cancellation

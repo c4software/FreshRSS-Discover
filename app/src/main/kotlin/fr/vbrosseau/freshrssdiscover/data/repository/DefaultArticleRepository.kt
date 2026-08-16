@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.di.IoDispatcher
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticlePage
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
@@ -97,6 +98,9 @@ internal class DefaultArticleRepository @Inject constructor(
      */
     override fun observeCachedArticles(limit: Int): Flow<List<Article>> =
         cache.observeArticles(limit).map(::interleaveBySource)
+
+    // No shuffle, unlike the two above: the caller's order IS the point.
+    override suspend fun cachedByIds(ids: List<ArticleId>): List<Article> = cache.articlesByIds(ids)
 
     private suspend fun fetchPage(
         cursor: PageCursor?,

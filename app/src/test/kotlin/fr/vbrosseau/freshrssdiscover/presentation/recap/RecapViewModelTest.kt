@@ -3,6 +3,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.recap
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
+import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.recap.FakeRecapGenerator
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
@@ -27,9 +28,10 @@ class RecapViewModelTest {
 
     private val generator = FakeRecapGenerator()
     private val articles = FakeArticleRepository()
+    private val readSync = FakeReadSyncRepository()
 
     private fun viewModel(language: String = "French") =
-        RecapViewModel(generator, articles, { language })
+        RecapViewModel(generator, articles, readSync, { language })
 
     @Test
     fun anUnsupportedDeviceKeepsTheButtonHidden() = runTest {
@@ -236,6 +238,43 @@ class RecapViewModelTest {
         val sheet = viewModel.uiState.value.sheet
         assertIs<RecapSheetState.Digest>(sheet)
         assertEquals("Titre 30", sheet.items.first().title)
+    }
+
+    @Test
+    fun readArticlesOnScreenAreSummarizedInTheirPlace() = runTest {
+        // The author's ruling after two read articles sat above the first
+        // summary: the recap covers the list as displayed, read included.
+        articles.cachedArticles.value = listOf(
+            article(id = 1, title = "Lu en tête", isRead = true),
+            article(id = 2, title = "Non lu ensuite"),
+        )
+        articles.unreadInCache = listOf(article(id = 2, title = "Non lu ensuite"))
+        generator.chunks = listOf("1. R1\n2. R2")
+
+        val viewModel = viewModel()
+        viewModel.onDisplayedOrderChanged(listOf(ArticleId(1L), ArticleId(2L)))
+        viewModel.onRecapRequested()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        assertEquals(listOf("Lu en tête", "Non lu ensuite"), sheet.items.map { it.title })
+    }
+
+    @Test
+    fun summarizingMarksTheStillUnreadArticlesAsRead() = runTest {
+        articles.cachedArticles.value = listOf(
+            article(id = 1, title = "Déjà lu", isRead = true),
+            article(id = 2, title = "Non lu"),
+        )
+        generator.chunks = listOf("1. R1\n2. R2")
+
+        val viewModel = viewModel()
+        viewModel.onDisplayedOrderChanged(listOf(ArticleId(1L), ArticleId(2L)))
+        viewModel.onRecapRequested()
+
+        // Reading the summary is reading the article; a read one is not
+        // re-marked, that would enqueue a useless transmission.
+        assertEquals(listOf(setOf(ArticleId(2L))), readSync.markCalls)
     }
 
     @Test
