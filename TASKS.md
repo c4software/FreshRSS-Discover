@@ -107,6 +107,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-031 | Android 17 asks for the local network at launch | `[x]` |
 | GOAL-032 | Read-on-scroll: observable at last, and a threshold that survives scrolling | `[x]` |
 | GOAL-033 | A Play Store submission file, and the policy that publishes itself | `[x]` |
+| GOAL-034 | Re-tapping the Discover tab returns to the top, then reloads | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2309,12 +2310,44 @@ questionnaires answered in Markdown next to them.
 
 ### Debt knowingly left
 
-- **The reviewer's demonstration account is missing**, and it cannot be
-  produced from the repository: `demo.freshrss.org` was tried on 2026-08-13 and
-  its API refuses `demo` / `demo` (`HTTP 401`). A publicly reachable instance
-  with API access must be exposed before submitting — recorded at the top of
-  `app-content.md` rather than filled with plausible values.
+- The reviewer's demonstration account **is settled**: `demo.freshrss.org` was
+  tried on 2026-08-13 and its API refuses `demo` / `demo` (`HTTP 401`), so a
+  Cloudflare Worker plays the server instead —
+  [`store/demo-server/`](./store/demo-server/README.md). The submission went
+  through with it.
 - No tablet screenshots: optional until the app is featured on large screens.
+
+---
+
+## GOAL-034 — Re-tapping the Discover tab returns to the top, then reloads
+
+**Status: DONE**
+
+Tapping the tab you are already on used to do nothing: the bar re-navigated to
+the current route, which `launchSingleTop` turned into a no-op. The bottom-bar
+convention says that tap means "bring me back to the start", and the feed now
+honours it.
+
+- [x] `GOAL-034-T01` The navigation bar distinguishes a reselection from a
+      move (`onReselect` alongside `onSelect`), and the displayed feed
+      destination publishes what to do with it — the same publication pattern
+      as the title-bar refresh (`PublishFeedReselect`, withdrawn on leaving
+      the screen). List mode scrolls back to the top **then** triggers the
+      reload, the scroll's suspension being what sequences the two; Swipe mode
+      goes straight to the reload, having no list to scroll. Settings
+      publishes nothing, so the tap stays inert there. SPECS.md §4.6 records
+      the third reload command
+- [x] `GOAL-034-T02` At the top of the list, the tap does nothing: there is
+      nowhere to bring the reader back to, and a reload would empty a feed
+      the tap never asked to lose (author's decision, 2026-08-14). Reloading
+      from the top stays with the pull gesture and the title-bar button
+
+### Decisions taken
+
+| Decision | Reason |
+|---|---|
+| The reaction is published by the destination, not decided by the scaffold | The scaffold would need the feed's list state and ViewModel, which belong to the destination; the `FeedRefresh` publication already crossed this boundary in the right direction |
+| Scroll first, reload second | The reload snaps to the first article anyway; firing it mid-scroll would make the animated return invisible and the tap indistinguishable from the title-bar button |
 
 ---
 

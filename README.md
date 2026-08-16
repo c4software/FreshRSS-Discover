@@ -19,10 +19,17 @@ deck.
 
 <p align="center"><em>The Discover feed, fed by a real FreshRSS instance.</em></p>
 
-> **Status: usable, and proven on a device.** Connection to the server, feed and
-> pagination, source interleaving, local cache and purge, read detection and the
-> marking queue, reloading, opening articles,
-> the settings screen and both presentation modes are in place.
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=fr.vbrosseau.freshrssdiscover">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+         alt="Get it on Google Play" height="80">
+  </a>
+</p>
+
+> **Status: published on the Play Store, and proven on a device.** Connection to
+> the server, feed and pagination, source interleaving, local cache and purge,
+> read detection and the marking queue, reloading, opening articles, the
+> settings screen and both presentation modes are in place.
 >
 > What remains open is written down as such: Swipe mode has **no alternative to
 > its gesture**, a trade-off accepted and settled in
@@ -193,8 +200,7 @@ The `release.yml` workflow does the same in CI. It is **never** triggered by a
 
 ### Publishing to the Play Store
 
-> Groundwork checked on paper, **not yet proven**: it will be completed at the
-> first real submission to the Play Console.
+> Groundwork **proven**: this is what the application was published with.
 
 Everything to upload — the texts of both listings, screenshots, icon, feature
 graphic, answers to the console's questionnaires and the privacy policy — is
