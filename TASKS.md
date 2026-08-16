@@ -111,6 +111,7 @@ picker and the statistics screen run on a real phone.
 | GOAL-033 | A Play Store submission file, and the policy that publishes itself | `[x]` |
 | GOAL-034 | Re-tapping the Discover tab returns to the top, then reloads | `[x]` |
 | GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[x]` |
+| GOAL-036 | The reminder section reads as settings rows, not floating buttons | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2441,6 +2442,28 @@ shows the histogram — the reminder's reasoning made visible.
   scheduling and notifications are only truly proven by running: the learned
   hour reaching `dumpsys jobscheduler`, the picker on a real screen, and the
   stats route under real navigation remain to be seen on the author's device.
+
+---
+
+## GOAL-036 — The reminder section reads as settings rows, not floating buttons
+
+**Status: DONE** — screenshots looked at in both themes; the reworked build is
+installed on the author's device, awaiting their eye
+
+Seen by the author on a device, right after GOAL-035 (2026-08-16): "it works
+but it is not pretty — alignment, and understanding what the actions do". Two
+defects behind that sentence. "My reading hours" was an outlined pill sitting
+under the fixed-hour help text: it read as an action belonging to that switch,
+when it navigates to a screen. And the chosen hour was a bare "18 h 30" pill
+with no label saying what it was or that tapping it edits it.
+
+- [x] `GOAL-036-T01` "My reading hours" becomes a full-width **navigation
+      row** with a chevron; the chosen hour becomes a **label/value row**
+      ("Reminder time: 18 h 30"), tappable to reopen the picker — the same
+      visual language as the account rows above. The existing tests follow
+      the tags unchanged, one new test proves the row reopens the picker,
+      and the two `reglages-rappel-heure-fixe` references were re-recorded
+      and **looked at** in both themes
 
 ---
 

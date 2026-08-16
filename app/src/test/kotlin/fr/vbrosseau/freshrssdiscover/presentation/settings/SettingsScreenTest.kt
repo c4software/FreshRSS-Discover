@@ -317,6 +317,16 @@ class SettingsScreenTest {
         assertEquals(ReminderTime.Automatic, reported)
     }
 
+    /** The row must say it edits: tapping it reopens the picker (GOAL-036). */
+    @Test
+    fun tappingTheFixedHourRowReopensThePicker() {
+        showReminder(reminderHour = SettingsReminderHour.Fixed(hour = 7, minute = 30))
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_VALUE).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_DIALOG).assertIsDisplayed()
+    }
+
     /** The stats screen is only reachable from here (SPECS.md §6). */
     @Test
     fun theReadingStatsButtonReportsTheOpening() {

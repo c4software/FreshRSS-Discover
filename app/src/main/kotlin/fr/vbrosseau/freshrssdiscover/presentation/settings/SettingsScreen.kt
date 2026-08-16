@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -442,14 +445,43 @@ private fun ReminderSection(
         // Outside the `if`: the histogram exists whether the reminder fires
         // or not, and hiding the only window into it would make the learned
         // hour unverifiable exactly when the user wonders about it.
-        OutlinedButton(
-            onClick = onOpenStats,
-            modifier = Modifier
-                .heightIn(min = MinTouchTarget)
-                .testTag(SettingsTestTags.READING_STATS),
-        ) {
-            Text(stringResource(R.string.settings_reading_stats))
-        }
+        StatsNavigationRow(onOpenStats = onOpenStats)
+    }
+}
+
+/**
+ * Navigates to the reading statistics screen (SPECS.md §6).
+ *
+ * A full-width row with a chevron, not a button: seen on a device, an
+ * outlined pill under the fixed-hour help text read as an action belonging
+ * to that switch, when this opens a screen. The chevron is the one signal
+ * every settings app uses for "leads somewhere", and the row aligns with the
+ * others instead of floating at its own width.
+ */
+@Composable
+private fun StatsNavigationRow(onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .clickable(onClick = onOpenStats)
+            .testTag(SettingsTestTags.READING_STATS),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.settings_reading_stats),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            // The row's text already names the destination: a spoken
+            // "chevron" would only add noise for the screen reader.
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -504,14 +536,7 @@ private fun ReminderHourRow(
         modifier = Modifier.testTag(SettingsTestTags.REMINDER_FIXED_HOUR_HELP),
     )
     if (reminderHour is SettingsReminderHour.Fixed) {
-        OutlinedButton(
-            onClick = { isPickerVisible = true },
-            modifier = Modifier
-                .heightIn(min = MinTouchTarget)
-                .testTag(SettingsTestTags.REMINDER_HOUR_VALUE),
-        ) {
-            Text(stringResource(R.string.settings_reminder_hour_value, reminderHour.hour, reminderHour.minute))
-        }
+        FixedHourValueRow(reminderHour = reminderHour, onEdit = { isPickerVisible = true })
     }
 
     if (isPickerVisible) {
@@ -522,6 +547,40 @@ private fun ReminderHourRow(
                 onReminderTimeChange(ReminderTime.Fixed(DailyMinute(minuteOfDay)))
             },
             onDismiss = { isPickerVisible = false },
+        )
+    }
+}
+
+/**
+ * The chosen hour, as a label/value row.
+ *
+ * Not a bare pill: "18 h 30" alone did not say what it was nor that tapping
+ * it edits it — the author's device report behind GOAL-036. The row borrows
+ * the visual language of the account rows above, with a label naming the
+ * value, and stays tappable to reopen the picker.
+ */
+@Composable
+private fun FixedHourValueRow(
+    reminderHour: SettingsReminderHour.Fixed,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .clickable(onClick = onEdit)
+            .testTag(SettingsTestTags.REMINDER_HOUR_VALUE),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_reminder_hour_dialog_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.settings_reminder_hour_value, reminderHour.hour, reminderHour.minute),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
