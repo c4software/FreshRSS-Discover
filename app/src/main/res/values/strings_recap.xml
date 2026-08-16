@@ -30,6 +30,12 @@
     <string name="recap_empty">Nothing left unread to summarize.</string>
 
     <!--
+        Closes the list while unread articles remain. "Summarize", not
+        "load": nothing is fetched, the next batch is generated.
+    -->
+    <string name="recap_load_more">Summarize more articles</string>
+
+    <!--
         No retry button: generation failing twice in a row is likely, and the
         button in the title bar remains the retry. Closing is the way out.
     -->

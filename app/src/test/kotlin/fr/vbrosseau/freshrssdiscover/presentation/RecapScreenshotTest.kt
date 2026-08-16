@@ -42,6 +42,7 @@ class RecapScreenshotTest : ScreenshotTest() {
                     ),
                     plannedCount = 3,
                     isGenerating = false,
+                    canLoadMore = true,
                 ),
                 onDownloadConfirm = {},
                 onItemClick = {},

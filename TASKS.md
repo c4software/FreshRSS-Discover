@@ -2543,6 +2543,11 @@ the download, with progress, before generating.
       shimmering skeleton cards **immediately**, each one replaced by its
       summary as its line completes — the remaining slots keep shimmering
       until generation ends
+- [x] `GOAL-037-T09` asked next: a **"load more"** element closing the list
+      once generation is done, in the same modern language — a tappable
+      pill that summarizes the next five unread articles and appends their
+      cards, shown only while unread articles remain and never during a
+      generation
 
 ---
 

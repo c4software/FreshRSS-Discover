@@ -32,6 +32,7 @@ class RecapSheetContentTest {
         state: RecapSheetState,
         onDownloadConfirm: () -> Unit = {},
         onItemClick: (String) -> Unit = {},
+        onLoadMore: () -> Unit = {},
     ) {
         composeRule.setContent {
             AppTheme(dynamicColor = false) {
@@ -39,6 +40,7 @@ class RecapSheetContentTest {
                     state = state,
                     onDownloadConfirm = onDownloadConfirm,
                     onItemClick = onItemClick,
+                    onLoadMore = onLoadMore,
                 )
             }
         }
@@ -93,7 +95,7 @@ class RecapSheetContentTest {
         // The shimmer sweeps forever: without freezing the clock, waiting
         // for idle would never end.
         composeRule.mainClock.autoAdvance = false
-        show(RecapSheetState.Digest(items = emptyList(), plannedCount = 5, isGenerating = true))
+        show(RecapSheetState.Digest(items = emptyList(), plannedCount = 5, isGenerating = true, canLoadMore = false))
 
         composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(5)
     }
@@ -105,6 +107,7 @@ class RecapSheetContentTest {
                 items = listOf(item(title = "GNOME 51", summary = "La bêta est ouverte.")),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
         )
 
@@ -120,6 +123,7 @@ class RecapSheetContentTest {
                 items = listOf(item(url = "https://exemple.org/a")),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
             onItemClick = { opened = it },
         )
@@ -136,6 +140,7 @@ class RecapSheetContentTest {
                 items = listOf(item(title = null, url = null)),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
         )
 
@@ -149,10 +154,44 @@ class RecapSheetContentTest {
                 items = listOf(item(summary = "* **Thème :** le texte")),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
         )
 
         composeRule.onNodeWithText("• Thème : le texte").assertIsDisplayed()
+    }
+
+    @Test
+    fun onceDoneWithUnreadLeftTheLoadMorePillCloses() {
+        var more = 0
+        show(
+            RecapSheetState.Digest(
+                items = listOf(item()),
+                plannedCount = 1,
+                isGenerating = false,
+                canLoadMore = true,
+            ),
+            onLoadMore = { more++ },
+        )
+
+        composeRule.onNodeWithTag(RecapTestTags.LOAD_MORE).performClick()
+
+        assertEquals(1, more)
+    }
+
+    @Test
+    fun whileGeneratingThePillStaysAway() {
+        composeRule.mainClock.autoAdvance = false
+        show(
+            RecapSheetState.Digest(
+                items = listOf(item()),
+                plannedCount = 2,
+                isGenerating = true,
+                canLoadMore = true,
+            ),
+        )
+
+        composeRule.onAllNodesWithTag(RecapTestTags.LOAD_MORE).assertCountEquals(0)
     }
 
     @Test

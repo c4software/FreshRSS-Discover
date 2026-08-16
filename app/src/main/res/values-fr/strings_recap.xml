@@ -30,6 +30,12 @@
     <string name="recap_empty">Aucun article non lu à résumer.</string>
 
     <!--
+        Clôt la liste tant qu'il reste des non-lus. « Résumer », pas
+        « charger » : rien n'est téléchargé, la suite est générée.
+    -->
+    <string name="recap_load_more">Résumer d’autres articles</string>
+
+    <!--
         Pas de bouton réessayer : un second échec immédiat est probable, et le
         bouton de la barre reste le nouvel essai. Fermer est la sortie.
     -->

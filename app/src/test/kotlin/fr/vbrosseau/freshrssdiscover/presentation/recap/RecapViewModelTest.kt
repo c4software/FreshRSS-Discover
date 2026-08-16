@@ -73,6 +73,7 @@ class RecapViewModelTest {
                 ),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
             viewModel.uiState.value.sheet,
         )
@@ -138,6 +139,7 @@ class RecapViewModelTest {
                 items = listOf(RecapItemUi(title = null, summary = "Le récap.", url = null)),
                 plannedCount = 1,
                 isGenerating = false,
+                canLoadMore = false,
             ),
             viewModel.uiState.value.sheet,
         )
@@ -168,6 +170,53 @@ class RecapViewModelTest {
         viewModel.onSheetDismissed()
 
         assertEquals(RecapSheetState.Hidden, viewModel.uiState.value.sheet)
+    }
+
+    @Test
+    fun loadMoreAppendsTheNextBatchWithoutRepeatingAnArticle() = runTest {
+        articles.unreadInCache = (1L..7L).map { article(id = it, title = "Titre $it") }
+        generator.chunks = listOf("1. R1\n2. R2\n3. R3\n4. R4\n5. R5")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        generator.chunks = listOf("1. R6\n2. R7")
+        viewModel.onLoadMore()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        assertEquals(7, sheet.items.size)
+        assertEquals(List(7) { "Titre ${it + 1}" }, sheet.items.map { it.title })
+        assertFalse(sheet.canLoadMore)
+        assertFalse(sheet.isGenerating)
+    }
+
+    @Test
+    fun moreUnreadThanTheCapOffersToLoadMore() = runTest {
+        articles.unreadInCache = (1L..6L).map { article(id = it) }
+        generator.chunks = listOf("1. R1")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        assertTrue(sheet.canLoadMore)
+    }
+
+    @Test
+    fun reopeningTheSheetStartsAFreshRecap() = runTest {
+        articles.unreadInCache = listOf(article(title = "Le seul titre"))
+        generator.chunks = listOf("1. R1")
+
+        val viewModel = viewModel()
+        viewModel.onRecapRequested()
+        viewModel.onSheetDismissed()
+        viewModel.onRecapRequested()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        assertEquals(1, sheet.items.size)
+        assertEquals(2, generator.receivedPrompts.size)
     }
 
     @Test

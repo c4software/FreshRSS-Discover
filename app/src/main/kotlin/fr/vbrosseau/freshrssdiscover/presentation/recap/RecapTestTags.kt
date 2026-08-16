@@ -13,4 +13,5 @@ object RecapTestTags {
     const val DIGEST = "recap:digest"
     const val ITEM = "recap:item"
     const val SKELETON = "recap:skeleton"
+    const val LOAD_MORE = "recap:loadMore"
 }

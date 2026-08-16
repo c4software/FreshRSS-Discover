@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
@@ -54,6 +55,7 @@ fun RecapSheet(
     state: RecapSheetState,
     onDownloadConfirm: () -> Unit,
     onItemClick: (String) -> Unit,
+    onLoadMore: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -63,7 +65,12 @@ fun RecapSheet(
         onDismissRequest = onDismiss,
         modifier = modifier.testTag(RecapTestTags.SHEET),
     ) {
-        RecapSheetContent(state = state, onDownloadConfirm = onDownloadConfirm, onItemClick = onItemClick)
+        RecapSheetContent(
+            state = state,
+            onDownloadConfirm = onDownloadConfirm,
+            onItemClick = onItemClick,
+            onLoadMore = onLoadMore,
+        )
     }
 }
 
@@ -76,6 +83,7 @@ internal fun RecapSheetContent(
     state: RecapSheetState,
     onDownloadConfirm: () -> Unit,
     onItemClick: (String) -> Unit,
+    onLoadMore: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -114,7 +122,7 @@ internal fun RecapSheetContent(
 
             RecapSheetState.Empty -> Text(text = stringResource(R.string.recap_empty))
 
-            is RecapSheetState.Digest -> Digest(state, onItemClick)
+            is RecapSheetState.Digest -> Digest(state, onItemClick, onLoadMore)
 
             RecapSheetState.GenerationFailed -> Text(text = stringResource(R.string.recap_failed))
         }
@@ -134,6 +142,7 @@ internal fun RecapSheetContent(
 private fun Digest(
     state: RecapSheetState.Digest,
     onItemClick: (String) -> Unit,
+    onLoadMore: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -154,6 +163,33 @@ private fun Digest(
                 SkeletonCard()
             }
         }
+        if (!state.isGenerating && state.canLoadMore) {
+            LoadMorePill(onLoadMore)
+        }
+    }
+}
+
+/**
+ * Closes the list when unread articles remain: same tonal language as the
+ * cards, but a pill — it is an action, not another summary, and the shape
+ * says so before the label does.
+ */
+@Composable
+private fun LoadMorePill(onLoadMore: () -> Unit) {
+    Surface(
+        onClick = onLoadMore,
+        shape = RoundedCornerShape(percent = 50),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(RecapTestTags.LOAD_MORE),
+    ) {
+        Text(
+            text = stringResource(R.string.recap_load_more),
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(Spacing.md),
+        )
     }
 }
 
@@ -325,6 +361,7 @@ private fun RecapSheetContentDigestPreview() {
                 ),
                 plannedCount = 2,
                 isGenerating = false,
+                canLoadMore = true,
             ),
             onDownloadConfirm = {},
             onItemClick = {},

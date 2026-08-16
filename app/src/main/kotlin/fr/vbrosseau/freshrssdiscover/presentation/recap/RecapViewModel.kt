@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.recap.RECAP_MAX_ARTICLES
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
@@ -92,39 +93,67 @@ class RecapViewModel @Inject constructor(
         }
     }
 
-    /** Swipe-down or back on the sheet. */
+    /** Swipe-down or back on the sheet. Reopening starts a fresh recap. */
     fun onSheetDismissed() {
         work?.cancel()
         work = null
+        shownItems = emptyList()
+        summarizedIds.clear()
         _uiState.update { it.copy(sheet = RecapSheetState.Hidden) }
     }
 
+    /** The "load more" pill: summarizes the next batch of unread articles. */
+    fun onLoadMore() {
+        val sheet = _uiState.value.sheet
+        if (sheet !is RecapSheetState.Digest || sheet.isGenerating) return
+
+        generate()
+    }
+
+    /** The cards already on the sheet, kept across "load more" batches. */
+    private var shownItems: List<RecapItemUi> = emptyList()
+
+    /**
+     * Identity, not position: `unreadFromCache` serves a shuffled list, so
+     * the next batch is "unread minus already summarized", never "the next
+     * five rows".
+     */
+    private val summarizedIds = mutableSetOf<ArticleId>()
+
     private fun generate() {
         work = viewModelScope.launch {
-            val articles = articleRepository.unreadFromCache(RECAP_MAX_ARTICLES)
+            // One extra beyond the batch: its presence is what proves more
+            // unread articles remain behind the ones about to be shown.
+            val poolSize = summarizedIds.size + RECAP_MAX_ARTICLES + 1
+            val remaining = articleRepository.unreadFromCache(poolSize).filter { it.id !in summarizedIds }
+            val articles = remaining.take(RECAP_MAX_ARTICLES)
             if (articles.isEmpty()) {
-                _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
+                if (shownItems.isEmpty()) _uiState.update { it.copy(sheet = RecapSheetState.Empty) }
                 return@launch
             }
+            val canLoadMore = remaining.size > articles.size
+            val base = shownItems
 
-            _uiState.update {
-                it.copy(sheet = RecapSheetState.Digest(emptyList(), articles.size, isGenerating = true))
-            }
+            fun digest(
+                items: List<RecapItemUi>,
+                isGenerating: Boolean,
+            ) = RecapSheetState.Digest(
+                items = base + items,
+                plannedCount = base.size + articles.size,
+                isGenerating = isGenerating,
+                canLoadMore = canLoadMore,
+            )
+
+            _uiState.update { it.copy(sheet = digest(emptyList(), isGenerating = true)) }
             var text = ""
             try {
                 generator.generate(RecapPrompt.build(articles, language.displayName())).collect { chunk ->
                     text += chunk
-                    _uiState.update {
-                        it.copy(
-                            sheet = RecapSheetState.Digest(itemsOf(text, articles), articles.size, isGenerating = true),
-                        )
-                    }
+                    _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = true)) }
                 }
-                _uiState.update {
-                    it.copy(
-                        sheet = RecapSheetState.Digest(itemsOf(text, articles), articles.size, isGenerating = false),
-                    )
-                }
+                shownItems = base + itemsOf(text, articles)
+                summarizedIds += articles.map { it.id }
+                _uiState.update { it.copy(sheet = digest(itemsOf(text, articles), isGenerating = false)) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (

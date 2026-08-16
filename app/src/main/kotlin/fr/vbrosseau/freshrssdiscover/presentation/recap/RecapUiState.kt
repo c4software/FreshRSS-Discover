@@ -52,6 +52,11 @@ sealed interface RecapSheetState {
         val items: List<RecapItemUi>,
         val plannedCount: Int,
         val isGenerating: Boolean,
+        /**
+         * Unread articles remain beyond the summarized ones: a "load more"
+         * element closes the list once generation is done, never during it.
+         */
+        val canLoadMore: Boolean,
     ) : RecapSheetState
 
     data object GenerationFailed : RecapSheetState

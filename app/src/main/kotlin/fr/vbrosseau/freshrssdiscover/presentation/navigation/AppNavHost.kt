@@ -81,6 +81,7 @@ fun AppNavHost(
                 state = recapUiState.sheet,
                 onDownloadConfirm = recapViewModel::onDownloadConfirmed,
                 onItemClick = recapArticleOpener::open,
+                onLoadMore = recapViewModel::onLoadMore,
                 onDismiss = recapViewModel::onSheetDismissed,
             )
 
