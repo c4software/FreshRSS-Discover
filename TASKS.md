@@ -2407,8 +2407,15 @@ shows the histogram — the reminder's reasoning made visible.
       Automatic). Rescheduling on a setting change lands with the screen
       wiring in T05, where the setter is called. 3 scheduler tests, 4 store
       tests
-- [ ] `GOAL-035-T05` **The hour setting reaches the settings screen**:
-      automatic / fixed with a time picker, persisted in `SettingsStore`
+- [x] `GOAL-035-T05` **The hour setting reaches the settings screen**:
+      a "Fixed time" switch under the reminder toggle, hidden while the
+      reminder is off; switching it on opens a Material time-picker and
+      stores nothing until the hour is confirmed — no half-set state can
+      exist. Changing the choice reschedules, but only while the reminder is
+      on. 6 screen tests, 5 ViewModel tests, and a new Roborazzi reference
+      (`reglages-rappel-heure-fixe`, light and dark, **looked at**) with a
+      taller window: the reminder section sits below the 891 dp fold, and no
+      existing full-screen capture could show the control
 - [ ] `GOAL-035-T06` **The statistics screen shows the histogram**: reached
       from the settings, dominant hour highlighted, back navigation. Roborazzi
       light and dark, looked at

@@ -59,8 +59,14 @@
       relance publicitaire.
     -->
     <string name="settings_section_reminder">Rappel de lecture</string>
-    <string name="settings_reminder_help">Une notification quotidienne rappelle ce qu\'il reste à lire, en citant quelques titres. Elle part à l\'heure à laquelle vous avez ouvert l\'application la veille, et rien n\'est envoyé s\'il ne reste rien à lire.</string>
+    <string name="settings_reminder_help">Une notification quotidienne rappelle ce qu\'il reste à lire, en citant quelques titres. Elle part à l\'heure où vous lisez habituellement — apprise de vos habitudes de lecture — et rien n\'est envoyé s\'il ne reste rien à lire.</string>
     <string name="settings_reminder_label">Notification quotidienne</string>
+    <string name="settings_reminder_fixed_label">Heure fixe</string>
+    <string name="settings_reminder_fixed_help">Désactivée, l\'application apprend votre heure habituelle de lecture et y vise le rappel. Activée, le rappel part à l\'heure que vous choisissez.</string>
+    <string name="settings_reminder_hour_value">%1$02d h %2$02d</string>
+    <string name="settings_reminder_hour_dialog_title">Heure du rappel</string>
+    <string name="settings_reminder_hour_confirm">Valider</string>
+    <string name="settings_reminder_hour_cancel">Annuler</string>
 
     <!--
       Cache local (SPECS.md §5.1 et §5.3). La taille est un nombre d'articles et

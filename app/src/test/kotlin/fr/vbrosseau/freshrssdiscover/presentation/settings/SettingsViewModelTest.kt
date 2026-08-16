@@ -4,6 +4,8 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
 import fr.vbrosseau.freshrssdiscover.domain.auth.FakeAuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddress
 import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
+import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeCacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
@@ -417,6 +419,58 @@ class SettingsViewModelTest {
 
         assertEquals(1, scheduler.scheduleCount)
         assertEquals(0, scheduler.cancelCount)
+    }
+
+    @Test
+    fun theReminderHourIsAutomaticByDefault() = runTest {
+        observe()
+
+        assertEquals(SettingsReminderHour.Automatic, viewModel.uiState.value.reminderHour)
+    }
+
+    @Test
+    fun aStoredFixedHourIsDisplayedSplitForThePicker() = runTest {
+        settings.setReminderTime(ReminderTime.Fixed(DailyMinute(7 * 60 + 30)))
+        observe()
+
+        assertEquals(SettingsReminderHour.Fixed(hour = 7, minute = 30), viewModel.uiState.value.reminderHour)
+    }
+
+    /** The reminder must move to the new hour, not wait for the next opening. */
+    @Test
+    fun choosingAFixedHourStoresItAndReschedules() = runTest {
+        observe()
+
+        viewModel.setReminderTime(ReminderTime.Fixed(DailyMinute(18 * 60)))
+
+        assertEquals(SettingsReminderHour.Fixed(hour = 18, minute = 0), viewModel.uiState.value.reminderHour)
+        assertEquals(1, scheduler.scheduleCount)
+    }
+
+    /**
+     * With the reminder off there is nothing pending to move, and scheduling
+     * here would undo the cancellation the off switch performed.
+     */
+    @Test
+    fun changingTheHourWhileTheReminderIsOffSchedulesNothing() = runTest {
+        settings.setReminderEnabled(false)
+        observe()
+
+        viewModel.setReminderTime(ReminderTime.Fixed(DailyMinute(18 * 60)))
+
+        assertEquals(0, scheduler.scheduleCount)
+        assertEquals(SettingsReminderHour.Fixed(hour = 18, minute = 0), viewModel.uiState.value.reminderHour)
+    }
+
+    @Test
+    fun returningToTheAutomaticHourReschedulesToo() = runTest {
+        settings.setReminderTime(ReminderTime.Fixed(DailyMinute(18 * 60)))
+        observe()
+
+        viewModel.setReminderTime(ReminderTime.Automatic)
+
+        assertEquals(SettingsReminderHour.Automatic, viewModel.uiState.value.reminderHour)
+        assertEquals(1, scheduler.scheduleCount)
     }
 
     /** Opening the screen neither schedules nor cancels: only the gesture decides. */

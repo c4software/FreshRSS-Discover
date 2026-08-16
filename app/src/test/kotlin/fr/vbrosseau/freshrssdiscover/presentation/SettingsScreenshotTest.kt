@@ -5,11 +5,13 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsAccount
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsCache
+import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsReminderHour
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsUiState
 import fr.vbrosseau.freshrssdiscover.presentation.settings.continuousVisibilityThresholdOf
 import fr.vbrosseau.freshrssdiscover.presentation.settings.visibleFractionThresholdOf
 import org.junit.Test
+import org.robolectric.annotation.Config
 
 /**
  * Visual references for the settings screen.
@@ -142,6 +144,30 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
+     * A fixed reminder hour held (SPECS.md §4.9, §6).
+     *
+     * The only state showing the hour switch on and the hour button, both
+     * new with GOAL-035. A taller window than the base class's: the reminder
+     * section sits below the 891 dp fold, and every full-screen capture cuts
+     * right after its first switch — without this, the control would be the
+     * one part of the screen no reference shows.
+     */
+    @Test
+    @Config(qualifiers = "fr-rFR-w411dp-h1500dp-xhdpi")
+    fun settingsScreenWithAFixedReminderHour() {
+        capture("reglages-rappel-heure-fixe") {
+            settings(
+                SettingsUiState(
+                    account = ACCOUNT,
+                    reminderHour = SettingsReminderHour.Fixed(hour = 18, minute = 30),
+                    cache = CACHE,
+                    appVersion = APP_VERSION,
+                ),
+            )
+        }
+    }
+
+    /**
      * Automatic marking off, so both sliders grayed out.
      *
      * The only state where a disabled track and a dimmed number sit side by
@@ -175,6 +201,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
             onPurgeCache = {},
             onPresentationChange = {},
             onReminderEnabledChange = {},
+            onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
         )
     }

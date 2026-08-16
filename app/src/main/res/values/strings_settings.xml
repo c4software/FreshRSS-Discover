@@ -64,8 +64,14 @@
       an advertising nudge.
     -->
     <string name="settings_section_reminder">Reading reminder</string>
-    <string name="settings_reminder_help">A daily notification recalls what is left to read, quoting a few titles. It goes out at the time you opened the application the day before, and nothing is sent if there is nothing left to read.</string>
+    <string name="settings_reminder_help">A daily notification recalls what is left to read, quoting a few titles. It goes out at the time you usually read — learned from your reading habits — and nothing is sent if there is nothing left to read.</string>
     <string name="settings_reminder_label">Daily notification</string>
+    <string name="settings_reminder_fixed_label">Fixed time</string>
+    <string name="settings_reminder_fixed_help">Off, the application learns your usual reading time and aims the reminder at it. On, the reminder goes out at the time you choose.</string>
+    <string name="settings_reminder_hour_value">%1$02d:%2$02d</string>
+    <string name="settings_reminder_hour_dialog_title">Reminder time</string>
+    <string name="settings_reminder_hour_confirm">Set</string>
+    <string name="settings_reminder_hour_cancel">Cancel</string>
 
     <!--
       Local cache (SPECS.md §5.1 and §5.3). The size is a number of articles and

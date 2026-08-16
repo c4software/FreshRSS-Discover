@@ -24,7 +24,13 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +43,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.MINUTES_PER_HOUR
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
@@ -78,13 +87,14 @@ fun SettingsScreen(
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
     /*
-     * All required, no `{}` defaults: `AppNavHost` wires all nine callbacks,
+     * All required, no `{}` defaults: `AppNavHost` wires all ten callbacks,
      * and a silent default would leave a visible but inert control with
      * nothing flagging it.
      */
     onPurgeCache: () -> Unit,
     onPresentationChange: (FeedPresentation) -> Unit,
     onReminderEnabledChange: (Boolean) -> Unit,
+    onReminderTimeChange: (ReminderTime) -> Unit,
     onAutoMarkAsReadChange: (Boolean) -> Unit,
 ) {
     Column(
@@ -133,7 +143,9 @@ fun SettingsScreen(
          */
         ReminderSection(
             isEnabled = uiState.isReminderEnabled,
+            reminderHour = uiState.reminderHour,
             onEnabledChange = onReminderEnabledChange,
+            onReminderTimeChange = onReminderTimeChange,
         )
         HorizontalDivider()
         CacheSection(cache = uiState.cache, onPurge = onPurgeCache)
@@ -388,7 +400,13 @@ private fun ThresholdSlider(
  * two.
  */
 @Composable
-private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+private fun ReminderSection(
+    isEnabled: Boolean,
+    reminderHour: SettingsReminderHour,
+    onEnabledChange: (Boolean) -> Unit,
+    onReminderTimeChange: (ReminderTime) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     SettingsSection(title = stringResource(R.string.settings_section_reminder), modifier = modifier) {
         Row(
             modifier = Modifier
@@ -415,7 +433,133 @@ private fun ReminderSection(isEnabled: Boolean, onEnabledChange: (Boolean) -> Un
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag(SettingsTestTags.REMINDER_HELP),
         )
+        if (isEnabled) {
+            ReminderHourRow(reminderHour = reminderHour, onReminderTimeChange = onReminderTimeChange)
+        }
     }
+}
+
+/**
+ * Choice of the reminder hour (SPECS.md §4.9, §6): learned, or fixed.
+ *
+ * A switch whose off position is "automatic": the learned hour is the default
+ * and the fixed hour the exception, exactly the asymmetry a toggle expresses
+ * and segments would not. Only shown while the reminder is on — an hour for a
+ * notification that will not fire is a dead control.
+ *
+ * Switching it on opens the picker without storing anything: the fixed hour
+ * only exists once the user confirmed one. Dismissing the dialog therefore
+ * leaves the choice on automatic, and no half-set state can be stored.
+ */
+@Composable
+private fun ReminderHourRow(
+    reminderHour: SettingsReminderHour,
+    onReminderTimeChange: (ReminderTime) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var isPickerVisible by rememberSaveable { mutableStateOf(false) }
+    val isFixed = reminderHour is SettingsReminderHour.Fixed
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .toggleable(
+                value = isFixed,
+                role = Role.Switch,
+                onValueChange = { wantsFixed ->
+                    if (wantsFixed) isPickerVisible = true else onReminderTimeChange(ReminderTime.Automatic)
+                },
+            )
+            .testTag(SettingsTestTags.REMINDER_FIXED_HOUR),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.settings_reminder_fixed_label),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = isFixed, onCheckedChange = null)
+    }
+    Text(
+        text = stringResource(R.string.settings_reminder_fixed_help),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag(SettingsTestTags.REMINDER_FIXED_HOUR_HELP),
+    )
+    if (reminderHour is SettingsReminderHour.Fixed) {
+        OutlinedButton(
+            onClick = { isPickerVisible = true },
+            modifier = Modifier
+                .heightIn(min = MinTouchTarget)
+                .testTag(SettingsTestTags.REMINDER_HOUR_VALUE),
+        ) {
+            Text(stringResource(R.string.settings_reminder_hour_value, reminderHour.hour, reminderHour.minute))
+        }
+    }
+
+    if (isPickerVisible) {
+        ReminderHourPicker(
+            reminderHour = reminderHour,
+            onConfirm = { minuteOfDay ->
+                isPickerVisible = false
+                onReminderTimeChange(ReminderTime.Fixed(DailyMinute(minuteOfDay)))
+            },
+            onDismiss = { isPickerVisible = false },
+        )
+    }
+}
+
+/**
+ * The dial's starting position when no hour is held yet.
+ *
+ * Not a stored default, and deliberately so: nothing is written until the
+ * user confirms, so this figure never decides when a reminder fires — it only
+ * spares a spin of the dial for the common case of an evening reader.
+ */
+private const val PICKER_INITIAL_HOUR = 18
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderHourPicker(
+    reminderHour: SettingsReminderHour,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state = rememberTimePickerState(
+        initialHour = (reminderHour as? SettingsReminderHour.Fixed)?.hour ?: PICKER_INITIAL_HOUR,
+        initialMinute = (reminderHour as? SettingsReminderHour.Fixed)?.minute ?: 0,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_reminder_hour_dialog_title)) },
+        text = { TimePicker(state = state) },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(state.hour * MINUTES_PER_HOUR + state.minute) },
+                modifier = Modifier
+                    .heightIn(min = MinTouchTarget)
+                    .testTag(SettingsTestTags.REMINDER_HOUR_CONFIRM),
+            ) {
+                Text(stringResource(R.string.settings_reminder_hour_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .heightIn(min = MinTouchTarget)
+                    .testTag(SettingsTestTags.REMINDER_HOUR_CANCEL),
+            ) {
+                Text(stringResource(R.string.settings_reminder_hour_cancel))
+            }
+        },
+        modifier = modifier.testTag(SettingsTestTags.REMINDER_HOUR_DIALOG),
+    )
 }
 
 /**
@@ -617,6 +761,7 @@ private fun SettingsScreenPreview() {
             onPurgeCache = {},
             onPresentationChange = {},
             onReminderEnabledChange = {},
+            onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
         )
     }
@@ -641,6 +786,7 @@ private fun SettingsScreenSignOutPreview() {
             onPurgeCache = {},
             onPresentationChange = {},
             onReminderEnabledChange = {},
+            onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
         )
     }

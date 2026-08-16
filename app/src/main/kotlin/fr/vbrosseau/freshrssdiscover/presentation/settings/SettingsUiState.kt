@@ -2,6 +2,8 @@ package fr.vbrosseau.freshrssdiscover.presentation.settings
 
 import androidx.annotation.StringRes
 import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.reminder.MINUTES_PER_HOUR
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import kotlin.math.roundToInt
@@ -85,6 +87,13 @@ data class SettingsUiState(
      * first disk read.
      */
     val isReminderEnabled: Boolean = true,
+    /**
+     * How the reminder hour is chosen (SPECS.md §4.9, §6): learned, or fixed
+     * by the user. Hour and minute separated rather than a formatted string:
+     * the screen hands them to the time-picker as well as to the label, and
+     * the resource does the two-digit formatting.
+     */
+    val reminderHour: SettingsReminderHour = SettingsReminderHour.Automatic,
     /** Local cache contents and outcome of the last purge (SPECS.md §5.4, §6). */
     val cache: SettingsCache = SettingsCache(),
     /** Application version name, as produced by the build. */
@@ -169,6 +178,31 @@ data class SettingsCache(
     /** Articles removed by the last purge, `null` until one has happened. */
     val lastPurgedCount: Int? = null,
 )
+
+/**
+ * Reminder hour as the screen shows it (SPECS.md §4.9, §6).
+ *
+ * A UI-side mirror of the domain's `ReminderTime` rather than the domain type
+ * itself: the domain carries a minute-of-day, and splitting it into hour and
+ * minute for the picker is a conversion the ViewModel owns, not the screen.
+ */
+sealed interface SettingsReminderHour {
+    /** The application learns from the reading histogram. */
+    data object Automatic : SettingsReminderHour
+
+    /** An hour the user chose. */
+    data class Fixed(val hour: Int, val minute: Int) : SettingsReminderHour
+}
+
+/** Converts the stored choice into what the screen displays. */
+fun reminderHourOf(time: ReminderTime): SettingsReminderHour = when (time) {
+    ReminderTime.Automatic -> SettingsReminderHour.Automatic
+    is ReminderTime.Fixed ->
+        SettingsReminderHour.Fixed(
+            hour = time.at.value / MINUTES_PER_HOUR,
+            minute = time.at.value % MINUTES_PER_HOUR,
+        )
+}
 
 /** The signed-in account, read-only (SPECS.md §6). */
 data class SettingsAccount(

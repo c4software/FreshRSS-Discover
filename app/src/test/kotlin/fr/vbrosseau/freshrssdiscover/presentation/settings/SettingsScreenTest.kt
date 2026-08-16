@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.settings
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -17,6 +18,8 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import org.junit.Rule
@@ -65,6 +68,7 @@ class SettingsScreenTest {
                 onPurgeCache = onPurgeCache,
                 onPresentationChange = {},
                 onReminderEnabledChange = {},
+                onReminderTimeChange = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -91,6 +95,7 @@ class SettingsScreenTest {
                 onPurgeCache = {},
                 onPresentationChange = onPresentationChange,
                 onReminderEnabledChange = {},
+                onReminderTimeChange = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -164,11 +169,17 @@ class SettingsScreenTest {
      */
     private fun showReminder(
         isReminderEnabled: Boolean = true,
+        reminderHour: SettingsReminderHour = SettingsReminderHour.Automatic,
         onReminderEnabledChange: (Boolean) -> Unit = {},
+        onReminderTimeChange: (ReminderTime) -> Unit = {},
     ) {
         composeRule.setContent {
             SettingsScreen(
-                uiState = SettingsUiState(account = account, isReminderEnabled = isReminderEnabled),
+                uiState = SettingsUiState(
+                    account = account,
+                    isReminderEnabled = isReminderEnabled,
+                    reminderHour = reminderHour,
+                ),
                 onSignOutRequest = {},
                 onSignOutConfirm = {},
                 onSignOutDismiss = {},
@@ -177,6 +188,7 @@ class SettingsScreenTest {
                 onPurgeCache = {},
                 onPresentationChange = {},
                 onReminderEnabledChange = onReminderEnabledChange,
+                onReminderTimeChange = onReminderTimeChange,
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -230,6 +242,77 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsTestTags.REMINDER).assertIsOn()
     }
 
+    /** An hour for a notification that will not fire is a dead control. */
+    @Test
+    fun theHourChoiceIsHiddenWhileTheReminderIsOff() {
+        showReminder(isReminderEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).assertDoesNotExist()
+    }
+
+    @Test
+    fun theHourIsAutomaticByDefault() {
+        showReminder()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performScrollTo().assertIsOff()
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_VALUE).assertDoesNotExist()
+    }
+
+    /**
+     * The core of the picker's contract: switching to fixed stores nothing
+     * until an hour is confirmed — there is no half-set state to store.
+     */
+    @Test
+    fun switchingToAFixedHourOpensThePickerWithoutStoringAnything() {
+        var reported: ReminderTime? = null
+        showReminder(onReminderTimeChange = { reported = it })
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_DIALOG).assertIsDisplayed()
+        assertEquals(null, reported)
+    }
+
+    @Test
+    fun confirmingThePickerReportsTheFixedHour() {
+        var reported: ReminderTime? = null
+        showReminder(onReminderTimeChange = { reported = it })
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_CONFIRM).performClick()
+
+        // 18:00, the dial's starting position: the test does not spin it.
+        assertEquals(ReminderTime.Fixed(DailyMinute(18 * 60)), reported)
+    }
+
+    @Test
+    fun dismissingThePickerLeavesTheChoiceOnAutomatic() {
+        var reported: ReminderTime? = null
+        showReminder(onReminderTimeChange = { reported = it })
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_CANCEL).performClick()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_DIALOG).assertDoesNotExist()
+        assertEquals(null, reported)
+    }
+
+    @Test
+    fun aFixedHourIsShownAndSwitchingBackReportsAutomatic() {
+        var reported: ReminderTime? = null
+        showReminder(
+            reminderHour = SettingsReminderHour.Fixed(hour = 7, minute = 30),
+            onReminderTimeChange = { reported = it },
+        )
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HOUR_VALUE).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performScrollTo().assertIsOn()
+
+        composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performClick()
+
+        assertEquals(ReminderTime.Automatic, reported)
+    }
+
     /**
      * SPECS.md §7.1: the target is at least 48 dp. A Material 3 `Switch` is
      * only 32 dp tall; the whole row carries the action.
@@ -256,7 +339,7 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsTestTags.REMINDER_HELP)
             .assertTextEquals(
                 "Une notification quotidienne rappelle ce qu'il reste à lire, en citant quelques titres. " +
-                    "Elle part à l'heure à laquelle vous avez ouvert l'application la veille, " +
+                    "Elle part à l'heure où vous lisez habituellement — apprise de vos habitudes de lecture — " +
                     "et rien n'est envoyé s'il ne reste rien à lire.",
             )
     }
@@ -371,6 +454,7 @@ class SettingsScreenTest {
                 onPurgeCache = {},
                 onPresentationChange = {},
                 onReminderEnabledChange = {},
+                onReminderTimeChange = {},
                 onAutoMarkAsReadChange = onAutoMarkAsReadChange,
             )
         }

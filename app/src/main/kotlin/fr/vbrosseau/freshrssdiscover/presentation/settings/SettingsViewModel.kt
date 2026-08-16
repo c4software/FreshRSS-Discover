@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.BuildConfig
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthSession
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
@@ -16,6 +17,7 @@ import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -70,6 +72,7 @@ class SettingsViewModel @Inject constructor(
         combine(
             settingsRepository.observeFeedPresentation(),
             settingsRepository.observeReminderEnabled(),
+            settingsRepository.observeReminderTime(),
             ::StoredPreferences,
         ),
         cacheRepository.observeCacheStatus(),
@@ -92,6 +95,7 @@ class SettingsViewModel @Inject constructor(
                     // showing "off" during the first read would flicker the
                     // switch on every screen opening.
                     reminderEnabled = true,
+                    reminderTime = ReminderTime.Automatic,
                 ),
                 cache = CacheStatus.Empty,
                 transient = TransientState(confirming = false, purged = null),
@@ -162,6 +166,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Stores the hour choice, then reschedules at the new target.
+     *
+     * Same order and same coroutine as [setReminderEnabled], for the same
+     * reason. Rescheduling only while the reminder is on: with it off there
+     * is nothing pending to move, and arming a work here would undo the
+     * cancellation the off switch just performed.
+     */
+    fun setReminderTime(time: ReminderTime) {
+        viewModelScope.launch {
+            settingsRepository.setReminderTime(time)
+            if (settingsRepository.observeReminderEnabled().first()) reminderScheduler.scheduleNext()
+        }
+    }
+
+    /**
      * Requests confirmation instead of signing out.
      *
      * Required by SPECS.md §3.5: the action erases the token and the cache
@@ -209,6 +228,7 @@ class SettingsViewModel @Inject constructor(
         account = session?.let { SettingsAccount(serverAddress = it.server.baseUrl, username = it.username) },
         presentation = preferences.presentation,
         isReminderEnabled = preferences.reminderEnabled,
+        reminderHour = reminderHourOf(preferences.reminderTime),
         isAutoMarkAsReadEnabled = settings.autoMarkAsReadEnabled,
         visibleFraction = visibleFractionThresholdOf(settings),
         continuousVisibility = continuousVisibilityThresholdOf(settings),
@@ -243,5 +263,6 @@ class SettingsViewModel @Inject constructor(
     private data class StoredPreferences(
         val presentation: FeedPresentation,
         val reminderEnabled: Boolean,
+        val reminderTime: ReminderTime,
     )
 }
