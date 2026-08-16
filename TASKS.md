@@ -2437,18 +2437,21 @@ shows the histogram — the reminder's reasoning made visible.
 
 ### Debt knowingly left
 
-- **Not yet observed on a device.** Every piece is unit-proven and the
-  screenshots were looked at, but the phase's own lesson (`GOAL-022`) is that
-  scheduling and notifications are only truly proven by running: the learned
-  hour reaching `dumpsys jobscheduler`, the picker on a real screen, and the
-  stats route under real navigation remain to be seen on the author's device.
+- **The scheduler's learned hour is not yet observed on a device.** The picker,
+  the settings section and the statistics screen **were** seen running on the
+  author's Pixel on 2026-08-16 ("ça fonctionne", then "parfait" after
+  GOAL-036's rework). What remains unobserved is the scheduling itself: after
+  a few days of reading, the reminder work should appear in
+  `dumpsys jobscheduler` at the dominant hour rather than at the opening time.
+  Unit tests prove the computation; only a device shows WorkManager carrying
+  it.
 
 ---
 
 ## GOAL-036 — The reminder section reads as settings rows, not floating buttons
 
-**Status: DONE** — screenshots looked at in both themes; the reworked build is
-installed on the author's device, awaiting their eye
+**Status: DONE** — confirmed by the author on their device (2026-08-16,
+"parfait"), after the screenshots had been looked at in both themes
 
 Seen by the author on a device, right after GOAL-035 (2026-08-16): "it works
 but it is not pretty — alignment, and understanding what the actions do". Two
