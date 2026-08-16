@@ -5,7 +5,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 /** Minutes in an hour, named so the conversion reads clearly. */
-private const val MINUTES_PER_HOUR = 60
+const val MINUTES_PER_HOUR: Int = 60
 
 /** Minutes in a day, exclusive upper bound of a time of day. */
 const val MINUTES_PER_DAY: Int = 24 * MINUTES_PER_HOUR

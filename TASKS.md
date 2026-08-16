@@ -2387,9 +2387,11 @@ shows the histogram — the reminder's reasoning made visible.
       dominant hour, sufficiency threshold. Pure, no clock read. 16 tests,
       including the binge evening, the habit that moves and wins within five
       days, the clock set back, and the decay that makes sufficiency reversible
-- [ ] `GOAL-035-T02` **The domain chooses the target hour**: fixed time if set,
+- [x] `GOAL-035-T02` **The domain chooses the target hour**: fixed time if set,
       else the dominant hour if the histogram is sufficient, else the recorded
-      opening minute. `ReminderTime` model (Automatic | Fixed)
+      opening minute. `ReminderTime` model (Automatic | Fixed), target at the
+      **start** of the dominant hour — the reminder arrives before the habit,
+      not after it. 5 tests
 - [ ] `GOAL-035-T03` **The histogram is persisted and fed**:
       `ReadingHistogramStore` (DataStore, defensive parse), recording wired
       into `DefaultReadSyncRepository.markAsRead`
