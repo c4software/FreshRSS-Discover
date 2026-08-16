@@ -107,17 +107,23 @@ class RecapViewModel @Inject constructor(
                 return@launch
             }
 
-            _uiState.update { it.copy(sheet = RecapSheetState.Digest(emptyList(), isGenerating = true)) }
+            _uiState.update {
+                it.copy(sheet = RecapSheetState.Digest(emptyList(), articles.size, isGenerating = true))
+            }
             var text = ""
             try {
                 generator.generate(RecapPrompt.build(articles, language.displayName())).collect { chunk ->
                     text += chunk
                     _uiState.update {
-                        it.copy(sheet = RecapSheetState.Digest(itemsOf(text, articles), isGenerating = true))
+                        it.copy(
+                            sheet = RecapSheetState.Digest(itemsOf(text, articles), articles.size, isGenerating = true),
+                        )
                     }
                 }
                 _uiState.update {
-                    it.copy(sheet = RecapSheetState.Digest(itemsOf(text, articles), isGenerating = false))
+                    it.copy(
+                        sheet = RecapSheetState.Digest(itemsOf(text, articles), articles.size, isGenerating = false),
+                    )
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation

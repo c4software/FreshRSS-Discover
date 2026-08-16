@@ -26,7 +26,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -115,12 +114,7 @@ internal fun RecapSheetContent(
 
             RecapSheetState.Empty -> Text(text = stringResource(R.string.recap_empty))
 
-            is RecapSheetState.Digest ->
-                if (state.items.isEmpty()) {
-                    DigestSkeleton()
-                } else {
-                    Digest(state, onItemClick)
-                }
+            is RecapSheetState.Digest -> Digest(state, onItemClick)
 
             RecapSheetState.GenerationFailed -> Text(text = stringResource(R.string.recap_failed))
         }
@@ -128,32 +122,23 @@ internal fun RecapSheetContent(
 }
 
 /**
- * One card per summary in a bounded viewport that follows the stream.
+ * One card slot per planned summary, all present from the first frame.
  *
- * Bounded because an unbounded sheet grows with every chunk and ends up
- * covering the whole feed — seen on the first device run. The viewport
- * sticks to the bottom while generating, so the newest card stays visible;
- * once done it stays where the reader leaves it. The row still being
- * written shimmers instead of showing a cursor or a bar (author's call on
- * the second run).
+ * The layout never grows, it fills (author's call on the third device run):
+ * every slot shows as a shimmering skeleton immediately, and each one turns
+ * into its summary as its line completes — so the sheet's height is settled
+ * before the model has said a word. Still bounded and scrollable for small
+ * screens, but with five slots the scroll is the exception.
  */
 @Composable
 private fun Digest(
     state: RecapSheetState.Digest,
     onItemClick: (String) -> Unit,
 ) {
-    val scrollState = rememberScrollState()
-
-    if (state.isGenerating) {
-        LaunchedEffect(state.items) {
-            scrollState.animateScrollTo(scrollState.maxValue)
-        }
-    }
-
     Column(
         modifier = Modifier
             .heightIn(max = DigestMaxHeight)
-            .verticalScroll(scrollState)
+            .verticalScroll(rememberScrollState())
             .testTag(RecapTestTags.DIGEST),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -163,6 +148,11 @@ private fun Digest(
                 isBeingWritten = state.isGenerating && index == state.items.lastIndex,
                 onItemClick = onItemClick,
             )
+        }
+        if (state.isGenerating) {
+            repeat((state.plannedCount - state.items.size).coerceAtLeast(0)) {
+                SkeletonCard()
+            }
         }
     }
 }
@@ -230,28 +220,24 @@ private fun RecapItemBody(
 }
 
 /**
- * Skeleton rows while the first summary has not arrived — the shimmer says
- * "being written" the way every modern feed does, without a spinner.
+ * A summary slot whose text has not arrived — the shimmer says "being
+ * written" the way every modern feed does, without a spinner.
  */
 @Composable
-private fun DigestSkeleton() {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        repeat(SKELETON_ROWS) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(RecapTestTags.SKELETON),
-            ) {
-                Column(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    SkeletonBar(widthFraction = TITLE_BAR_FRACTION)
-                    SkeletonBar(widthFraction = 1f)
-                }
-            }
+private fun SkeletonCard() {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(RecapTestTags.SKELETON),
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            SkeletonBar(widthFraction = TITLE_BAR_FRACTION)
+            SkeletonBar(widthFraction = 1f)
         }
     }
 }
@@ -313,7 +299,6 @@ private fun Long.toWholeMegabytes(): Int = (this / BYTES_PER_MEGABYTE).toInt()
 private val DigestMaxHeight = 420.dp
 
 private val SkeletonBarHeight = 12.dp
-private const val SKELETON_ROWS = 3
 private const val TITLE_BAR_FRACTION = 0.45f
 private const val SHIMMER_SWEEP_MILLIS = 1_100
 private const val SHIMMER_WIDTH_PX = 400f
@@ -338,6 +323,7 @@ private fun RecapSheetContentDigestPreview() {
                         url = "https://exemple.org/tensor",
                     ),
                 ),
+                plannedCount = 2,
                 isGenerating = false,
             ),
             onDownloadConfirm = {},

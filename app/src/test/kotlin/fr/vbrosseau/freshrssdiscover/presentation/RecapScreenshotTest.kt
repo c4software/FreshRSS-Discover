@@ -40,6 +40,7 @@ class RecapScreenshotTest : ScreenshotTest() {
                             url = "https://exemple.org/claviers",
                         ),
                     ),
+                    plannedCount = 3,
                     isGenerating = false,
                 ),
                 onDownloadConfirm = {},

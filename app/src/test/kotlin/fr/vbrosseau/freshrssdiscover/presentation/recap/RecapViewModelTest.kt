@@ -71,6 +71,7 @@ class RecapViewModelTest {
                         url = "https://exemple.org/a",
                     ),
                 ),
+                plannedCount = 1,
                 isGenerating = false,
             ),
             viewModel.uiState.value.sheet,
@@ -135,6 +136,7 @@ class RecapViewModelTest {
         assertEquals(
             RecapSheetState.Digest(
                 items = listOf(RecapItemUi(title = null, summary = "Le récap.", url = null)),
+                plannedCount = 1,
                 isGenerating = false,
             ),
             viewModel.uiState.value.sheet,

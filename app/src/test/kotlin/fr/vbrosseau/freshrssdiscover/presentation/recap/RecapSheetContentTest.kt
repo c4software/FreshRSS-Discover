@@ -93,9 +93,9 @@ class RecapSheetContentTest {
         // The shimmer sweeps forever: without freezing the clock, waiting
         // for idle would never end.
         composeRule.mainClock.autoAdvance = false
-        show(RecapSheetState.Digest(items = emptyList(), isGenerating = true))
+        show(RecapSheetState.Digest(items = emptyList(), plannedCount = 5, isGenerating = true))
 
-        composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(3)
+        composeRule.onAllNodesWithTag(RecapTestTags.SKELETON).assertCountEquals(5)
     }
 
     @Test
@@ -103,6 +103,7 @@ class RecapSheetContentTest {
         show(
             RecapSheetState.Digest(
                 items = listOf(item(title = "GNOME 51", summary = "La bêta est ouverte.")),
+                plannedCount = 1,
                 isGenerating = false,
             ),
         )
@@ -115,7 +116,11 @@ class RecapSheetContentTest {
     fun tappingASummaryOpensItsArticle() {
         var opened: String? = null
         show(
-            RecapSheetState.Digest(items = listOf(item(url = "https://exemple.org/a")), isGenerating = false),
+            RecapSheetState.Digest(
+                items = listOf(item(url = "https://exemple.org/a")),
+                plannedCount = 1,
+                isGenerating = false,
+            ),
             onItemClick = { opened = it },
         )
 
@@ -129,6 +134,7 @@ class RecapSheetContentTest {
         show(
             RecapSheetState.Digest(
                 items = listOf(item(title = null, url = null)),
+                plannedCount = 1,
                 isGenerating = false,
             ),
         )
@@ -141,6 +147,7 @@ class RecapSheetContentTest {
         show(
             RecapSheetState.Digest(
                 items = listOf(item(summary = "* **Thème :** le texte")),
+                plannedCount = 1,
                 isGenerating = false,
             ),
         )

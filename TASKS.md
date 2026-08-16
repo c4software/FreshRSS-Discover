@@ -2538,6 +2538,11 @@ the download, with progress, before generating.
       original like the feed does — rendered as modern cards; the spark and
       cursor give way to a **shimmer** over the streaming text and skeleton
       rows before the first words
+- [x] `GOAL-037-T08` third device pass, author happy with the animation:
+      the cap drops to **five** articles, and the sheet shows the five
+      shimmering skeleton cards **immediately**, each one replaced by its
+      summary as its line completes — the remaining slots keep shimmering
+      until generation ends
 
 ---
 

@@ -42,10 +42,17 @@ sealed interface RecapSheetState {
     data object Empty : RecapSheetState
 
     /**
-     * The summaries as parsed so far, one per article. [isGenerating] tells
-     * the sheet to shimmer the row still being written.
+     * The summaries as parsed so far, one per article. [plannedCount] is how
+     * many the generation was asked for: the sheet shows that many cards
+     * from the first frame — skeletons shimmering until their summary
+     * arrives — so the layout never grows, it fills. [isGenerating] tells it
+     * whether the missing slots are still coming.
      */
-    data class Digest(val items: List<RecapItemUi>, val isGenerating: Boolean) : RecapSheetState
+    data class Digest(
+        val items: List<RecapItemUi>,
+        val plannedCount: Int,
+        val isGenerating: Boolean,
+    ) : RecapSheetState
 
     data object GenerationFailed : RecapSheetState
 }

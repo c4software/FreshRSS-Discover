@@ -5,11 +5,12 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 /**
  * Articles kept in the prompt.
  *
- * Ten, the author's cap (GOAL-037-T07): each article gets its own clickable
- * summary line, and a sheet of more than ten rows stops being a recap. It
- * also keeps the input far under the Prompt API's ~4000-token ceiling.
+ * Five, the author's cap (GOAL-037-T08, tightened from ten on device): each
+ * article gets its own clickable summary card, all five placeholders show
+ * at once, and five is what a sheet holds without scrolling. It also keeps
+ * the input far under the Prompt API's ~4000-token ceiling.
  */
-const val RECAP_MAX_ARTICLES = 10
+const val RECAP_MAX_ARTICLES = 5
 
 /**
  * Longest excerpt quoted per article, in characters.
