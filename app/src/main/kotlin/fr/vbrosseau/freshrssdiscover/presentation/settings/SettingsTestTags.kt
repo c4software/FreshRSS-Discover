@@ -22,6 +22,7 @@ object SettingsTestTags {
     const val REMINDER_HOUR_DIALOG = "settings:reminder-hour-dialog"
     const val REMINDER_HOUR_CONFIRM = "settings:reminder-hour-confirm"
     const val REMINDER_HOUR_CANCEL = "settings:reminder-hour-cancel"
+    const val READING_STATS = "settings:reading-stats"
     const val CACHE_SIZE = "settings:cache-size"
     const val CACHE_PURGEABLE = "settings:cache-purgeable"
     const val PURGE_CACHE = "settings:purge-cache"

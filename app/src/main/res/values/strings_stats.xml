@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="stats_title">Reading hours</string>
+  <string name="stats_back">Back</string>
+  <string name="stats_help">When you read, hour by hour. Recent days weigh more than older ones, and this is what places the reading reminder.</string>
+  <string name="stats_empty">Nothing recorded yet. Read a few articles, and your reading hours will appear here.</string>
+  <string name="stats_dominant">Your usual reading time: around %1$d h. The reminder aims at it.</string>
+  <string name="stats_learning">Still learning: a few more reading sessions are needed before the reminder follows these hours. Until then it goes out at the time you opened the application the day before.</string>
+  <string name="stats_axis_hour">%1$d h</string>
+  <string name="stats_chart_description">Reading sessions per hour of day; dominant hour: %1$d h</string>
+  <string name="stats_chart_description_learning">Reading sessions per hour of day; no dominant hour yet</string>
+</resources>

@@ -67,6 +67,7 @@
     <string name="settings_reminder_hour_dialog_title">Heure du rappel</string>
     <string name="settings_reminder_hour_confirm">Valider</string>
     <string name="settings_reminder_hour_cancel">Annuler</string>
+    <string name="settings_reading_stats">Mes heures de lecture</string>
 
     <!--
       Cache local (SPECS.md §5.1 et §5.3). La taille est un nombre d'articles et

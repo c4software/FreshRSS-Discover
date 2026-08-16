@@ -2416,9 +2416,16 @@ shows the histogram — the reminder's reasoning made visible.
       (`reglages-rappel-heure-fixe`, light and dark, **looked at**) with a
       taller window: the reminder section sits below the 891 dp fold, and no
       existing full-screen capture could show the control
-- [ ] `GOAL-035-T06` **The statistics screen shows the histogram**: reached
-      from the settings, dominant hour highlighted, back navigation. Roborazzi
-      light and dark, looked at
+- [x] `GOAL-035-T06` **The statistics screen shows the histogram**: route
+      `stats` pushed from the settings ("My reading hours" button, shown even
+      with the reminder off — the histogram exists either way), back arrow in
+      the title bar. One series so no legend; the dominant hour is carried by
+      the bar's color **and** said in words below, never color alone; below
+      the sufficiency threshold the caption says the reminder is still
+      learning. 5 screen tests, 4 state tests, 2 ViewModel tests, 6 Roborazzi
+      references (data, learning, empty × light and dark) **looked at** — the
+      first capture caught a misleading fixture where a three-way tie handed
+      the dominant hour to the morning
 - [ ] `GOAL-035-T07` **Documentation**: SPECS §4.9, §6 and §8, ARCHITECTURE §9,
       README, TASKS
 

@@ -24,6 +24,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsScreen
+import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
 import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
 import kotlinx.coroutines.launch
@@ -69,9 +71,23 @@ fun AppNavHost(
         }
 
         composable(AppRoutes.SETTINGS) {
-            SettingsRoute()
+            SettingsRoute(onOpenStats = { navController.navigate(AppRoutes.STATS) })
+        }
+
+        // Below the bar's destinations: reached from the settings, left with
+        // back. The bar stays visible — the screen is a detail, not a modal.
+        composable(AppRoutes.STATS) {
+            StatsRoute()
         }
     }
+}
+
+@Composable
+private fun StatsRoute(modifier: Modifier = Modifier) {
+    val viewModel: StatsViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    StatsScreen(uiState = uiState, modifier = modifier)
 }
 
 @Composable
@@ -313,11 +329,12 @@ internal fun rememberScrollToTopThenRefresh(
 }
 
 @Composable
-private fun SettingsRoute(modifier: Modifier = Modifier) {
+private fun SettingsRoute(onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     SettingsScreen(
+        onOpenStats = onOpenStats,
         uiState = uiState,
         onSignOutRequest = viewModel::requestSignOut,
         onSignOutConfirm = viewModel::confirmSignOut,

@@ -72,6 +72,7 @@
     <string name="settings_reminder_hour_dialog_title">Reminder time</string>
     <string name="settings_reminder_hour_confirm">Set</string>
     <string name="settings_reminder_hour_cancel">Cancel</string>
+    <string name="settings_reading_stats">My reading hours</string>
 
     <!--
       Local cache (SPECS.md §5.1 and §5.3). The size is a number of articles and

@@ -69,6 +69,7 @@ class SettingsScreenTest {
                 onPresentationChange = {},
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
+                onOpenStats = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -96,6 +97,7 @@ class SettingsScreenTest {
                 onPresentationChange = onPresentationChange,
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
+                onOpenStats = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -172,6 +174,7 @@ class SettingsScreenTest {
         reminderHour: SettingsReminderHour = SettingsReminderHour.Automatic,
         onReminderEnabledChange: (Boolean) -> Unit = {},
         onReminderTimeChange: (ReminderTime) -> Unit = {},
+        onOpenStats: () -> Unit = {},
     ) {
         composeRule.setContent {
             SettingsScreen(
@@ -189,6 +192,7 @@ class SettingsScreenTest {
                 onPresentationChange = {},
                 onReminderEnabledChange = onReminderEnabledChange,
                 onReminderTimeChange = onReminderTimeChange,
+                onOpenStats = onOpenStats,
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -311,6 +315,25 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsTestTags.REMINDER_FIXED_HOUR).performClick()
 
         assertEquals(ReminderTime.Automatic, reported)
+    }
+
+    /** The stats screen is only reachable from here (SPECS.md §6). */
+    @Test
+    fun theReadingStatsButtonReportsTheOpening() {
+        var opened = false
+        showReminder(onOpenStats = { opened = true })
+
+        composeRule.onNodeWithTag(SettingsTestTags.READING_STATS).performScrollTo().performClick()
+
+        assertTrue(opened)
+    }
+
+    /** The histogram exists whether the reminder fires or not. */
+    @Test
+    fun theReadingStatsButtonStaysWhenTheReminderIsOff() {
+        showReminder(isReminderEnabled = false)
+
+        composeRule.onNodeWithTag(SettingsTestTags.READING_STATS).performScrollTo().assertIsDisplayed()
     }
 
     /**
@@ -455,6 +478,7 @@ class SettingsScreenTest {
                 onPresentationChange = {},
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
+                onOpenStats = {},
                 onAutoMarkAsReadChange = onAutoMarkAsReadChange,
             )
         }

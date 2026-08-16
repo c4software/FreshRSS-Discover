@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="stats_title">Heures de lecture</string>
+  <string name="stats_back">Retour</string>
+  <string name="stats_help">Quand vous lisez, heure par heure. Les jours récents pèsent plus que les anciens, et c\'est ce qui place le rappel de lecture.</string>
+  <string name="stats_empty">Rien d\'enregistré pour l\'instant. Lisez quelques articles, et vos heures de lecture apparaîtront ici.</string>
+  <string name="stats_dominant">Votre heure habituelle de lecture : vers %1$d h. Le rappel la vise.</string>
+  <string name="stats_learning">Encore en apprentissage : quelques sessions de lecture de plus sont nécessaires avant que le rappel suive ces heures. D\'ici là, il part à l\'heure à laquelle vous avez ouvert l\'application la veille.</string>
+  <string name="stats_axis_hour">%1$d h</string>
+  <string name="stats_chart_description">Sessions de lecture par heure de la journée ; heure dominante : %1$d h</string>
+  <string name="stats_chart_description_learning">Sessions de lecture par heure de la journée ; pas encore d\'heure dominante</string>
+</resources>

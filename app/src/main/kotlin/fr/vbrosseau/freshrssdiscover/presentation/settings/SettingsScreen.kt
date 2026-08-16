@@ -96,6 +96,7 @@ fun SettingsScreen(
     onReminderEnabledChange: (Boolean) -> Unit,
     onReminderTimeChange: (ReminderTime) -> Unit,
     onAutoMarkAsReadChange: (Boolean) -> Unit,
+    onOpenStats: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -146,6 +147,7 @@ fun SettingsScreen(
             reminderHour = uiState.reminderHour,
             onEnabledChange = onReminderEnabledChange,
             onReminderTimeChange = onReminderTimeChange,
+            onOpenStats = onOpenStats,
         )
         HorizontalDivider()
         CacheSection(cache = uiState.cache, onPurge = onPurgeCache)
@@ -405,6 +407,7 @@ private fun ReminderSection(
     reminderHour: SettingsReminderHour,
     onEnabledChange: (Boolean) -> Unit,
     onReminderTimeChange: (ReminderTime) -> Unit,
+    onOpenStats: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SettingsSection(title = stringResource(R.string.settings_section_reminder), modifier = modifier) {
@@ -435,6 +438,17 @@ private fun ReminderSection(
         )
         if (isEnabled) {
             ReminderHourRow(reminderHour = reminderHour, onReminderTimeChange = onReminderTimeChange)
+        }
+        // Outside the `if`: the histogram exists whether the reminder fires
+        // or not, and hiding the only window into it would make the learned
+        // hour unverifiable exactly when the user wonders about it.
+        OutlinedButton(
+            onClick = onOpenStats,
+            modifier = Modifier
+                .heightIn(min = MinTouchTarget)
+                .testTag(SettingsTestTags.READING_STATS),
+        ) {
+            Text(stringResource(R.string.settings_reading_stats))
         }
     }
 }
@@ -763,6 +777,7 @@ private fun SettingsScreenPreview() {
             onReminderEnabledChange = {},
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
+            onOpenStats = {},
         )
     }
 }
@@ -788,6 +803,7 @@ private fun SettingsScreenSignOutPreview() {
             onReminderEnabledChange = {},
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
+            onOpenStats = {},
         )
     }
 }

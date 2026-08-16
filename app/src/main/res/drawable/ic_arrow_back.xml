@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Flèche de retour, tracé Material Symbols « arrow_back ». Dessinée ici
+    plutôt que tirée de `material-icons-extended`, comme les autres icônes du
+    dépôt (voir `ic_refresh`). `autoMirrored` : dans une langue écrite de
+    droite à gauche, revenir pointe vers la droite.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="960"
+  android:viewportHeight="960"
+  android:autoMirrored="true">
+  <path
+    android:fillColor="@android:color/white"
+    android:pathData="M400,776L64,440L400,104L456,161L216,400L896,400L896,480L216,480L457,720L400,776Z" />
+</vector>

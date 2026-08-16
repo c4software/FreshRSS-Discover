@@ -203,6 +203,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
             onReminderEnabledChange = {},
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
+            onOpenStats = {},
         )
     }
 
