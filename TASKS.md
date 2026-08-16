@@ -2474,6 +2474,53 @@ with no label saying what it was or that tapping it edits it.
 
 ---
 
+## GOAL-037 — A recap of the unread articles, generated on the device
+
+**Status: IN PROGRESS**
+
+Asked by the author (2026-08-16): a button in the title bar, next to refresh,
+that produces a digest of the unread articles. Two constraints set the shape.
+It must be **entirely local** — the feed's text never leaves the device, in
+line with SPECS.md §7.4 — which points to Gemini Nano through AICore, driven
+by the ML Kit GenAI **Prompt API** (`genai-prompt`); the dedicated
+Summarization API was ruled out, as it only speaks English, Japanese and
+Korean while the recap must come out in the device's language, whatever it
+is. And it must be **dynamic**: the button only exists where the model is
+actually usable (`checkStatus()`), following the same `null`-slot pattern the
+refresh action already uses; on an unsupported device the feature is
+invisible, not disabled. AICore picks the best Gemini Nano the device owns
+(nano-v2 on Pixel 9, nano-v3 on Pixel 10) behind the same API, so there is no
+per-device branch to write.
+
+The recap is built from what the app already has — title and excerpt of the
+unread articles served by `unreadFromCache`, capped to stay under the Prompt
+API's ~4000-token input limit — and streams into the project's first
+`ModalBottomSheet`. If the model is only `DOWNLOADABLE`, the first tap offers
+the download, with progress, before generating.
+
+- [x] `GOAL-037-T01` domain: `RecapAvailability`, the `RecapGenerator` port
+      (availability, download flow, streamed generation) and `RecapPrompt` —
+      pure prompt construction from the articles and the output language,
+      with caps on article count and excerpt length. Pure JVM tests and a
+      versioned `FakeRecapGenerator` in the test fixtures
+- [ ] `GOAL-037-T02` data: the `genai-prompt` dependency (justified in the
+      commit message) and `MlKitRecapGenerator`, adapter of the port over
+      `Generation.getClient()` — `checkStatus()`, `download()`,
+      `generateContentStream()` mapped to the domain types — bound in Hilt
+- [ ] `GOAL-037-T03` presentation: the conditional title-bar button —
+      `FeedRecap`/`FeedRecapAction`/`RecapButton` on the refresh-action
+      pattern, published by the feed destination via `PublishFeedRecap`,
+      wired into `MainActivity` next to the refresh action, with tests
+      mirroring the refresh ones
+- [ ] `GOAL-037-T04` presentation: `RecapViewModel` and the `RecapSheet`
+      bottom sheet — download offer with progress, streamed digest, empty
+      and failure states — with ViewModel and Composable tests
+- [ ] `GOAL-037-T05` finish: Roborazzi references (light and dark, looked
+      at), SPECS.md (feed section and §7.4 privacy), ARCHITECTURE.md §9
+      package map, and the on-device check on the author's Pixel
+
+---
+
 ## Blocked points
 
 Just one, out of our hands:
