@@ -593,7 +593,7 @@ detached a domain decision from its caller.
 | `FeedFreshnessRepository` | `DefaultArticleRepository` in **writing** (every valid server response) and `FeedStalenessWatcher` in **reading** |
 | `CacheRepository` | `SettingsViewModel` — cache state and manual purge |
 | `SettingsRepository` | `SettingsViewModel`, both feed ViewModels for the thresholds, and `FeedPresentationViewModel` for the presentation mode |
-| `RecapGenerator`, `RecapPrompt` | `RecapViewModel` — availability makes the title-bar button exist, the prompt and the streamed generation feed the sheet (SPECS.md §4.10) |
+| `RecapGenerator`, `RecapPrompt` | `RecapViewModel` — availability makes the title-bar button exist, the prompt and the streamed generation feed the sheet (SPECS.md §4.10). **The prompt's wording lives in one place**: `domain/recap/RecapPrompt.kt`, pure and JVM-tested — tuning the brief's tone or format is an edit there and nowhere else, with `parseRecapBrief` (`RecapSegment.kt`) as its contract for the `{words}[N]` markers |
 
 On the `:app` side, the mechanisms the section used to flag as absent are in
 place and covered: the cache feeds the first display (SPECS.md §5.1) and offline

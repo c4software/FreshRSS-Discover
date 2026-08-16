@@ -603,7 +603,9 @@ article. Already-read ones are not re-marked.
 seconds; a paragraph that builds up on screen — its tail shimmering while it
 is written — is the difference between working and frozen. The model marks
 each statement with its article's number; a marker the model drops degrades
-that passage to plain, untappable prose, never to a blank sheet. Dismissing
+that passage to plain, untappable prose, never to a blank sheet. The
+instructions given to the model live in `domain/recap/RecapPrompt.kt` and
+nowhere else: the brief's tone is a domain decision, versioned and tested. Dismissing
 the sheet cancels the work — nobody reads behind a closed sheet, and the
 chip is better released.
 

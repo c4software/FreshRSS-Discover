@@ -2474,9 +2474,11 @@ with no label saying what it was or that tapping it edits it.
 
 ---
 
-## GOAL-037 — A recap of the unread articles, generated on the device
+## GOAL-037 — A recap of the feed, generated on the device
 
-**Status: IN PROGRESS**
+**Status: DONE** — confirmed by the author on their Pixel 10 Pro
+(2026-08-16, "c'est bien"), after ten on-device passes that reshaped the
+feature from per-article cards into the linked narrative brief
 
 Asked by the author (2026-08-16): a button in the title bar, next to refresh,
 that produces a digest of the unread articles. Two constraints set the shape.
