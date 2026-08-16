@@ -17,9 +17,11 @@ data class RecapSegment(
 
 /**
  * `{key words}[N]`, or a bare `[N]`: the braces are the demanded form, the
- * bare marker the drift small models produce anyway.
+ * bare marker the drift small models produce anyway. The bare form swallows
+ * no surrounding space — a marker enumeration ("[2], [3] et [4]") must
+ * leave its punctuation and spacing exactly as written.
  */
-private val LinkedRun = Regex("""\{([^{}]+)\}\s*\[(\d+)\]|\s*\[(\d+)\]""")
+private val LinkedRun = Regex("""\{([^{}]+)\}\s*\[(\d+)\]|\[(\d+)\]""")
 
 /** A `{key wo`, `{key}[12` or `[12` still streaming: hidden until it closes. */
 private val TrailingPartial = Regex("""\s*\{[^{}]*(\}\s*\[\d*)?$|\s*\[\d*$""")
@@ -30,6 +32,13 @@ private val TrailingWords = Regex("""\S+(?:\s+\S+)?\s*$""")
 private const val BRACED_WORDS_GROUP = 1
 private const val BRACED_INDEX_GROUP = 2
 private const val BARE_INDEX_GROUP = 3
+
+/**
+ * Below this, a bare marker binds nothing: what precedes an enumerated
+ * marker is a comma or an "et", and underlining those glued the prose into
+ * "les articles,,et" on device (GOAL-037-T17).
+ */
+private const val MIN_LINKED_LETTERS = 3
 
 /**
  * Splits the model's brief into segments, binding to each article only the
@@ -67,7 +76,9 @@ fun parseRecapBrief(output: String): List<RecapSegment> {
                 )
         } else {
             val index = match.groupValues[BARE_INDEX_GROUP].toIntOrNull()
-            val keyWords = index?.let { TrailingWords.find(before) }
+            val keyWords =
+                index?.let { TrailingWords.find(before) }
+                    ?.takeIf { it.value.count(Char::isLetterOrDigit) >= MIN_LINKED_LETTERS }
             if (keyWords == null) {
                 addPlain(before)
             } else {

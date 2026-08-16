@@ -122,6 +122,7 @@ class RecapPromptTest {
 
         assertContains(prompt, "ONE short paragraph")
         assertContains(prompt, "{Tensor G6}[2]")
-        assertContains(prompt, "Never brace more than two words.")
+        assertContains(prompt, "Never brace more than two words")
+        assertContains(prompt, "never chain two markers")
     }
 }

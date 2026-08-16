@@ -2590,6 +2590,12 @@ the download, with progress, before generating.
       falls back to the couple of words before it, never the whole run. The
       brief's viewport also becomes **fixed-height**: the sheet must not
       resize as the prose streams or batches swap
+- [x] `GOAL-037-T17` ninth device run, a real brief: the model enumerates
+      bare markers — "les articles [2], [3] et [4]" — and the fallback
+      underlined the commas between them, while the swallowed spaces glued
+      the punctuation ("les articles,,et"). The bare-marker fallback now
+      only binds a run holding an actual word of three letters or more and
+      leaves the spacing untouched; the prompt forbids chaining markers
 
 ---
 

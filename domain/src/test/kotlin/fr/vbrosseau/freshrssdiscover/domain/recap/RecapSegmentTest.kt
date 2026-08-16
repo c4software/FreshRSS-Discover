@@ -65,6 +65,16 @@ class RecapSegmentTest {
     }
 
     @Test
+    fun anEnumerationOfMarkersUnderlinesNoPunctuation() {
+        // Seen on device: "les articles [2], [3] et [4]" came out as the
+        // glued "les articles,,et", commas underlined.
+        val segments = parseRecapBrief("les articles [2], [3] et [4] détaillent")
+
+        assertEquals(listOf(2), segments.mapNotNull { it.articleIndex })
+        assertEquals("les articles,  et  détaillent", segments.joinToString("") { it.text })
+    }
+
+    @Test
     fun proseWithoutMarkersBecomesOneUnlinkedSegment() {
         val segments = parseRecapBrief("Un paragraphe sans le format demandé.")
 
@@ -80,6 +90,6 @@ class RecapSegmentTest {
     fun anAbsurdNumberKeepsItsProseUnlinked() {
         val segments = parseRecapBrief("Débordement massif [99999999999999999999].")
 
-        assertEquals(RecapSegment(text = "Débordement massif", articleIndex = null), segments.first())
+        assertEquals(RecapSegment(text = "Débordement massif ", articleIndex = null), segments.first())
     }
 }
