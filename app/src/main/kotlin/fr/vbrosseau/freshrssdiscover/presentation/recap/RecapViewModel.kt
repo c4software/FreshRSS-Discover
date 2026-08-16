@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
+import fr.vbrosseau.freshrssdiscover.domain.feed.CACHED_FEED_LIMIT
 import fr.vbrosseau.freshrssdiscover.domain.recap.RECAP_MAX_ARTICLES
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapAvailability
 import fr.vbrosseau.freshrssdiscover.domain.recap.RecapDownloadEvent
@@ -129,13 +130,14 @@ class RecapViewModel @Inject constructor(
 
     private fun generate() {
         work = viewModelScope.launch {
-            // One extra beyond the batch: its presence is what proves more
-            // unread articles remain behind the ones about to be shown.
-            val poolSize = summarizedIds.size + RECAP_MAX_ARTICLES + 1
+            // The feed's own bound, not just the batch size: the pool must
+            // contain every displayed article before the sort, otherwise the
+            // screen's first articles can miss the pool entirely and the
+            // batch comes out in the cache's order — seen on device.
             // Sorting is stable: articles not on screen keep the cache's
             // order among themselves, after every displayed one.
             val rank = displayedOrder.withIndex().associate { it.value to it.index }
-            val remaining = articleRepository.unreadFromCache(poolSize)
+            val remaining = articleRepository.unreadFromCache(CACHED_FEED_LIMIT)
                 .filter { it.id !in summarizedIds }
                 .sortedBy { rank[it.id] ?: Int.MAX_VALUE }
             val articles = remaining.take(RECAP_MAX_ARTICLES)

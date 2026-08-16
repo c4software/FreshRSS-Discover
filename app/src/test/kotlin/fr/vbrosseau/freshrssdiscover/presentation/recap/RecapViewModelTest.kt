@@ -223,6 +223,22 @@ class RecapViewModelTest {
     }
 
     @Test
+    fun aDisplayedArticleDeepInTheCacheStillComesFirst() = runTest {
+        // Regression: the pool used to be six articles in the cache's own
+        // order, so a screen-first article beyond it missed the batch.
+        articles.unreadInCache = (1L..30L).map { article(id = it, title = "Titre $it") }
+        generator.chunks = listOf("1. R1")
+
+        val viewModel = viewModel()
+        viewModel.onDisplayedOrderChanged(listOf(ArticleId(30L)))
+        viewModel.onRecapRequested()
+
+        val sheet = viewModel.uiState.value.sheet
+        assertIs<RecapSheetState.Digest>(sheet)
+        assertEquals("Titre 30", sheet.items.first().title)
+    }
+
+    @Test
     fun reopeningTheSheetStartsAFreshRecap() = runTest {
         articles.unreadInCache = listOf(article(title = "Le seul titre"))
         generator.chunks = listOf("1. R1")

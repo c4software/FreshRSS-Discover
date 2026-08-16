@@ -2557,6 +2557,10 @@ the download, with progress, before generating.
       inside the sheet's own window; and "load more" **replaces** the shown
       cards with the next batch instead of appending, the exclusion by
       article id staying so no batch repeats
+- [x] `GOAL-037-T12` order regression seen right after: the pool given to
+      the sort was six articles in the cache's own order, so a screen-first
+      article beyond it missed its batch — the pool is now the feed's own
+      bound (`CACHED_FEED_LIMIT`), pinned by a regression test
 
 ---
 
