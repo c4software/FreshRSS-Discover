@@ -42,7 +42,9 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due.
+**Next task**: none is due. The one thing waiting for the author is the device
+observation GOAL-035 left as debt: seeing the learned reminder hour, the time
+picker and the statistics screen run on a real phone.
 
 > **The device came back, and it changed what this phase could prove.** It was
 > opened on the statement that no device was available, and it was closed with a
@@ -108,7 +110,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-032 | Read-on-scroll: observable at last, and a threshold that survives scrolling | `[x]` |
 | GOAL-033 | A Play Store submission file, and the policy that publishes itself | `[x]` |
 | GOAL-034 | Re-tapping the Discover tab returns to the top, then reloads | `[x]` |
-| GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[-]` |
+| GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2354,7 +2356,7 @@ honours it.
 
 ## GOAL-035 — The reminder aims at the dominant reading hour, and a stats screen shows it
 
-**Status: IN PROGRESS**
+**Status: DONE** — pending a device observation, recorded as debt below
 
 Covers SPECS.md §4.9, amended at the author's request (2026-08-16).
 
@@ -2426,8 +2428,19 @@ shows the histogram — the reminder's reasoning made visible.
       references (data, learning, empty × light and dark) **looked at** — the
       first capture caught a misleading fixture where a three-way tie handed
       the dominant hour to the morning
-- [ ] `GOAL-035-T07` **Documentation**: SPECS §4.9, §6 and §8, ARCHITECTURE §9,
-      README, TASKS
+- [x] `GOAL-035-T07` **Documentation**: SPECS §4.9 rewritten (learned hour,
+      fallback, fixed option), §6 (hour setting and statistics entry), §8
+      question 13 settled; ARCHITECTURE §9.4 (where the histogram is fed and
+      why the stats screen publishes the scheduler's own decision) and the
+      package map; README
+
+### Debt knowingly left
+
+- **Not yet observed on a device.** Every piece is unit-proven and the
+  screenshots were looked at, but the phase's own lesson (`GOAL-022`) is that
+  scheduling and notifications are only truly proven by running: the learned
+  hour reaching `dumpsys jobscheduler`, the picker on a real screen, and the
+  stats route under real navigation remain to be seen on the author's device.
 
 ---
 

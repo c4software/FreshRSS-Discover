@@ -503,11 +503,27 @@ order (determinism rule of §4.2).
 
 A daily notification recalls that articles are left to read.
 
-**It goes out at the previous day's opening time.** Not at a time chosen by the
-developer: a notification at 9 a.m. for someone who reads in the evening is an
-interruption, not a reminder. The application remembers the moment of its
-**first** opening of the day — the one where the user reaches for it — and that
-is when the reminder falls the next day.
+**It goes out at the hour the user actually reads.** Not at a time chosen by
+the developer: a notification at 9 a.m. for someone who reads in the evening is
+an interruption, not a reminder. The application keeps a **24-bin histogram of
+reading sessions** — one bin per hour of day, fed each time articles are marked
+read, at most one session per day and per hour so a forty-article catch-up
+evening cannot outweigh two weeks of habit — and the reminder aims at the
+**start of the densest bin**. The dominant bin, not an average: for someone who
+reads in the morning **and** in the evening, an average lands mid-afternoon, an
+hour they never read at. Bins decay day by day, so a habit that moved wins
+within days and weeks of not reading return the reminder to the fallback below.
+
+**Before the histogram has seen enough** — three weighted sessions — the
+reminder falls back on the previous day's **first opening time**: the moment
+the user reached for the application, the best signal available on day one and
+the rule this feature originally shipped with.
+
+**The user can fix the hour instead.** A setting (§6) replaces the learned hour
+with one they choose; the learned hour can be wrong for reasons no histogram
+sees, and a **user**-chosen hour is not the developer-chosen hour this section
+refuses. The histogram keeps learning meanwhile, and is shown on a statistics
+screen reached from the settings — the reminder's reasoning made visible.
 
 **It does not go out if there is nothing to read.** A reminder announcing that
 the pile is empty is an interruption with nothing in return, and that is what
@@ -651,7 +667,10 @@ The settings screen stays minimal:
 
 - connected server address and login (read only);
 - **feed presentation mode**: List or Swipe (§4.8);
-- **reading reminder**: on or off (§4.9);
+- **reading reminder**: on or off, and its hour — automatic (learned, §4.9) or
+  fixed at a chosen time;
+- **reading statistics**: the hour histogram behind the reminder (§4.9), on a
+  screen of its own reached from here;
 - **automatic marking**: on or off, then its two thresholds (§4.5) — the
   thresholds stay displayed, greyed out, when it is off;
 - cache size and manual purge action;
@@ -726,6 +745,7 @@ it, then **written down here** — not left implicit in the code.
 | 12 | What to do with an illustration smaller than its slot? | **It is not enlarged**: displayed at its own size, over a blurred background drawn from itself (§4.3). The threshold is not a figure but **measured** — only what would have to be enlarged is treated, which stays right at any screen density. Under Android 12, where the system blur does not exist, the stretching remains: a second mechanism would have cost its writing and its tests for a minority of devices, and a sharp, duplicated background would have been worse than the defect. |
 | 11 | Does the feed order come from the server? | **No: it is recomputed on the publication date.** The server sorts its `reading-list` by **retrieval** date — observed on a real instance, an article published two days earlier opened the first page. That order differs from the cache's, sorted by publication: the launch screen then depended on which of the disk or the network answered first. Each page is therefore brought back to publication order before interleaving, which expects it anyway (§4.2, rule 2). |
 | 10 | Does launching reload the feed? | **No.** Author's decision (2026-08-08): launching shows the cache, stable, and no request leaves without a gesture — apart from an empty cache, where there is nothing to show. The automatic request on launch created a race between the disk and the network, whose outcome decided the screen; and a feed that moves when you open it reads as a feed that reinterleaves itself. Reloading is a gesture (§4.6), recalled by the staleness notice beyond six hours. |
+| 13 | Parameters of the learned reminder hour (§4.9) | **24 hour-bins, daily decay 0.9, sufficiency at 3 weighted sessions, target at the start of the dominant hour, at most one session per day and per hour.** One-hour bins because the reminder's precision is the hour, not the minute. A 0.9 decay halves a habit in about a week: a new routine wins within days, one unusual evening barely dents two weeks of habit. Three sessions because below that a single recording would decide the hour on its own — the one-sample fragility the histogram replaces. The start of the hour so the reminder arrives before the habit, not after it. Ties break on the earliest hour, deterministically, for the same reason the wording rotation refuses a random draw. |
 | 9 | Threshold beyond which the displayed feed is "old" (§4.6) | **6 hours.** Nothing synchronises in the background (§2), so the screen shows the cache until the user asks for something else: with no landmark, yesterday's feed is indistinguishable from a fresh one. A short threshold — one or two hours — would turn the invitation into a daily reflex, and an invitation you learn to ignore no longer says anything. Six hours clearly separates the session resumed within the hour, where the feed is still the one you left, from the reopening the next morning. |
 
 ### Still open

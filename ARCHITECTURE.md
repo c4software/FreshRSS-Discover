@@ -513,7 +513,7 @@ domain/                       Pure Kotlin/JVM — decides, knows neither HTTP no
 ├── core/                     Outcome<value, error>
 ├── feed/                     article, page, cursor, repository contracts
 ├── read/                     read detection, marking queue, scheduling
-├── reminder/                 time and content of the reading reminder
+├── reminder/                 time, content and learned hour of the reading reminder
 ├── settings/                 reading settings, cache
 ├── shuffle/                  source interleaving
 └── time/                     Clock
@@ -536,6 +536,7 @@ app/
     ├── navigation/           destinations, graph, presentation mode
     ├── permission/           the permission to notify, asked for at the right moment
     ├── settings/             settings
+    ├── stats/                reading statistics: the histogram behind the reminder hour
     ├── swipe/                feed as a card stack, one article per screen
     └── theme/                colours, spacings
 ```
@@ -636,6 +637,18 @@ Three refusals precede any notification, and their **order** matters: no session
 — the user is no longer signed in, there is nothing to remind them of; setting
 switched off; then empty cache. The first two do not arm the next day's reminder,
 the third does — tomorrow there may be something to read.
+
+**The hour it aims at is learned where reading is recorded.** The reading-hour
+histogram (`ReadingHistogram`, SPECS.md §4.9) is fed by
+`DefaultReadSyncRepository.markAsRead` — the single point both presentation
+modes and the open-article marking already pass through — and persisted by
+`ReadingHistogramStore` under the `reminder.` DataStore prefix, which a logout
+leaves in place: the habit belongs to the person, not the account. The
+scheduler resolves its target through the pure `reminderTargetMinute`: fixed
+hour if set, dominant hour if the histogram suffices, else the opening minute.
+The statistics screen (`presentation/stats`) reads the same histogram and
+publishes the same `dominantHour`, not a recomputation: it exists to show the
+reminder's reasoning, and two computations would let the two diverge.
 
 ### 9.5 The version is not typed in
 

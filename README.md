@@ -64,8 +64,10 @@ deck.
   stretched and fuzzy;
 - opening the original article in the browser;
 - a local cache readable offline, with automatic and manual purge;
-- **a daily reading reminder**, at the previous day's opening time, quoting real
-  titles — and which **calls nothing**: it reads the cache, never the server;
+- **a daily reading reminder**, at the hour you usually read — learned from
+  your reading habits, or fixed by hand — quoting real titles, and which
+  **calls nothing**: it reads the cache, never the server. A statistics screen
+  in the settings shows the hour histogram behind it;
 - a Material 3 interface, light and dark themes.
 
 The full specification is in [SPECS.md](./SPECS.md).
