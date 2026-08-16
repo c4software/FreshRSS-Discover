@@ -25,6 +25,7 @@ kotlinxSerialization = "1.9.0"
 ktor = "3.4.0"
 ksp = "2.3.11"
 ktlintPlugin = "12.1.1"
+mlkitGenaiPrompt = "1.0.0-beta4"
 roborazzi = "1.70.0"
 robolectric = "4.16.1"
 timber = "5.0.1"
@@ -71,6 +72,9 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 # Chargement des illustrations d'articles. Moteur OkHttp, celui déjà employé par
 # Ktor : une seule pile réseau, un seul pool de connexions.
+# Récap local des articles non lus (SPECS.md §4.10) : Gemini Nano servi par AICore,
+# entièrement sur l'appareil — le texte du flux ne part vers aucun service tiers (§7.4).
+mlkit-genai-prompt = { module = "com.google.mlkit:genai-prompt", version.ref = "mlkitGenaiPrompt" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 coil-test = { module = "io.coil-kt.coil3:coil-test", version.ref = "coil" }

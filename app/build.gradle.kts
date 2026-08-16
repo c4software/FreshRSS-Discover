@@ -299,6 +299,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    implementation(libs.mlkit.genai.prompt)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.activity.compose)

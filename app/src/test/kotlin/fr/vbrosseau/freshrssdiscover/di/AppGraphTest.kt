@@ -23,6 +23,7 @@ import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkDao
 import fr.vbrosseau.freshrssdiscover.data.local.room.PendingMarkQueue
 import fr.vbrosseau.freshrssdiscover.data.network.AndroidNetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
+import fr.vbrosseau.freshrssdiscover.data.recap.MlKitRecapGenerator
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultArticleRepository
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultAuthRepository
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultReadSyncRepository
@@ -32,6 +33,7 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
+import fr.vbrosseau.freshrssdiscover.domain.recap.RecapGenerator
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
@@ -107,6 +109,9 @@ class AppGraphTest {
 
     @Inject
     internal lateinit var networkAvailability: NetworkAvailability
+
+    @Inject
+    lateinit var recapGenerator: RecapGenerator
 
     @Inject
     internal lateinit var database: AppDatabase
@@ -195,6 +200,7 @@ class AppGraphTest {
         assertIs<SettingsStore>(settingsRepository)
         assertIs<CacheMaintenance>(cacheRepository)
         assertIs<AndroidNetworkAvailability>(networkAvailability)
+        assertIs<MlKitRecapGenerator>(recapGenerator)
     }
 
     @Test

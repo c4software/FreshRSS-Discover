@@ -2503,7 +2503,7 @@ the download, with progress, before generating.
       pure prompt construction from the articles and the output language,
       with caps on article count and excerpt length. Pure JVM tests and a
       versioned `FakeRecapGenerator` in the test fixtures
-- [ ] `GOAL-037-T02` data: the `genai-prompt` dependency (justified in the
+- [x] `GOAL-037-T02` data: the `genai-prompt` dependency (justified in the
       commit message) and `MlKitRecapGenerator`, adapter of the port over
       `Generation.getClient()` — `checkStatus()`, `download()`,
       `generateContentStream()` mapped to the domain types — bound in Hilt
