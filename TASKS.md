@@ -2596,6 +2596,11 @@ the download, with progress, before generating.
       the punctuation ("les articles,,et"). The bare-marker fallback now
       only binds a run holding an actual word of three letters or more and
       leaves the spacing untouched; the prompt forbids chaining markers
+- [x] `GOAL-037-T18` tenth run, clean prose but two leftovers on screen:
+      the sheet keeps a dead zone under the pill — the fixed viewport
+      shrinks from 420 dp to 300 dp — and the model wrote `[2, 4]`, several
+      numbers in one bracket, which the parser did not know: any bracket
+      opening on a digit is now absorbed, bound to its first number
 
 ---
 

@@ -272,11 +272,11 @@ private fun Long.toWholeMegabytes(): Int = (this / BYTES_PER_MEGABYTE).toInt()
 
 /**
  * Fixed, not a maximum (author's call, GOAL-037-T16): the sheet must not
- * resize as the prose streams or as "load more" swaps the batch. Roughly
- * half a tall screen, the feed behind staying visible enough to remember
- * what the sheet talks about.
+ * resize as the prose streams or as "load more" swaps the batch. Sized for
+ * a five-article brief plus the pill (GOAL-037-T18 — 420 dp left a dead
+ * zone under it); a longer brief scrolls.
  */
-private val DigestHeight = 420.dp
+private val DigestHeight = 300.dp
 
 private val SkeletonBarHeight = 12.dp
 private const val SKELETON_FULL_LINES = 3

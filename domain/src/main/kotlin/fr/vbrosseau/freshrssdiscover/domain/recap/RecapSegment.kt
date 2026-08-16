@@ -17,14 +17,16 @@ data class RecapSegment(
 
 /**
  * `{key words}[N]`, or a bare `[N]`: the braces are the demanded form, the
- * bare marker the drift small models produce anyway. The bare form swallows
- * no surrounding space — a marker enumeration ("[2], [3] et [4]") must
- * leave its punctuation and spacing exactly as written.
+ * bare marker the drift small models produce anyway. A bracket opening on a
+ * digit is absorbed whole and bound to its **first** number — the model
+ * writes `[2, 4]` despite the prompt, and half a raw bracket reached the
+ * screen. The bare form swallows no surrounding space: a marker enumeration
+ * ("[2], [3] et [4]") must leave its punctuation exactly as written.
  */
-private val LinkedRun = Regex("""\{([^{}]+)\}\s*\[(\d+)\]|\[(\d+)\]""")
+private val LinkedRun = Regex("""\{([^{}]+)\}\s*\[(\d+)[^\]]*\]|\[(\d+)[^\]]*\]""")
 
-/** A `{key wo`, `{key}[12` or `[12` still streaming: hidden until it closes. */
-private val TrailingPartial = Regex("""\s*\{[^{}]*(\}\s*\[\d*)?$|\s*\[\d*$""")
+/** A `{key wo`, `{key}[12` or `[2, ` still streaming: hidden until it closes. */
+private val TrailingPartial = Regex("""\s*\{[^{}]*(\}\s*\[[^\]]*)?$|\s*\[[^\]]*$""")
 
 /** The last couple of words: what a bare marker binds instead of its run. */
 private val TrailingWords = Regex("""\S+(?:\s+\S+)?\s*$""")

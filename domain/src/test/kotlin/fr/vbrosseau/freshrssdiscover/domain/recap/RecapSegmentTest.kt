@@ -75,6 +75,29 @@ class RecapSegmentTest {
     }
 
     @Test
+    fun severalNumbersInOneBracketBindToTheFirst() {
+        // "[2, 4]" reached the screen raw on the tenth device run.
+        val segments = parseRecapBrief("Android 17 QPR2 [2, 4] continue.")
+
+        assertEquals(
+            listOf(
+                RecapSegment(text = "Android ", articleIndex = null),
+                RecapSegment(text = "17 QPR2", articleIndex = 2),
+                RecapSegment(text = " continue.", articleIndex = null),
+            ),
+            segments,
+        )
+    }
+
+    @Test
+    fun aHalfStreamedNumberListStaysHidden() {
+        assertEquals(
+            listOf(RecapSegment(text = "Le début", articleIndex = null)),
+            parseRecapBrief("Le début [2, "),
+        )
+    }
+
+    @Test
     fun proseWithoutMarkersBecomesOneUnlinkedSegment() {
         val segments = parseRecapBrief("Un paragraphe sans le format demandé.")
 
