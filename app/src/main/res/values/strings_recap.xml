@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Description of the recap button, read out by screen readers.
+        A verb rather than a noun, like `feed_refresh`: it announces what the
+        tap will do. "Summarize" alone would not say what gets summarized.
+    -->
+    <string name="recap_button">Summarize the unread articles</string>
+</resources>

@@ -22,6 +22,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
+import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
+import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsScreen
@@ -42,6 +44,7 @@ fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
+    onFeedRecapChange: (FeedRecap?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
 ) {
     NavHost(
@@ -56,6 +59,18 @@ fun AppNavHost(
         composable(AppRoutes.DISCOVER) {
             val presentationViewModel: FeedPresentationViewModel = hiltViewModel()
             val presentation by presentationViewModel.presentation.collectAsStateWithLifecycle()
+
+            // Above the mode switch: the recap belongs to the feed, not to
+            // one of its presentations, and switching modes must not re-ask
+            // the platform whether the model exists.
+            val recapViewModel: RecapViewModel = hiltViewModel()
+            val recapUiState by recapViewModel.uiState.collectAsStateWithLifecycle()
+
+            PublishFeedRecap(
+                isModelUsable = recapUiState.isModelUsable,
+                onRecap = recapViewModel::onRecapRequested,
+                onFeedRecapChange = onFeedRecapChange,
+            )
 
             when (presentation) {
                 FeedPresentation.List -> DiscoverRoute(
@@ -267,6 +282,26 @@ internal fun PublishFeedRefresh(
         }
         onFeedRefreshChange(refresh)
         onDispose { onFeedRefreshChange(null) }
+    }
+}
+
+/**
+ * Publishes the recap action to the title bar, mirror of [PublishFeedRefresh].
+ *
+ * The `null` publication carries the dynamic rule (SPECS.md §4.10): while the
+ * platform has not answered, or answered that the model cannot run here, the
+ * bar shows nothing — the feature does not exist on this device rather than
+ * being disabled.
+ */
+@Composable
+internal fun PublishFeedRecap(
+    isModelUsable: Boolean,
+    onRecap: () -> Unit,
+    onFeedRecapChange: (FeedRecap?) -> Unit,
+) {
+    DisposableEffect(isModelUsable, onRecap, onFeedRecapChange) {
+        onFeedRecapChange(if (isModelUsable) FeedRecap(onRecap = onRecap) else null)
+        onDispose { onFeedRecapChange(null) }
     }
 }
 

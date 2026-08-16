@@ -45,6 +45,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppNavigationBar
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.AppRoutes
 import fr.vbrosseau.freshrssdiscover.presentation.navigation.navigateToTopLevel
 import fr.vbrosseau.freshrssdiscover.presentation.permission.StartupPermissionsRequest
+import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
+import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecapAction
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import javax.inject.Inject
 
@@ -177,6 +179,10 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
      */
     var feedRefresh by remember { mutableStateOf<FeedRefresh?>(null) }
 
+    // Same publication pattern for the recap: `null` both where no feed is
+    // displayed and where the device cannot run the model (SPECS.md §4.10).
+    var feedRecap by remember { mutableStateOf<FeedRecap?>(null) }
+
     /*
      * Same publication pattern for the tab reselection: the feed destination
      * decides what tapping its already selected tab does (scroll back to the
@@ -211,6 +217,9 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                 // On the title row: it is a command for the whole screen, and
                 // overlaid on the content it always covered part of it.
                 actions = {
+                    // Recap before refresh: refresh keeps its edge position,
+                    // where its users' muscle memory already goes.
+                    FeedRecapAction(recap = feedRecap)
                     FeedRefreshAction(refresh = feedRefresh)
                 },
             )
@@ -227,6 +236,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             onFeedRefreshChange = { feedRefresh = it },
+            onFeedRecapChange = { feedRecap = it },
             onFeedReselectChange = { feedReselect = it },
         )
     }

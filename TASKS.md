@@ -2507,7 +2507,7 @@ the download, with progress, before generating.
       commit message) and `MlKitRecapGenerator`, adapter of the port over
       `Generation.getClient()` — `checkStatus()`, `download()`,
       `generateContentStream()` mapped to the domain types — bound in Hilt
-- [ ] `GOAL-037-T03` presentation: the conditional title-bar button —
+- [x] `GOAL-037-T03` presentation: the conditional title-bar button —
       `FeedRecap`/`FeedRecapAction`/`RecapButton` on the refresh-action
       pattern, published by the feed destination via `PublishFeedRecap`,
       wired into `MainActivity` next to the refresh action, with tests

@@ -1,0 +1,11 @@
+package fr.vbrosseau.freshrssdiscover.presentation.recap
+
+/**
+ * Test tags for the recap surface.
+ *
+ * Shared by both presentation modes, like the refresh ones: the button lives
+ * in the title bar, above the mode switch.
+ */
+object RecapTestTags {
+    const val BUTTON = "recap:button"
+}

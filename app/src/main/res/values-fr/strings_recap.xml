@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Description du bouton de récap, lue par les lecteurs d'écran.
+        L'infinitif plutôt qu'un nom, comme `feed_refresh` : elle annonce ce
+        que l'appui va faire. « Résumer » seul ne dirait pas quoi.
+    -->
+    <string name="recap_button">Résumer les articles non lus</string>
+</resources>
