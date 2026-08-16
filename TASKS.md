@@ -108,6 +108,7 @@ on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 | GOAL-032 | Read-on-scroll: observable at last, and a threshold that survives scrolling | `[x]` |
 | GOAL-033 | A Play Store submission file, and the policy that publishes itself | `[x]` |
 | GOAL-034 | Re-tapping the Discover tab returns to the top, then reloads | `[x]` |
+| GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[-]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2348,6 +2349,60 @@ honours it.
 |---|---|
 | The reaction is published by the destination, not decided by the scaffold | The scaffold would need the feed's list state and ViewModel, which belong to the destination; the `FeedRefresh` publication already crossed this boundary in the right direction |
 | Scroll first, reload second | The reload snaps to the first article anyway; firing it mid-scroll would make the animated return invisible and the tap indistinguishable from the title-bar button |
+
+---
+
+## GOAL-035 — The reminder aims at the dominant reading hour, and a stats screen shows it
+
+**Status: IN PROGRESS**
+
+Covers SPECS.md §4.9, amended at the author's request (2026-08-16).
+
+The reminder fired at the previous day's **opening** time — one sample, and the
+wrong signal: a distracted morning glance pinned the next reminder to the
+morning, even for someone whose reading sessions are in the evening. The
+reminder now aims at the hour the user actually **reads**: a 24-bin histogram
+of reading sessions, decayed day by day, whose densest bin is the target. An
+average was considered and rejected — for a reader active morning **and**
+evening it lands mid-afternoon, an hour they never read; the dominant bin does
+not have that failure mode. A statistics screen, reached from the settings,
+shows the histogram — the reminder's reasoning made visible.
+
+### What was settled before writing
+
+| Point | Decision | Reason |
+|---|---|---|
+| Dominant bin, not average | The mode of a 24-bin histogram | A circular average lands between two habitual slots for a bimodal reader; the densest bin is always an hour the user actually reads at |
+| What counts as a session | At most one entry per day **and** per hour bin | One entry per article would let a forty-article catch-up evening outweigh two weeks of habit |
+| Where the session is recorded | `DefaultReadSyncRepository.markAsRead` | The single point both modes and the open-article marking already pass through; recording in the ViewModels would be written twice |
+| Ageing | Exponential decay per day, applied lazily at recording time | A habit that moved should win within days; without decay the histogram would freeze the first month forever |
+| Cold start | Fall back on the previous day's opening time (the current behaviour), until the histogram is sufficient | Day one has no reading history; the opening time is the best signal available, and it is already proven |
+| Fixed hour | An optional setting: automatic (default) or a user-chosen time | The learned hour can be wrong for reasons the histogram cannot see; the user settles it themselves. A **user**-chosen hour is not the developer-chosen hour §4.9 refuses |
+| Survival on logout | The histogram survives, like the opening time | The reading habit belongs to the person, not to the account (`reminder.` prefix, untouched by the `session.` wipe) |
+
+### Tasks
+
+- [x] `GOAL-035-T01` **The domain owns the histogram**: `ReadingHistogram` —
+      24 bins, exponential decay per day, one recording per day and per hour,
+      dominant hour, sufficiency threshold. Pure, no clock read. 16 tests,
+      including the binge evening, the habit that moves and wins within five
+      days, the clock set back, and the decay that makes sufficiency reversible
+- [ ] `GOAL-035-T02` **The domain chooses the target hour**: fixed time if set,
+      else the dominant hour if the histogram is sufficient, else the recorded
+      opening minute. `ReminderTime` model (Automatic | Fixed)
+- [ ] `GOAL-035-T03` **The histogram is persisted and fed**:
+      `ReadingHistogramStore` (DataStore, defensive parse), recording wired
+      into `DefaultReadSyncRepository.markAsRead`
+- [ ] `GOAL-035-T04` **The scheduler aims at the new target**:
+      `WorkManagerReminderScheduler` resolves the target hour; changing the
+      setting reschedules
+- [ ] `GOAL-035-T05` **The hour setting reaches the settings screen**:
+      automatic / fixed with a time picker, persisted in `SettingsStore`
+- [ ] `GOAL-035-T06` **The statistics screen shows the histogram**: reached
+      from the settings, dominant hour highlighted, back navigation. Roborazzi
+      light and dark, looked at
+- [ ] `GOAL-035-T07` **Documentation**: SPECS §4.9, §6 and §8, ARCHITECTURE §9,
+      README, TASKS
 
 ---
 
