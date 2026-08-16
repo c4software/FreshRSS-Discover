@@ -18,7 +18,9 @@ import fr.vbrosseau.freshrssdiscover.domain.auth.ServerAddressResult
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReadingHistogram
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderPlan
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -239,6 +241,8 @@ class ReadingReminderWorkerTest {
 class WorkManagerReminderSchedulerTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val recorder = FakeOpeningRecorder()
+    private val sessionRecorder = FakeReadingSessionRecorder()
+    private val settingsRepository = FakeSettingsRepository()
     private val clock = FakeClock(parisMillis(2026, 3, 4, hour = 10, minute = 0))
 
     @Before
@@ -253,7 +257,14 @@ class WorkManagerReminderSchedulerTest {
     }
 
     private fun scheduler() =
-        WorkManagerReminderScheduler(WorkManager.getInstance(context), recorder, clock, PARIS)
+        WorkManagerReminderScheduler(
+            WorkManager.getInstance(context),
+            recorder,
+            sessionRecorder,
+            settingsRepository,
+            clock,
+            PARIS,
+        )
 
     private fun reminderWork(): List<WorkInfo> =
         WorkManager.getInstance(context).getWorkInfosForUniqueWork(REMINDER_WORK_NAME).get()
@@ -276,6 +287,47 @@ class WorkManagerReminderSchedulerTest {
         val expected = parisMillis(2026, 3, 5, hour = 8, minute = 12) - clock.nowEpochMillis()
         assertEquals(expected, reminderWork().single().initialDelayMillis)
         assertEquals(TimeUnit.HOURS.toMillis(22) + TimeUnit.MINUTES.toMillis(12), expected)
+    }
+
+    @Test
+    fun aSufficientHistogramBeatsTheOpeningMinute() = runTest {
+        // The heart of GOAL-035: the reminder aims at when the user reads,
+        // not at when they happened to open the app.
+        recorder.minute = DailyMinute(8 * MINUTES_PER_HOUR + 12)
+        sessionRecorder.histogram = ReadingHistogram.Empty
+            .record(day = 1, hour = 21)
+            .record(day = 1, hour = 20)
+            .record(day = 1, hour = 22)
+            .record(day = 2, hour = 21)
+
+        scheduler().scheduleNext()
+
+        // 21:00 is still to come today: the delay is 11 h from 10:00.
+        assertEquals(TimeUnit.HOURS.toMillis(11), reminderWork().single().initialDelayMillis)
+    }
+
+    @Test
+    fun aFixedHourBeatsTheHistogram() = runTest {
+        sessionRecorder.histogram = ReadingHistogram.Empty
+            .record(day = 1, hour = 21)
+            .record(day = 1, hour = 20)
+            .record(day = 1, hour = 22)
+        settingsRepository.reminderTime.value = ReminderTime.Fixed(DailyMinute(18 * MINUTES_PER_HOUR))
+
+        scheduler().scheduleNext()
+
+        assertEquals(TimeUnit.HOURS.toMillis(8), reminderWork().single().initialDelayMillis)
+    }
+
+    @Test
+    fun anInsufficientHistogramFallsBackOnTheOpeningMinute() = runTest {
+        recorder.minute = DailyMinute(8 * MINUTES_PER_HOUR + 12)
+        sessionRecorder.histogram = ReadingHistogram.Empty.record(day = 1, hour = 21)
+
+        scheduler().scheduleNext()
+
+        val expected = parisMillis(2026, 3, 5, hour = 8, minute = 12) - clock.nowEpochMillis()
+        assertEquals(expected, reminderWork().single().initialDelayMillis)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.settings
 
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -79,4 +80,15 @@ interface SettingsRepository {
     fun observeReminderEnabled(): Flow<Boolean>
 
     suspend fun setReminderEnabled(value: Boolean)
+
+    /**
+     * How the reminder hour is chosen (SPECS.md §4.9, §6): learned from the
+     * reading histogram, or fixed by the user.
+     *
+     * Automatic by default: the fixed hour exists for the person the learned
+     * one bothers, not as a question everyone must answer first.
+     */
+    fun observeReminderTime(): Flow<ReminderTime>
+
+    suspend fun setReminderTime(value: ReminderTime)
 }

@@ -5,8 +5,11 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import kotlinx.coroutines.CoroutineScope
@@ -146,6 +149,40 @@ class SettingsStoreTest {
 
         val keys = dataStore.data.first().asMap().keys.map { it.name }
         assertEquals(listOf("reading.visible_fraction"), keys)
+    }
+
+    @Test
+    fun withoutAnythingStoredTheReminderHourIsAutomatic() = runTest {
+        assertEquals(ReminderTime.Automatic, store().observeReminderTime().first())
+    }
+
+    @Test
+    fun aFixedReminderHourIsReadBack() = runTest {
+        val store = store()
+
+        store.setReminderTime(ReminderTime.Fixed(DailyMinute(18 * 60)))
+
+        assertEquals(ReminderTime.Fixed(DailyMinute(18 * 60)), store.observeReminderTime().first())
+    }
+
+    @Test
+    fun returningToAutomaticForgetsTheFixedHour() = runTest {
+        val store = store()
+        store.setReminderTime(ReminderTime.Fixed(DailyMinute(18 * 60)))
+
+        store.setReminderTime(ReminderTime.Automatic)
+
+        assertEquals(ReminderTime.Automatic, store.observeReminderTime().first())
+    }
+
+    @Test
+    fun anOutOfBoundsFixedMinuteOnDiskReadsAsAutomatic() = runTest {
+        // A backup, or an earlier version: passing it to `DailyMinute` would
+        // throw, breaking the reminder until a reinstall.
+        val store = store()
+        dataStore.edit { it[intPreferencesKey("reminder.fixed_minute")] = 5_000 }
+
+        assertEquals(ReminderTime.Automatic, store.observeReminderTime().first())
     }
 
     @Test

@@ -2399,9 +2399,14 @@ shows the histogram — the reminder's reasoning made visible.
       `DefaultReadSyncRepository.markAsRead` behind a `Provider` so the
       singleton does not freeze the time zone. 8 store tests, 2 repository
       tests
-- [ ] `GOAL-035-T04` **The scheduler aims at the new target**:
-      `WorkManagerReminderScheduler` resolves the target hour; changing the
-      setting reschedules
+- [x] `GOAL-035-T04` **The scheduler aims at the new target**:
+      `WorkManagerReminderScheduler` resolves the target through
+      `reminderTargetMinute`; the `ReminderTime` setting joins
+      `SettingsRepository` and `SettingsStore` (key `reminder.fixed_minute`,
+      present only while a fixed hour is held, out-of-bounds reads as
+      Automatic). Rescheduling on a setting change lands with the screen
+      wiring in T05, where the setter is called. 3 scheduler tests, 4 store
+      tests
 - [ ] `GOAL-035-T05` **The hour setting reaches the settings screen**:
       automatic / fixed with a time picker, persisted in `SettingsStore`
 - [ ] `GOAL-035-T06` **The statistics screen shows the histogram**: reached

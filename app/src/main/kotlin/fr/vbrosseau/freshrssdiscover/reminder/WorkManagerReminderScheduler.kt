@@ -4,7 +4,10 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import fr.vbrosseau.freshrssdiscover.domain.reminder.nextReminderAt
+import fr.vbrosseau.freshrssdiscover.domain.reminder.reminderTargetMinute
+import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
+import kotlinx.coroutines.flow.first
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -34,20 +37,29 @@ internal const val REMINDER_WORK_NAME = "rappel-de-lecture"
 internal class WorkManagerReminderScheduler @Inject constructor(
     private val workManager: WorkManager,
     private val openingRecorder: OpeningRecorder,
+    private val readingSessionRecorder: ReadingSessionRecorder,
+    private val settingsRepository: SettingsRepository,
     private val clock: Clock,
     private val zone: ZoneId,
 ) : ReminderScheduler {
 
     /**
-     * Without a recorded time, nothing is scheduled.
+     * The target minute is the domain's `reminderTargetMinute` (SPECS.md
+     * §4.9): the user's fixed hour if set, else the dominant reading hour,
+     * else the previous day's opening minute.
      *
-     * This happens on the very first opening, before the [OpeningRecorder]
-     * has written anything. Picking a default time would be exactly what
+     * With nothing known at all — very first opening, before any recording —
+     * nothing is scheduled. Picking a default time would be exactly what
      * §4.9 refuses (a developer-chosen hour), and the next opening will
      * schedule anyway.
      */
     override suspend fun scheduleNext() {
-        val minute = openingRecorder.openingMinute() ?: return
+        val minute =
+            reminderTargetMinute(
+                time = settingsRepository.observeReminderTime().first(),
+                histogram = readingSessionRecorder.histogram(),
+                openingMinute = openingRecorder.openingMinute(),
+            ) ?: return
 
         val now = clock.nowEpochMillis()
         workManager.enqueueUniqueWork(

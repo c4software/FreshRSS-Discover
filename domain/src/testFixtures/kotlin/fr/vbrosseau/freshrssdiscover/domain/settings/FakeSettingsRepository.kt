@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.settings
 
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +53,16 @@ class FakeSettingsRepository(
 
     override suspend fun setReminderEnabled(value: Boolean) {
         reminderEnabled.value = value
+    }
+
+    /** How the reminder hour is chosen, Automatic by default as in production. */
+    val reminderTime = MutableStateFlow<ReminderTime>(ReminderTime.Automatic)
+
+    override fun observeReminderTime(): Flow<ReminderTime> = reminderTime
+
+    override suspend fun setReminderTime(value: ReminderTime) {
+        writeCount++
+        reminderTime.value = value
     }
 
     override suspend fun setFeedPresentation(value: FeedPresentation) {

@@ -5,8 +5,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import fr.vbrosseau.freshrssdiscover.domain.reminder.DailyMinute
+import fr.vbrosseau.freshrssdiscover.domain.reminder.MINUTES_PER_DAY
+import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTime
 import fr.vbrosseau.freshrssdiscover.domain.settings.FeedPresentation
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
@@ -111,6 +115,33 @@ internal class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.ReminderEnabled] = value }
     }
 
+    /**
+     * A missing or out-of-range minute reads as Automatic: the key only
+     * exists while the user holds a fixed hour, and a damaged value falls
+     * back to learning rather than to a broken `DailyMinute` construction.
+     */
+    override fun observeReminderTime(): Flow<ReminderTime> =
+        dataStore.data.map { preferences ->
+            preferences[Keys.ReminderFixedMinute]
+                ?.takeIf { it in 0 until MINUTES_PER_DAY }
+                ?.let { ReminderTime.Fixed(DailyMinute(it)) }
+                ?: ReminderTime.Automatic
+        }.distinctUntilChanged()
+
+    /**
+     * Automatic **removes** the key instead of writing a sentinel: absence
+     * already means "learn", and a sentinel would be one more value the
+     * defensive read above has to know about.
+     */
+    override suspend fun setReminderTime(value: ReminderTime) {
+        dataStore.edit { preferences ->
+            when (value) {
+                ReminderTime.Automatic -> preferences.remove(Keys.ReminderFixedMinute)
+                is ReminderTime.Fixed -> preferences[Keys.ReminderFixedMinute] = value.at.value
+            }
+        }
+    }
+
     private fun readSettings(preferences: Preferences): ReadingSettings = ReadingSettings.coerced(
         visibleFraction = preferences[Keys.VisibleFraction] ?: ReadingSettings.Default.visibleFraction,
         continuousVisibilityMillis = preferences[Keys.ContinuousVisibilityMillis]
@@ -156,5 +187,8 @@ internal class SettingsStore @Inject constructor(
          * displayed.
          */
         val ReminderEnabled = booleanPreferencesKey("reminder.enabled")
+
+        /** Present only while the user holds a fixed hour (SPECS.md §4.9). */
+        val ReminderFixedMinute = intPreferencesKey("reminder.fixed_minute")
     }
 }
