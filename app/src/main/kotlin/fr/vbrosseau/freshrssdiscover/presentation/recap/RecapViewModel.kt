@@ -120,9 +120,11 @@ class RecapViewModel @Inject constructor(
     private val summarizedIds = mutableSetOf<ArticleId>()
 
     /**
-     * The feed as the user sees it, published by the displayed mode. The
-     * recap follows this order, not the cache's own shuffle: summarizing in
-     * an order the screen contradicts would read as random.
+     * The feed as the user sees it, published by the displayed mode — from
+     * the first article visible on screen, not from the top of the list
+     * (author's ruling, 2026-08-18). The recap follows this order, not the
+     * cache's own shuffle: summarizing in an order the screen contradicts
+     * would read as random.
      */
     private var displayedOrder: List<ArticleId> = emptyList()
 

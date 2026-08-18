@@ -588,7 +588,11 @@ feature.
 **It summarizes the list as displayed** — read articles included, in the
 screen's exact order, then the remaining unread beyond it (author's decision,
 2026-08-16: two read articles sitting above the first summary read as a
-broken order, and the recap's job is to mirror the screen). Matter is title
+broken order, and the recap's job is to mirror the screen). The order starts
+at the **first article visible on screen**, not at the top of the list
+(author's decision, 2026-08-18): what was scrolled past is behind the reader,
+and a recap opening on it would retell a part of the feed already left —
+those articles, if still unread, come back with the remaining unread. Matter is title
 and excerpt from the cache (five per batch, the excerpts bounded), because
 the full content is deliberately not stored (§4.7) and no request leaves
 without a user gesture (§2). An empty pile says so instead of inventing; a

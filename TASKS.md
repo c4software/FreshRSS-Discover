@@ -2603,6 +2603,12 @@ the download, with progress, before generating.
       shrinks from 420 dp to 300 dp — and the model wrote `[2, 4]`, several
       numbers in one bracket, which the parser did not know: any bracket
       opening on a digit is now absorbed, bound to its first number
+- [x] `GOAL-037-T19` author's ruling (2026-08-18): the recap starts at the
+      **first article visible on screen**, not at the top of the list — what
+      was scrolled past is behind the reader. The List route now publishes
+      the displayed order from `firstVisibleItemIndex` onward; articles
+      scrolled past, if still unread, rejoin the batch with the remaining
+      unread. Swipe keeps publishing its whole deck
 
 ---
 

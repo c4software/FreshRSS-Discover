@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -133,11 +134,19 @@ private fun DiscoverRoute(
     val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange)
-
     // Hoisted from the screen so the tab reselection can drive the scroll:
     // the screen's own default state would be out of this route's reach.
     val listState = rememberLazyListState()
+
+    PublishDisplayedArticles(
+        articles = uiState.articles,
+        onDisplayedArticlesChange = onDisplayedArticlesChange,
+        // The list's items are the articles in order, footer last, so the
+        // first visible item index is the first visible article's rank.
+        // Remembered so the effect keys on a stable lambda, not one rebuilt
+        // each recomposition.
+        firstDisplayedIndex = remember(listState) { { listState.firstVisibleItemIndex } },
+    )
 
     PublishFeedReselect(
         onFeedReselectChange = onFeedReselectChange,
@@ -313,15 +322,24 @@ internal fun PublishFeedRefresh(
  * summaries must follow the list as the user sees it, and only the displayed
  * mode knows that order. Keyed on the ids, not the models: read-state or
  * illustration changes must not republish an unchanged order.
+ *
+ * The order starts at the first article actually on screen (author's ruling,
+ * 2026-08-18): what was scrolled past is behind the reader, and a recap
+ * opening on it would retell a part of the feed already left. [firstDisplayedIndex]
+ * is a snapshot read, not a value: the scroll moves without recomposing this
+ * publisher, so the effect observes it through `snapshotFlow`. The default
+ * serves the swipe mode, whose deck always shows its articles from the top.
  */
 @Composable
-private fun PublishDisplayedArticles(
+internal fun PublishDisplayedArticles(
     articles: List<ArticleUiModel>,
     onDisplayedArticlesChange: (List<ArticleId>) -> Unit,
+    firstDisplayedIndex: () -> Int = { 0 },
 ) {
     val ids = articles.map { ArticleId(it.id) }
-    LaunchedEffect(ids, onDisplayedArticlesChange) {
-        onDisplayedArticlesChange(ids)
+    LaunchedEffect(ids, onDisplayedArticlesChange, firstDisplayedIndex) {
+        snapshotFlow { firstDisplayedIndex().coerceAtLeast(0) }
+            .collect { first -> onDisplayedArticlesChange(ids.drop(first)) }
     }
 }
 
