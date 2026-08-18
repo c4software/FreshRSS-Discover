@@ -519,6 +519,14 @@ reminder falls back on the previous day's **first opening time**: the moment
 the user reached for the application, the best signal available on day one and
 the rule this feature originally shipped with.
 
+**A learned hour never lands in the night.** A dominant bin or an opening
+fallback aiming between 22:00 and 07:00 is moved to the **nearest edge** of
+the day — 21:59 or 07:00, whichever is closer (author's decision, 2026-08-18:
+evening reading spilling past midnight had made 00:00 the dominant hour on a
+real device, and a notification nobody is awake for is not a reminder). The
+hour the user fixes themselves is exempt: it is applied as is, as promised
+below.
+
 **The user can fix the hour instead.** A setting (§6) replaces the learned hour
 with one they choose; the learned hour can be wrong for reasons no histogram
 sees, and a **user**-chosen hour is not the developer-chosen hour this section

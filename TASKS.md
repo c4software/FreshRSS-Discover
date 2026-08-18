@@ -2434,6 +2434,12 @@ shows the histogram — the reminder's reasoning made visible.
       question 13 settled; ARCHITECTURE §9.4 (where the histogram is fed and
       why the stats screen publishes the scheduler's own decision) and the
       package map; README
+- [x] `GOAL-035-T08` observed on the author's Pixel (2026-08-18): evening
+      reading spilling past midnight made hour 0 the densest bin (1.9,
+      against 1.81 for the real evening hours) and every reminder fired at
+      00:00, unseen. Author's ruling: **no learned reminder between 22:00
+      and 07:00** — the target moves to the nearest edge, 21:59 or 07:00;
+      the user-fixed hour stays applied as is. SPECS §4.9 records the rule
 
 ### Debt knowingly left
 
