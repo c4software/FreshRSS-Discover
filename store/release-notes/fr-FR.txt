@@ -1,8 +1,7 @@
-Première version publique.
+Le résumé, sans quitter l'appareil.
 
-• Tous vos abonnements FreshRSS en un fil vertical sans fin, sources entrelacées.
-• Deux modes sur le même flux : Liste, ou Swipe article par article.
-• Lire, c'est faire défiler : un article assez longtemps visible devient lu, seuils réglables.
-• Statuts de lecture renvoyés au serveur, mis en file et retentés après une coupure.
-• Cache local lisible hors ligne, purge automatique, rappel de lecture quotidien.
-• Ne parle qu'à votre serveur : aucune télémétrie, aucun tiers, aucune synchro en arrière-plan.
+• Un bouton Récap sur le fil : les articles affichés résumés un par un, par l'IA embarquée du téléphone. Rien ne sort d'ici.
+• Un brief qui raconte tout le fil en un paragraphe, chaque passage renvoyant à son article d'un appui.
+• Résumer les suivants, ou tout marquer lu, sans fermer la feuille.
+• Rappel à votre vraie heure : l'app apprend quand vous lisez, ou vous la fixez.
+• Nouvel écran de statistiques de lecture.

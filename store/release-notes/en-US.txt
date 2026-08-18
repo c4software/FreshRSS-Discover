@@ -1,8 +1,7 @@
-First public release.
+Summaries that never leave the device.
 
-• All your FreshRSS subscriptions in one endless vertical stream, sources interleaved.
-• Two modes over the same feed: List, or Swipe one article at a time.
-• Reading is scrolling: articles visible long enough become read, with adjustable thresholds.
-• Read statuses sent back to your server, queued and retried after an outage.
-• Local cache readable offline, automatic purge, daily reading reminder.
-• Talks only to your server: no telemetry, no third party, no background sync.
+• A Recap button on the feed: the articles on screen summarised one by one by the phone's on-device AI. Nothing leaves here.
+• A brief telling the whole feed in one paragraph, every passage one tap away from its article.
+• Summarise the next ones, or mark them all read, without closing the sheet.
+• Reminder at your real hour: the app learns when you read, or you set it.
+• A new reading statistics screen.
