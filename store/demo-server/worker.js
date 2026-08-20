@@ -71,6 +71,10 @@ export default {
  *
  * Les dates sont calculées à la volée : figées, elles vieilliraient et le flux
  * afficherait « il y a 8 mois » le jour de la relecture.
+ *
+ * Chaque `link` pointe vers une vraie page, proche du sujet de l'article :
+ * le testeur Google ouvre les liens, et un domaine fictif (exemple.org est
+ * parqué et couvert de publicité) a valu un rejet « Broken Functionality ».
  */
 const ARTICLES = [
   {
@@ -80,6 +84,7 @@ const ARTICLES = [
     summary:
       'Les flux s\'accumulent, la liste s\'allonge, et la lecture devient une corvée d\'inventaire. Un format plein écran change le rapport au non-lu.',
     hours: 2,
+    link: 'https://fr.wikipedia.org/wiki/Agr%C3%A9gateur',
   },
   {
     feed: 'Carnet de veille',
@@ -88,6 +93,7 @@ const ARTICLES = [
     summary:
       'Un serveur chez soi ne coûte pas que de l\'électricité. Retour sur trois ans de FreshRSS derrière un reverse proxy et une sauvegarde hebdomadaire.',
     hours: 5,
+    link: 'https://fr.wikipedia.org/wiki/Auto-h%C3%A9bergement_(Internet)',
   },
   {
     feed: 'Fréquence Technique',
@@ -96,6 +102,7 @@ const ARTICLES = [
     summary:
       'Annoncé fini à chaque décennie, RSS alimente encore les podcasts, les agrégateurs et une bonne part du web indépendant.',
     hours: 9,
+    link: 'https://fr.wikipedia.org/wiki/RSS',
   },
   {
     feed: 'Ligne de commande',
@@ -104,6 +111,7 @@ const ARTICLES = [
     summary:
       'Une classe scellée bien choisie supprime la moitié des tests. Petite démonstration sur un écran de connexion.',
     hours: 14,
+    link: 'https://fr.wikipedia.org/wiki/Kotlin_(langage)',
   },
   {
     feed: 'Le Comptoir du Libre',
@@ -112,6 +120,7 @@ const ARTICLES = [
     summary:
       'Import OPML, API mobile, filtres, consommation mémoire : comparaison à données égales sur un millier d\'articles.',
     hours: 21,
+    link: 'https://fr.wikipedia.org/wiki/FreshRSS',
   },
   {
     feed: 'Carnet de veille',
@@ -120,6 +129,7 @@ const ARTICLES = [
     summary:
       'Un abonnement sur trois n\'a rien publié depuis dix-huit mois. Méthode pour élaguer sans rien perdre d\'utile.',
     hours: 27,
+    link: 'https://fr.wikipedia.org/wiki/Veille_informationnelle',
   },
   {
     feed: 'Fréquence Technique',
@@ -128,6 +138,7 @@ const ARTICLES = [
     summary:
       'Élévation, teintes dynamiques, zones de sécurité : le défilement plein écran impose ses propres règles de lisibilité.',
     hours: 33,
+    link: 'https://fr.wikipedia.org/wiki/Material_Design',
   },
   {
     feed: 'Ligne de commande',
@@ -136,6 +147,7 @@ const ARTICLES = [
     summary:
       'Une file d\'attente locale, un lot par requête, et le réseau redevient un détail d\'implémentation.',
     hours: 40,
+    link: 'https://fr.wikipedia.org/wiki/Synchronisation_de_fichiers',
   },
   {
     feed: 'Le Comptoir du Libre',
@@ -144,6 +156,7 @@ const ARTICLES = [
     summary:
       'Publier du GPL sur une plateforme fermée reste possible, à condition de savoir ce que l\'on signe.',
     hours: 52,
+    link: 'https://fr.wikipedia.org/wiki/Copyleft',
   },
   {
     feed: 'Carnet de veille',
@@ -152,6 +165,7 @@ const ARTICLES = [
     summary:
       'Retour d\'expérience sur une veille entièrement choisie : moins de volume, davantage de lectures menées à terme.',
     hours: 61,
+    link: 'https://fr.wikipedia.org/wiki/Syst%C3%A8me_de_recommandation',
   },
   {
     feed: 'Fréquence Technique',
@@ -160,6 +174,7 @@ const ARTICLES = [
     summary:
       'Trois mégaoctets pour huit mille signes. Décomposition ligne à ligne de ce qui transite vraiment.',
     hours: 74,
+    link: 'https://fr.wikipedia.org/wiki/Page_web',
   },
   {
     feed: 'Ligne de commande',
@@ -168,6 +183,7 @@ const ARTICLES = [
     summary:
       'Observer avant d\'implémenter, documenter ce que l\'on a observé, ne jamais inventer le comportement d\'un point d\'entrée.',
     hours: 88,
+    link: 'https://fr.wikipedia.org/wiki/Interface_de_programmation',
   },
 ];
 
@@ -177,7 +193,7 @@ function toItem(article, index) {
   // Identifiant hexadécimal préfixé, comme le veut §3.4 : l'application le
   // relit en base 16 et écarte silencieusement ce qu'elle ne sait pas lire.
   const id = (0xb0b00 + index).toString(16);
-  const link = `https://exemple.org/demo/${index + 1}`;
+  const link = article.link;
 
   return {
     id: `tag:google.com,2005:reader/item/${id}`,
@@ -191,7 +207,7 @@ function toItem(article, index) {
     categories: ['user/-/state/com.google/reading-list'],
     origin: {
       streamId: `feed/${slug(article.feed)}`,
-      htmlUrl: 'https://exemple.org/',
+      htmlUrl: 'https://fr.wikipedia.org/',
       title: article.feed,
     },
     summary: { content: `<p>${article.summary}</p>` },
