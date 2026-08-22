@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# ML Kit s'initialise par réflexion : `MlKitInitProvider` instancie chaque
+# `ComponentRegistrar` par son constructeur sans argument. La règle fournie par
+# firebase-components 16.1.0 (tirée par mlkit:common) ne garde que la classe ;
+# en mode complet, R8 n'en conserve plus implicitement le constructeur, et
+# `CommonComponentRegistrar.<init>()` disparaît du build release. Conséquence :
+# `checkStatus()` lève, et le récap se déclare indisponible partout.
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
