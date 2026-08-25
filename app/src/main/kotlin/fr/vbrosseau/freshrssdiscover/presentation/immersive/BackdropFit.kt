@@ -32,16 +32,17 @@ private val DRAW = listOf(
 )
 
 /**
- * Smallest share of the page height a picture must reach, at the page's
- * width, to be shown full screen.
+ * Largest enlargement a picture may take to be shown full screen.
  *
- * Cropped to fill, a picture is enlarged until it covers the page: below
- * this share the enlargement passes 1.6×, and a photograph at that scale is
- * soft enough to read as a defect rather than a look (author's ruling,
- * 2026-08-25, "si la taille est suffisante"). Such a picture falls back to
- * the framed look, where it is shown at the page's width and no larger.
+ * Cropped to fill a portrait page, a 16/9 banner is scaled by the page
+ * height over its own: a 1080-pixel-tall one is enlarged about 2.2× on a
+ * 2340-pixel page, a 720-pixel one 3.3×. Both still read as photographs at
+ * arm's length, which is what full screen needs (author's ruling,
+ * 2026-08-25: the feed's pictures are 16/9 and must go full screen).
+ * A 480-pixel thumbnail, at 4.9×, does not; it is framed instead, at the
+ * page's width and no larger.
  */
-private const val MIN_FULL_COVERAGE = 0.6f
+private const val MAX_FULL_UPSCALE = 3.5f
 
 /**
  * Decides how a picture is laid on the page.
@@ -50,8 +51,8 @@ private const val MIN_FULL_COVERAGE = 0.6f
  * page crops its picture the same way reads as one long poster. So the
  * layout is drawn from the **article's id** — stable, so an article keeps
  * its look from one session to the next — with the full-screen picture
- * favoured, see [DRAW]. Full screen is only kept for a picture large enough
- * to cover the page ([MIN_FULL_COVERAGE]); a smaller one is framed instead.
+ * favoured, see [DRAW]. Full screen is only kept for a picture with enough
+ * pixels to cover the page ([MAX_FULL_UPSCALE]); a smaller one is framed.
  *
  * One more exception: a picture narrower than the page keeps its native
  * size, as on the List card (SPECS.md §8, question 12) — stretched, a
@@ -70,11 +71,10 @@ fun backdropFit(
 ): BackdropFit {
     val known = listOf(sourceWidthPx, sourceHeightPx, pageWidthPx, pageHeightPx).all { it > 0 }
     val drawn = DRAW[Math.floorMod(articleId, DRAW.size.toLong()).toInt()]
-    val heightAtPageWidth = if (known) sourceHeightPx.toFloat() * pageWidthPx / sourceWidthPx else 0f
     return when {
         !known -> BackdropFit.Full
         sourceWidthPx < pageWidthPx -> BackdropFit.Native
-        drawn == BackdropFit.Full && heightAtPageWidth < pageHeightPx * MIN_FULL_COVERAGE -> BackdropFit.Framed
+        drawn == BackdropFit.Full && sourceHeightPx * MAX_FULL_UPSCALE < pageHeightPx -> BackdropFit.Framed
         else -> drawn
     }
 }

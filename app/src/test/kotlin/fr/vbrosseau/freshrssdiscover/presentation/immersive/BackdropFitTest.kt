@@ -41,20 +41,29 @@ class BackdropFitTest {
     }
 
     @Test
-    fun aPictureTooSmallToCoverThePageIsFramedInsteadOfFullScreen() {
-        // "Si la taille est suffisante": a 16/9 banner at the page's width
-        // reaches a quarter of the page height; full screen it would be
-        // enlarged past 1.6× and go soft.
+    fun aSixteenByNineBannerGoesFullScreen() {
+        // The feed's ordinary picture (author's ruling, 2026-08-25): 1080p
+        // and 720p banners both cover the page without going soft.
         val fullDraw = (1L..5L).first { fitOf(it) == BackdropFit.Full }
 
-        assertEquals(BackdropFit.Framed, backdropFit(fullDraw, 1920, 1080, PAGE_W, PAGE_H))
+        assertEquals(BackdropFit.Full, backdropFit(fullDraw, 1920, 1080, PAGE_W, PAGE_H))
+        assertEquals(BackdropFit.Full, backdropFit(fullDraw, 1280, 720, PAGE_W, PAGE_H))
+    }
+
+    @Test
+    fun aThumbnailTooSmallToCoverThePageIsFramedInsteadOfFullScreen() {
+        // "Si la taille est suffisante": at 480 pixels tall the crop would
+        // enlarge it almost five times.
+        val fullDraw = (1L..5L).first { fitOf(it) == BackdropFit.Full }
+
+        assertEquals(BackdropFit.Framed, backdropFit(fullDraw, 1100, 480, PAGE_W, PAGE_H))
     }
 
     @Test
     fun theSizeRuleOnlyTouchesTheFullScreenDraw() {
         val tiltedDraw = (1L..5L).first { fitOf(it) == BackdropFit.Tilted }
 
-        assertEquals(BackdropFit.Tilted, backdropFit(tiltedDraw, 1920, 1080, PAGE_W, PAGE_H))
+        assertEquals(BackdropFit.Tilted, backdropFit(tiltedDraw, 1100, 480, PAGE_W, PAGE_H))
     }
 
     @Test

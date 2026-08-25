@@ -493,8 +493,9 @@ What this mode implies, and which is not neutral:
   the next**, so the feed does not read as one long poster: drawn from the
   article's identifier — stable, an article keeps its look — among three
   looks, the first favoured three times out of five. Full: cropped to fill
-  the page, kept only for a picture large enough to cover it without going
-  soft (a smaller one is framed instead). Framed: shown whole at the page's
+  the page, kept only for a picture with enough pixels to cover it without going
+  soft — a 16/9 banner of 720 pixels or more qualifies; a smaller
+  thumbnail is framed instead. Framed: shown whole at the page's
   width, centred, over a blurred copy of itself. Tilted: shown whole,
   leaning slightly left or right, with a shadow, on the source's tint. A
   picture narrower than the page keeps its own size on a blurred copy

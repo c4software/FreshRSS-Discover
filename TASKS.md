@@ -2698,8 +2698,10 @@ right, and the whole page opens the article on a tap.
       transform, tested); the source tint stays out of the moving layer
 - [x] `GOAL-038-T06` After v1.15.0 (2026-08-25): full screen favoured —
       three draws out of five — **when the picture is large enough** to
-      cover the page (`MIN_FULL_COVERAGE`, 0.6 of the page height at the
-      page's width); a smaller one is framed. `backdropFit` takes the
+      cover the page. First cut compared the height at page width — a 16/9
+      banner never passed, and the feed is 16/9 (author, 2026-08-25). The
+      rule is now the crop's enlargement (`MAX_FULL_UPSCALE`, 3.5×): 1080p
+      and 720p banners go full screen, a 480-pixel thumbnail is framed. `backdropFit` takes the
       picture's height and the page's, tested
 - [x] `GOAL-038-T05` Device pass on the author's Pixel (2026-08-25), five
       rounds, each closed by "parfait" or the next remark: snap, parallax
