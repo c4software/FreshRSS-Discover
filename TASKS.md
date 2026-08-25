@@ -2672,6 +2672,14 @@ right, and the whole page opens the article on a tap.
       (`PublishFeedFillsScreen`), the scaffold drops the bar's container and
       the top inset, the page draws a top scrim so the title stays legible.
       The bottom bar is left as it was, pending the author's call
+- [x] `GOAL-038-T05b` Second device pass (2026-08-25): an article without
+      illustration looked like a hole. It now stands on a **tint that
+      belongs to its source** (`sourcePalette`: hue from the feed name,
+      pastel in light, deep in dark, AA contrast of `onSurface` asserted for
+      both) with the source's initial as a cropped watermark. A picture
+      narrower than the page is no longer stretched: blurred copy behind,
+      sharp original at native size above the text — the List card's recipe
+      (`needsUpscaling`), reused
 - [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
       page at a time, the illustration parallax and the scale/fade feel
       right, the share rail is reachable with the thumb, the reload returns

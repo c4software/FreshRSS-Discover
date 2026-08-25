@@ -486,8 +486,12 @@ What this mode implies, and which is not neutral:
 - **The illustration is the page.** It fills the screen behind the text, under
   a scrim that fades into the background colour of the theme over the lower
   part, where the source, the title and the excerpt sit. An article without
-  illustration stands on a tinted backdrop rather than on an empty page
-  (§4.3). The picture lags slightly behind the text during the flick — a
+  illustration stands on a **tint that belongs to its source** — a hue
+  derived from the feed's name, so a source keeps its colour from one
+  session to the next — with the source's initial as a watermark, rather
+  than on an empty page (§4.3). A picture narrower than the page is treated
+  as on the card: blurred copy behind, sharp original at its own size
+  (§8, question 12). The picture lags slightly behind the text during the flick — a
   parallax that says the scene is behind the words, not glued to them.
 - **The page does not scroll inside itself.** On a vertical pager, that
   gesture belongs to the pager. The excerpt is cut at a fixed number of lines

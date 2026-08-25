@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
@@ -20,22 +22,31 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -59,6 +70,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.needsUpscaling
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.flow.first
@@ -115,6 +127,43 @@ private const val SCRIM_START = 0.35f
  * over any photograph, which a lower value cannot guarantee.
  */
 private const val SCRIM_END_ALPHA = 0.92f
+
+/**
+ * Below this background luminance the theme is dark and the text light: the
+ * source tint must then be deep rather than pastel. Halfway between the two
+ * theme backgrounds, which sit far apart on the luminance scale.
+ */
+private const val DARK_SURFACE_LUMINANCE = 0.5f
+
+/**
+ * Opacity of the source's initial over its tint.
+ *
+ * A watermark, not a letter to read: at 0.08 it gives the page a shape
+ * without competing with the title; at 0.15 the eye kept reading it first.
+ */
+private const val MONOGRAM_ALPHA = 0.08f
+
+/** Size of the watermark: taller than the page's upper half, so it is cropped rather than framed. */
+private val MonogramSize = 520.sp
+
+/** How far the watermark runs past the top-right corner: a letter fully inside the page reads as a logo. */
+private val MonogramOverhang = 72.dp
+
+/**
+ * Blur radius and overscan of the backdrop copy: the List card's values
+ * (`ArticleIllustration`), for the same reasons — wide enough that the
+ * subject is no longer readable, enlarged enough that the blur's edge fade
+ * never shows.
+ */
+private val BLUR_RADIUS = 32.dp
+private const val BLUR_OVERSCAN = 1.1f
+
+/** Where a small picture sits: under the transparent bar, above the text block. */
+private val SmallPictureTop = 96.dp
+
+/** `Modifier.blur` only takes effect from Android 12 (API 31), as on the List card. */
+private val supportsBlur: Boolean
+    get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 /**
  * Where the top scrim has fully faded out, as a fraction of the page height.
@@ -416,7 +465,7 @@ private fun ArticlePage(
             )
             .testTag(ImmersiveTestTags.page(article.id)),
     ) {
-        TintedBackdrop()
+        if (!article.hasIllustration) SourceBackdrop(feedTitle = article.feedTitle)
 
         if (article.hasIllustration) {
             Backdrop(imageUrl = article.imageUrl, translationYFraction = transform.backdropTranslationYFraction)
@@ -442,22 +491,46 @@ private fun ArticlePage(
 }
 
 /**
- * What the page stands on when there is no picture, or none yet.
+ * What the page stands on when the article has no picture (SPECS.md §4.8).
  *
- * A tint from `primaryContainer` down to the background: full screen, an
- * article without illustration would otherwise leave two thirds of the page
- * empty, the hole SPECS.md §4.3 forbids. Under a picture it never shows —
- * the illustration covers it — but it takes over the instant a load fails,
- * without a second layout.
+ * A tint that belongs to the source, computed by [sourcePalette], and the
+ * source's initial as a watermark: full screen, an article without
+ * illustration would otherwise leave two thirds of the page empty, the hole
+ * SPECS.md §4.3 forbids. A single theme colour was tried first; every such
+ * page looked like the same page.
+ *
+ * The theme is read from the background's luminance rather than passed
+ * down: the page has no reason to know how the theme was chosen, only
+ * whether the text on it is light or dark.
+ *
+ * The watermark is decorative and hidden from accessibility: a screen
+ * reader would otherwise announce a lone letter before the source line.
  */
 @Composable
-private fun TintedBackdrop(modifier: Modifier = Modifier) {
+private fun SourceBackdrop(feedTitle: String, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
+    val palette = remember(feedTitle, scheme.surface) {
+        sourcePalette(feedTitle = feedTitle, dark = scheme.surface.luminance() < DARK_SURFACE_LUMINANCE)
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(scheme.primaryContainer, scheme.surface))),
-    )
+            .background(Brush.verticalGradient(listOf(palette.top, palette.bottom))),
+    ) {
+        Text(
+            text = palette.monogram,
+            style = MaterialTheme.typography.displayLarge,
+            fontSize = MonogramSize,
+            fontWeight = FontWeight.Black,
+            color = scheme.onSurface.copy(alpha = MONOGRAM_ALPHA),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = MonogramOverhang, y = -MonogramOverhang)
+                .clearAndSetSemantics { },
+        )
+    }
 }
 
 /**
@@ -484,15 +557,48 @@ private fun Backdrop(
 
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
-    Image(
-        painter = painter,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
+    var pageWidthPx by remember { mutableIntStateOf(0) }
+    val sourceWidthPx = (state as? AsyncImagePainter.State.Success)?.result?.image?.width ?: 0
+    val tooSmall = supportsBlur && needsUpscaling(sourceWidthPx = sourceWidthPx, slotWidthPx = pageWidthPx)
+
+    Box(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged { pageWidthPx = it.width }
             .graphicsLayer { translationY = translationYFraction * size.height }
             .testTag(ImmersiveTestTags.ILLUSTRATION),
-    )
+    ) {
+        /*
+         * Same recipe as the List card (SPECS.md §4.3, GOAL-016): a picture
+         * narrower than the page is not stretched. A blurred, cropped copy
+         * fills the page and carries its colours; the sharp original sits
+         * on it at native size. Stretched full screen, a 300-pixel
+         * thumbnail is not a backdrop, it is a smear.
+         */
+        if (tooSmall) {
+            Image(
+                painter = painter,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(BLUR_OVERSCAN)
+                    .blur(BLUR_RADIUS),
+            )
+        }
+
+        Image(
+            painter = painter,
+            contentDescription = null,
+            contentScale = if (tooSmall) ContentScale.Inside else ContentScale.Crop,
+            // Above the middle rather than centred: the text block owns the
+            // lower half, and a picture sitting there would end up under it.
+            alignment = if (tooSmall) Alignment.TopCenter else Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (tooSmall) Modifier.padding(top = SmallPictureTop) else Modifier),
+        )
+    }
 }
 
 /**
