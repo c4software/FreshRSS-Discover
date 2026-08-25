@@ -2692,6 +2692,11 @@ right, and the whole page opens the article on a tap.
       on the source's tint) — stable per article; a picture narrower than
       the page keeps its native size whatever the draw. Capture
       `immersif-article-incline` added
+- [x] `GOAL-038-T05e` (2026-08-25) The parallax lagged the finger: the
+      pager offset was read at composition, one frame behind. It is now a
+      lambda read inside the `graphicsLayer` blocks, in the draw phase.
+      Backdrops crossfade while the pages slide (`backdropAlpha` in the
+      transform, tested); the source tint stays out of the moving layer
 - [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
       page at a time, the illustration parallax and the scale/fade feel
       right, the share rail is reachable with the thumb, the reload returns

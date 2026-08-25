@@ -30,6 +30,16 @@ private const val MIN_ALPHA = 0.55f
 private const val PARALLAX_FRACTION = 0.25f
 
 /**
+ * Share of its opacity a backdrop loses by the time its page has left.
+ *
+ * The two backdrops in view during a flick then blend through the page
+ * background: a crossfade, on top of the slide. Not the whole opacity —
+ * the page itself already fades — or the picture would vanish before the
+ * text does.
+ */
+private const val BACKDROP_FADE = 0.7f
+
+/**
  * Transform to apply to an immersive page according to its distance from the
  * settled position.
  *
@@ -37,11 +47,14 @@ private const val PARALLAX_FRACTION = 0.25f
  * @property alpha opacity of the whole page.
  * @property backdropTranslationYFraction vertical offset of the illustration
  *   alone, as a fraction of the page height, added to the pager's own motion.
+ * @property backdropAlpha opacity of the backdrop alone, so two backdrops
+ *   crossfade while the pages slide.
  */
 data class ImmersivePageTransform(
     val scale: Float,
     val alpha: Float,
     val backdropTranslationYFraction: Float,
+    val backdropAlpha: Float,
 )
 
 /**
@@ -65,5 +78,6 @@ fun immersivePageTransform(pageOffset: Float): ImmersivePageTransform {
         scale = 1f - (1f - MIN_SCALE) * distance,
         alpha = 1f - (1f - MIN_ALPHA) * distance,
         backdropTranslationYFraction = pageOffset.coerceIn(-1f, 1f) * PARALLAX_FRACTION,
+        backdropAlpha = 1f - BACKDROP_FADE * distance,
     )
 }

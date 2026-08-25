@@ -385,17 +385,19 @@ private fun ArticlePager(
         key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
     ) { page ->
         val article = uiState.articles.getOrNull(page)
-        val transform = immersivePageTransform(
-            (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
-        )
+        // A lambda, not a value: read inside `graphicsLayer` blocks, the
+        // offset is sampled at draw time on every frame of the gesture,
+        // without recomposing the page. Read here, it would be one frame
+        // behind the finger — the lag observed on device (2026-08-25).
+        val pageOffset = { (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction }
 
-        ImmersivePage(transform = transform) {
+        ImmersivePage(pageOffset = pageOffset) {
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
                 ArticlePage(
                     article = article,
-                    transform = transform,
+                    pageOffset = pageOffset,
                     onOpen = { onArticleClick(article.id) },
                     onShare = { onArticleShare(article.id) },
                 )
@@ -410,11 +412,12 @@ private fun ArticlePager(
  * The geometry is computed by [immersivePageTransform], outside any
  * `Composable` and tested separately; only its application remains here.
  * `graphicsLayer` rather than layout modifiers: nothing is remeasured on each
- * frame of the gesture.
+ * frame of the gesture, and [pageOffset] is read in the draw phase, in step
+ * with the finger.
  */
 @Composable
 private fun ImmersivePage(
-    transform: ImmersivePageTransform,
+    pageOffset: () -> Float,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -422,6 +425,7 @@ private fun ImmersivePage(
         modifier = modifier
             .fillMaxSize()
             .graphicsLayer {
+                val transform = immersivePageTransform(pageOffset())
                 scaleX = transform.scale
                 scaleY = transform.scale
                 alpha = transform.alpha
@@ -448,7 +452,7 @@ private fun ImmersivePage(
 @Composable
 private fun ArticlePage(
     article: ArticleUiModel,
-    transform: ImmersivePageTransform,
+    pageOffset: () -> Float,
     onOpen: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
@@ -467,15 +471,15 @@ private fun ArticlePage(
             )
             .testTag(ImmersiveTestTags.page(article.id)),
     ) {
-        if (!article.hasIllustration) SourceBackdrop(feedTitle = article.feedTitle)
-
         if (article.hasIllustration) {
             Backdrop(
                 articleId = article.id,
                 feedTitle = article.feedTitle,
                 imageUrl = article.imageUrl,
-                translationYFraction = transform.backdropTranslationYFraction,
+                pageOffset = pageOffset,
             )
+        } else {
+            SourceBackdrop(feedTitle = article.feedTitle, modifier = Modifier.crossfading(pageOffset))
         }
 
         Scrim()
@@ -558,7 +562,7 @@ private fun Backdrop(
     articleId: Long,
     feedTitle: String,
     imageUrl: String?,
-    translationYFraction: Float,
+    pageOffset: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     val painter = rememberAsyncImagePainter(model = imageUrl, contentScale = ContentScale.Crop)
@@ -577,13 +581,17 @@ private fun Backdrop(
      * does not lean or lag — only the photograph set down on it does
      * (author's ruling, 2026-08-25).
      */
-    if (tilted) SourceBackdrop(feedTitle = feedTitle)
+    if (tilted) SourceBackdrop(feedTitle = feedTitle, modifier = Modifier.crossfading(pageOffset))
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { pageWidthPx = it.width }
-            .graphicsLayer { translationY = translationYFraction * size.height }
+            .graphicsLayer {
+                val transform = immersivePageTransform(pageOffset())
+                translationY = transform.backdropTranslationYFraction * size.height
+                alpha = transform.backdropAlpha
+            }
             .testTag(ImmersiveTestTags.ILLUSTRATION),
     ) {
         /*
@@ -623,6 +631,15 @@ private fun Backdrop(
                 .then(if (tilted) Modifier.tilted(articleId) else Modifier),
         )
     }
+}
+
+/**
+ * Fades a backdrop as its page leaves, so two backdrops crossfade through
+ * the page background while they slide (author's request, 2026-08-25).
+ * Read in the draw phase, like the parallax.
+ */
+private fun Modifier.crossfading(pageOffset: () -> Float): Modifier = graphicsLayer {
+    alpha = immersivePageTransform(pageOffset()).backdropAlpha
 }
 
 /**

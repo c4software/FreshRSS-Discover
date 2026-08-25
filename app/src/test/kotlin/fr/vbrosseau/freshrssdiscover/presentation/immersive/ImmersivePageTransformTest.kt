@@ -25,6 +25,17 @@ class ImmersivePageTransformTest {
         assertEquals(1f, transform.scale, TOLERANCE)
         assertEquals(1f, transform.alpha, TOLERANCE)
         assertEquals(0f, transform.backdropTranslationYFraction, TOLERANCE)
+        assertEquals(1f, transform.backdropAlpha, TOLERANCE)
+    }
+
+    @Test
+    fun theBackdropFadesFasterThanItsPageButNeverOut() {
+        // The crossfade: two backdrops blend through the page background
+        // while the text is still readable on both.
+        val transform = immersivePageTransform(0.5f)
+
+        assertTrue(transform.backdropAlpha < transform.alpha, "${transform.backdropAlpha} < ${transform.alpha}")
+        assertTrue(immersivePageTransform(1f).backdropAlpha > 0f)
     }
 
     @Test
@@ -36,6 +47,7 @@ class ImmersivePageTransformTest {
 
         assertEquals(up.scale, down.scale, TOLERANCE)
         assertEquals(up.alpha, down.alpha, TOLERANCE)
+        assertEquals(up.backdropAlpha, down.backdropAlpha, TOLERANCE)
     }
 
     @Test
