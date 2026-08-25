@@ -260,9 +260,9 @@ class SettingsStoreTest {
     fun aStoredFeedPresentationIsReadBack() = runTest {
         val store = store()
 
-        store.setFeedPresentation(FeedPresentation.Swipe)
+        store.setFeedPresentation(FeedPresentation.Immersive)
 
-        assertEquals(FeedPresentation.Swipe, store.observeFeedPresentation().first())
+        assertEquals(FeedPresentation.Immersive, store.observeFeedPresentation().first())
     }
 
     @Test
@@ -270,9 +270,9 @@ class SettingsStoreTest {
         // SPECS.md §4.8: the app reopens in the mode the user left. A second
         // store on the same file replays that startup.
         val store = store()
-        store.setFeedPresentation(FeedPresentation.Swipe)
+        store.setFeedPresentation(FeedPresentation.Immersive)
 
-        assertEquals(FeedPresentation.Swipe, SettingsStore(dataStore).observeFeedPresentation().first())
+        assertEquals(FeedPresentation.Immersive, SettingsStore(dataStore).observeFeedPresentation().first())
     }
 
     @Test
@@ -290,10 +290,10 @@ class SettingsStoreTest {
         val store = store()
         store.setVisibleFraction(0.8f)
 
-        store.setFeedPresentation(FeedPresentation.Swipe)
+        store.setFeedPresentation(FeedPresentation.Immersive)
 
         assertEquals(0.8f, store.observeReadingSettings().first().visibleFraction)
-        assertEquals(FeedPresentation.Swipe, store.observeFeedPresentation().first())
+        assertEquals(FeedPresentation.Immersive, store.observeFeedPresentation().first())
     }
 
     @Test
@@ -302,7 +302,7 @@ class SettingsStoreTest {
         // `display.`): a collision would wipe one on the first change of
         // another.
         val store = store()
-        store.setFeedPresentation(FeedPresentation.Swipe)
+        store.setFeedPresentation(FeedPresentation.Immersive)
 
         val keys = dataStore.data.first().asMap().keys.map { it.name }
         assertEquals(listOf("display.feed_presentation"), keys)

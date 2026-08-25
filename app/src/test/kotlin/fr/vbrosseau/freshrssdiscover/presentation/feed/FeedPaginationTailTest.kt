@@ -21,7 +21,7 @@ private const val NOW_MILLIS = 1_700_000_000_000L
  * The page tail travels with the caller (GOAL-029): it lives in the engine,
  * with the cursor, not in the repository, a singleton shared by both
  * presentation modes where it mixed one mode's traversal with the other's.
- * Tested on List mode; the engine being shared, Swipe follows.
+ * Tested on List mode; the engine being shared, Immersive follows.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedPaginationTailTest {

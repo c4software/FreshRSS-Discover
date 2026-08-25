@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
  * Tests for the refresh button in isolation.
  *
  * The button lives in the top bar, not in the screens: testing it through
- * `DiscoverScreen` or `SwipeScreen` would tie it to a screen that no longer
+ * `DiscoverScreen` or `ImmersiveScreen` would tie it to a screen that no longer
  * owns it.
  */
 @RunWith(RobolectricTestRunner::class)

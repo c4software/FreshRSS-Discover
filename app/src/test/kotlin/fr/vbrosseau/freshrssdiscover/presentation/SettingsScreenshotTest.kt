@@ -99,7 +99,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * The Swipe mode selected.
+     * The Immersive mode selected.
      *
      * The default capture only shows the first segment active: the second has
      * a different shape (rounded right corner) and, once selected, a tinted
@@ -109,12 +109,12 @@ class SettingsScreenshotTest : ScreenshotTest() {
      * so the only one that can wrap.
      */
     @Test
-    fun settingsScreenWithTheSwipePresentation() {
-        capture("reglages-balayage") {
+    fun settingsScreenWithTheImmersivePresentation() {
+        capture("reglages-immersif") {
             settings(
                 SettingsUiState(
                     account = ACCOUNT,
-                    presentation = FeedPresentation.Swipe,
+                    presentation = FeedPresentation.Immersive,
                     cache = CACHE,
                     appVersion = APP_VERSION,
                 ),

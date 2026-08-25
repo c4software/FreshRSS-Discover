@@ -101,5 +101,5 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     isRead = isRead,
 )
 
-/** Word-boundary truncation lives in `truncatedAtWord`, shared with the swipe mode. */
+/** Word-boundary truncation lives in `truncatedAtWord`, shared with the immersive mode. */
 private fun String.toExcerpt(): String = truncatedAtWord(EXCERPT_MAX_LENGTH)

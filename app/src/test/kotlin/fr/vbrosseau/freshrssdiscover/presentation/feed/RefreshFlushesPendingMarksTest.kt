@@ -7,7 +7,7 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
@@ -87,8 +87,8 @@ class RefreshFlushesPendingMarksTest {
     }
 
     @Test
-    fun swipeModeTransmitsWhatWasReadBeforeAskingTheServerAgain() {
-        val viewModel = SwipeViewModel(
+    fun immersiveModeTransmitsWhatWasReadBeforeAskingTheServerAgain() {
+        val viewModel = ImmersiveViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,

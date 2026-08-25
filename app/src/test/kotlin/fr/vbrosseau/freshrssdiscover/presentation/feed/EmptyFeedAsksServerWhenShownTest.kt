@@ -10,7 +10,7 @@ import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -57,7 +57,7 @@ class EmptyFeedAsksServerWhenShownTest {
         clock = clock,
     )
 
-    private fun swipeViewModel() = SwipeViewModel(
+    private fun immersiveViewModel() = ImmersiveViewModel(
         articleRepository = repository,
         readSyncRepository = readSyncRepository,
         settingsRepository = settingsRepository,
@@ -84,8 +84,8 @@ class EmptyFeedAsksServerWhenShownTest {
     }
 
     @Test
-    fun swipeModeAsksTheServerWhenItComesBackWithNothingToShow() {
-        val viewModel = swipeViewModel()
+    fun immersiveModeAsksTheServerWhenItComesBackWithNothingToShow() {
+        val viewModel = immersiveViewModel()
 
         viewModel.onScreenShown()
 

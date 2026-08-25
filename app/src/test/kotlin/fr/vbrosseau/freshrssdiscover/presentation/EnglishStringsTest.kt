@@ -50,14 +50,14 @@ class EnglishStringsTest {
         R.string.destination_discover,
         R.string.destination_short_discover,
         R.string.discover_article_meta,
-        R.string.swipe_article_meta,
+        R.string.immersive_article_meta,
         R.string.feed_article_share_text,
         R.string.reminder_body,
     )
 
     /**
      * A broad sample, one string per resource family: `strings`,
-     * `strings_discover_feed`, `strings_feed`, `strings_swipe`,
+     * `strings_discover_feed`, `strings_feed`, `strings_immersive`,
      * `strings_settings`, `strings_reminder`. A whole file forgotten in the
      * move to `values-fr/` would show here.
      */
@@ -73,9 +73,9 @@ class EnglishStringsTest {
         R.string.feed_refresh,
         R.string.feed_stale_notice,
         R.string.feed_article_share,
-        R.string.swipe_end_of_feed_title,
-        R.string.swipe_article_no_link,
-        R.string.swipe_offline_banner,
+        R.string.immersive_end_of_feed_title,
+        R.string.immersive_article_no_link,
+        R.string.immersive_offline_banner,
         R.string.settings_section_account,
         R.string.settings_auto_mark_as_read_label,
         R.string.settings_auto_mark_as_read_help,

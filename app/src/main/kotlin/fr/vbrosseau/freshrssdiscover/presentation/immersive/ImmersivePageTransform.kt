@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 /**
  * Maximum tilt of a departing card, in degrees.
@@ -36,7 +36,7 @@ private const val EXIT_MIN_ALPHA = 0.4f
  *   pager already applies, as a fraction of a page width.
  * @property drawOrder draw order: the highest value is drawn in front.
  */
-data class SwipeCardTransform(
+data class ImmersivePageTransform(
     val translationXFraction: Float,
     val rotationDegrees: Float,
     val scale: Float,
@@ -66,11 +66,11 @@ data class SwipeCardTransform(
  * rendering, asserting that no card becomes invisible or flipped mid-gesture
  * (AGENTS.md §9).
  */
-fun swipeCardTransform(pageOffset: Float): SwipeCardTransform {
+fun immersivePageTransform(pageOffset: Float): ImmersivePageTransform {
     if (pageOffset < 0f) {
         // The deck: centered, scaled, and behind.
         val revealed = (1f + pageOffset).coerceIn(0f, 1f)
-        return SwipeCardTransform(
+        return ImmersivePageTransform(
             translationXFraction = pageOffset,
             rotationDegrees = 0f,
             scale = DECK_MIN_SCALE + (1f - DECK_MIN_SCALE) * revealed,
@@ -80,7 +80,7 @@ fun swipeCardTransform(pageOffset: Float): SwipeCardTransform {
     }
 
     val travelled = pageOffset.coerceIn(0f, 1f)
-    return SwipeCardTransform(
+    return ImmersivePageTransform(
         translationXFraction = 0f,
         // Negative: the card leaves to the left, so its top tilts left; the
         // opposite tilt would make it look held back.

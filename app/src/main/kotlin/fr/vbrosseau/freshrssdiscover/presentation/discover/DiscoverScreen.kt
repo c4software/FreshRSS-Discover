@@ -122,7 +122,7 @@ fun DiscoverScreen(
             )
 
             /*
-             * Below the feed, not over it, as in swipe mode: this notice
+             * Below the feed, not over it, as in immersive mode: this notice
              * lasts until dismissed or refreshed, and a notice that settles
              * takes its place in the layout. Overlaid, it covered the end of
              * the scrollable content.
@@ -803,7 +803,7 @@ private fun DiscoverScreenEmptyPreview() {
  * Without this scroll, the user would stay at a rank that no longer refers to
  * anything they were looking at, the content having been replaced under
  * them. The falling edge lives in [AfterRefreshSettles], shared with the
- * swipe mode.
+ * immersive mode.
  */
 @Composable
 private fun ScrollToTopAfterRefresh(listState: LazyListState, isRefreshing: Boolean) {

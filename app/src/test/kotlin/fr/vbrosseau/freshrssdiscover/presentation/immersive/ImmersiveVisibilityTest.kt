@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import org.junit.Test
@@ -14,7 +14,7 @@ private val ARTICLE_IDS = listOf(1L, 2L, 3L)
  */
 private const val TOLERANCE = 1e-4f
 
-class SwipeVisibilityTest {
+class ImmersiveVisibilityTest {
 
     @Test
     fun aSettledArticleFillsTheWholeScreen() {

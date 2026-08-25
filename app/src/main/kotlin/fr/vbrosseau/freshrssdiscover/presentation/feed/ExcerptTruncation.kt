@@ -11,7 +11,7 @@ private const val ELLIPSIS = "…"
  * space (token, URL) is cut hard, for lack of better.
  *
  * Written once for both modes: only the bound changes between the List card
- * and the full-screen swipe mode (SPECS.md §8, questions 7 and 8); two
+ * and the full-screen immersive mode (SPECS.md §8, questions 7 and 8); two
  * copies of the algorithm would diverge at the first fix.
  */
 internal fun String.truncatedAtWord(maxLength: Int): String {

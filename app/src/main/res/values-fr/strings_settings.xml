@@ -26,9 +26,9 @@
     <string name="settings_presentation_help">Les deux modes montrent exactement les mêmes articles, dans le même ordre. Seule la façon de les parcourir change.</string>
     <string name="settings_presentation_label">Façon de parcourir le flux</string>
     <string name="settings_presentation_list">Liste</string>
-    <string name="settings_presentation_swipe">Balayage</string>
+    <string name="settings_presentation_immersive">Immersif</string>
     <string name="settings_presentation_list_description">Plusieurs articles à l\'écran, que vous faites défiler vers le bas.</string>
-    <string name="settings_presentation_swipe_description">Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.</string>
+    <string name="settings_presentation_immersive_description">Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.</string>
 
     <!--
       Marquage automatique (SPECS.md §4.5) : l'interrupteur, puis ses seuils.

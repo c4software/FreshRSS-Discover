@@ -220,7 +220,7 @@ data class SettingsAccount(
 @StringRes
 fun feedPresentationLabelOf(presentation: FeedPresentation): Int = when (presentation) {
     FeedPresentation.List -> R.string.settings_presentation_list
-    FeedPresentation.Swipe -> R.string.settings_presentation_swipe
+    FeedPresentation.Immersive -> R.string.settings_presentation_immersive
 }
 
 /**
@@ -233,7 +233,7 @@ fun feedPresentationLabelOf(presentation: FeedPresentation): Int = when (present
 @StringRes
 fun feedPresentationDescriptionOf(presentation: FeedPresentation): Int = when (presentation) {
     FeedPresentation.List -> R.string.settings_presentation_list_description
-    FeedPresentation.Swipe -> R.string.settings_presentation_swipe_description
+    FeedPresentation.Immersive -> R.string.settings_presentation_immersive_description
 }
 
 /** Converts the domain fraction to a whole percentage, bounds included. */

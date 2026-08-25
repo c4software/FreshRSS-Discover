@@ -112,6 +112,8 @@ picker and the statistics screen run on a real phone.
 | GOAL-034 | Re-tapping the Discover tab returns to the top, then reloads | `[x]` |
 | GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[x]` |
 | GOAL-036 | The reminder section reads as settings rows, not floating buttons | `[x]` |
+| GOAL-037 | A recap of the feed, generated on the device | `[x]` |
+| GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[-]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2615,6 +2617,51 @@ the download, with progress, before generating.
       the displayed order from `firstVisibleItemIndex` onward; articles
       scrolled past, if still unread, rejoin the batch with the remaining
       unread. Swipe keeps publishing its whole deck
+
+---
+
+## GOAL-038 — Swipe mode becomes a full-screen vertical scroll, TikTok-style
+
+**Status: IN PROGRESS**
+
+Asked by the author (2026-08-25): a TikTok-like mode — one article filling
+the screen, a vertical scroll that snaps one article per page — **replacing**
+the horizontal card-stack Swipe mode of GOAL-012. It must be "really full
+screen" and pleasant: the illustration becomes the page's backdrop under a
+gradient scrim, the text sits at the bottom, the actions on a rail at the
+right, and the whole page opens the article on a tap.
+
+### Decisions
+
+| Point | Decision |
+|---|---|
+| The mode is named **Immersive** (`FeedPresentation.Immersive`) | "Swipe" named a horizontal gesture that no longer exists; "vertical" would not distinguish it from the List. **No backward compatibility** (author's ruling, 2026-08-25): a stored `Swipe` is an unknown name and falls back to the default, as `fromStoredName` already does for any removed mode |
+| The engine is untouched | `FeedSessionViewModel`, `pagerVisibility`, prefetch, end-of-feed page, return-to-first after refresh all carry over: a vertical pager has the same index and offset as a horizontal one |
+| No inner scroll on the page | The card used to scroll its excerpt vertically; on a vertical pager that gesture is the pager's. The excerpt is cut at a fixed number of lines; the tap opens the article, which is where the full text lives (SPECS.md §4.7). The 1,400-character cap stays as a measuring bound |
+| Accessibility reserve lifted | SPECS.md §7.1 recorded that Swipe had no alternative to its horizontal gesture. A vertical swipe is the gesture screen readers themselves use to move on; the reserve is withdrawn with the mode |
+
+### Tasks
+
+- [x] `GOAL-038-T01` Rename Swipe → Immersive with zero visual change: the
+      domain enum (legacy `Swipe` stored name read back as `Immersive`,
+      tested), the `presentation/immersive/` package, strings
+      (`strings_immersive.xml`), test tags, tests, and the Roborazzi
+      references re-recorded under `immersif-*` (pixel-identical to
+      `balayage-*`, which are deleted)
+- [ ] `GOAL-038-T02` The immersive page: `VerticalPager` with snap, the
+      illustration filling the page under a bottom gradient scrim, source,
+      title and excerpt at the bottom, share on a right-hand rail, a
+      scale/fade page transition computed by a pure function
+      (`immersivePageTransform`, tested). Visibility sampling, prefetch,
+      end-of-feed page and return-to-first after refresh are kept and their
+      tests adapted to the vertical gesture. The recap starts at the page
+      on screen, as the List does since GOAL-037-T19
+- [ ] `GOAL-038-T03` Roborazzi captures of the immersive page, light and
+      dark, **looked at**; settings labels and descriptions now name the
+      vertical gesture
+- [ ] `GOAL-038-T04` Documentation: SPECS.md §4.5, §4.6, §4.7, §4.8, §6,
+      §7.1 and §8 question 8; ARCHITECTURE.md §9 package map and §9.1;
+      README and store listing; closure of this Goal in TASKS.md
 
 ---
 

@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
@@ -6,7 +6,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
 
 /**
- * Maximum excerpt length in Swipe mode (SPECS.md §8, question 8).
+ * Maximum excerpt length in Immersive mode (SPECS.md §8, question 8).
  *
  * List mode stops at 240 characters, calibrated for a card's three lines.
  * Full screen has no such constraint; the value is set at 1,400 characters,
@@ -36,7 +36,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
  *   recomposition, for a page dismissed with one gesture. 1,400 caps the
  *   cost at 4%.
  */
-const val SWIPE_EXCERPT_MAX_LENGTH = 1_400
+const val IMMERSIVE_EXCERPT_MAX_LENGTH = 1_400
 
 /**
  * Projects a domain article into its full-screen displayable form.
@@ -47,8 +47,8 @@ const val SWIPE_EXCERPT_MAX_LENGTH = 1_400
  *
  * @param nowEpochMillis reference instant, provided by `Clock`.
  */
-fun Article.toSwipeUiModel(nowEpochMillis: Long): ArticleUiModel =
-    toUiModel(nowEpochMillis).copy(excerpt = summary.toSwipeExcerpt())
+fun Article.toImmersiveUiModel(nowEpochMillis: Long): ArticleUiModel =
+    toUiModel(nowEpochMillis).copy(excerpt = summary.toImmersiveExcerpt())
 
 /** Word-boundary truncation lives in `truncatedAtWord`, shared with List mode. */
-private fun String.toSwipeExcerpt(): String = truncatedAtWord(SWIPE_EXCERPT_MAX_LENGTH)
+private fun String.toImmersiveExcerpt(): String = truncatedAtWord(IMMERSIVE_EXCERPT_MAX_LENGTH)

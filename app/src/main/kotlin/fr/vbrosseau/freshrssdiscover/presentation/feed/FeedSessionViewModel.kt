@@ -48,7 +48,7 @@ enum class FeedEvent {
 }
 
 /**
- * The feed engine, shared by List and swipe modes (SPECS.md §4.8).
+ * The feed engine, shared by List and immersive modes (SPECS.md §4.8).
  *
  * SPECS.md §4.8 says both modes carry the same content and the same reading
  * and loading rules; only the presentation changes. Pagination, refresh,
@@ -56,7 +56,7 @@ enum class FeedEvent {
  * provides its projection ([project]), that is, its excerpt length.
  *
  * Two twin ViewModels previously existed and diverged twice (ARCHITECTURE.md
- * §9.6): the swipe mode's `loadMore` without the `isRefreshing` guard (fixed
+ * §9.6): the immersive mode's `loadMore` without the `isRefreshing` guard (fixed
  * in GOAL-028), then a swipe refresh projecting excerpts at the List length.
  * Each fix had to be ported twice, with two test suites.
  *
@@ -163,7 +163,7 @@ abstract class FeedSessionViewModel(
      * articles already reported, only makes sense for this reading session.
      * A Hilt-shared instance would outlive the screen and report articles
      * from a previous session as read. It is also what makes going back
-     * harmless in swipe mode (GOAL-012-T04): an already-reported article is
+     * harmless in immersive mode (GOAL-012-T04): an already-reported article is
      * never reported twice.
      *
      * Rebuilt on every settings change, which resets its timers. Deliberate:
@@ -298,7 +298,7 @@ abstract class FeedSessionViewModel(
      * progress, a refresh, an unacknowledged error, and a terminated session
      * all ignore it. This lets the screen call it freely, on scroll or
      * swipe, without knowing the current state. The `isRefreshing` guard is
-     * the one swipe mode had lost (GOAL-028): without it, a page could start
+     * the one immersive mode had lost (GOAL-028): without it, a page could start
      * during the refresh with the old traversal's cursor.
      */
     fun loadMore() {
@@ -321,7 +321,7 @@ abstract class FeedSessionViewModel(
 
     /**
      * Reloads the feed from the start (SPECS.md §4.6): pull in List mode,
-     * button in swipe mode.
+     * button in immersive mode.
      *
      * The gesture clears the display and restarts from the top: the list is
      * replaced, not extended, and the screen returns to the top. What the

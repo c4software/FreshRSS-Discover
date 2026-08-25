@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,7 +75,7 @@ import kotlinx.coroutines.flow.first
 private const val PREFETCH_DISTANCE = 3
 
 /** Key of the trailing page, distinct from any article id. */
-private const val TRAILING_PAGE_KEY = "swipe:trailing"
+private const val TRAILING_PAGE_KEY = "immersive:trailing"
 
 /** Card corner radius, matching Material 3 large surfaces. */
 private val CardShape = RoundedCornerShape(28.dp)
@@ -111,8 +111,8 @@ private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 
  *   it without a receiver would waste battery and keep previews busy.
  */
 @Composable
-fun SwipeScreen(
-    uiState: SwipeUiState,
+fun ImmersiveScreen(
+    uiState: ImmersiveUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
@@ -132,7 +132,7 @@ fun SwipeScreen(
             // content that remains readable (SPECS.md §5.2).
             if (uiState.showsOfflineBanner) OfflineBanner()
 
-            SwipeBody(
+            ImmersiveBody(
                 uiState = uiState,
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
@@ -185,9 +185,9 @@ private fun StaleFeedNotice(
     FeedStaleNotice(
         onRefresh = onRefresh,
         onDismiss = onDismiss,
-        modifier = modifier.testTag(SwipeTestTags.STALE_NOTICE),
-        actionModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_REFRESH),
-        dismissModifier = Modifier.testTag(SwipeTestTags.STALE_NOTICE_DISMISS),
+        modifier = modifier.testTag(ImmersiveTestTags.STALE_NOTICE),
+        actionModifier = Modifier.testTag(ImmersiveTestTags.STALE_NOTICE_REFRESH),
+        dismissModifier = Modifier.testTag(ImmersiveTestTags.STALE_NOTICE_DISMISS),
     )
 }
 
@@ -209,8 +209,8 @@ private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: 
 }
 
 @Composable
-private fun SwipeBody(
-    uiState: SwipeUiState,
+private fun ImmersiveBody(
+    uiState: ImmersiveUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
@@ -260,12 +260,12 @@ private fun SwipeBody(
  */
 @Composable
 private fun ArticlePager(
-    uiState: SwipeUiState,
+    uiState: ImmersiveUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // No default, as in `SwipeBody`: the state always comes from the screen.
+    // No default, as in `ImmersiveBody`: the state always comes from the screen.
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -286,14 +286,14 @@ private fun ArticlePager(
         state = pagerState,
         modifier = modifier
             .fillMaxSize()
-            .testTag(SwipeTestTags.PAGER),
+            .testTag(ImmersiveTestTags.PAGER),
         // Stable key: without it, inserting articles at the head would move
         // the displayed article under the finger.
         key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
     ) { page ->
         val article = uiState.articles.getOrNull(page)
 
-        SwipeCard(pagerState = pagerState, page = page) {
+        ImmersiveCard(pagerState = pagerState, page = page) {
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
@@ -310,7 +310,7 @@ private fun ArticlePager(
 /**
  * One card of the stack and its motion (GOAL-012-T09).
  *
- * The geometry is computed by [swipeCardTransform], outside any `Composable`
+ * The geometry is computed by [immersivePageTransform], outside any `Composable`
  * and tested separately; only its application remains here.
  *
  * Three details the pattern depends on:
@@ -328,13 +328,13 @@ private fun ArticlePager(
  * text for every pixel travelled.
  */
 @Composable
-private fun SwipeCard(
+private fun ImmersiveCard(
     pagerState: PagerState,
     page: Int,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val transform = swipeCardTransform(
+    val transform = immersivePageTransform(
         (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
     )
 
@@ -380,7 +380,7 @@ private fun ArticlePage(
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val openLabel = stringResource(R.string.swipe_open_article)
+    val openLabel = stringResource(R.string.immersive_open_article)
 
     Column(
         modifier = modifier
@@ -393,10 +393,10 @@ private fun ArticlePage(
                 },
             )
             .verticalScroll(rememberScrollState())
-            .testTag(SwipeTestTags.page(article.id)),
+            .testTag(ImmersiveTestTags.page(article.id)),
     ) {
         if (article.hasIllustration) {
-            ArticleIllustration(imageUrl = article.imageUrl, testTag = SwipeTestTags.ILLUSTRATION)
+            ArticleIllustration(imageUrl = article.imageUrl, testTag = ImmersiveTestTags.ILLUSTRATION)
         }
 
         ArticleText(article = article, onShare = onShare)
@@ -437,7 +437,7 @@ private fun ArticleText(
         ) {
             Text(
                 text = stringResource(
-                    R.string.swipe_article_meta,
+                    R.string.immersive_article_meta,
                     article.feedTitle,
                     article.publishedAt.label(),
                 ),
@@ -451,7 +451,7 @@ private fun ArticleText(
             if (article.isOpenable) {
                 ArticleShareButton(
                     onShare = onShare,
-                    testTag = SwipeTestTags.share(article.id),
+                    testTag = ImmersiveTestTags.share(article.id),
                 )
             }
         }
@@ -473,10 +473,10 @@ private fun ArticleText(
          */
         if (!article.isOpenable) {
             Text(
-                text = stringResource(R.string.swipe_article_no_link),
+                text = stringResource(R.string.immersive_article_no_link),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag(SwipeTestTags.NO_LINK),
+                modifier = Modifier.testTag(ImmersiveTestTags.NO_LINK),
             )
         }
     }
@@ -490,7 +490,7 @@ private fun ArticleText(
  */
 @Composable
 private fun TrailingPage(
-    uiState: SwipeUiState,
+    uiState: ImmersiveUiState,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -522,17 +522,17 @@ private fun EndOfFeedMessage(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .padding(Spacing.xl)
-            .testTag(SwipeTestTags.END_OF_FEED),
+            .testTag(ImmersiveTestTags.END_OF_FEED),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text(
-            text = stringResource(R.string.swipe_end_of_feed_title),
+            text = stringResource(R.string.immersive_end_of_feed_title),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = stringResource(R.string.swipe_end_of_feed_body),
+            text = stringResource(R.string.immersive_end_of_feed_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -613,7 +613,7 @@ private fun ObserveArticleVisibility(
 @Composable
 private fun OfflineBanner(modifier: Modifier = Modifier) {
     FeedOfflineBanner(
-        message = stringResource(R.string.swipe_offline_banner),
+        message = stringResource(R.string.immersive_offline_banner),
         modifier = modifier,
     )
 }
@@ -622,11 +622,11 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
 @Composable
 private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     FeedNotice(
-        message = stringResource(R.string.swipe_offline_open_blocked),
-        actionLabel = stringResource(R.string.swipe_offline_notice_dismiss),
+        message = stringResource(R.string.immersive_offline_open_blocked),
+        actionLabel = stringResource(R.string.immersive_offline_notice_dismiss),
         onAction = onDismiss,
-        modifier = modifier.testTag(SwipeTestTags.OFFLINE_NOTICE),
-        actionModifier = Modifier.testTag(SwipeTestTags.OFFLINE_NOTICE_DISMISS),
+        modifier = modifier.testTag(ImmersiveTestTags.OFFLINE_NOTICE),
+        actionModifier = Modifier.testTag(ImmersiveTestTags.OFFLINE_NOTICE_DISMISS),
     )
 }
 
@@ -638,37 +638,37 @@ private fun FailureBlock(
 ) {
     FeedFailureBlock(
         failure = failure,
-        retryLabel = stringResource(R.string.swipe_retry),
+        retryLabel = stringResource(R.string.immersive_retry),
         onRetry = onRetry,
-        modifier = modifier.testTag(SwipeTestTags.FAILURE),
-        retryModifier = Modifier.testTag(SwipeTestTags.RETRY),
+        modifier = modifier.testTag(ImmersiveTestTags.FAILURE),
+        retryModifier = Modifier.testTag(ImmersiveTestTags.RETRY),
     )
 }
 
 @Composable
 private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     FeedRetryAction(
-        label = stringResource(R.string.swipe_retry),
+        label = stringResource(R.string.immersive_retry),
         onRetry = onRetry,
-        modifier = modifier.testTag(SwipeTestTags.RETRY),
+        modifier = modifier.testTag(ImmersiveTestTags.RETRY),
     )
 }
 
 @Composable
 private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
     FeedEmptyMessage(
-        title = stringResource(R.string.swipe_empty_title),
-        body = stringResource(R.string.swipe_empty_body),
-        modifier = modifier.testTag(SwipeTestTags.EMPTY),
+        title = stringResource(R.string.immersive_empty_title),
+        body = stringResource(R.string.immersive_empty_body),
+        modifier = modifier.testTag(ImmersiveTestTags.EMPTY),
     )
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun SwipeScreenPreview() {
+private fun ImmersiveScreenPreview() {
     AppTheme(dynamicColor = false) {
-        SwipeScreen(
-            uiState = SwipeUiState(
+        ImmersiveScreen(
+            uiState = ImmersiveUiState(
                 articles = listOf(
                     ArticleUiModel(
                         id = 1L,
@@ -692,10 +692,10 @@ private fun SwipeScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
-private fun SwipeScreenEmptyPreview() {
+private fun ImmersiveScreenEmptyPreview() {
     AppTheme(dynamicColor = false) {
-        SwipeScreen(
-            uiState = SwipeUiState(phase = DiscoverPhase.EndOfFeed),
+        ImmersiveScreen(
+            uiState = ImmersiveUiState(phase = DiscoverPhase.EndOfFeed),
             onLoadMore = {},
             onRetry = {},
             onArticleClick = {},

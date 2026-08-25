@@ -37,7 +37,7 @@ import javax.inject.Singleton
  * anticipation). The day a setting comes from the server, the abstraction
  * will arrive with its second use case.
  *
- * Also persists the feed presentation mode (SPECS.md §4.8): List or Swipe.
+ * Also persists the feed presentation mode (SPECS.md §4.8): List or Immersive.
  * Same store, because it is the same kind of data — a preference the user
  * chooses and the application must restore at the next launch.
  *

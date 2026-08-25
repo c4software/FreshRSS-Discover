@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
@@ -62,7 +62,7 @@ private val MIN_TOUCH_TARGET = 48.dp
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "fr-rFR")
-class SwipeScreenTest {
+class ImmersiveScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -73,7 +73,7 @@ class SwipeScreenTest {
     fun restoreImageLoader() = resetImageLoader()
 
     private fun show(
-        uiState: SwipeUiState,
+        uiState: ImmersiveUiState,
         initialPage: Int = 0,
         onLoadMore: () -> Unit = {},
         onRetry: () -> Unit = {},
@@ -82,7 +82,7 @@ class SwipeScreenTest {
         onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     ) {
         composeRule.setContent {
-            SwipeScreen(
+            ImmersiveScreen(
                 uiState = uiState,
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
@@ -98,10 +98,10 @@ class SwipeScreenTest {
 
     @Test
     fun theArticleOnScreenIsReportedAsFullyVisible() {
-        // The link neither `SwipeViewModelTest` nor `SwipeVisibilityTest`
+        // The link neither `ImmersiveViewModelTest` nor `ImmersiveVisibilityTest`
         // sees: the former assumes it is called, the latter computes without
         // anyone calling it. Without this report, nothing would ever be marked
-        // read in Swipe mode, and everything else would still pass.
+        // read in Immersive mode, and everything else would still pass.
         val reports = mutableListOf<Map<ArticleId, Float>>()
         show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
 
@@ -131,7 +131,7 @@ class SwipeScreenTest {
         val reports = mutableListOf<Map<ArticleId, Float>>()
         show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
 
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
         composeRule.waitUntil { reports.lastOrNull() == mapOf(ArticleId(2L) to 1f) }
 
         assertEquals(mapOf(ArticleId(2L) to 1f), reports.lastOrNull())
@@ -146,7 +146,7 @@ class SwipeScreenTest {
 
         composeRule.mainClock.advanceTimeBy(SAMPLING_PERIOD_MILLIS * 3)
 
-        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).assertExists()
+        composeRule.onNodeWithTag(ImmersiveTestTags.page(1L)).assertExists()
     }
 
     // ----- One article at a time ----------------------------------------------
@@ -172,7 +172,7 @@ class SwipeScreenTest {
     fun swipingLeftShowsTheNextArticle() {
         show(feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")))
 
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
 
         composeRule.onNodeWithText("Second").assertIsDisplayed()
     }
@@ -184,7 +184,7 @@ class SwipeScreenTest {
             initialPage = 1,
         )
 
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeRight() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeRight() }
 
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
@@ -222,7 +222,7 @@ class SwipeScreenTest {
             initialPage = 2,
         )
 
-        composeRule.onNodeWithTag(SwipeTestTags.END_OF_FEED).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.END_OF_FEED).assertIsDisplayed()
     }
 
     @Test
@@ -247,13 +247,13 @@ class SwipeScreenTest {
             onRetry = { retried = true },
         )
 
-        composeRule.onNodeWithTag(SwipeTestTags.RETRY).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.RETRY).performClick()
 
         assertTrue(retried)
         // Already loaded articles are still there: the next-page failure did
         // not replace the feed with an error screen, and a swipe back finds
         // them.
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeRight() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeRight() }
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
@@ -261,26 +261,26 @@ class SwipeScreenTest {
 
     @Test
     fun anEmptyFeedExplainsItselfRatherThanShowingNothing() {
-        show(SwipeUiState(phase = DiscoverPhase.EndOfFeed))
+        show(ImmersiveUiState(phase = DiscoverPhase.EndOfFeed))
 
-        composeRule.onNodeWithTag(SwipeTestTags.EMPTY).assertIsDisplayed()
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).assertDoesNotExist()
+        composeRule.onNodeWithTag(ImmersiveTestTags.EMPTY).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).assertDoesNotExist()
     }
 
     @Test
     fun aFirstPageThatFailsShowsItsCauseAndItsRecovery() {
-        show(SwipeUiState(phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork)))
+        show(ImmersiveUiState(phase = DiscoverPhase.Failed(DiscoverFailure.NoNetwork)))
 
-        composeRule.onNodeWithTag(SwipeTestTags.FAILURE).assertIsDisplayed()
-        composeRule.onNodeWithTag(SwipeTestTags.RETRY).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.FAILURE).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.RETRY).assertIsDisplayed()
     }
 
     @Test
     fun theFirstLoadingShowsAnIndicatorAndNothingToSwipe() {
-        show(SwipeUiState(phase = DiscoverPhase.InitialLoading))
+        show(ImmersiveUiState(phase = DiscoverPhase.InitialLoading))
 
         composeRule.onNodeWithTag(LoadingTestTags.INDICATOR).assertIsDisplayed()
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).assertDoesNotExist()
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).assertDoesNotExist()
     }
 
     // ----- Opening and illustration -------------------------------------------
@@ -290,7 +290,7 @@ class SwipeScreenTest {
         var opened: Long? = null
         show(feedOf(uiArticle(id = 42L)), onArticleClick = { opened = it })
 
-        composeRule.onNodeWithTag(SwipeTestTags.page(42L)).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.page(42L)).performClick()
 
         assertEquals(42L, opened)
     }
@@ -300,8 +300,8 @@ class SwipeScreenTest {
         var opened: Long? = null
         show(feedOf(uiArticle(id = 1L, isOpenable = false)), onArticleClick = { opened = it })
 
-        composeRule.onNodeWithTag(SwipeTestTags.NO_LINK).assertIsDisplayed()
-        composeRule.onNodeWithTag(SwipeTestTags.page(1L)).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.NO_LINK).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.page(1L)).performClick()
 
         assertNull(opened)
     }
@@ -319,7 +319,7 @@ class SwipeScreenTest {
             onArticleClick = { opened = it },
         )
 
-        composeRule.onNodeWithTag(SwipeTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
 
         composeRule.onNodeWithText("Second").assertIsDisplayed()
         assertNull(opened, "le balayage a été pris pour une ouverture")
@@ -332,7 +332,7 @@ class SwipeScreenTest {
         val shared = mutableListOf<Long>()
         show(feedOf(uiArticle(id = 42L)), onArticleShare = { shared += it })
 
-        composeRule.onNodeWithTag(SwipeTestTags.share(42L)).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.share(42L)).performClick()
 
         assertEquals(listOf(42L), shared)
     }
@@ -341,7 +341,7 @@ class SwipeScreenTest {
     fun anArticleWithoutLinkCarriesNoShareButton() {
         show(feedOf(uiArticle(id = 1L, isOpenable = false)))
 
-        composeRule.onNodeWithTag(SwipeTestTags.share(1L)).assertDoesNotExist()
+        composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).assertDoesNotExist()
     }
 
     @Test
@@ -350,7 +350,7 @@ class SwipeScreenTest {
 
         composeRule.onNodeWithContentDescription("Partager l'article").assertExists()
 
-        val bounds = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
+        val bounds = composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).getBoundsInRoot()
 
         assertTrue(bounds.width >= MIN_TOUCH_TARGET, "largeur ${bounds.width}")
         assertTrue(bounds.height >= MIN_TOUCH_TARGET, "hauteur ${bounds.height}")
@@ -360,14 +360,14 @@ class SwipeScreenTest {
     fun anIllustratedArticleShowsItsImage() {
         show(feedOf(uiArticle(id = 1L, imageUrl = LOADABLE_IMAGE_URL)))
 
-        composeRule.onNodeWithTag(SwipeTestTags.ILLUSTRATION, useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag(ImmersiveTestTags.ILLUSTRATION, useUnmergedTree = true).assertExists()
     }
 
     @Test
     fun anIllustrationThatFailsToLoadLeavesNoHole() {
         show(feedOf(uiArticle(id = 1L, imageUrl = UNREACHABLE_IMAGE_URL)))
 
-        composeRule.onNodeWithTag(SwipeTestTags.ILLUSTRATION, useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag(ImmersiveTestTags.ILLUSTRATION, useUnmergedTree = true).assertDoesNotExist()
     }
 
     // ----- Factories ----------------------------------------------------------
@@ -375,9 +375,9 @@ class SwipeScreenTest {
     private fun feedOf(
         vararg articles: ArticleUiModel,
         phase: DiscoverPhase = DiscoverPhase.EndOfFeed,
-    ): SwipeUiState = SwipeUiState(articles = articles.toList(), phase = phase)
+    ): ImmersiveUiState = ImmersiveUiState(articles = articles.toList(), phase = phase)
 
-    private fun longFeed(): SwipeUiState = SwipeUiState(
+    private fun longFeed(): ImmersiveUiState = ImmersiveUiState(
         articles = (1..LONG_FEED_SIZE).map { uiArticle(id = it.toLong(), title = "Article $it") },
         phase = DiscoverPhase.Idle,
     )
@@ -388,14 +388,14 @@ class SwipeScreenTest {
     fun anOldFeedInvitesToReloadIt() {
         showStale()
 
-        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).assertExists()
+        composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE).assertExists()
     }
 
     @Test
     fun aFeedThatIsNotOldSaysNothing() {
-        show(SwipeUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
+        show(ImmersiveUiState(articles = listOf(uiArticle()), phase = DiscoverPhase.Idle))
 
-        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).assertDoesNotExist()
+        composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE).assertDoesNotExist()
     }
 
     @Test
@@ -403,7 +403,7 @@ class SwipeScreenTest {
         var refreshed = 0
         showStale(onRefresh = { refreshed++ })
 
-        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE_REFRESH).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE_REFRESH).performClick()
 
         assertEquals(1, refreshed)
     }
@@ -413,7 +413,7 @@ class SwipeScreenTest {
         var silenced = 0
         showStale(onStaleNoticeDismiss = { silenced++ })
 
-        composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE_DISMISS).performClick()
+        composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE_DISMISS).performClick()
 
         assertEquals(1, silenced)
     }
@@ -425,8 +425,8 @@ class SwipeScreenTest {
         // (SPECS.md §4.7).
         showStale()
 
-        val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
-        val share = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
+        val notice = composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE).getBoundsInRoot()
+        val share = composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).getBoundsInRoot()
 
         assertTrue(
             share.bottom <= notice.top,
@@ -441,10 +441,10 @@ class SwipeScreenTest {
         // strip laid over the card would cover it where scrolling stops.
         showStale(excerpt = "Un paragraphe interminable. ".repeat(60))
 
-        composeRule.onNodeWithTag(SwipeTestTags.share(1L)).performScrollTo()
+        composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).performScrollTo()
 
-        val notice = composeRule.onNodeWithTag(SwipeTestTags.STALE_NOTICE).getBoundsInRoot()
-        val share = composeRule.onNodeWithTag(SwipeTestTags.share(1L)).getBoundsInRoot()
+        val notice = composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE).getBoundsInRoot()
+        val share = composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).getBoundsInRoot()
         assertTrue(
             share.bottom <= notice.top,
             "la commande de partage reste sous la bandelette même défilée à fond",
@@ -463,8 +463,8 @@ class SwipeScreenTest {
         excerpt: String = "Un extrait.",
     ) {
         composeRule.setContent {
-            SwipeScreen(
-                uiState = SwipeUiState(
+            ImmersiveScreen(
+                uiState = ImmersiveUiState(
                     articles = listOf(uiArticle(excerpt = excerpt)),
                     phase = DiscoverPhase.Idle,
                     isStaleNoticeAvailable = true,

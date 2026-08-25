@@ -123,7 +123,7 @@ fun SettingsScreen(
          * fine-tuning sliders and the local cache section.
          *
          * The order also carries meaning: the §4.5 thresholds read
-         * differently per mode. In Swipe, a full-screen article immediately
+         * differently per mode. In Immersive, a full-screen article immediately
          * satisfies the surface threshold and only duration decides, so
          * knowing the mode before adjusting thresholds is the natural
          * reading order.
@@ -196,13 +196,13 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
  *
  * Segments rather than a toggle: the setting has exactly two exclusive,
  * equally legitimate values; neither is the "enabled" option of the other. A
- * toggle would name only one ("Swipe mode"), leaving the off position's
+ * toggle would name only one ("Immersive mode"), leaving the off position's
  * meaning implicit. A dropdown would hide the alternative behind a tap, and
  * radio buttons would say the same thing in three times the height on an
  * already long screen. Segments show both options and the active one at a
  * glance, and a single tap changes it.
  *
- * The sentence below: "List" and "Swipe" name the gesture, not the outcome.
+ * The sentence below: "List" and "Immersive" name the gesture, not the outcome.
  * The description follows the selected segment and says what the feed will
  * show, which the control alone cannot convey.
  */
@@ -254,7 +254,7 @@ private fun PresentationSection(
 /** One test tag per mode: without it, segments differ only by their text. */
 private fun presentationTestTagOf(presentation: FeedPresentation): String = when (presentation) {
     FeedPresentation.List -> SettingsTestTags.PRESENTATION_LIST
-    FeedPresentation.Swipe -> SettingsTestTags.PRESENTATION_SWIPE
+    FeedPresentation.Immersive -> SettingsTestTags.PRESENTATION_IMMERSIVE
 }
 
 /**

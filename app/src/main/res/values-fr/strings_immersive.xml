@@ -11,7 +11,7 @@
       l'ancienneté — parce que c'est SPECS.md §4.3 qui l'impose, et non la
       présentation : sans la source, le mélange des flux serait déroutant.
     -->
-    <string name="swipe_article_meta">%1$s · %2$s</string>
+    <string name="immersive_article_meta">%1$s · %2$s</string>
 
     <!--
       Ce que fait un appui sur la carte (SPECS.md §4.7) : ouvrir l'article dans
@@ -19,23 +19,23 @@
       est la commande — elle sert d'`onClickLabel`, et c'est la seule façon
       qu'un lecteur d'écran a de savoir ce que l'appui déclenche.
     -->
-    <string name="swipe_open_article">Ouvrir l\'article</string>
+    <string name="immersive_open_article">Ouvrir l\'article</string>
 
     <!--
       Article sans lien exploitable (SPECS.md §4.7) : il n'est pas ouvrable, et
       cela se **donne à voir** plutôt que de se traduire par un bouton sans
       effet.
     -->
-    <string name="swipe_article_no_link">Cet article ne fournit aucun lien à ouvrir.</string>
+    <string name="immersive_article_no_link">Cet article ne fournit aucun lien à ouvrir.</string>
 
     <!--
       Fin du flux (SPECS.md §4.4, GOAL-012-T03). Elle se dit explicitement : un
       balayage qui cesse de répondre est indistinguable d'une panne.
     -->
-    <string name="swipe_end_of_feed_title">Vous avez tout lu</string>
-    <string name="swipe_end_of_feed_body">Il n\'y a plus d\'article à découvrir pour le moment.</string>
+    <string name="immersive_end_of_feed_title">Vous avez tout lu</string>
+    <string name="immersive_end_of_feed_body">Il n\'y a plus d\'article à découvrir pour le moment.</string>
 
-    <string name="swipe_retry">Réessayer</string>
+    <string name="immersive_retry">Réessayer</string>
 
     <!--
       Alternative au geste (GOAL-012-T07, SPECS.md §7.1). Libellés courts et
@@ -44,14 +44,14 @@
     -->
 
     <!-- Flux sans aucun article à montrer : « vous avez tout lu » n'expliquerait rien. -->
-    <string name="swipe_empty_title">Rien à découvrir</string>
-    <string name="swipe_empty_body">Tous vos abonnements sont à jour. Revenez plus tard.</string>
+    <string name="immersive_empty_title">Rien à découvrir</string>
+    <string name="immersive_empty_body">Tous vos abonnements sont à jour. Revenez plus tard.</string>
 
     <!--
       Régime hors ligne (SPECS.md §5.2). Ni « erreur » ni « échec » : ce que
       l'utilisateur a sous les yeux fonctionne, ce sont ses articles.
     -->
-    <string name="swipe_offline_banner">Hors ligne · vous lisez les articles déjà enregistrés</string>
-    <string name="swipe_offline_open_blocked">Sans connexion, cet article ne peut pas être ouvert. Il reste dans votre flux.</string>
-    <string name="swipe_offline_notice_dismiss">Fermer</string>
+    <string name="immersive_offline_banner">Hors ligne · vous lisez les articles déjà enregistrés</string>
+    <string name="immersive_offline_open_blocked">Sans connexion, cet article ne peut pas être ouvert. Il reste dans votre flux.</string>
+    <string name="immersive_offline_notice_dismiss">Fermer</string>
 </resources>

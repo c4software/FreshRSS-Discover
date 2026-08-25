@@ -26,6 +26,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveScreen
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheet
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapViewModel
@@ -33,8 +35,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -96,7 +96,7 @@ fun AppNavHost(
                     onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
                 )
 
-                FeedPresentation.Swipe -> SwipeRoute(
+                FeedPresentation.Immersive -> ImmersiveRoute(
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
                     onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
@@ -211,13 +211,13 @@ private fun DiscoverRoute(
 }
 
 @Composable
-private fun SwipeRoute(
+private fun ImmersiveRoute(
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
     onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
 ) {
-    val viewModel: SwipeViewModel = hiltViewModel()
+    val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange)
@@ -242,7 +242,7 @@ private fun SwipeRoute(
         onFeedRefreshChange = onFeedRefreshChange,
     )
 
-    SwipeScreen(
+    ImmersiveScreen(
         uiState = uiState,
         onLoadMore = viewModel::loadMore,
         onRetry = viewModel::retry,
@@ -295,7 +295,7 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
  * `DisposableEffect`, not `LaunchedEffect`: removal matters as much as
  * publication. Without `onDispose`, leaving the feed for settings would keep
  * a button wired to a ViewModel no longer on screen, and switching from List
- * to Swipe would keep the previous mode's.
+ * to Immersive would keep the previous mode's.
  *
  * [showsProgress] is `false` for destinations that already display their own
  * progress indicator: the button then stays published but disabled during
@@ -328,7 +328,7 @@ internal fun PublishFeedRefresh(
  * opening on it would retell a part of the feed already left. [firstDisplayedIndex]
  * is a snapshot read, not a value: the scroll moves without recomposing this
  * publisher, so the effect observes it through `snapshotFlow`. The default
- * serves the swipe mode, whose deck always shows its articles from the top.
+ * serves the immersive mode, whose deck always shows its articles from the top.
  */
 @Composable
 internal fun PublishDisplayedArticles(

@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
@@ -46,7 +46,7 @@ private const val SIX_HOURS_MILLIS = 6L * ONE_HOUR_MILLIS
 private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SwipeViewModelTest {
+class ImmersiveViewModelTest {
     /** Kept as a field: the staleness cases advance its virtual scheduler. */
     private val dispatcher = UnconfinedTestDispatcher()
 
@@ -64,8 +64,8 @@ class SwipeViewModelTest {
      * `Dispatchers.Main`. A property initializer would run before
      * [MainDispatcherRule] has substituted it.
      */
-    private val viewModel: SwipeViewModel by lazy {
-        SwipeViewModel(
+    private val viewModel: ImmersiveViewModel by lazy {
+        ImmersiveViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
@@ -291,7 +291,7 @@ class SwipeViewModelTest {
     @Test
     fun withAutomaticMarkingOffOpeningAnArticleStillMarksItRead() {
         // The trap of this setting: full screen, the only other way to mark is
-        // opening (SPECS.md §4.7). Losing it would leave Swipe mode unable to
+        // opening (SPECS.md §4.7). Losing it would leave Immersive mode unable to
         // consume anything.
         settingsRepository.setAutomaticMarking(enabled = false)
         repository.enqueuePage(listOf(article(id = 1L)))

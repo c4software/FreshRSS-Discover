@@ -17,7 +17,7 @@ class FeedPresentationTest {
         // reading back existing preferences, and this test makes that
         // visible.
         assertEquals("List", FeedPresentation.List.name)
-        assertEquals("Swipe", FeedPresentation.Swipe.name)
+        assertEquals("Immersive", FeedPresentation.Immersive.name)
     }
 
     @Test
@@ -43,10 +43,17 @@ class FeedPresentationTest {
     }
 
     @Test
+    fun theRemovedSwipeModeIsNotCarriedOver() {
+        // GOAL-038 replaced Swipe without a mapping, by the author's ruling:
+        // an installation left in Swipe reopens in the default mode.
+        assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName("Swipe"))
+    }
+
+    @Test
     fun theStoredNameIsCaseSensitiveRatherThanApproximated() {
         // Guessing an approximate match would mean accepting a value the app
         // never wrote: better to fall back to the visible default than to
         // invent an intent.
-        assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName("swipe"))
+        assertEquals(FeedPresentation.Default, FeedPresentation.fromStoredName("immersive"))
     }
 }

@@ -108,7 +108,7 @@ class SettingsScreenTest {
         showPresentation()
 
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).performScrollTo().assertIsSelected()
-        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).assertIsNotSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_IMMERSIVE).assertIsNotSelected()
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_DESCRIPTION)
             .assertTextEquals("Plusieurs articles à l'écran, que vous faites défiler vers le bas.")
     }
@@ -118,10 +118,10 @@ class SettingsScreenTest {
      * will show, which two words on a segment cannot.
      */
     @Test
-    fun theSwipePresentationIsSelectedAndDescribedWhenItIsTheStoredOne() {
-        showPresentation(presentation = FeedPresentation.Swipe)
+    fun theImmersivePresentationIsSelectedAndDescribedWhenItIsTheStoredOne() {
+        showPresentation(presentation = FeedPresentation.Immersive)
 
-        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_IMMERSIVE).performScrollTo().assertIsSelected()
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsNotSelected()
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_DESCRIPTION)
             .assertTextEquals(
@@ -130,19 +130,19 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun choosingTheSwipePresentationReportsIt() {
+    fun choosingTheImmersivePresentationReportsIt() {
         var reported: FeedPresentation? = null
         showPresentation(onPresentationChange = { reported = it })
 
-        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_IMMERSIVE).performScrollTo().performClick()
 
-        assertEquals(FeedPresentation.Swipe, reported)
+        assertEquals(FeedPresentation.Immersive, reported)
     }
 
     @Test
     fun choosingTheListPresentationBackReportsIt() {
         var reported: FeedPresentation? = null
-        showPresentation(presentation = FeedPresentation.Swipe, onPresentationChange = { reported = it })
+        showPresentation(presentation = FeedPresentation.Immersive, onPresentationChange = { reported = it })
 
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).performScrollTo().performClick()
 
@@ -158,10 +158,10 @@ class SettingsScreenTest {
     fun theSegmentsShowTheStateRatherThanTheLastTap() {
         showPresentation()
 
-        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_IMMERSIVE).performScrollTo().performClick()
 
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsSelected()
-        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_SWIPE).assertIsNotSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_IMMERSIVE).assertIsNotSelected()
     }
 
     /**

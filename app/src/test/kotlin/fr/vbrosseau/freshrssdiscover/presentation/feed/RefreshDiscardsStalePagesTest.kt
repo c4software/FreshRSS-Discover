@@ -13,7 +13,7 @@ import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -71,9 +71,9 @@ class RefreshDiscardsStalePagesTest {
         )
     }
 
-    private fun swipeViewModel(): SwipeViewModel {
+    private fun immersiveViewModel(): ImmersiveViewModel {
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        return SwipeViewModel(
+        return ImmersiveViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
@@ -125,8 +125,8 @@ class RefreshDiscardsStalePagesTest {
     }
 
     @Test
-    fun swipeModeDropsThePageThatWasInFlightWhenTheReloadArrived() {
-        val viewModel = swipeViewModel()
+    fun immersiveModeDropsThePageThatWasInFlightWhenTheReloadArrived() {
+        val viewModel = immersiveViewModel()
         repository.pendingLoad = CompletableDeferred()
         viewModel.loadMore()
 
@@ -142,14 +142,14 @@ class RefreshDiscardsStalePagesTest {
     }
 
     /**
-     * The other entry point of the same race, specific to Swipe mode:
+     * The other entry point of the same race, specific to Immersive mode:
      * `loadMore` did not check `isRefreshing` (List mode did), so the pager
      * could start a page during the refresh with the old traversal's cursor.
      * Exactly the divergence ARCHITECTURE.md §9.6 says to track.
      */
     @Test
-    fun swipeModeStartsNoPageDuringAReload() {
-        val viewModel = swipeViewModel()
+    fun immersiveModeStartsNoPageDuringAReload() {
+        val viewModel = immersiveViewModel()
         val loadsBefore = repository.loadCallCount
 
         repository.pendingRefresh = CompletableDeferred()

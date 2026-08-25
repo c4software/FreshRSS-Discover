@@ -47,7 +47,7 @@ private val IndicatorStroke = 2.dp
  * arbitrary image.
  *
  * While refreshing it either turns into an indicator ([showsProgress]) or
- * stays put disabled: which one is the destination's call — Swipe has no
+ * stays put disabled: which one is the destination's call — Immersive has no
  * other progress to show, List already animates its pull indicator and a
  * second spinner would double it, while a vanishing button next to the
  * recap one read as a glitch (GOAL-037-T14). Either way it stays inert

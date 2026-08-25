@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
@@ -14,12 +14,12 @@ import javax.inject.Inject
  *
  * The entire engine lives in [FeedSessionViewModel]: same pages, same marking,
  * same explicit end of feed as List mode, as SPECS.md §4.8 promises. This type
- * only provides the Hilt wiring and the Swipe projection, whose full-screen
+ * only provides the Hilt wiring and the Immersive projection, whose full-screen
  * excerpt goes up to 1,400 characters (SPECS.md §8, question 7). The
  * visibility observation source belongs to the screen ([pagerVisibility]).
  */
 @HiltViewModel
-class SwipeViewModel @Inject constructor(
+class ImmersiveViewModel @Inject constructor(
     articleRepository: ArticleRepository,
     readSyncRepository: ReadSyncRepository,
     settingsRepository: SettingsRepository,
@@ -31,5 +31,5 @@ class SwipeViewModel @Inject constructor(
     settingsRepository = settingsRepository,
     freshnessRepository = freshnessRepository,
     clock = clock,
-    project = { article, now -> article.toSwipeUiModel(now) },
+    project = { article, now -> article.toImmersiveUiModel(now) },
 )

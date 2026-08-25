@@ -27,7 +27,7 @@ private const val NOW_MILLIS = 1_700_000_000_000L
  * The unreachable-server toast event (GOAL-030): emitted by the engine on
  * load and reload failures, and only for `ServerUnreachable` — being offline
  * already has the banner as its regime (SPECS.md §5.2). Tested on List mode;
- * the engine being shared, Swipe follows.
+ * the engine being shared, Immersive follows.
  *
  * The collector always subscribes after the failing call: that also proves
  * the buffering — an event landing while nobody collects, a configuration

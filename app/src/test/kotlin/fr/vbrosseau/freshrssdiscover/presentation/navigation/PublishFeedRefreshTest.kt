@@ -53,7 +53,7 @@ class PublishFeedRefreshTest {
 
     @Test
     fun byDefaultTheActionStaysPublishedWhileRefreshing() {
-        // Swipe mode has no other indicator: the button itself shows progress.
+        // Immersive mode has no other indicator: the button itself shows progress.
         show(showsProgress = true)
 
         isRefreshing = true

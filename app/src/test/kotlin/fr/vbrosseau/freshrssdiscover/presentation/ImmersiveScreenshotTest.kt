@@ -9,15 +9,15 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.TINY_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.installFakeImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.discover.resetImageLoader
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeScreen
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.SwipeUiState
-import fr.vbrosseau.freshrssdiscover.presentation.swipe.pageCount
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveScreen
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveUiState
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.pageCount
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
 /**
- * Visual references for the Swipe view (SPECS.md §4.8, GOAL-012-T08).
+ * Visual references for the Immersive view (SPECS.md §4.8, GOAL-012-T08).
  *
  * Three non-interchangeable situations:
  *
@@ -33,7 +33,7 @@ import org.junit.Test
  * element a textual assertion does not judge; this repo has already shipped
  * an invisible indicator on a disabled button.
  */
-class SwipeScreenshotTest : ScreenshotTest() {
+class ImmersiveScreenshotTest : ScreenshotTest() {
 
     @Before
     fun installImageLoader() = installFakeImageLoader()
@@ -43,9 +43,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
 
     @Test
     fun anIllustratedArticleFullScreen() {
-        capture("balayage-article-illustre") {
+        capture("immersif-article-illustre") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
                             id = 1L,
@@ -69,9 +69,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
      */
     @Test
     fun anArticleWithoutIllustrationFullScreen() {
-        capture("balayage-article-sans-illustration") {
+        capture("immersif-article-sans-illustration") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
                             id = 1L,
@@ -95,9 +95,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
      */
     @Test
     fun theEndOfTheFeed() {
-        capture("balayage-fin-de-flux") {
+        capture("immersif-fin-de-flux") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(sampleArticle(id = 1L, title = "Le dernier article du flux")),
                     phase = DiscoverPhase.EndOfFeed,
                 ),
@@ -118,9 +118,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
      */
     @Test
     fun anOldFeedInvitingToReload() {
-        capture("balayage-flux-ancien") {
+        capture("immersif-flux-ancien") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
                             id = 1L,
@@ -138,16 +138,16 @@ class SwipeScreenshotTest : ScreenshotTest() {
     /**
      * An article without a usable link (SPECS.md §4.7).
      *
-     * The only capture showing what Swipe mode becomes when there is nothing
+     * The only capture showing what Immersive mode becomes when there is nothing
      * to do: no share button, and the note that replaces every control.
      * Without it, no image would attest that removing the open button did not
      * take that explanation with it.
      */
     @Test
     fun anArticleWithoutAnyLinkFullScreen() {
-        capture("balayage-article-sans-lien") {
+        capture("immersif-article-sans-lien") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
                             id = 1L,
@@ -167,9 +167,9 @@ class SwipeScreenshotTest : ScreenshotTest() {
      */
     @Test
     fun aTinyIllustrationFullScreenSitsOnItsBackdrop() {
-        capture("balayage-illustration-minuscule") {
+        capture("immersif-illustration-minuscule") {
             swipe(
-                SwipeUiState(
+                ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
                             id = 1L,
@@ -184,8 +184,8 @@ class SwipeScreenshotTest : ScreenshotTest() {
     }
 
     @Composable
-    private fun swipe(uiState: SwipeUiState, initialPage: Int = 0) {
-        SwipeScreen(
+    private fun swipe(uiState: ImmersiveUiState, initialPage: Int = 0) {
+        ImmersiveScreen(
             uiState = uiState,
             onLoadMore = {},
             onRetry = {},

@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.swipe
+package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import kotlin.math.absoluteValue

@@ -6,7 +6,7 @@ object SettingsTestTags {
     const val USERNAME = "settings:username"
     const val NO_SESSION = "settings:no-session"
     const val PRESENTATION_LIST = "settings:presentation-list"
-    const val PRESENTATION_SWIPE = "settings:presentation-swipe"
+    const val PRESENTATION_IMMERSIVE = "settings:presentation-immersive"
     const val PRESENTATION_DESCRIPTION = "settings:presentation-description"
     const val AUTO_MARK_AS_READ = "settings:auto-mark-as-read"
     const val AUTO_MARK_AS_READ_HELP = "settings:auto-mark-as-read-help"

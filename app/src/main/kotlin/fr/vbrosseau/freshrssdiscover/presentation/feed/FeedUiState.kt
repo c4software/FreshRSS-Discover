@@ -11,7 +11,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 /**
  * State displayed by both feed modes (SPECS.md §4.8).
  *
- * A single state serves both List and Swipe: SPECS.md §4.8 states that content
+ * A single state serves both List and Immersive: SPECS.md §4.8 states that content
  * and loading rules are identical, only the presentation differs. Two twin
  * states with copied transitions previously diverged, exactly as
  * ARCHITECTURE.md §9.6 predicts. Mode-specific data (excerpt length, the
@@ -27,7 +27,7 @@ data class FeedUiState(
     val phase: DiscoverPhase = DiscoverPhase.InitialLoading,
     /**
      * User-requested refresh (SPECS.md §4.6): pull in List mode, button in
-     * Swipe mode.
+     * Immersive mode.
      *
      * Kept outside [phase] deliberately: a refresh happens on top of a feed
      * that already has a state (idle, ended, failed), and folding it into the
@@ -111,7 +111,7 @@ internal fun FeedUiState.refreshedWith(
  * Appends articles missing from the list without touching those already in it.
  *
  * Displayed articles are never reordered: rule 3 of SPECS.md §4.2 requires a
- * given set of articles to always appear in the same order. In Swipe mode,
+ * given set of articles to always appear in the same order. In Immersive mode,
  * reordering under the finger would change which article the next gesture
  * reveals.
  *

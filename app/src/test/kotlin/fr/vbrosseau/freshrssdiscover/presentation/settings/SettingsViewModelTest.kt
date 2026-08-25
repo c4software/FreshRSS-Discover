@@ -309,10 +309,10 @@ class SettingsViewModelTest {
 
     @Test
     fun theDisplayedPresentationIsTheStoredOne() = runTest {
-        settings.setFeedPresentation(FeedPresentation.Swipe)
+        settings.setFeedPresentation(FeedPresentation.Immersive)
         observe()
 
-        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+        assertEquals(FeedPresentation.Immersive, viewModel.uiState.value.presentation)
     }
 
     /**
@@ -324,18 +324,18 @@ class SettingsViewModelTest {
      * without the settings ViewModel having to notify it.
      */
     @Test
-    fun choosingTheSwipePresentationStoresItAndRepublishesIt() = runTest {
+    fun choosingTheImmersivePresentationStoresItAndRepublishesIt() = runTest {
         observe()
 
-        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+        viewModel.setFeedPresentation(FeedPresentation.Immersive)
 
-        assertEquals(FeedPresentation.Swipe, settings.currentPresentation)
-        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+        assertEquals(FeedPresentation.Immersive, settings.currentPresentation)
+        assertEquals(FeedPresentation.Immersive, viewModel.uiState.value.presentation)
     }
 
     @Test
     fun comingBackToTheListPresentationIsStoredToo() = runTest {
-        settings.setFeedPresentation(FeedPresentation.Swipe)
+        settings.setFeedPresentation(FeedPresentation.Immersive)
         observe()
 
         viewModel.setFeedPresentation(FeedPresentation.List)
@@ -349,7 +349,7 @@ class SettingsViewModelTest {
         observe()
         viewModel.setVisibleFractionPercent(80)
 
-        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+        viewModel.setFeedPresentation(FeedPresentation.Immersive)
 
         assertEquals(80, viewModel.uiState.value.visibleFraction.value)
         assertEquals(0.8f, settings.current.visibleFraction)
@@ -486,12 +486,12 @@ class SettingsViewModelTest {
     fun changingTheReminderLeavesTheOtherSettingsAlone() = runTest {
         observe()
         viewModel.setVisibleFractionPercent(80)
-        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+        viewModel.setFeedPresentation(FeedPresentation.Immersive)
 
         viewModel.setReminderEnabled(false)
 
         assertEquals(80, viewModel.uiState.value.visibleFraction.value)
-        assertEquals(FeedPresentation.Swipe, viewModel.uiState.value.presentation)
+        assertEquals(FeedPresentation.Immersive, viewModel.uiState.value.presentation)
     }
 
     @Test
@@ -508,12 +508,12 @@ class SettingsViewModelTest {
     @Test
     fun theStoredPresentationSurvivesANewViewModel() = runTest {
         observe()
-        viewModel.setFeedPresentation(FeedPresentation.Swipe)
+        viewModel.setFeedPresentation(FeedPresentation.Immersive)
 
         // SPECS.md §4.8: the app reopens in the mode the user left.
         val reopened = SettingsViewModel(repository, settings, cache, scheduler)
         keepCollecting(reopened.uiState)
 
-        assertEquals(FeedPresentation.Swipe, reopened.uiState.value.presentation)
+        assertEquals(FeedPresentation.Immersive, reopened.uiState.value.presentation)
     }
 }
