@@ -19,8 +19,12 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -245,10 +249,12 @@ fun ImmersiveScreen(
                 uiState = uiState,
                 onLoadMore = onLoadMore,
                 onRetry = onRetry,
+                onRefresh = onRefresh,
                 onArticleClick = onArticleClick,
                 onArticleShare = onArticleShare,
                 modifier = Modifier.weight(1f),
                 pagerState = pagerState,
+                topInset = topInset,
                 onVisibilityChanged = onVisibilityChanged,
             )
 
@@ -322,12 +328,14 @@ private fun ImmersiveBody(
     uiState: ImmersiveUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
     // No default: a fallback `rememberPagerState` would create a second
     // page state, out of sync with the one the screen passes to the
     // return-to-top.
     pagerState: PagerState,
+    topInset: Dp,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
@@ -338,10 +346,12 @@ private fun ImmersiveBody(
             uiState = uiState,
             onLoadMore = onLoadMore,
             onRetry = onRetry,
+            onRefresh = onRefresh,
             onArticleClick = onArticleClick,
             onArticleShare = onArticleShare,
             modifier = modifier,
             pagerState = pagerState,
+            topInset = topInset,
             onVisibilityChanged = onVisibilityChanged,
         )
 
@@ -365,19 +375,23 @@ private fun ImmersiveBody(
  * one-page-per-flick rule, the settled-page notion the visibility sampling
  * relies on, and the offset the page transition is computed from.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArticlePager(
     uiState: ImmersiveUiState,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
     // No default, as in `ImmersiveBody`: the state always comes from the screen.
     pagerState: PagerState,
+    topInset: Dp,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     val articleIds = remember(uiState.articles) { uiState.articles.map(ArticleUiModel::id) }
+    val refreshState = rememberPullToRefreshState()
 
     PrefetchNextPage(pagerState = pagerState, articleCount = articleIds.size, onLoadMore = onLoadMore)
 
@@ -389,6 +403,48 @@ private fun ArticlePager(
         )
     }
 
+    /*
+     * The pull lives on the first page only, and needs no guard for that:
+     * the pager consumes a downward drag wherever there is a page above,
+     * and hands it up only at page 1, where there is nothing to scroll —
+     * the pull of SPECS.md §4.6 for short-video feeds (GOAL-039-T01).
+     */
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+        state = refreshState,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = refreshState,
+                isRefreshing = uiState.isRefreshing,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = topInset),
+            )
+        },
+    ) {
+        Pages(
+            uiState = uiState,
+            onRetry = onRetry,
+            onArticleClick = onArticleClick,
+            onArticleShare = onArticleShare,
+            pagerState = pagerState,
+        )
+    }
+}
+
+@Composable
+private fun Pages(
+    uiState: ImmersiveUiState,
+    onRetry: () -> Unit,
+    onArticleClick: (Long) -> Unit,
+    onArticleShare: (Long) -> Unit,
+    pagerState: PagerState,
+    modifier: Modifier = Modifier,
+) {
     VerticalPager(
         state = pagerState,
         modifier = modifier

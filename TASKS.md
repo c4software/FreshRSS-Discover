@@ -115,6 +115,7 @@ statistics screen).
 | GOAL-036 | The reminder section reads as settings rows, not floating buttons | `[x]` |
 | GOAL-037 | A recap of the feed, generated on the device | `[x]` |
 | GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[x]` |
+| GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[-]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2721,6 +2722,46 @@ right, and the whole page opens the article on a tap.
       fallback. **Still owed**: the store screenshot
       `02-feed-immersive.png` / `02-flux-immersif.png` — `store/README.md`
       names them, the `*-swipe.png` files still show the old mode
+
+---
+
+## GOAL-039 — Immersive-mode reloading, the way short-video feeds do it
+
+**Status: IN PROGRESS**
+
+Asked by the author (2026-08-25): in Immersive mode, reloading behaved like
+the List's and "felt odd". The reference is what TikTok's For You and
+Instagram's Reels do: fetch ahead continuously and never replace the item
+under the eyes; reload on a pull from the **first** item; reload on a cold
+start, or when coming back after minutes away, and start at the top again;
+when new content arrives, replace and go back to the first item. The
+author answered four questions on 2026-08-25, below. **Only Immersive
+changes**; the List keeps its behaviour.
+
+### Decisions
+
+| Point | Decision |
+|---|---|
+| Pull gesture | Yes, on the first page only: elsewhere a downward drag is the pager's, and goes back one page |
+| Automatic reload | On a **cold start** (the app was killed), and on a return to the foreground after **30 minutes** or more away; a shorter absence keeps the page. An exception to SPECS.md §5.1's quiet launch, owned for this mode only |
+| New content | Replace, back to the first page — what the button already does |
+| Tab re-tap | Back to the first page; if already there, reload (unlike the List, where the top tap is inert) |
+
+### Tasks
+
+- [x] `GOAL-039-T01` Pull-to-refresh on the first page: the pager wrapped in
+      a `PullToRefreshBox`; a pull on page 1 reloads, a pull on page 2 goes
+      back to page 1 — both observed by screen tests
+- [-] `GOAL-039-T02` Automatic reload: a pure domain rule (`foregroundReload`)
+      says whether a foregrounding reloads — first one ever, or 30 minutes
+      after the last backgrounding — with the ViewModel recording the
+      backgrounding instant through `Clock`; the route reports both
+      lifecycle edges. Domain and ViewModel tests
+- [ ] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
+      when already there — `rememberReturnToFirstPageThenRefresh`, tested
+      like the List's counterpart
+- [ ] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
+      exception; closure of this Goal in TASKS.md
 
 ---
 

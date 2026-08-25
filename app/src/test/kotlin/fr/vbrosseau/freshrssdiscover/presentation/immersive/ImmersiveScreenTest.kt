@@ -191,6 +191,54 @@ class ImmersiveScreenTest {
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
+    // ----- Pull to refresh (GOAL-039-T01) -------------------------------------
+
+    @Test
+    fun pullingDownOnTheFirstPageAsksForARefresh() {
+        // The short-video convention: on the first item, a pull reloads.
+        var refreshed = 0
+        showPullable(initialPage = 0, onRefresh = { refreshed++ })
+
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput {
+            swipeDown(startY = centerY, endY = bottom)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(1, refreshed)
+    }
+
+    @Test
+    fun pullingDownOnALaterPageGoesBackOnePageAndReloadsNothing() {
+        // Elsewhere the drag is the pager's: it must never both move the
+        // page and empty the feed under the finger.
+        var refreshed = 0
+        showPullable(initialPage = 1, onRefresh = { refreshed++ })
+
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput {
+            swipeDown(startY = centerY, endY = bottom)
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Premier").assertIsDisplayed()
+        assertEquals(0, refreshed)
+    }
+
+    /** Two pages and a reload to observe: a dedicated entry point, as for the stale feed. */
+    private fun showPullable(initialPage: Int, onRefresh: () -> Unit) {
+        val uiState = feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second"))
+        composeRule.setContent {
+            ImmersiveScreen(
+                uiState = uiState,
+                onLoadMore = {},
+                onRetry = {},
+                onArticleClick = {},
+                onArticleShare = {},
+                onRefresh = onRefresh,
+                pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
+            )
+        }
+    }
+
     // ----- Prefetch (GOAL-012-T02) --------------------------------------------
 
     @Test
