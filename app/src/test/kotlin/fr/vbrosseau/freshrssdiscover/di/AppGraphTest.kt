@@ -279,12 +279,14 @@ class AppGraphTest {
         try {
             assertEquals(SessionGate.Unknown, sessionGate.gate.value)
             assertFalse(login.uiState.value.isSubmitting)
-            // Not the phase: the feed engine races ahead on real dispatchers —
-            // empty cache, then a load that fails for want of a session — and
-            // on a slow machine the phase has already moved past
-            // `InitialLoading` when this line runs (seen on CI, v1.8.0). What
-            // this test establishes is construction, not timing.
-            assertFalse(discover.uiState.value.isRefreshing)
+            // Neither the phase nor `isRefreshing`: the feed engine races
+            // ahead on real dispatchers — empty cache, then a reload that
+            // fails for want of a session — and on a slow machine the phase
+            // has already moved past `InitialLoading` (seen on CI, v1.8.0)
+            // or the reload is in flight (seen on CI, v1.16.0) when this
+            // line runs. What this test establishes is construction, not
+            // timing: without a session, no article can ever arrive.
+            assertTrue(discover.uiState.value.articles.isEmpty())
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {
             // Jobs launched in an `init` would otherwise outlive the test and
