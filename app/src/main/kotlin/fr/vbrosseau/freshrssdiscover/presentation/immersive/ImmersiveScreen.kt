@@ -572,6 +572,13 @@ private fun Backdrop(
     val dressed = supportsBlur && fit != BackdropFit.Full
     val tilted = dressed && fit == BackdropFit.Tilted
 
+    /*
+     * The tint stays outside the moving layer: it is the page, and the page
+     * does not lean or lag — only the photograph set down on it does
+     * (author's ruling, 2026-08-25).
+     */
+    if (tilted) SourceBackdrop(feedTitle = feedTitle)
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -583,13 +590,10 @@ private fun Backdrop(
          * Same recipe as the List card (SPECS.md §4.3, GOAL-016) whenever
          * the picture is shown whole: a blurred, cropped copy fills the
          * page and carries its colours; the sharp original sits on it.
-         * The tilted look stands on the source's tint instead (author's
-         * ruling, 2026-08-25): a photograph set down on a coloured page,
-         * not on a smear of itself. Which look an article gets is
-         * [backdropFit]'s draw.
+         * The tilted look stands on the source's tint instead: a
+         * photograph set down on a coloured page, not on a smear of
+         * itself. Which look an article gets is [backdropFit]'s draw.
          */
-        if (tilted) SourceBackdrop(feedTitle = feedTitle)
-
         if (dressed && !tilted) {
             Image(
                 painter = painter,
