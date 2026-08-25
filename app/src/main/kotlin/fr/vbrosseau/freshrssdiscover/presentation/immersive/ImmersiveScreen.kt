@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -571,7 +574,9 @@ private fun Backdrop(
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
     var pageWidthPx by remember { mutableIntStateOf(0) }
-    val sourceWidthPx = (state as? AsyncImagePainter.State.Success)?.result?.image?.width ?: 0
+    val source = (state as? AsyncImagePainter.State.Success)?.result?.image
+    val sourceWidthPx = source?.width ?: 0
+    val sourceRatio = if (source != null && source.height > 0) source.width.toFloat() / source.height else 1f
     val fit = backdropFit(articleId = articleId, sourceWidthPx = sourceWidthPx, pageWidthPx = pageWidthPx)
     val dressed = supportsBlur && fit != BackdropFit.Full
     val tilted = dressed && fit == BackdropFit.Tilted
@@ -614,23 +619,40 @@ private fun Backdrop(
             )
         }
 
-        Image(
-            painter = painter,
-            contentDescription = null,
-            contentScale = when {
-                !dressed -> ContentScale.Crop
-                fit == BackdropFit.Native -> ContentScale.Inside
-                else -> ContentScale.FillWidth
-            },
-            // Centred, by the author's ruling (2026-08-25): the picture is
-            // the page's subject, and the scrim below keeps the text
-            // readable should the two meet.
-            alignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (tilted) Modifier.tilted(articleId) else Modifier),
-        )
+        SharpPicture(painter = painter, fit = fit, dressed = dressed, articleId = articleId, sourceRatio = sourceRatio)
     }
+}
+
+/**
+ * The picture itself, laid out according to its draw.
+ *
+ * Centred, by the author's ruling (2026-08-25): the picture is the page's
+ * subject, and the scrim below keeps the text readable should the two meet.
+ */
+@Composable
+private fun SharpPicture(
+    painter: AsyncImagePainter,
+    fit: BackdropFit,
+    dressed: Boolean,
+    articleId: Long,
+    sourceRatio: Float,
+) {
+    val tilted = dressed && fit == BackdropFit.Tilted
+    Image(
+        painter = painter,
+        contentDescription = null,
+        contentScale = when {
+            !dressed -> ContentScale.Crop
+            fit == BackdropFit.Native -> ContentScale.Inside
+            else -> ContentScale.FillWidth
+        },
+        alignment = Alignment.Center,
+        modifier = if (tilted) {
+            Modifier.tilted(articleId = articleId, sourceRatio = sourceRatio)
+        } else {
+            Modifier.fillMaxSize()
+        },
+    )
 }
 
 /**
@@ -645,12 +667,18 @@ private fun Modifier.crossfading(pageOffset: () -> Float): Modifier = graphicsLa
 /**
  * A photograph set down on the page: inset, tilted and shadowed.
  *
+ * Sized to the picture, not to the page: a `graphicsLayer` casts its shadow
+ * on its own bounds, and a page-sized layer drew a ghost rectangle of
+ * shadow around a picture half its height — seen on device (2026-08-25).
  * The inset is what gives the tilt room — a full-width picture rotated
- * would push its corners out of the page. The shadow is what makes it an
- * object on the blurred backdrop rather than a rendering glitch.
+ * would push its corners out of the page.
  */
-private fun Modifier.tilted(articleId: Long): Modifier = this
+private fun Modifier.tilted(articleId: Long, sourceRatio: Float): Modifier = this
+    .fillMaxHeight()
+    .wrapContentHeight(Alignment.CenterVertically)
     .padding(horizontal = TiltInset)
+    .fillMaxWidth()
+    .aspectRatio(sourceRatio)
     .graphicsLayer {
         rotationZ = tiltDegrees(articleId)
         shadowElevation = TiltShadow.toPx()
