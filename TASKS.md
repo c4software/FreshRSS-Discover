@@ -42,8 +42,9 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due. Owed to the store: the immersive-mode
-screenshot 02 (GOAL-038-T05). Still waiting for the author: the device
+**Next task**: none is due. Waiting for the author: the device pass on
+GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap).
+Owed to the store: the immersive-mode screenshot 02 (GOAL-038-T05). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
 statistics screen).
 
@@ -115,7 +116,7 @@ statistics screen).
 | GOAL-036 | The reminder section reads as settings rows, not floating buttons | `[x]` |
 | GOAL-037 | A recap of the feed, generated on the device | `[x]` |
 | GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[x]` |
-| GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[-]` |
+| GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2727,7 +2728,9 @@ right, and the whole page opens the article on a tap.
 
 ## GOAL-039 — Immersive-mode reloading, the way short-video feeds do it
 
-**Status: IN PROGRESS**
+**Status: DONE** — four tasks, one commit each, full verification observed
+every time; installed on the author's Pixel on 2026-08-25 for the device
+pass.
 
 Asked by the author (2026-08-25): in Immersive mode, reloading behaved like
 the List's and "felt odd". The reference is what TikTok's For You and
@@ -2760,7 +2763,7 @@ changes**; the List keeps its behaviour.
 - [x] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
       when already there — `rememberReturnToFirstPageThenRefresh`, tested
       like the List's counterpart
-- [-] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
+- [x] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
       exception; closure of this Goal in TASKS.md
 
 ---

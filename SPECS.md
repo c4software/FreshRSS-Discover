@@ -360,9 +360,9 @@ Three commands trigger it, and they do exactly the same thing:
 
 | Command | Available in | Why |
 |---|---|---|
-| **Pull to refresh** | List mode, **with or without articles** | The conventional gesture on a vertical feed |
-| **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
-| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Immersive mode the reload returns to the first page on its own. **At the top of the list the tap does nothing**: there is nowhere to bring the reader back to, and a reload would empty a feed the tap never asked to lose — reloading from the top stays with the pull and the button, which are deliberate |
+| **Pull to refresh** | List mode, **with or without articles**; Immersive mode, **on the first page only** | The conventional gesture on a vertical feed. Full screen, the pull belongs to the pager everywhere but on the first page, where there is nothing above to go back to — the short-video convention |
+| **Button, on the title row** | both modes | A pull is not practicable for everyone (§7.1), and in Immersive it only exists on the first page |
+| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Immersive mode the pager first returns to the first page, likewise. **At the top of the list the tap does nothing**: there is nowhere to bring the reader back to, and a reload would empty a feed the tap never asked to lose — reloading from the top stays with the pull and the button, which are deliberate. **On the first immersive page the tap reloads** (author's ruling, 2026-08-25): that is what the home tab does in short-video feeds, and the pull is there too, so nothing is lost that was not asked for |
 
 The gesture long stopped where the list stopped: a screen with no article had
 no list, therefore no pull. The reasoning was that those screens already had
@@ -509,6 +509,13 @@ What this mode implies, and which is not neutral:
 - **A single command remains, on a rail at the right edge**: sharing. Opening
   has passed to the whole page (§4.7), and the mode thereby recovers what
   makes it interesting — an article, and almost nothing around it.
+- **Coming back reloads.** Two departures from the List's quiet launch
+  (§5.1, question 10), owned for this mode only and modelled on short-video
+  feeds (author's rulings, 2026-08-25): a **cold start** — the application
+  was killed — reloads and opens on the first page; a return to the
+  foreground after **30 minutes or more** away does the same, while a
+  shorter absence keeps the page under the eyes. The threshold is a named
+  domain constant, inclusive like every threshold here.
 - **The mode is a persistent setting** (§6): the application reopens in the mode
   the user left.
 - **The gesture is usable with a screen reader.** A vertical flick is the very
@@ -650,7 +657,9 @@ chip is better released.
 Retrieved articles are kept locally. On launch, the feed displays the contents
 of the cache **immediately** — read articles included (§4.1), so exactly what
 was on screen the previous time — and stops there: **no request leaves as long
-as there is something to show** (§8, question 10). The launch feed is the one
+as there is something to show** (§8, question 10). One exception, chosen
+rather than suffered: the Immersive mode reloads on a cold start and after
+half an hour away (§4.8). The launch feed is the one
 you left, stable and identical from one opening to the next; updating it is a
 gesture — the reload of §4.6, which the staleness notice (§4.6, "when the
 displayed feed is stale") comes to recall at the right moment. Scrolling, for
