@@ -158,9 +158,6 @@ private val MonogramOverhang = 72.dp
 private val BLUR_RADIUS = 32.dp
 private const val BLUR_OVERSCAN = 1.1f
 
-/** Where a small picture sits: under the transparent bar, above the text block. */
-private val SmallPictureTop = 96.dp
-
 /** `Modifier.blur` only takes effect from Android 12 (API 31), as on the List card. */
 private val supportsBlur: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -591,12 +588,11 @@ private fun Backdrop(
             painter = painter,
             contentDescription = null,
             contentScale = if (tooSmall) ContentScale.Inside else ContentScale.Crop,
-            // Above the middle rather than centred: the text block owns the
-            // lower half, and a picture sitting there would end up under it.
-            alignment = if (tooSmall) Alignment.TopCenter else Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (tooSmall) Modifier.padding(top = SmallPictureTop) else Modifier),
+            // Centred, by the author's ruling (2026-08-25): a small picture
+            // is the page's subject, and the scrim below keeps the text
+            // readable should the two meet.
+            alignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
