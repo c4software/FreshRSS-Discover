@@ -43,8 +43,7 @@ One point remains blocked, out of our hands:
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
 **Next task**: none is due. Waiting for the author: the device pass on
-GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap).
-Owed to the store: the immersive-mode screenshot 02 (GOAL-038-T05). Still waiting for the author: the device
+GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
 statistics screen).
 
@@ -2720,9 +2719,12 @@ right, and the whole page opens the article on a tap.
       rounds, each closed by "parfait" or the next remark: snap, parallax
       in step with the finger, rail under the thumb, transparent bar,
       source tint, layout variety, shadow bounds, missing-picture
-      fallback. **Still owed**: the store screenshot
-      `02-feed-immersive.png` / `02-flux-immersif.png` — `store/README.md`
-      names them, the `*-swipe.png` files still show the old mode
+      fallback. Store screenshot `02-feed-immersive.png` /
+      `02-flux-immersif.png` retaken on the envTest emulator on 2026-08-25
+      (demo status bar, app locale for fr), the `*-swipe.png` files deleted.
+      While at it: a picture slightly narrower than the page is framed at the
+      page's width rather than kept native (`MAX_FRAMED_UPSCALE`, 2×) — the
+      test feeds' 800-pixel pictures sat small on their own blur
 
 ---
 

@@ -24,10 +24,17 @@ class BackdropFitTest {
     }
 
     @Test
-    fun aPictureNarrowerThanThePageKeepsItsOwnSize() {
-        // The List card's rule (SPECS.md §8, question 12), whatever the ratio.
+    fun aPictureSlightlyNarrowerThanThePageIsFramedAtThePageWidth() {
+        // The feeds' usual 800-pixel picture: enlarged 1.35×, nobody sees
+        // it; kept small on its own blur, everybody would.
+        assertEquals(BackdropFit.Framed, backdropFit(800, 533, PAGE_W, PAGE_H))
+    }
+
+    @Test
+    fun aPictureNarrowerThanHalfThePageKeepsItsOwnSize() {
+        // Past 2× a thumbnail is a smear, whatever the ratio.
         assertEquals(BackdropFit.Native, backdropFit(300, 900, PAGE_W, PAGE_H))
-        assertEquals(BackdropFit.Native, backdropFit(600, 200, PAGE_W, PAGE_H))
+        assertEquals(BackdropFit.Native, backdropFit(500, 200, PAGE_W, PAGE_H))
     }
 
     @Test

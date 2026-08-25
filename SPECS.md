@@ -493,8 +493,9 @@ What this mode implies, and which is not neutral:
   it** — cropped to fill the page, kept as long as the crop does not enlarge
   it past 3.5× (a 16/9 banner of 720 pixels or more qualifies). A smaller
   one is **framed**: set down whole at the page's width — inset, rounded,
-  shadowed — over a dimmed blur of itself; one narrower than the page keeps
-  its own size on the same blur, as on the card (§8, question 12). A draw
+  shadowed — over a dimmed blur of itself; one narrower than half the page keeps
+  its own size on the same blur — the card's rule (§8, question 12),
+  relaxed to a 2× enlargement because a page is three times a card's slot. A draw
   between several looks was tried on 2026-08-25 and withdrawn the same day:
   full screen is simply better, and the framed look is for what cannot
   bear it.

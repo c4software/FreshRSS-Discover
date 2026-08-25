@@ -5,7 +5,7 @@ ou à téléverser. Les textes sont livrés en **anglais** (langue par défaut d
 l'application) et en **français**.
 
 Identifiant de l'application : `fr.vbrosseau.freshrssdiscover`
-Version des captures : construite depuis `v1.10.0-1-gb5d2c92` (`app-debug`)
+Version des captures : `v1.10.0-1-gb5d2c92` (`app-debug`) ; la capture 02 refaite depuis `v1.16.1-dirty` (`app-debug`, mode Immersif)
 
 ---
 

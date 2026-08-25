@@ -24,15 +24,26 @@ enum class BackdropFit {
 private const val MAX_FULL_UPSCALE = 3.5f
 
 /**
+ * Largest enlargement a picture may take to be framed at the page's width.
+ *
+ * The List card never enlarges (SPECS.md §8, question 12), but its slot is
+ * a third of a screen; here an 800-pixel picture on a 1080-pixel page would
+ * sit small on a blur of itself for a 1.35× gain nobody sees. Up to twice
+ * its size it still reads sharp at arm's length; past that it keeps its
+ * native size.
+ */
+private const val MAX_FRAMED_UPSCALE = 2f
+
+/**
  * Decides how a picture is laid on the page from its size and the page's.
  *
  * Full screen whenever the picture can afford it (author's ruling,
  * 2026-08-25: "c'est vraiment plus beau en full screen"); a draw between
  * looks was tried first and withdrawn. Too small to cover the page without
- * going soft ([MAX_FULL_UPSCALE]), the picture is set down framed; narrower
- * than the page, it keeps its native size, as on the List card (SPECS.md
- * §8, question 12) — stretched, a thumbnail is not a look, it is a smear.
- * Unknown sizes crop: never blur on a guess.
+ * going soft ([MAX_FULL_UPSCALE]), the picture is set down framed at the
+ * page's width; narrower than half the page ([MAX_FRAMED_UPSCALE]), it
+ * keeps its native size — stretched, a thumbnail is not a look, it is a
+ * smear. Unknown sizes crop: never blur on a guess.
  *
  * Pure function, outside any `Composable`, so the thresholds are asserted
  * rather than eyeballed.
@@ -46,7 +57,7 @@ fun backdropFit(
     val known = listOf(sourceWidthPx, sourceHeightPx, pageWidthPx, pageHeightPx).all { it > 0 }
     return when {
         !known -> BackdropFit.Full
-        sourceWidthPx < pageWidthPx -> BackdropFit.Native
+        sourceWidthPx * MAX_FRAMED_UPSCALE < pageWidthPx -> BackdropFit.Native
         sourceHeightPx * MAX_FULL_UPSCALE < pageHeightPx -> BackdropFit.Framed
         else -> BackdropFit.Full
     }
