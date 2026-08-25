@@ -1,7 +1,6 @@
-Swipe mode becomes Immersive.
+Immersive mode now reloads like a video feed.
 
-• One article filling the screen, the next one a flick upward away, like a short-video app.
-• The illustration as the backdrop, under a scrim that keeps the text readable; the title bar turns transparent.
-• Without a picture, every source gets its own colour and initial as a watermark.
-• Full screen whenever the picture allows; set down, rounded and shadowed otherwise.
-• Sharing on a rail at the right; a tap opens the article.
+• Pull down on the first article to reload.
+• Coming back after half an hour, or relaunching the app, starts the feed over with what is new.
+• Tap the Discover tab to return to the first article; tap again to reload.
+• The reload indicator comes down from the top of the screen.

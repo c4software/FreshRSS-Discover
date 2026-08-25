@@ -1,7 +1,6 @@
-Le mode Balayage devient Immersif.
+Le mode Immersif recharge comme un flux vidéo.
 
-• Un article qui remplit l'écran, le suivant d'un geste vers le haut, comme une appli de vidéos courtes.
-• L'illustration en fond, sous un voile qui garde le texte lisible ; la barre de titre passe en transparence.
-• Sans image, chaque source a sa couleur et son initiale en filigrane.
-• Plein écran dès que l'image le permet ; posée, arrondie et ombrée sinon.
-• Le partage sur un rail à droite ; l'appui ouvre l'article.
+• Tirez vers le bas sur le premier article pour recharger.
+• Au retour après une demi-heure, ou au relancement de l'app, le flux repart du début avec du neuf.
+• Appuyez sur l'onglet Discover pour revenir au premier article ; encore une fois pour recharger.
+• L'indicateur de rechargement descend du haut de l'écran.
