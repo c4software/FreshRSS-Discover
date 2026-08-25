@@ -254,7 +254,6 @@ fun ImmersiveScreen(
                 onArticleShare = onArticleShare,
                 modifier = Modifier.weight(1f),
                 pagerState = pagerState,
-                topInset = topInset,
                 onVisibilityChanged = onVisibilityChanged,
             )
 
@@ -335,7 +334,6 @@ private fun ImmersiveBody(
     // page state, out of sync with the one the screen passes to the
     // return-to-top.
     pagerState: PagerState,
-    topInset: Dp,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
@@ -351,7 +349,6 @@ private fun ImmersiveBody(
             onArticleShare = onArticleShare,
             modifier = modifier,
             pagerState = pagerState,
-            topInset = topInset,
             onVisibilityChanged = onVisibilityChanged,
         )
 
@@ -386,7 +383,6 @@ private fun ArticlePager(
     onArticleShare: (Long) -> Unit,
     // No default, as in `ImmersiveBody`: the state always comes from the screen.
     pagerState: PagerState,
-    topInset: Dp,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
@@ -420,9 +416,10 @@ private fun ArticlePager(
                 isRefreshing = uiState.isRefreshing,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = topInset),
+                // From the very top edge, under the transparent bar, not
+                // below it: the indicator belongs to the page, which runs
+                // under the bar too (author's ruling, 2026-08-25).
+                modifier = Modifier.align(Alignment.TopCenter),
             )
         },
     ) {
