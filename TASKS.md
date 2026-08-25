@@ -2680,6 +2680,11 @@ right, and the whole page opens the article on a tap.
       narrower than the page is no longer stretched: blurred copy behind,
       sharp original at native size above the text — the List card's recipe
       (`needsUpscaling`), reused
+- [x] `GOAL-038-T05c` Third device pass (2026-08-25): landscape pictures
+      cropped to the portrait page read as zoomed in. `backdropFit` (pure,
+      tested) now crops only a picture at least as tall as the page; a
+      wider one is shown whole at the page's width over its blurred copy,
+      and a narrower one at native size, centred
 - [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
       page at a time, the illustration parallax and the scale/fade feel
       right, the share rail is reachable with the thumb, the reload returns

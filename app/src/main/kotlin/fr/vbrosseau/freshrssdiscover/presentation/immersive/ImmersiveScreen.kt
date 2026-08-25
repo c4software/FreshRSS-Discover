@@ -22,7 +22,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -70,7 +70,6 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
-import fr.vbrosseau.freshrssdiscover.presentation.feed.needsUpscaling
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.flow.first
@@ -554,25 +553,31 @@ private fun Backdrop(
 
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
-    var pageWidthPx by remember { mutableIntStateOf(0) }
-    val sourceWidthPx = (state as? AsyncImagePainter.State.Success)?.result?.image?.width ?: 0
-    val tooSmall = supportsBlur && needsUpscaling(sourceWidthPx = sourceWidthPx, slotWidthPx = pageWidthPx)
+    var pageSize by remember { mutableStateOf(IntSize.Zero) }
+    val image = (state as? AsyncImagePainter.State.Success)?.result?.image
+    val fit = backdropFit(
+        sourceWidthPx = image?.width ?: 0,
+        sourceHeightPx = image?.height ?: 0,
+        pageWidthPx = pageSize.width,
+        pageHeightPx = pageSize.height,
+    )
+    val dressed = supportsBlur && fit != BackdropFit.Crop
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { pageWidthPx = it.width }
+            .onSizeChanged { pageSize = it }
             .graphicsLayer { translationY = translationYFraction * size.height }
             .testTag(ImmersiveTestTags.ILLUSTRATION),
     ) {
         /*
-         * Same recipe as the List card (SPECS.md §4.3, GOAL-016): a picture
-         * narrower than the page is not stretched. A blurred, cropped copy
-         * fills the page and carries its colours; the sharp original sits
-         * on it at native size. Stretched full screen, a 300-pixel
-         * thumbnail is not a backdrop, it is a smear.
+         * Same recipe as the List card (SPECS.md §4.3, GOAL-016) whenever
+         * the picture cannot fill the page without losing itself: a
+         * blurred, cropped copy fills the page and carries its colours; the
+         * sharp original sits on it, whole. Which pictures qualify is
+         * [backdropFit]'s decision.
          */
-        if (tooSmall) {
+        if (dressed) {
             Image(
                 painter = painter,
                 contentDescription = null,
@@ -587,9 +592,13 @@ private fun Backdrop(
         Image(
             painter = painter,
             contentDescription = null,
-            contentScale = if (tooSmall) ContentScale.Inside else ContentScale.Crop,
-            // Centred, by the author's ruling (2026-08-25): a small picture
-            // is the page's subject, and the scrim below keeps the text
+            contentScale = when {
+                !dressed -> ContentScale.Crop
+                fit == BackdropFit.Native -> ContentScale.Inside
+                else -> ContentScale.FillWidth
+            },
+            // Centred, by the author's ruling (2026-08-25): the picture is
+            // the page's subject, and the scrim below keeps the text
             // readable should the two meet.
             alignment = Alignment.Center,
             modifier = Modifier.fillMaxSize(),
