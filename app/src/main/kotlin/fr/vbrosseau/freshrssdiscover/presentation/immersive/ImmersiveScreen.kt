@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -159,6 +160,18 @@ private val MonogramOverhang = 72.dp
  */
 private val BLUR_RADIUS = 32.dp
 private const val BLUR_OVERSCAN = 1.1f
+
+/** Corners of a picture set down on the page: Material's medium radius, softer than a screenshot's edge. */
+private val PictureShape = RoundedCornerShape(12.dp)
+
+/**
+ * Dimming of the blurred copy behind a framed picture.
+ *
+ * Toward the theme background, not black: in the light theme a bright
+ * photograph's halo turned the top of the page white, and a dark veil there
+ * would have fought the theme instead of the halo.
+ */
+private const val BLUR_DIM_ALPHA = 0.35f
 
 /** Room left on each side of a tilted picture so its corners stay inside the page. */
 private val TiltInset = 20.dp
@@ -624,6 +637,14 @@ private fun Backdrop(
                     .scale(BLUR_OVERSCAN)
                     .blur(BLUR_RADIUS),
             )
+            // A blurred copy of a bright picture came out as a white halo
+            // (seen on device, 2026-08-25): dimmed, it recedes behind the
+            // sharp one instead of competing with it.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = BLUR_DIM_ALPHA)),
+            )
         }
 
         SharpPicture(painter = painter, fit = fit, dressed = dressed, articleId = articleId, sourceRatio = sourceRatio)
@@ -644,7 +665,6 @@ private fun SharpPicture(
     articleId: Long,
     sourceRatio: Float,
 ) {
-    val tilted = dressed && fit == BackdropFit.Tilted
     Image(
         painter = painter,
         contentDescription = null,
@@ -654,10 +674,11 @@ private fun SharpPicture(
             else -> ContentScale.FillWidth
         },
         alignment = Alignment.Center,
-        modifier = if (tilted) {
-            Modifier.tilted(articleId = articleId, sourceRatio = sourceRatio)
-        } else {
-            Modifier.fillMaxSize()
+        modifier = when {
+            dressed && fit == BackdropFit.Tilted ->
+                Modifier.setDown(tilt = tiltDegrees(articleId), sourceRatio = sourceRatio)
+            dressed && fit == BackdropFit.Framed -> Modifier.setDown(tilt = 0f, sourceRatio = sourceRatio)
+            else -> Modifier.fillMaxSize()
         },
     )
 }
@@ -672,7 +693,10 @@ private fun Modifier.crossfading(pageOffset: () -> Float): Modifier = graphicsLa
 }
 
 /**
- * A photograph set down on the page: inset, tilted and shadowed.
+ * A photograph set down on the page: inset, rounded, shadowed, and tilted
+ * or not. The framed and tilted looks are the same object, one of them
+ * straight (author's ruling, 2026-08-25): a full-width picture ending on a
+ * raw edge read as a band, not as a photograph.
  *
  * Sized to the picture, not to the page: a `graphicsLayer` casts its shadow
  * on its own bounds, and a page-sized layer drew a ghost rectangle of
@@ -680,15 +704,17 @@ private fun Modifier.crossfading(pageOffset: () -> Float): Modifier = graphicsLa
  * The inset is what gives the tilt room — a full-width picture rotated
  * would push its corners out of the page.
  */
-private fun Modifier.tilted(articleId: Long, sourceRatio: Float): Modifier = this
+private fun Modifier.setDown(tilt: Float, sourceRatio: Float): Modifier = this
     .fillMaxHeight()
     .wrapContentHeight(Alignment.CenterVertically)
     .padding(horizontal = TiltInset)
     .fillMaxWidth()
     .aspectRatio(sourceRatio)
     .graphicsLayer {
-        rotationZ = tiltDegrees(articleId)
+        rotationZ = tilt
         shadowElevation = TiltShadow.toPx()
+        shape = PictureShape
+        clip = true
     }
 
 /**

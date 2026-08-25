@@ -495,9 +495,10 @@ What this mode implies, and which is not neutral:
   looks, the first favoured three times out of five. Full: cropped to fill
   the page, kept only for a picture with enough pixels to cover it without going
   soft — a 16/9 banner of 720 pixels or more qualifies; a smaller
-  thumbnail is framed instead. Framed: shown whole at the page's
-  width, centred, over a blurred copy of itself. Tilted: shown whole,
-  leaning slightly left or right, with a shadow, on the source's tint. A
+  thumbnail is framed instead. Framed: the whole picture set down straight
+  on the page — inset, rounded, shadowed — over a dimmed blur of itself.
+  Tilted: the same object leaning slightly left or right, on the source's
+  tint. A
   picture narrower than the page keeps its own size on a blurred copy
   whatever the draw, as on the card (§8, question 12). The picture lags slightly behind the text during the flick — a
   parallax that says the scene is behind the words, not glued to them.

@@ -79,6 +79,28 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
+     * The framed look: the same object as the tilted one, straight — inset,
+     * rounded, shadowed — over a dimmed blur of itself. Id 1 draws it.
+     */
+    @Test
+    fun aFramedPictureOnItsDimmedBlur() {
+        capture("immersif-article-cadre") {
+            immersive(
+                ImmersiveUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 1L,
+                            title = "Une photographie posée droite sur la page",
+                            imageUrl = LOADABLE_IMAGE_URL,
+                        ),
+                    ),
+                    phase = DiscoverPhase.Idle,
+                ),
+            )
+        }
+    }
+
+    /**
      * Without an illustration, the screen starts with the text.
      *
      * Also the capture showing a long excerpt: it must end in an ellipsis at

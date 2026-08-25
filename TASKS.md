@@ -2703,6 +2703,10 @@ right, and the whole page opens the article on a tap.
       rule is now the crop's enlargement (`MAX_FULL_UPSCALE`, 3.5×): 1080p
       and 720p banners go full screen, a 480-pixel thumbnail is framed. `backdropFit` takes the
       picture's height and the page's, tested
+- [x] `GOAL-038-T07` (2026-08-25) The framed look read as a band with a
+      white halo: it is now the tilted object set down straight — inset,
+      rounded corners, shadow — over a blur dimmed toward the theme
+      background. Capture `immersif-article-cadre` added
 - [x] `GOAL-038-T05` Device pass on the author's Pixel (2026-08-25), five
       rounds, each closed by "parfait" or the next remark: snap, parallax
       in step with the finger, rail under the thumb, transparent bar,
