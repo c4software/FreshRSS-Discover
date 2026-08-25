@@ -42,11 +42,10 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: `GOAL-038-T05` — the immersive mode has only been seen in
-Roborazzi captures; the flick, the parallax and the rail want a thumb on the
-author's Pixel, then the store screenshot 02 is retaken. Also still waiting
-for the author: the device observation GOAL-035 left as debt (learned
-reminder hour, time picker, statistics screen).
+**Next task**: none is due. Owed to the store: the immersive-mode
+screenshot 02 (GOAL-038-T05). Still waiting for the author: the device
+observation GOAL-035 left as debt (learned reminder hour, time picker,
+statistics screen).
 
 > **The device came back, and it changed what this phase could prove.** It was
 > opened on the statement that no device was available, and it was closed with a
@@ -115,7 +114,7 @@ reminder hour, time picker, statistics screen).
 | GOAL-035 | The reminder aims at the dominant reading hour, and a stats screen shows it | `[x]` |
 | GOAL-036 | The reminder section reads as settings rows, not floating buttons | `[x]` |
 | GOAL-037 | A recap of the feed, generated on the device | `[x]` |
-| GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[-]` |
+| GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2624,9 +2623,9 @@ the download, with progress, before generating.
 
 ## GOAL-038 — Swipe mode becomes a full-screen vertical scroll, TikTok-style
 
-**Status: IN PROGRESS** — four tasks done, one commit each, full verification
-observed every time, Roborazzi references re-recorded and looked at. What
-remains is `GOAL-038-T05`, the device pass, which only the author can do.
+**Status: DONE** — shipped as v1.15.0 on 2026-08-25 after five device
+rounds on the author's Pixel; the store screenshot 02 is the one debt left
+(`GOAL-038-T05`).
 
 Asked by the author (2026-08-25): a TikTok-like mode — one article filling
 the screen, a vertical scroll that snaps one article per page — **replacing**
@@ -2697,13 +2696,13 @@ right, and the whole page opens the article on a tap.
       lambda read inside the `graphicsLayer` blocks, in the draw phase.
       Backdrops crossfade while the pages slide (`backdropAlpha` in the
       transform, tested); the source tint stays out of the moving layer
-- [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
-      page at a time, the illustration parallax and the scale/fade feel
-      right, the share rail is reachable with the thumb, the reload returns
-      to the first page, and the recap starts at the page on screen. Then
-      retake the store screenshot `02-feed-immersive.png` /
-      `02-flux-immersif.png` (`store/README.md` already names them; the
-      `*-swipe.png` files they replace still show the old mode)
+- [x] `GOAL-038-T05` Device pass on the author's Pixel (2026-08-25), five
+      rounds, each closed by "parfait" or the next remark: snap, parallax
+      in step with the finger, rail under the thumb, transparent bar,
+      source tint, layout variety, shadow bounds, missing-picture
+      fallback. **Still owed**: the store screenshot
+      `02-feed-immersive.png` / `02-flux-immersif.png` — `store/README.md`
+      names them, the `*-swipe.png` files still show the old mode
 
 ---
 

@@ -1,7 +1,7 @@
-Le résumé, sans quitter l'appareil.
+Le mode Balayage devient Immersif.
 
-• Un bouton Récap sur le fil : les articles affichés résumés un par un, par l'IA embarquée du téléphone. Rien ne sort d'ici.
-• Un brief qui raconte tout le fil en un paragraphe, chaque passage renvoyant à son article d'un appui.
-• Résumer les suivants, ou tout marquer lu, sans fermer la feuille.
-• Rappel à votre vraie heure : l'app apprend quand vous lisez, ou vous la fixez.
-• Nouvel écran de statistiques de lecture.
+• Un article qui remplit l'écran, le suivant d'un geste vers le haut, comme une appli de vidéos courtes.
+• L'illustration en fond, sous un voile qui garde le texte lisible ; la barre de titre passe en transparence.
+• Sans image, chaque source a sa couleur et son initiale en filigrane.
+• Des mises en page qui varient d'un article à l'autre : pleine, cadrée, ou photo posée de travers.
+• Le partage sur un rail à droite ; l'appui ouvre l'article.

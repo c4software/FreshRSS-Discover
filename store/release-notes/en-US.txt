@@ -1,7 +1,7 @@
-Summaries that never leave the device.
+Swipe mode becomes Immersive.
 
-• A Recap button on the feed: the articles on screen summarised one by one by the phone's on-device AI. Nothing leaves here.
-• A brief telling the whole feed in one paragraph, every passage one tap away from its article.
-• Summarise the next ones, or mark them all read, without closing the sheet.
-• Reminder at your real hour: the app learns when you read, or you set it.
-• A new reading statistics screen.
+• One article filling the screen, the next one a flick upward away, like a short-video app.
+• The illustration as the backdrop, under a scrim that keeps the text readable; the title bar turns transparent.
+• Without a picture, every source gets its own colour and initial as a watermark.
+• Layouts that vary from one article to the next: full, framed, or a photo set down at a tilt.
+• Sharing on a rail at the right; a tap opens the article.
