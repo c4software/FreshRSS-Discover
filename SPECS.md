@@ -489,19 +489,15 @@ What this mode implies, and which is not neutral:
   illustration stands on a **tint that belongs to its source** — a hue
   derived from the feed's name, so a source keeps its colour from one
   session to the next — with the source's initial as a watermark, rather
-  than on an empty page (§4.3). **The picture's layout varies from one article to
-  the next**, so the feed does not read as one long poster: drawn from the
-  article's identifier — stable, an article keeps its look — among three
-  looks, the first favoured three times out of five. Full: cropped to fill
-  the page, kept only for a picture with enough pixels to cover it without going
-  soft — a 16/9 banner of 720 pixels or more qualifies; a smaller
-  thumbnail is framed instead. Framed: the whole picture set down straight
-  on the page — inset, rounded, shadowed — over a dimmed blur of itself.
-  Tilted: the same object leaning slightly left or right, on the source's
-  tint. A
-  picture narrower than the page keeps its own size on a blurred copy
-  whatever the draw, as on the card (§8, question 12). The picture lags slightly behind the text during the flick — a
-  parallax that says the scene is behind the words, not glued to them.
+  than on an empty page (§4.3). **The picture goes full screen whenever it can afford
+  it** — cropped to fill the page, kept as long as the crop does not enlarge
+  it past 3.5× (a 16/9 banner of 720 pixels or more qualifies). A smaller
+  one is **framed**: set down whole at the page's width — inset, rounded,
+  shadowed — over a dimmed blur of itself; one narrower than the page keeps
+  its own size on the same blur, as on the card (§8, question 12). A draw
+  between several looks was tried on 2026-08-25 and withdrawn the same day:
+  full screen is simply better, and the framed look is for what cannot
+  bear it.
 - **The page does not scroll inside itself.** On a vertical pager, that
   gesture belongs to the pager. The excerpt is cut at a fixed number of lines
   with an ellipsis; what the page cannot show is in the article, one tap away

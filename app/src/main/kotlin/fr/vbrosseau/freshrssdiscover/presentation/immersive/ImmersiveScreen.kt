@@ -173,11 +173,11 @@ private val PictureShape = RoundedCornerShape(12.dp)
  */
 private const val BLUR_DIM_ALPHA = 0.35f
 
-/** Room left on each side of a tilted picture so its corners stay inside the page. */
-private val TiltInset = 20.dp
+/** Room left on each side of a framed picture: what makes it an object on the page rather than a band. */
+private val PictureInset = 20.dp
 
-/** Shadow under a tilted picture: an object on the backdrop, not a frame drawn on it. */
-private val TiltShadow = 12.dp
+/** Shadow under a framed picture: an object on the backdrop, not a frame drawn on it. */
+private val PictureShadow = 12.dp
 
 /** `Modifier.blur` only takes effect from Android 12 (API 31), as on the List card. */
 private val supportsBlur: Boolean
@@ -489,7 +489,6 @@ private fun ArticlePage(
     ) {
         if (article.hasIllustration) {
             Backdrop(
-                articleId = article.id,
                 feedTitle = article.feedTitle,
                 imageUrl = article.imageUrl,
                 pageOffset = pageOffset,
@@ -575,7 +574,6 @@ private fun SourceBackdrop(feedTitle: String, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun Backdrop(
-    articleId: Long,
     feedTitle: String,
     imageUrl: String?,
     pageOffset: () -> Float,
@@ -588,23 +586,20 @@ private fun Backdrop(
     var pageSize by remember { mutableStateOf(IntSize.Zero) }
     val sourceRatio = if (source != null && source.height > 0) source.width.toFloat() / source.height else 1f
     val fit = backdropFit(
-        articleId = articleId,
         sourceWidthPx = source?.width ?: 0,
         sourceHeightPx = source?.height ?: 0,
         pageWidthPx = pageSize.width,
         pageHeightPx = pageSize.height,
     )
     val dressed = supportsBlur && fit != BackdropFit.Full
-    val tilted = dressed && fit == BackdropFit.Tilted
 
     /*
-     * The tint stays outside the moving layer: it is the page, and the page
-     * does not lean or lag — only the photograph set down on it does
-     * (author's ruling, 2026-08-25). It also stands in while the picture
-     * is not there — still loading, or never coming: a page announcing an
-     * illustration it cannot show used to be plain black (seen on device).
+     * The tint stands in while the picture is not there — still loading, or
+     * never coming: a page announcing an illustration it cannot show used
+     * to be plain black (seen on device, 2026-08-25). Outside the moving
+     * layer: it is the page, and the page does not lag.
      */
-    if (tilted || source == null) SourceBackdrop(feedTitle = feedTitle, modifier = Modifier.crossfading(pageOffset))
+    if (source == null) SourceBackdrop(feedTitle = feedTitle, modifier = Modifier.crossfading(pageOffset))
 
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
@@ -623,11 +618,8 @@ private fun Backdrop(
          * Same recipe as the List card (SPECS.md §4.3, GOAL-016) whenever
          * the picture is shown whole: a blurred, cropped copy fills the
          * page and carries its colours; the sharp original sits on it.
-         * The tilted look stands on the source's tint instead: a
-         * photograph set down on a coloured page, not on a smear of
-         * itself. Which look an article gets is [backdropFit]'s draw.
          */
-        if (dressed && !tilted) {
+        if (dressed) {
             Image(
                 painter = painter,
                 contentDescription = null,
@@ -647,7 +639,7 @@ private fun Backdrop(
             )
         }
 
-        SharpPicture(painter = painter, fit = fit, dressed = dressed, articleId = articleId, sourceRatio = sourceRatio)
+        SharpPicture(painter = painter, fit = fit, dressed = dressed, sourceRatio = sourceRatio)
     }
 }
 
@@ -662,7 +654,6 @@ private fun SharpPicture(
     painter: AsyncImagePainter,
     fit: BackdropFit,
     dressed: Boolean,
-    articleId: Long,
     sourceRatio: Float,
 ) {
     Image(
@@ -674,11 +665,10 @@ private fun SharpPicture(
             else -> ContentScale.FillWidth
         },
         alignment = Alignment.Center,
-        modifier = when {
-            dressed && fit == BackdropFit.Tilted ->
-                Modifier.setDown(tilt = tiltDegrees(articleId), sourceRatio = sourceRatio)
-            dressed && fit == BackdropFit.Framed -> Modifier.setDown(tilt = 0f, sourceRatio = sourceRatio)
-            else -> Modifier.fillMaxSize()
+        modifier = if (dressed && fit == BackdropFit.Framed) {
+            Modifier.setDown(sourceRatio = sourceRatio)
+        } else {
+            Modifier.fillMaxSize()
         },
     )
 }
@@ -693,26 +683,22 @@ private fun Modifier.crossfading(pageOffset: () -> Float): Modifier = graphicsLa
 }
 
 /**
- * A photograph set down on the page: inset, rounded, shadowed, and tilted
- * or not. The framed and tilted looks are the same object, one of them
- * straight (author's ruling, 2026-08-25): a full-width picture ending on a
- * raw edge read as a band, not as a photograph.
+ * A photograph set down on the page: inset, rounded, shadowed.
  *
- * Sized to the picture, not to the page: a `graphicsLayer` casts its shadow
- * on its own bounds, and a page-sized layer drew a ghost rectangle of
- * shadow around a picture half its height — seen on device (2026-08-25).
- * The inset is what gives the tilt room — a full-width picture rotated
- * would push its corners out of the page.
+ * A full-width picture ending on a raw edge read as a band, not as a
+ * photograph (seen on device, 2026-08-25). Sized to the picture, not to
+ * the page: a `graphicsLayer` casts its shadow on its own bounds, and a
+ * page-sized layer drew a ghost rectangle of shadow around a picture half
+ * its height.
  */
-private fun Modifier.setDown(tilt: Float, sourceRatio: Float): Modifier = this
+private fun Modifier.setDown(sourceRatio: Float): Modifier = this
     .fillMaxHeight()
     .wrapContentHeight(Alignment.CenterVertically)
-    .padding(horizontal = TiltInset)
+    .padding(horizontal = PictureInset)
     .fillMaxWidth()
     .aspectRatio(sourceRatio)
     .graphicsLayer {
-        rotationZ = tilt
-        shadowElevation = TiltShadow.toPx()
+        shadowElevation = PictureShadow.toPx()
         shape = PictureShape
         clip = true
     }

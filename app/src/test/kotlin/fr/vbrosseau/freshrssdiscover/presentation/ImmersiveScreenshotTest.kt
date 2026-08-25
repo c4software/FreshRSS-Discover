@@ -6,6 +6,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.LOADABLE_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
+import fr.vbrosseau.freshrssdiscover.presentation.discover.SMALL_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.TINY_IMAGE_URL
 import fr.vbrosseau.freshrssdiscover.presentation.discover.installFakeImageLoader
 import fr.vbrosseau.freshrssdiscover.presentation.discover.resetImageLoader
@@ -56,31 +57,8 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * The tilted look, drawn by the article's id (SPECS.md §4.8): the
-     * picture set down on the source's tint, leaning one way, with its
-     * shadow. Id 4 is the one that draws it, and leans right.
-     */
-    @Test
-    fun aTiltedPictureOnItsSourceTint() {
-        capture("immersif-article-incline") {
-            immersive(
-                ImmersiveUiState(
-                    articles = listOf(
-                        sampleArticle(
-                            id = 4L,
-                            title = "Une photographie posée de travers sur la page",
-                            imageUrl = LOADABLE_IMAGE_URL,
-                        ),
-                    ),
-                    phase = DiscoverPhase.Idle,
-                ),
-            )
-        }
-    }
-
-    /**
-     * The framed look: the same object as the tilted one, straight — inset,
-     * rounded, shadowed — over a dimmed blur of itself. Id 1 draws it.
+     * The framed look, for a picture too small to go full screen: set down
+     * on the page — inset, rounded, shadowed — over a dimmed blur of itself.
      */
     @Test
     fun aFramedPictureOnItsDimmedBlur() {
@@ -91,7 +69,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
                         sampleArticle(
                             id = 1L,
                             title = "Une photographie posée droite sur la page",
-                            imageUrl = LOADABLE_IMAGE_URL,
+                            imageUrl = SMALL_IMAGE_URL,
                         ),
                     ),
                     phase = DiscoverPhase.Idle,

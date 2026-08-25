@@ -35,6 +35,18 @@ const val PENDING_IMAGE_URL = "https://exemple.org/interminable.jpg"
  */
 const val TINY_IMAGE_URL = "https://exemple.org/minuscule.jpg"
 
+/**
+ * URL whose image is as wide as any page but too short to fill one.
+ *
+ * The immersive page's framed case (SPECS.md §4.8): wide enough not to be
+ * a thumbnail, too few rows to be cropped full screen without going soft.
+ */
+const val SMALL_IMAGE_URL = "https://exemple.org/petite.jpg"
+
+/** Sides of the small fake image: a wide, short banner. */
+private const val SMALL_ILLUSTRATION_WIDTH = 2000
+private const val SMALL_ILLUSTRATION_HEIGHT = 400
+
 /** Fake image color: bold, to spot it on a capture. */
 private val FakeIllustrationColor = Color.rgb(0x2E, 0x5A, 0x8C)
 
@@ -96,9 +108,15 @@ fun installFakeImageLoader() {
         height = FAKE_ILLUSTRATION_SIDE,
     )
     val tiny = tinyTwoToneImage()
+    val small = ColorImage(
+        color = FakeIllustrationColor,
+        width = SMALL_ILLUSTRATION_WIDTH,
+        height = SMALL_ILLUSTRATION_HEIGHT,
+    )
     val engine = FakeImageLoaderEngine.Builder()
         .intercept({ it.toString() == LOADABLE_IMAGE_URL }, illustration)
         .intercept({ it.toString() == TINY_IMAGE_URL }, tiny)
+        .intercept({ it.toString() == SMALL_IMAGE_URL }, small)
         .intercept({ it.toString() == PENDING_IMAGE_URL }) { awaitCancellation() }
         .default(
             Interceptor { chain ->
