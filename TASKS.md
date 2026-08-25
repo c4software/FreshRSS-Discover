@@ -2752,12 +2752,12 @@ changes**; the List keeps its behaviour.
 - [x] `GOAL-039-T01` Pull-to-refresh on the first page: the pager wrapped in
       a `PullToRefreshBox`; a pull on page 1 reloads, a pull on page 2 goes
       back to page 1 — both observed by screen tests
-- [-] `GOAL-039-T02` Automatic reload: a pure domain rule (`foregroundReload`)
+- [x] `GOAL-039-T02` Automatic reload: a pure domain rule (`foregroundReload`)
       says whether a foregrounding reloads — first one ever, or 30 minutes
       after the last backgrounding — with the ViewModel recording the
       backgrounding instant through `Clock`; the route reports both
       lifecycle edges. Domain and ViewModel tests
-- [ ] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
+- [-] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
       when already there — `rememberReturnToFirstPageThenRefresh`, tested
       like the List's counterpart
 - [ ] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1

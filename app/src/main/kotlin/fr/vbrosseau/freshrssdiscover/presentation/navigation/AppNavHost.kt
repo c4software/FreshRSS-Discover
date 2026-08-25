@@ -256,7 +256,7 @@ private fun ImmersiveRoute(
         onReselect = viewModel::refresh,
     )
 
-    AskTheServerWhenShownEmpty(viewModel::onScreenShown)
+    ReportForeground(onForeground = viewModel::onForeground, onBackground = viewModel::onBackground)
 
     FeedEventToasts(viewModel.events)
 
@@ -329,6 +329,19 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
     LifecycleResumeEffect(onScreenShown) {
         onScreenShown()
         onPauseOrDispose { }
+    }
+}
+
+/**
+ * Both lifecycle edges, for the immersive feed (GOAL-039-T02): it decides
+ * on its own whether a foregrounding reloads, and needs the backgrounding
+ * instant to do so. Same `RESUMED` reasoning as [AskTheServerWhenShownEmpty].
+ */
+@Composable
+private fun ReportForeground(onForeground: () -> Unit, onBackground: () -> Unit) {
+    LifecycleResumeEffect(onForeground, onBackground) {
+        onForeground()
+        onPauseOrDispose { onBackground() }
     }
 }
 

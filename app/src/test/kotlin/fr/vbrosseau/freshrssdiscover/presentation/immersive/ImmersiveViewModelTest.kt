@@ -46,6 +46,9 @@ private const val SIX_HOURS_MILLIS = 6L * ONE_HOUR_MILLIS
 private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
 
 @OptIn(ExperimentalCoroutinesApi::class)
+/** One minute, for the absences the foreground rule measures. */
+private const val ONE_MINUTE_MILLIS = 60_000L
+
 class ImmersiveViewModelTest {
     /** Kept as a field: the staleness cases advance its virtual scheduler. */
     private val dispatcher = UnconfinedTestDispatcher()
@@ -139,6 +142,64 @@ class ImmersiveViewModelTest {
         viewModel.refresh()
 
         assertTrue(state.articles.single().excerpt.length > EXCERPT_LENGTH_OF_A_CARD)
+    }
+
+    // ----- Coming back reloads (GOAL-039-T02) ---------------------------------
+
+    @Test
+    fun theFirstShowingIsAColdStartAndReloads() {
+        // The app was killed: the feed opens on what is new, not on the
+        // cache the List would quietly show (SPECS.md §5.1, exception owned
+        // by the immersive mode).
+        repository.enqueuePage(listOf(article(id = 1L)))
+        viewModel.onForeground()
+
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun aQuickSwitchToAnotherAppKeepsTheFeed() {
+        // Two pages: the bootstrap takes the first, the cold-start reload
+        // the second; a reload landing on an empty feed would ask again.
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.onForeground()
+        viewModel.onBackground()
+        clock.advanceBy(5 * ONE_MINUTE_MILLIS)
+
+        viewModel.onForeground()
+
+        assertEquals(1, repository.refreshCallCount)
+    }
+
+    @Test
+    fun comingBackAfterHalfAnHourReloads() {
+        // Two pages: the bootstrap takes the first, the cold-start reload
+        // the second; a reload landing on an empty feed would ask again.
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.onForeground()
+        viewModel.onBackground()
+        clock.advanceBy(30 * ONE_MINUTE_MILLIS)
+
+        viewModel.onForeground()
+
+        assertEquals(2, repository.refreshCallCount)
+    }
+
+    @Test
+    fun aSecondShowingWithoutAnyAbsenceReloadsNothing() {
+        // A dialog dismissed, a permission prompt: the screen resumes
+        // without ever having been backgrounded by the user.
+        // Two pages: the bootstrap takes the first, the cold-start reload
+        // the second; a reload landing on an empty feed would ask again.
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.onForeground()
+
+        viewModel.onForeground()
+
+        assertEquals(1, repository.refreshCallCount)
     }
 
     // ----- Prefetch and end of feed -------------------------------------------
