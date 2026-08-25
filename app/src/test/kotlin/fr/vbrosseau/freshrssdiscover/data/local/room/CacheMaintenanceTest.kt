@@ -8,9 +8,9 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheStatus
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -58,6 +58,16 @@ class CacheMaintenanceTest {
     private fun TestScope.maintenance() = CacheMaintenance(cache, this)
 
     /**
+     * Waits for the purge actually launched, not for the virtual scheduler:
+     * the Room query hops to a real thread, which `advanceUntilIdle` does not
+     * follow, and on a slow machine the assertion ran before the deletion
+     * (seen on CI, v1.16.1).
+     */
+    private suspend fun TestScope.awaitPurge() {
+        coroutineContext[Job]?.children?.forEach { it.join() }
+    }
+
+    /**
      * The ids still in the database, read articles included.
      *
      * The cache flow only returns unread articles (what the screen shows),
@@ -73,7 +83,7 @@ class CacheMaintenanceTest {
         clock.advanceBy(BEYOND_MAX_AGE.inWholeMilliseconds)
 
         maintenance().purgeExpiredInBackground()
-        advanceUntilIdle()
+        awaitPurge()
 
         assertTrue(cachedIds().isEmpty())
     }
@@ -84,7 +94,7 @@ class CacheMaintenanceTest {
         clock.advanceBy(CacheRepository.MaxAge.inWholeMilliseconds - 1)
 
         maintenance().purgeExpiredInBackground()
-        advanceUntilIdle()
+        awaitPurge()
 
         assertEquals(listOf(1L), cachedIds())
     }
@@ -96,7 +106,7 @@ class CacheMaintenanceTest {
         clock.advanceBy(365.days.inWholeMilliseconds)
 
         maintenance().purgeExpiredInBackground()
-        advanceUntilIdle()
+        awaitPurge()
 
         assertEquals(listOf(1L), cachedIds())
     }
@@ -112,7 +122,7 @@ class CacheMaintenanceTest {
         clock.advanceBy(365.days.inWholeMilliseconds)
 
         maintenance().purgeExpiredInBackground()
-        advanceUntilIdle()
+        awaitPurge()
 
         assertEquals(listOf(1L), cachedIds())
     }
@@ -125,7 +135,7 @@ class CacheMaintenanceTest {
         queue.acknowledge(listOf(ArticleId(1L)))
 
         maintenance().purgeExpiredInBackground()
-        advanceUntilIdle()
+        awaitPurge()
 
         assertTrue(cachedIds().isEmpty())
     }
