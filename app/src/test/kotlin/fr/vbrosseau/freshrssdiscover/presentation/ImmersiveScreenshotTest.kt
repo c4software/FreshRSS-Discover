@@ -56,6 +56,29 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
+     * The tilted look, drawn by the article's id (SPECS.md §4.8): the
+     * picture set down on the source's tint, leaning one way, with its
+     * shadow. Id 2 is the one that draws it, and leans right.
+     */
+    @Test
+    fun aTiltedPictureOnItsSourceTint() {
+        capture("immersif-article-incline") {
+            immersive(
+                ImmersiveUiState(
+                    articles = listOf(
+                        sampleArticle(
+                            id = 2L,
+                            title = "Une photographie posée de travers sur la page",
+                            imageUrl = LOADABLE_IMAGE_URL,
+                        ),
+                    ),
+                    phase = DiscoverPhase.Idle,
+                ),
+            )
+        }
+    }
+
+    /**
      * Without an illustration, the screen starts with the text.
      *
      * Also the capture showing a long excerpt: it must end in an ellipsis at

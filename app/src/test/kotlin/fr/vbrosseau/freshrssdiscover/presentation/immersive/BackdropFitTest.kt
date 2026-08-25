@@ -2,37 +2,49 @@ package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
-/** A 1080 × 2340 page: the author's Pixel. */
+/** A 1080-pixel-wide page: the author's Pixel. */
 private const val PAGE_W = 1080
-private const val PAGE_H = 2340
 
 class BackdropFitTest {
 
     @Test
-    fun aLandscapePhotographIsShownWholeAtThePageWidth() {
-        // The device defect: cropped to portrait, a 16/9 banner lost two
-        // thirds of its width and read as zoomed in.
-        assertEquals(BackdropFit.FitWidth, backdropFit(1920, 1080, PAGE_W, PAGE_H))
+    fun anArticleAlwaysGetsTheSameLayout() {
+        // The look is part of the article: it must not change between two
+        // sessions, nor between two recompositions.
+        assertEquals(backdropFit(42L, 1920, PAGE_W), backdropFit(42L, 1920, PAGE_W))
     }
 
     @Test
-    fun aPortraitPhotographAtLeastAsTallAsThePageIsCropped() {
-        assertEquals(BackdropFit.Crop, backdropFit(1080, 2400, PAGE_W, PAGE_H))
-        // Exactly the page's ratio: nothing to crop, cropping is harmless.
-        assertEquals(BackdropFit.Crop, backdropFit(PAGE_W, PAGE_H, PAGE_W, PAGE_H))
+    fun consecutiveArticlesGetDifferentLayouts() {
+        // The point of the draw (author's ruling, 2026-08-25): variety.
+        val looks = (1L..3L).map { backdropFit(it, 1920, PAGE_W) }.toSet()
+
+        assertEquals(setOf(BackdropFit.Full, BackdropFit.Framed, BackdropFit.Tilted), looks)
     }
 
     @Test
-    fun aPictureNarrowerThanThePageKeepsItsOwnSize() {
-        // The List card's rule (SPECS.md §8, question 12), whatever the ratio.
-        assertEquals(BackdropFit.Native, backdropFit(300, 900, PAGE_W, PAGE_H))
-        assertEquals(BackdropFit.Native, backdropFit(600, 200, PAGE_W, PAGE_H))
+    fun aNegativeIdStillDrawsALayoutRatherThanCrashing() {
+        assertTrue(backdropFit(-7L, 1920, PAGE_W) != BackdropFit.Native)
     }
 
     @Test
-    fun unknownSizesCropRatherThanGuess() {
-        assertEquals(BackdropFit.Crop, backdropFit(0, 0, PAGE_W, PAGE_H))
-        assertEquals(BackdropFit.Crop, backdropFit(1920, 1080, 0, 0))
+    fun aPictureNarrowerThanThePageKeepsItsOwnSizeWhateverTheDraw() {
+        // The List card's rule (SPECS.md §8, question 12).
+        (1L..3L).forEach { id -> assertEquals(BackdropFit.Native, backdropFit(id, 300, PAGE_W), "article $id") }
+    }
+
+    @Test
+    fun unknownSizesFillThePageRatherThanGuess() {
+        assertEquals(BackdropFit.Full, backdropFit(2L, 0, PAGE_W))
+        assertEquals(BackdropFit.Full, backdropFit(2L, 1920, 0))
+    }
+
+    @Test
+    fun neighboursLeanOppositeWays() {
+        assertNotEquals(tiltDegrees(1L), tiltDegrees(2L))
+        assertEquals(-tiltDegrees(1L), tiltDegrees(2L))
     }
 }

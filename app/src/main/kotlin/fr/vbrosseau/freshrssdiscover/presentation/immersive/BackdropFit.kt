@@ -2,48 +2,54 @@ package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 /** How the illustration is laid on a full-screen page (SPECS.md §4.8). */
 enum class BackdropFit {
-    /** Cropped to fill the page: only for a picture at least as tall, proportionally, as the page. */
-    Crop,
+    /** Cropped to fill the page. */
+    Full,
 
     /** Shown whole at the page's width, over a blurred copy that fills the rest. */
-    FitWidth,
+    Framed,
+
+    /** Shown whole, slightly tilted with a shadow, over a blurred copy. */
+    Tilted,
 
     /** Shown at its own size, over a blurred copy: the picture is narrower than the page. */
     Native,
 }
 
+/** Number of layouts an article can draw among, [BackdropFit.Native] excluded. */
+private const val VARIANT_COUNT = 3
+
 /**
- * Decides how a picture is laid on the page from its size and the page's.
+ * Decides how a picture is laid on the page.
  *
- * Cropping a landscape photograph to a portrait page throws away most of
- * its width, and what remains reads as zoomed in — the defect observed on
- * device on 2026-08-25. So a picture is cropped only when its aspect ratio
- * is at least as tall as the page's, where the crop takes height alone; a
- * wider one is shown whole at the page's width, on a blurred copy of
- * itself that dresses the bands. A picture narrower than the page keeps its
- * native size, as on the List card (SPECS.md §8, question 12).
+ * Variety is the point (author's ruling, 2026-08-25): a feed where every
+ * page crops its picture the same way reads as one long poster. So the
+ * layout is drawn from the **article's id** — stable, so an article keeps
+ * its look from one session to the next, and evenly spread, so three
+ * consecutive articles rarely share it. The draw ignores the picture's
+ * shape on purpose: a landscape banner cropped full screen loses width and
+ * reads as zoomed in, and that is one of the looks, not a defect to avoid.
  *
- * Pure function, outside any `Composable`, so the three cases are asserted
- * rather than eyeballed.
+ * One exception: a picture narrower than the page keeps its native size, as
+ * on the List card (SPECS.md §8, question 12) — stretched, a thumbnail is
+ * not a look, it is a smear. Unknown sizes crop: never blur on a guess.
  *
- * @param sourceWidthPx width of the received image; zero while loading.
- * @param sourceHeightPx height of the received image; zero while loading.
- * @param pageWidthPx measured page width, in screen pixels.
- * @param pageHeightPx measured page height, in screen pixels.
+ * Pure function, outside any `Composable`, so the draw and the exception
+ * are asserted rather than eyeballed.
  */
-fun backdropFit(
-    sourceWidthPx: Int,
-    sourceHeightPx: Int,
-    pageWidthPx: Int,
-    pageHeightPx: Int,
-): BackdropFit {
-    // Unknown sizes crop: never blur on a guess, and the crop is what the
-    // page shows anyway until the image arrives.
-    val known = listOf(sourceWidthPx, sourceHeightPx, pageWidthPx, pageHeightPx).all { it > 0 }
+fun backdropFit(articleId: Long, sourceWidthPx: Int, pageWidthPx: Int): BackdropFit {
+    val known = sourceWidthPx > 0 && pageWidthPx > 0
     return when {
-        !known -> BackdropFit.Crop
+        !known -> BackdropFit.Full
         sourceWidthPx < pageWidthPx -> BackdropFit.Native
-        sourceWidthPx.toFloat() / sourceHeightPx <= pageWidthPx.toFloat() / pageHeightPx -> BackdropFit.Crop
-        else -> BackdropFit.FitWidth
+        else -> BackdropFit.entries[Math.floorMod(articleId, VARIANT_COUNT.toLong()).toInt()]
     }
 }
+
+/**
+ * Tilt of a [BackdropFit.Tilted] picture, in degrees, signed by the article
+ * so neighbours lean opposite ways.
+ */
+fun tiltDegrees(articleId: Long): Float = if (articleId % 2 == 0L) TILT_DEGREES else -TILT_DEGREES
+
+/** Small enough to read as a photograph set down, not as a rendering error. */
+private const val TILT_DEGREES = 3f

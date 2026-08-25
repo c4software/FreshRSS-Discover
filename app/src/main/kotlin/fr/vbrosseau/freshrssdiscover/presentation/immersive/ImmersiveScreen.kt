@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -156,6 +156,12 @@ private val MonogramOverhang = 72.dp
  */
 private val BLUR_RADIUS = 32.dp
 private const val BLUR_OVERSCAN = 1.1f
+
+/** Room left on each side of a tilted picture so its corners stay inside the page. */
+private val TiltInset = 20.dp
+
+/** Shadow under a tilted picture: an object on the backdrop, not a frame drawn on it. */
+private val TiltShadow = 12.dp
 
 /** `Modifier.blur` only takes effect from Android 12 (API 31), as on the List card. */
 private val supportsBlur: Boolean
@@ -464,7 +470,12 @@ private fun ArticlePage(
         if (!article.hasIllustration) SourceBackdrop(feedTitle = article.feedTitle)
 
         if (article.hasIllustration) {
-            Backdrop(imageUrl = article.imageUrl, translationYFraction = transform.backdropTranslationYFraction)
+            Backdrop(
+                articleId = article.id,
+                feedTitle = article.feedTitle,
+                imageUrl = article.imageUrl,
+                translationYFraction = transform.backdropTranslationYFraction,
+            )
         }
 
         Scrim()
@@ -544,6 +555,8 @@ private fun SourceBackdrop(feedTitle: String, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun Backdrop(
+    articleId: Long,
+    feedTitle: String,
     imageUrl: String?,
     translationYFraction: Float,
     modifier: Modifier = Modifier,
@@ -553,31 +566,31 @@ private fun Backdrop(
 
     if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
-    var pageSize by remember { mutableStateOf(IntSize.Zero) }
-    val image = (state as? AsyncImagePainter.State.Success)?.result?.image
-    val fit = backdropFit(
-        sourceWidthPx = image?.width ?: 0,
-        sourceHeightPx = image?.height ?: 0,
-        pageWidthPx = pageSize.width,
-        pageHeightPx = pageSize.height,
-    )
-    val dressed = supportsBlur && fit != BackdropFit.Crop
+    var pageWidthPx by remember { mutableIntStateOf(0) }
+    val sourceWidthPx = (state as? AsyncImagePainter.State.Success)?.result?.image?.width ?: 0
+    val fit = backdropFit(articleId = articleId, sourceWidthPx = sourceWidthPx, pageWidthPx = pageWidthPx)
+    val dressed = supportsBlur && fit != BackdropFit.Full
+    val tilted = dressed && fit == BackdropFit.Tilted
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { pageSize = it }
+            .onSizeChanged { pageWidthPx = it.width }
             .graphicsLayer { translationY = translationYFraction * size.height }
             .testTag(ImmersiveTestTags.ILLUSTRATION),
     ) {
         /*
          * Same recipe as the List card (SPECS.md §4.3, GOAL-016) whenever
-         * the picture cannot fill the page without losing itself: a
-         * blurred, cropped copy fills the page and carries its colours; the
-         * sharp original sits on it, whole. Which pictures qualify is
-         * [backdropFit]'s decision.
+         * the picture is shown whole: a blurred, cropped copy fills the
+         * page and carries its colours; the sharp original sits on it.
+         * The tilted look stands on the source's tint instead (author's
+         * ruling, 2026-08-25): a photograph set down on a coloured page,
+         * not on a smear of itself. Which look an article gets is
+         * [backdropFit]'s draw.
          */
-        if (dressed) {
+        if (tilted) SourceBackdrop(feedTitle = feedTitle)
+
+        if (dressed && !tilted) {
             Image(
                 painter = painter,
                 contentDescription = null,
@@ -601,10 +614,26 @@ private fun Backdrop(
             // the page's subject, and the scrim below keeps the text
             // readable should the two meet.
             alignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (tilted) Modifier.tilted(articleId) else Modifier),
         )
     }
 }
+
+/**
+ * A photograph set down on the page: inset, tilted and shadowed.
+ *
+ * The inset is what gives the tilt room — a full-width picture rotated
+ * would push its corners out of the page. The shadow is what makes it an
+ * object on the blurred backdrop rather than a rendering glitch.
+ */
+private fun Modifier.tilted(articleId: Long): Modifier = this
+    .padding(horizontal = TiltInset)
+    .graphicsLayer {
+        rotationZ = tiltDegrees(articleId)
+        shadowElevation = TiltShadow.toPx()
+    }
 
 /**
  * Gradient from nothing to the theme background, over the lower part of the

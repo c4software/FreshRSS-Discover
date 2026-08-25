@@ -2685,6 +2685,13 @@ right, and the whole page opens the article on a tap.
       tested) now crops only a picture at least as tall as the page; a
       wider one is shown whole at the page's width over its blurred copy,
       and a narrower one at native size, centred
+- [x] `GOAL-038-T05d` Author's ruling (2026-08-25): the feed wants
+      **variety**, not one right crop. `backdropFit` now draws the look from
+      the article's id — Full (cropped), Framed (whole, page-wide, on its
+      blurred copy), Tilted (whole, leaning left or right by id, shadowed,
+      on the source's tint) — stable per article; a picture narrower than
+      the page keeps its native size whatever the draw. Capture
+      `immersif-article-incline` added
 - [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
       page at a time, the illustration parallax and the scale/fade feel
       right, the share rail is reachable with the thumb, the reload returns

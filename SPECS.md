@@ -489,11 +489,14 @@ What this mode implies, and which is not neutral:
   illustration stands on a **tint that belongs to its source** — a hue
   derived from the feed's name, so a source keeps its colour from one
   session to the next — with the source's initial as a watermark, rather
-  than on an empty page (§4.3). A picture is cropped to the page only when it
-  is at least as tall as the page, proportionally — the crop then costs
-  height alone. A wider one is shown whole at the page's width, centred,
-  over a blurred copy of itself; one narrower than the page keeps its own
-  size on the same blurred copy, as on the card (§8, question 12). The picture lags slightly behind the text during the flick — a
+  than on an empty page (§4.3). **The picture's layout varies from one article to
+  the next**, so the feed does not read as one long poster: drawn from the
+  article's identifier — stable, an article keeps its look — among three
+  looks. Full: cropped to fill the page. Framed: shown whole at the page's
+  width, centred, over a blurred copy of itself. Tilted: shown whole,
+  leaning slightly left or right, with a shadow, on the source's tint. A
+  picture narrower than the page keeps its own size on a blurred copy
+  whatever the draw, as on the card (§8, question 12). The picture lags slightly behind the text during the flick — a
   parallax that says the scene is behind the words, not glued to them.
 - **The page does not scroll inside itself.** On a vertical pager, that
   gesture belongs to the pager. The excerpt is cut at a fixed number of lines
