@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -249,11 +250,12 @@ private fun ImmersiveRoute(
     val articleOpener = rememberArticleOpener()
     val articleSharer = rememberArticleSharer()
 
-    // No list to scroll back in this mode: reselecting the tab goes straight
-    // to the reload, which already returns to the first page (SPECS.md §4.6).
     PublishFeedReselect(
         onFeedReselectChange = onFeedReselectChange,
-        onReselect = viewModel::refresh,
+        onReselect = rememberReturnToFirstPageThenRefresh(
+            pagerState = pagerState,
+            onRefresh = viewModel::refresh,
+        ),
     )
 
     ReportForeground(onForeground = viewModel::onForeground, onBackground = viewModel::onBackground)
@@ -304,6 +306,37 @@ internal fun PublishFeedFillsScreen(onFeedFillsScreenChange: (Boolean) -> Unit) 
     DisposableEffect(onFeedFillsScreenChange) {
         onFeedFillsScreenChange(true)
         onDispose { onFeedFillsScreenChange(false) }
+    }
+}
+
+/**
+ * The immersive reaction to a tab reselection: back to the first page, or
+ * reload when already there (GOAL-039-T03).
+ *
+ * Unlike the List, the tap on the first page is not inert: the author's
+ * ruling (2026-08-25) follows the short-video convention, where tapping the
+ * home tab on the first item fetches a fresh feed. Two intentions, two taps:
+ * the first brings the reader back, the second asks for something new.
+ *
+ * Sequenced like the List's: `animateScrollToPage` suspends until the pager
+ * has settled, and the reload is only ever asked on a settled first page.
+ * Remembered so [PublishFeedReselect] keys on a stable callback.
+ */
+@Composable
+internal fun rememberReturnToFirstPageThenRefresh(
+    pagerState: PagerState,
+    onRefresh: () -> Unit,
+): () -> Unit {
+    val scope = rememberCoroutineScope()
+
+    return remember<() -> Unit>(scope, pagerState, onRefresh) {
+        {
+            if (pagerState.settledPage == 0 && !pagerState.isScrollInProgress) {
+                onRefresh()
+            } else {
+                scope.launch { pagerState.animateScrollToPage(0) }
+            }
+        }
     }
 }
 

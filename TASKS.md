@@ -2757,10 +2757,10 @@ changes**; the List keeps its behaviour.
       after the last backgrounding — with the ViewModel recording the
       backgrounding instant through `Clock`; the route reports both
       lifecycle edges. Domain and ViewModel tests
-- [-] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
+- [x] `GOAL-039-T03` Tab re-tap: animate back to the first page, or reload
       when already there — `rememberReturnToFirstPageThenRefresh`, tested
       like the List's counterpart
-- [ ] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
+- [-] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
       exception; closure of this Goal in TASKS.md
 
 ---
