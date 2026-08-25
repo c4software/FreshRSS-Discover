@@ -2666,6 +2666,12 @@ right, and the whole page opens the article on a tap.
 - [x] `GOAL-038-T04` Documentation: SPECS.md §4.5, §4.6, §4.7, §4.8, §6,
       §7.1 and §8 question 8; ARCHITECTURE.md §9 package map and §9.1;
       README and store listing; closure of this Goal in TASKS.md
+- [x] `GOAL-038-T05a` First device pass (2026-08-25, "presque parfait"):
+      the immersive pages now run **under the title bar**, which turns
+      transparent over them — the route publishes the claim
+      (`PublishFeedFillsScreen`), the scaffold drops the bar's container and
+      the top inset, the page draws a top scrim so the title stays legible.
+      The bottom bar is left as it was, pending the author's call
 - [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
       page at a time, the illustration parallax and the scale/fade feel
       right, the share rail is reachable with the thumb, the reload returns

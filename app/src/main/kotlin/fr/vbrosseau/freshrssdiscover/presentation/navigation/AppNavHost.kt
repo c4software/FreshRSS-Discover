@@ -1,5 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -11,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +40,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.launch
 
 /**
@@ -50,9 +54,11 @@ import kotlinx.coroutines.launch
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    contentPadding: PaddingValues = PaddingValues(),
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedRecapChange: (FeedRecap?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
+    onFeedFillsScreenChange: (Boolean) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -93,12 +99,19 @@ fun AppNavHost(
 
             when (presentation) {
                 FeedPresentation.List -> DiscoverRoute(
+                    modifier = Modifier.padding(contentPadding),
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
                     onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
                 )
 
+                // Under the top bar, not below it: the page is a picture,
+                // and the bar turns transparent over it (SPECS.md §4.8).
+                // The bottom bar keeps its room — it is opaque.
                 FeedPresentation.Immersive -> ImmersiveRoute(
+                    modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()),
+                    topInset = contentPadding.calculateTopPadding(),
+                    onFeedFillsScreenChange = onFeedFillsScreenChange,
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
                     onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
@@ -107,13 +120,16 @@ fun AppNavHost(
         }
 
         composable(AppRoutes.SETTINGS) {
-            SettingsRoute(onOpenStats = { navController.navigate(AppRoutes.STATS) })
+            SettingsRoute(
+                onOpenStats = { navController.navigate(AppRoutes.STATS) },
+                modifier = Modifier.padding(contentPadding),
+            )
         }
 
         // Below the bar's destinations: reached from the settings, left with
         // back. The bar stays visible — the screen is a detail, not a modal.
         composable(AppRoutes.STATS) {
-            StatsRoute()
+            StatsRoute(modifier = Modifier.padding(contentPadding))
         }
     }
 }
@@ -215,6 +231,8 @@ private fun DiscoverRoute(
 @Composable
 private fun ImmersiveRoute(
     modifier: Modifier = Modifier,
+    topInset: Dp = Spacing.none,
+    onFeedFillsScreenChange: (Boolean) -> Unit = {},
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
     onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
@@ -222,6 +240,8 @@ private fun ImmersiveRoute(
     val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { uiState.pageCount }
+
+    PublishFeedFillsScreen(onFeedFillsScreenChange)
 
     // The settled page, not the current one: mid-flick the recap must not
     // jump ahead to an article the finger may bring back.
@@ -265,8 +285,26 @@ private fun ImmersiveRoute(
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
         pagerState = pagerState,
         onVisibilityChanged = viewModel::onVisibilityChanged,
+        topInset = topInset,
         modifier = modifier,
     )
+}
+
+/**
+ * Tells the scaffold that the displayed feed wants the whole screen, top bar
+ * included (SPECS.md §4.8).
+ *
+ * `DisposableEffect`, like [PublishFeedRefresh] and for the same reason:
+ * withdrawal matters as much as publication. Leaving the immersive feed for
+ * the settings, or switching to the List, must give the bar its background
+ * back at once.
+ */
+@Composable
+internal fun PublishFeedFillsScreen(onFeedFillsScreenChange: (Boolean) -> Unit) {
+    DisposableEffect(onFeedFillsScreenChange) {
+        onFeedFillsScreenChange(true)
+        onDispose { onFeedFillsScreenChange(false) }
+    }
 }
 
 /**

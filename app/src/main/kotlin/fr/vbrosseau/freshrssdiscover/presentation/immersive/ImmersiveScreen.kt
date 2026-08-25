@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -116,6 +117,25 @@ private const val SCRIM_START = 0.35f
 private const val SCRIM_END_ALPHA = 0.92f
 
 /**
+ * Where the top scrim has fully faded out, as a fraction of the page height.
+ *
+ * The title bar sits transparent over the page (SPECS.md §4.8): the picture
+ * runs under it, and this gradient is what keeps the title and its actions
+ * legible on any photograph. It ends well above the middle so the picture
+ * is not dimmed twice.
+ */
+private const val TOP_SCRIM_END = 0.22f
+
+/**
+ * Opacity of the top scrim at the very edge.
+ *
+ * Lighter than the bottom one: a bar title is short and bold, while the
+ * excerpt below is body text; the picture deserves to show through more
+ * here.
+ */
+private const val TOP_SCRIM_START_ALPHA = 0.75f
+
+/**
  * Immersive feed: one article per screen, flicked vertically (SPECS.md §4.8).
  *
  * Stateless with respect to business logic: it renders [uiState] and reports
@@ -127,6 +147,9 @@ private const val SCRIM_END_ALPHA = 0.92f
  * @param onVisibilityChanged receiver of visibility samples (SPECS.md §4.5).
  *   Nullable and null by default: observation is a periodic loop, and running
  *   it without a receiver would waste battery and keep previews busy.
+ * @param topInset height of the transparent bar the pages run under. The
+ *   pages ignore it — that is the point — but the offline banner must not:
+ *   text under the title would be unreadable.
  */
 @Composable
 fun ImmersiveScreen(
@@ -141,6 +164,7 @@ fun ImmersiveScreen(
     onStaleNoticeDismiss: () -> Unit = {},
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
+    topInset: Dp = Spacing.none,
 ) {
     ReturnToFirstPageAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
 
@@ -148,7 +172,7 @@ fun ImmersiveScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // Above the feed, not overlaid: the banner informs without hiding
             // content that remains readable (SPECS.md §5.2).
-            if (uiState.showsOfflineBanner) OfflineBanner()
+            if (uiState.showsOfflineBanner) OfflineBanner(modifier = Modifier.padding(top = topInset))
 
             ImmersiveBody(
                 uiState = uiState,
@@ -399,6 +423,7 @@ private fun ArticlePage(
         }
 
         Scrim()
+        TopScrim()
 
         Row(
             modifier = Modifier
@@ -487,6 +512,22 @@ private fun Scrim(modifier: Modifier = Modifier) {
                 Brush.verticalGradient(
                     SCRIM_START to Color.Transparent,
                     1f to surface.copy(alpha = SCRIM_END_ALPHA),
+                ),
+            ),
+    )
+}
+
+/** Gradient from the theme background to nothing, under the transparent title bar. */
+@Composable
+private fun TopScrim(modifier: Modifier = Modifier) {
+    val surface = MaterialTheme.colorScheme.surface
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to surface.copy(alpha = TOP_SCRIM_START_ALPHA),
+                    TOP_SCRIM_END to Color.Transparent,
                 ),
             ),
     )

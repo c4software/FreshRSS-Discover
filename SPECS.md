@@ -493,6 +493,10 @@ What this mode implies, and which is not neutral:
   gesture belongs to the pager. The excerpt is cut at a fixed number of lines
   with an ellipsis; what the page cannot show is in the article, one tap away
   (§4.7). Increasing the system font shows fewer lines, never a hidden end.
+- **The page runs under the title bar.** The bar keeps its title and its
+  actions but loses its background over this mode; a light scrim at the top
+  of each page keeps them legible. A bar with a background would cut a band
+  off every picture. The bottom navigation bar keeps its room.
 - **A single command remains, on a rail at the right edge**: sharing. Opening
   has passed to the whole page (§4.7), and the mode thereby recovers what
   makes it interesting — an article, and almost nothing around it.

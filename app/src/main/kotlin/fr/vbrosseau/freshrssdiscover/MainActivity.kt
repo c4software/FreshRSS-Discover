@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -16,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -191,7 +192,18 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
      */
     var feedReselect by remember { mutableStateOf<(() -> Unit)?>(null) }
 
+    /*
+     * Published by the immersive feed: its pages are pictures, and a bar
+     * with a background would cut a band off every one of them. The bar then
+     * loses its container, the content slides under it, and the page draws
+     * the scrim the title needs (SPECS.md §4.8).
+     */
+    var feedFillsScreen by remember { mutableStateOf(false) }
+
     Scaffold(
+        // The scaffold paints nothing itself: with the bar transparent, its
+        // own background would still show through as a band.
+        containerColor = Color.Transparent,
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
@@ -222,6 +234,11 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                     FeedRecapAction(recap = feedRecap)
                     FeedRefreshAction(refresh = feedRefresh)
                 },
+                colors = if (feedFillsScreen) {
+                    TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                } else {
+                    TopAppBarDefaults.topAppBarColors()
+                },
             )
         },
         bottomBar = {
@@ -233,11 +250,12 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
         },
     ) { innerPadding ->
         AppNavHost(
-            modifier = Modifier.padding(innerPadding),
             navController = navController,
+            contentPadding = innerPadding,
             onFeedRefreshChange = { feedRefresh = it },
             onFeedRecapChange = { feedRecap = it },
             onFeedReselectChange = { feedReselect = it },
+            onFeedFillsScreenChange = { feedFillsScreen = it },
         )
     }
 }
