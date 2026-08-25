@@ -7,9 +7,8 @@ interleaved, with no visible end.
 No list of feeds to work through, no unread counter to bring down. You scroll;
 whatever has been seen long enough becomes read.
 
-Two ways to go through it, as you prefer: the vertical **list**, or **swipe** —
-one article full screen, set aside with a horizontal gesture like a card off a
-deck.
+Two ways to go through it, as you prefer: the vertical **list**, or
+**immersive** — one article filling the screen, the next one a flick away.
 
 <p align="center">
   <img src="docs/demo.jpg"
@@ -31,10 +30,7 @@ deck.
 > read detection and the marking queue, reloading, opening articles, the
 > settings screen and both presentation modes are in place.
 >
-> What remains open is written down as such: Swipe mode has **no alternative to
-> its gesture**, a trade-off accepted and settled in
-> [SPECS.md §7.1](./SPECS.md) — List mode, the default one, gives access to the
-> same feed without it. **Reading position is not preserved**, and that is
+> **Reading position is not preserved**, and that is
 > deliberate: the feed reopens exactly as it was left, so there is no place left
 > to find again (§5.3). [TASKS.md](./TASKS.md) gives progress task by task,
 > [ARCHITECTURE.md §9](./ARCHITECTURE.md) the actual state of the repository.
@@ -45,7 +41,7 @@ deck.
 
 - connects to a FreshRSS server through its Google Reader compatible API;
 - a single feed, all subscriptions interleaved, pagination with no visible end;
-- **two presentation modes** to choose from, list or swipe, over the same feed
+- **two presentation modes** to choose from, list or immersive, over the same feed
   and in the same order;
 - automatic marking as read based on an article's actual visibility, with
   adjustable thresholds;

@@ -112,8 +112,9 @@ caractères). Traduction de travail, pour relecture :
 > Ici les deux valent `demo`.
 >
 > Une fois connecté, l'écran Discover affiche le flux : faire défiler
-> verticalement. L'onglet Paramètres permet de passer en mode « Swipe », où
-> chaque article occupe l'écran et s'écarte d'un geste horizontal.
+> verticalement. L'onglet Paramètres permet de passer en mode « Immersif », où
+> chaque article remplit l'écran et laisse place au suivant d'un geste vers le
+> haut.
 
 Les identifiants ne sont pas des secrets : ils n'ouvrent que ce Worker, qui ne
 sert que douze articles inventés et n'accepte aucune écriture.

@@ -540,14 +540,14 @@ app/
     ├── recap/                digest of the unread: title-bar action, sheet, states
     ├── settings/             settings
     ├── stats/                reading statistics: the histogram behind the reminder hour
-    ├── swipe/                feed as a card stack, one article per screen
+    ├── immersive/            feed as full-screen pages, flicked vertically
     └── theme/                colours, spacings
 ```
 
 **Two packages for one and the same feed, and it is intentional.** `discover/`
-and `swipe/` present the same articles according to SPECS.md §4.8, but their
-layout is not common: a lazy list and a pager have neither the same state nor
-the same visibility measurement. Everything else **is** common, and lives in
+and `immersive/` present the same articles according to SPECS.md §4.8, but
+their layout is not common: a lazy list and a pager have neither the same state
+nor the same visibility measurement. Everything else **is** common, and lives in
 `feed/` since GOAL-029: the engine (`FeedSessionViewModel` — pagination,
 reload, bootstrap, marking, notices), the shared state (`FeedUiState`) and its
 transitions, the terminal composables (offline banner, stale notice, failure
@@ -585,9 +585,9 @@ detached a domain decision from its caller.
 | Piece of `:domain` | Consumed by |
 |---|---|
 | `interleaveBySource` (14 tests) | `DefaultArticleRepository` — server page and cache flow |
-| `ReadDetector` (18 tests) | `DiscoverViewModel`, fed by `ArticleVisibility` from the list; `SwipeViewModel`, fed by `pagerVisibility` from the pager |
+| `ReadDetector` (18 tests) | `DiscoverViewModel`, fed by `ArticleVisibility` from the list; `ImmersiveViewModel`, fed by `pagerVisibility` from the pager |
 | `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — batch grouping |
-| `ReadSyncRepository` | `DiscoverViewModel` and `SwipeViewModel` (marking, replay at startup), `ReadFlushOnBackgroundObserver` (going into the background) and `DefaultAuthRepository` (sign-out) |
+| `ReadSyncRepository` | `DiscoverViewModel` and `ImmersiveViewModel` (marking, replay at startup), `ReadFlushOnBackgroundObserver` (going into the background) and `DefaultAuthRepository` (sign-out) |
 | `FeedPresentation` | `FeedPresentationViewModel`, which routes the Discover destination to one of the two modes |
 | `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, which both feed ViewModels build on their scope |
 | `FeedFreshnessRepository` | `DefaultArticleRepository` in **writing** (every valid server response) and `FeedStalenessWatcher` in **reading** |
@@ -797,7 +797,7 @@ display; cancellation covers the display *and* the cache, in one place, since
 the engine itself is now shared (§9.6). A repository test pins the wider
 guarantee: a cancelled page in flight writes nothing to the cache.
 
-Swipe mode had a second door to the same race: its `loadMore` did not check
+Swipe mode (today Immersive) had a second door to the same race: its `loadMore` did not check
 `isRefreshing` — List mode's did — so the pager could *start* a page during
 the reload. That divergence died with the shared engine: the guard is written
 once.

@@ -299,7 +299,7 @@ clarifications, because they decide the rest:
 
 - **Turning it off only stops visibility-based detection.** Opening an article
   still marks it as read (§4.7): that is a deliberate gesture, not an effect of
-  scrolling, and conflating them would leave Swipe mode unable to consume
+  scrolling, and conflating them would leave Immersive mode unable to consume
   anything at all.
 - **Both thresholds stay displayed, greyed out.** Hiding them would make two
   settings disappear without saying why; leaving them active would offer to
@@ -362,7 +362,7 @@ Three commands trigger it, and they do exactly the same thing:
 |---|---|---|
 | **Pull to refresh** | List mode, **with or without articles** | The conventional gesture on a vertical feed |
 | **Button, on the title row** | both modes | In full screen there is no list to pull; and a pull is not practicable for everyone (§7.1) |
-| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Swipe mode there is nothing to scroll, the reload restarts the deck on its own. **At the top of the list the tap does nothing**: there is nowhere to bring the reader back to, and a reload would empty a feed the tap never asked to lose — reloading from the top stays with the pull and the button, which are deliberate |
+| **Re-tapping the Discover tab**, already selected | both modes | The bottom-bar convention: tapping the tab you are on means "bring me back to the start". In List mode the list first scrolls back to the top, **then** the reload fires — the return is shown, not skipped; in Immersive mode the reload returns to the first page on its own. **At the top of the list the tap does nothing**: there is nowhere to bring the reader back to, and a reload would empty a feed the tap never asked to lose — reloading from the top stays with the pull and the button, which are deliberate |
 
 The gesture long stopped where the list stopped: a screen with no article had
 no list, therefore no pull. The reasoning was that those screens already had
@@ -373,8 +373,9 @@ try on it. So it is armed there too; the button and "Retry" stay where they
 were.
 
 The button is therefore not a duplicate of the gesture: it is the only command
-**on the content surface** of Swipe mode — superimposing a vertical pull on it
-would give two competing gestures on the same surface — and it is the
+**on the content surface** of Immersive mode — superimposing a vertical pull on
+a pager that already snaps vertically would give two gestures on one axis — and
+it is the
 alternative to the gesture in List mode, where nothing replaced it. The tab
 re-tap duplicates neither: it lives on the navigation bar, where a tap on the
 current tab would otherwise do nothing at all.
@@ -443,13 +444,12 @@ Opening an article marks it as read, whatever its past visibility.
 
 An article with no usable link is not clickable, and shows it.
 
-**It is the whole card that opens, in both modes.** In Swipe mode, an explicit
-button did it for a while, out of fear that a press caught during a hesitant
-swipe would send the user off into the browser. The fear was unfounded: the
-platform distinguishes a press from a drag, the horizontal gesture is not
-consumed by the click, and a test observes it. The button cost a command row at
-the bottom of already scrollable content, for a guarantee the system was giving
-already.
+**It is the whole card that opens, in both modes** — the whole page, in
+Immersive. An explicit button did it for a while there, out of fear that a
+press caught during a hesitant flick would send the user off into the browser.
+The fear was unfounded: the platform distinguishes a press from a drag, the
+gesture is not consumed by the click, and a test observes it. The button cost
+a command row for a guarantee the system was giving already.
 
 ### 4.8 Two presentation modes
 
@@ -460,13 +460,17 @@ Only the presentation changes.
 | Mode | Gesture | What it shows |
 |---|---|---|
 | **List** (default) | vertical scrolling | several articles on screen, as cards |
-| **Swipe** | horizontal swipe | **one** article at a time, full screen |
+| **Immersive** | vertical flick, one page at a time | **one** article filling the screen |
 
-Swipe mode takes up the gesture of social networks: you move to the next article
-with a swipe from left to right, and come back to the previous one the other way
-round. This is **not** navigation between feeds or between categories — §1 and
-§2 exclude those, and that stays true here. It is the same interleaved feed,
-presented article by article.
+Immersive mode takes up the gesture of short-video applications: the article
+fills the screen, a flick upward brings the next one, which snaps into place,
+and a flick downward brings the previous one back. This is **not** navigation
+between feeds or between categories — §1 and §2 exclude those, and that stays
+true here. It is the same interleaved feed, presented article by article.
+
+It **replaced** a horizontal card-stack mode ("Swipe", GOAL-012) on
+2026-08-25, at the author's request, without carrying its stored setting
+over: an installation left in Swipe reopens in the List.
 
 What this mode implies, and which is not neutral:
 
@@ -478,22 +482,25 @@ What this mode implies, and which is not neutral:
   set it back to unread: marking is not reversible by a navigation gesture.
 - **Anticipated loading remains** (§4.4): the next page is requested before
   reaching the last loaded article, and the end of the feed states itself
-  explicitly rather than blocking the swipe.
-- **The excerpt gives way to the content.** Full screen allows more to be shown
-  than a card's three lines; the limit of §8 question 7 is specific to List mode.
-- **A single command remains on the card**: sharing. Opening has passed to the
-  whole card (§4.7), and the mode thereby recovers what makes it interesting —
-  an article, and almost nothing around it.
+  explicitly, on a page of its own, rather than blocking the flick.
+- **The illustration is the page.** It fills the screen behind the text, under
+  a scrim that fades into the background colour of the theme over the lower
+  part, where the source, the title and the excerpt sit. An article without
+  illustration stands on a tinted backdrop rather than on an empty page
+  (§4.3). The picture lags slightly behind the text during the flick — a
+  parallax that says the scene is behind the words, not glued to them.
+- **The page does not scroll inside itself.** On a vertical pager, that
+  gesture belongs to the pager. The excerpt is cut at a fixed number of lines
+  with an ellipsis; what the page cannot show is in the article, one tap away
+  (§4.7). Increasing the system font shows fewer lines, never a hidden end.
+- **A single command remains, on a rail at the right edge**: sharing. Opening
+  has passed to the whole page (§4.7), and the mode thereby recovers what
+  makes it interesting — an article, and almost nothing around it.
 - **The mode is a persistent setting** (§6): the application reopens in the mode
   the user left.
-- **The gesture is animated as a stack of cards.** The article leaving tilts and
-  fades away following the finger; the next one waits behind, centred and
-  slightly reduced, and grows as it is uncovered. That is what distinguishes a
-  stack of objects from yet another scroll, and it is what the gesture promises
-  — setting a card aside.
-- **There is no alternative to the gesture**, and that is a known gap rather
-  than a choice: §7.1 requires the application to stay usable without it. See
-  task `GOAL-012-T07` in TASKS.md.
+- **The gesture is usable with a screen reader.** A vertical flick is the very
+  gesture screen readers move on with; the reserve that §7.1 recorded for the
+  horizontal Swipe has gone with it.
 
 The choice of mode **never** changes the order of the articles: a user who
 switches from one to the other finds the feed at the same place, in the same
@@ -733,7 +740,7 @@ that matters.
 The settings screen stays minimal:
 
 - connected server address and login (read only);
-- **feed presentation mode**: List or Swipe (§4.8);
+- **feed presentation mode**: List or Immersive (§4.8);
 - **reading reminder**: on or off, and its hour — automatic (learned, §4.9) or
   fixed at a chosen time;
 - **reading statistics**: the hour histogram behind the reminder (§4.9), on a
@@ -757,16 +764,12 @@ The settings screen stays minimal:
 - **No function depends on a single gesture.** A screen reader reserves the
   horizontal swipe for its own exploration, and not everyone has the precision or
   the mobility a pull demands. Reloading satisfies this rule as of §4.6.
-- **The rule bears on the application, not on each of its modes.** Moving on one
-  article in Swipe mode requires a horizontal gesture, and nothing replaces it:
-  the two buttons that did so for a while cluttered the screen for a mode whose
-  very point is to have none. This is not a deviation, because **List** mode —
-  the default one (§4.8) — gives access to the same feed, in the same order,
-  entirely through vertical scrolling and ordinary targets. Choosing Swipe is a
-  preference, never a compulsory route, and the setting that leads out of it is
-  itself reachable without that gesture. An owned consequence: anyone using a
-  screen reader who ends up in Swipe mode has to go through the settings to
-  return to List.
+- **Both modes move on with a vertical gesture** (§4.8). The former Swipe mode
+  required a horizontal one, which screen readers reserve for their own
+  exploration; the reserve recorded here for it went with the mode on
+  2026-08-25. Immersive mode's flick is the gesture screen readers themselves
+  move on with, and the setting that leads out of it is reachable with
+  ordinary targets.
 
 ### 7.2 Interface
 
@@ -819,6 +822,7 @@ it, then **written down here** — not left implicit in the code.
 | 10 | Does launching reload the feed? | **No.** Author's decision (2026-08-08): launching shows the cache, stable, and no request leaves without a gesture — apart from an empty cache, where there is nothing to show. The automatic request on launch created a race between the disk and the network, whose outcome decided the screen; and a feed that moves when you open it reads as a feed that reinterleaves itself. Reloading is a gesture (§4.6), recalled by the staleness notice beyond six hours. |
 | 13 | Parameters of the learned reminder hour (§4.9) | **24 hour-bins, daily decay 0.9, sufficiency at 3 weighted sessions, target at the start of the dominant hour, at most one session per day and per hour.** One-hour bins because the reminder's precision is the hour, not the minute. A 0.9 decay halves a habit in about a week: a new routine wins within days, one unusual evening barely dents two weeks of habit. Three sessions because below that a single recording would decide the hour on its own — the one-sample fragility the histogram replaces. The start of the hour so the reminder arrives before the habit, not after it. Ties break on the earliest hour, deterministically, for the same reason the wording rotation refuses a random draw. |
 | 14 | Which on-device API for the recap (§4.10)? | **ML Kit's GenAI Prompt API**, not the dedicated Summarization API. The latter would have cost less integration, but it only outputs English, Japanese and Korean — and §4.10 requires the device's language, whatever it is. The Prompt API takes free-form instructions, so the output language is a parameter; AICore picks the best Gemini Nano the device owns behind the same code, which is why no per-device branch exists. The API is beta with no deprecation policy: a breakage lands on one adapter class, accepted. |
+| 8 | Excerpt length in Immersive mode (§4.8) | **A fixed number of lines on screen, ellipsized; 1,400 characters as the measuring bound.** The page does not scroll: on a vertical pager that gesture is the pager's, so what the excerpt shows is decided by the screen, not by a character count. The bound stays at the figure GOAL-012 calibrated on the median summary (1,324 characters, question 7): the ordinary article reaches the layout whole, and Compose never measures the 34,777-character maximum for a page dismissed with one flick. |
 | 9 | Threshold beyond which the displayed feed is "old" (§4.6) | **6 hours.** Nothing synchronises in the background (§2), so the screen shows the cache until the user asks for something else: with no landmark, yesterday's feed is indistinguishable from a fresh one. A short threshold — one or two hours — would turn the invitation into a daily reflex, and an invitation you learn to ignore no longer says anything. Six hours clearly separates the session resumed within the hour, where the feed is still the one you left, from the reopening the next morning. |
 
 ### Still open
@@ -826,4 +830,3 @@ it, then **written down here** — not left implicit in the code.
 | # | Question | When to settle it |
 |---|---|---|
 | 5 | Behaviour if a feed contains only read articles | At the feed Goal |
-| 8 | Excerpt length in Swipe mode (§4.8) | At the Swipe view Goal. Full screen allows far more than a card's 240 characters |

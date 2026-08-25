@@ -72,8 +72,9 @@ instructions :
 > cause d'échec de connexion. Ici les deux valent `demo`.
 >
 > Une fois connecté, l'écran Discover affiche le flux : faire défiler
-> verticalement. L'onglet Paramètres permet de passer en mode « Swipe », où
-> chaque article occupe l'écran et s'écarte d'un geste horizontal.
+> verticalement. L'onglet Paramètres permet de passer en mode « Immersif », où
+> chaque article remplit l'écran et laisse place au suivant d'un geste vers le
+> haut.
 
 Ne jamais laisser d'identifiants morts dans ce champ : un examinateur qui reste
 bloqué sur l'écran de connexion rejette la fiche. Le Worker doit donc rester en

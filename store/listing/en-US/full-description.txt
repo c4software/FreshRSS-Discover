@@ -12,7 +12,7 @@ ONE STREAM, NO DECISIONS
 TWO WAYS THROUGH THE SAME STREAM
 
 • List: several articles on screen, scrolled through vertically.
-• Swipe: one article full screen, set aside with a horizontal gesture, like a card off a deck.
+• Immersive: one article filling the screen, the next one a flick upward away.
 Both modes show exactly the same articles, in the same order. Only the way you go through them changes.
 
 READING IS SCROLLING

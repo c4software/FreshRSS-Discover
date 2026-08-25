@@ -34,7 +34,7 @@ déclarées (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`,
 | Ordre | en-US | fr-FR | Ce qu'elle montre |
 |---|---|---|---|
 | 1 | `01-feed-list.png` | `01-flux-liste.png` | Le fil en mode Liste : deux cartes, deux sources différentes — l'entrelacement se voit |
-| 2 | `02-feed-swipe.png` | `02-flux-swipe.png` | Le mode Swipe : un article en plein écran, source et âge en tête |
+| 2 | `02-feed-immersive.png` | `02-flux-immersif.png` | Le mode Immersif : un article qui remplit l'écran, illustration en fond, texte en bas |
 | 3 | `03-settings.png` | `03-reglages.png` | Réglages : marquage automatique et ses deux seuils, rappel de lecture, cache |
 | 4 | `04-feed-dark.png` | `04-flux-sombre.png` | Le même fil en thème sombre |
 

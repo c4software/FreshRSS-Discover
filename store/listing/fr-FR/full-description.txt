@@ -12,7 +12,7 @@ UN SEUL FIL, AUCUNE DÉCISION À PRENDRE
 DEUX FAÇONS DE PARCOURIR LE MÊME FIL
 
 • Liste : plusieurs articles à l'écran, que l'on fait défiler verticalement.
-• Swipe : un article en plein écran, écarté d'un geste horizontal, comme une carte prise sur un paquet.
+• Immersif : un article qui remplit l'écran, le suivant d'un geste vers le haut.
 Les deux modes montrent exactement les mêmes articles, dans le même ordre. Seule la manière de les parcourir change.
 
 LIRE, C'EST FAIRE DÉFILER

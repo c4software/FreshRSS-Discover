@@ -42,9 +42,11 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due. The one thing waiting for the author is the device
-observation GOAL-035 left as debt: seeing the learned reminder hour, the time
-picker and the statistics screen run on a real phone.
+**Next task**: `GOAL-038-T05` — the immersive mode has only been seen in
+Roborazzi captures; the flick, the parallax and the rail want a thumb on the
+author's Pixel, then the store screenshot 02 is retaken. Also still waiting
+for the author: the device observation GOAL-035 left as debt (learned
+reminder hour, time picker, statistics screen).
 
 > **The device came back, and it changed what this phase could prove.** It was
 > opened on the statement that no device was available, and it was closed with a
@@ -2622,7 +2624,9 @@ the download, with progress, before generating.
 
 ## GOAL-038 — Swipe mode becomes a full-screen vertical scroll, TikTok-style
 
-**Status: IN PROGRESS**
+**Status: IN PROGRESS** — four tasks done, one commit each, full verification
+observed every time, Roborazzi references re-recorded and looked at. What
+remains is `GOAL-038-T05`, the device pass, which only the author can do.
 
 Asked by the author (2026-08-25): a TikTok-like mode — one article filling
 the screen, a vertical scroll that snaps one article per page — **replacing**
@@ -2659,9 +2663,16 @@ right, and the whole page opens the article on a tap.
 - [x] `GOAL-038-T03` Roborazzi captures of the immersive page, light and
       dark, **looked at**; settings labels and descriptions now name the
       vertical gesture
-- [ ] `GOAL-038-T04` Documentation: SPECS.md §4.5, §4.6, §4.7, §4.8, §6,
+- [x] `GOAL-038-T04` Documentation: SPECS.md §4.5, §4.6, §4.7, §4.8, §6,
       §7.1 and §8 question 8; ARCHITECTURE.md §9 package map and §9.1;
       README and store listing; closure of this Goal in TASKS.md
+- [ ] `GOAL-038-T05` Device pass on the author's Pixel: the flick snaps one
+      page at a time, the illustration parallax and the scale/fade feel
+      right, the share rail is reachable with the thumb, the reload returns
+      to the first page, and the recap starts at the page on screen. Then
+      retake the store screenshot `02-feed-immersive.png` /
+      `02-flux-immersif.png` (`store/README.md` already names them; the
+      `*-swipe.png` files they replace still show the old mode)
 
 ---
 
