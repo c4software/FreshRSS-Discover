@@ -2656,7 +2656,7 @@ right, and the whole page opens the article on a tap.
       end-of-feed page and return-to-first after refresh are kept and their
       tests adapted to the vertical gesture. The recap starts at the page
       on screen, as the List does since GOAL-037-T19
-- [ ] `GOAL-038-T03` Roborazzi captures of the immersive page, light and
+- [x] `GOAL-038-T03` Roborazzi captures of the immersive page, light and
       dark, **looked at**; settings labels and descriptions now name the
       vertical gesture
 - [ ] `GOAL-038-T04` Documentation: SPECS.md §4.5, §4.6, §4.7, §4.8, §6,

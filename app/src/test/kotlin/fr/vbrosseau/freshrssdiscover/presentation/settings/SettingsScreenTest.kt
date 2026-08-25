@@ -125,7 +125,8 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_LIST).assertIsNotSelected()
         composeRule.onNodeWithTag(SettingsTestTags.PRESENTATION_DESCRIPTION)
             .assertTextEquals(
-                "Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.",
+                "Un article à la fois, qui remplit l'écran, " +
+                    "que vous faites défiler vers le haut pour passer au suivant.",
             )
     }
 

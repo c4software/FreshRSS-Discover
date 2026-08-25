@@ -17,9 +17,9 @@
 
       Les libellés disent ce que le mode change pour le lecteur — combien
       d'articles il voit et quel geste il fait — et jamais comment il est
-      construit : « Liste » et « Balayage » nomment deux façons de lire, pas
+      construit : « Liste » et « Immersif » nomment deux façons de lire, pas
       deux composants. La phrase sous le contrôle décrit le mode **choisi**,
-      parce que deux mots ne suffisent pas à faire deviner qu'un balayage
+      parce que deux mots ne suffisent pas à faire deviner qu'« Immersif »
       montre un article à la fois en plein écran.
     -->
     <string name="settings_section_presentation">Affichage du flux</string>
@@ -28,7 +28,7 @@
     <string name="settings_presentation_list">Liste</string>
     <string name="settings_presentation_immersive">Immersif</string>
     <string name="settings_presentation_list_description">Plusieurs articles à l\'écran, que vous faites défiler vers le bas.</string>
-    <string name="settings_presentation_immersive_description">Un article à la fois en plein écran, que vous faites glisser sur le côté pour passer au suivant.</string>
+    <string name="settings_presentation_immersive_description">Un article à la fois, qui remplit l\'écran, que vous faites défiler vers le haut pour passer au suivant.</string>
 
     <!--
       Marquage automatique (SPECS.md §4.5) : l'interrupteur, puis ses seuils.

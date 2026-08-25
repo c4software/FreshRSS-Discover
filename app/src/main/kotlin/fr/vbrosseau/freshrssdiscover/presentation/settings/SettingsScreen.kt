@@ -202,7 +202,7 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
  * already long screen. Segments show both options and the active one at a
  * glance, and a single tap changes it.
  *
- * The sentence below: "List" and "Immersive" name the gesture, not the outcome.
+ * The sentence below: "List" and "Immersive" name the reading, not the outcome.
  * The description follows the selected segment and says what the feed will
  * show, which the control alone cannot convey.
  */

@@ -19,7 +19,7 @@
       they see and which gesture they make — and never how it is built: “List”
       and “Immersive” name two ways of reading, not two components. The sentence
       below the control describes the **chosen** mode, because two words are not
-      enough to guess that a swipe shows one article at a time, full screen.
+      enough to guess that “Immersive” shows one article at a time, full screen.
     -->
     <string name="settings_section_presentation">Feed display</string>
     <string name="settings_presentation_help">Both modes show exactly the same articles, in the same order. Only the way you go through them changes.</string>
@@ -27,7 +27,7 @@
     <string name="settings_presentation_list">List</string>
     <string name="settings_presentation_immersive">Immersive</string>
     <string name="settings_presentation_list_description">Several articles on screen, which you scroll down through.</string>
-    <string name="settings_presentation_immersive_description">One article at a time, full screen, which you slide sideways to move on.</string>
+    <string name="settings_presentation_immersive_description">One article at a time, filling the screen, which you flick upward to move on.</string>
 
     <!--
       Automatic marking (SPECS.md §4.5): the switch, then its thresholds.
