@@ -3,5 +3,5 @@ Swipe mode becomes Immersive.
 • One article filling the screen, the next one a flick upward away, like a short-video app.
 • The illustration as the backdrop, under a scrim that keeps the text readable; the title bar turns transparent.
 • Without a picture, every source gets its own colour and initial as a watermark.
-• Layouts that vary from one article to the next: full, framed, or a photo set down at a tilt.
+• Full screen whenever the picture allows; set down, rounded and shadowed otherwise.
 • Sharing on a rail at the right; a tap opens the article.

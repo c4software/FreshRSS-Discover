@@ -3,5 +3,5 @@ Le mode Balayage devient Immersif.
 • Un article qui remplit l'écran, le suivant d'un geste vers le haut, comme une appli de vidéos courtes.
 • L'illustration en fond, sous un voile qui garde le texte lisible ; la barre de titre passe en transparence.
 • Sans image, chaque source a sa couleur et son initiale en filigrane.
-• Des mises en page qui varient d'un article à l'autre : pleine, cadrée, ou photo posée de travers.
+• Plein écran dès que l'image le permet ; posée, arrondie et ombrée sinon.
 • Le partage sur un rail à droite ; l'appui ouvre l'article.
