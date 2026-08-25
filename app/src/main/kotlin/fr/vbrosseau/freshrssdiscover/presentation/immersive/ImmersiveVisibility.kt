@@ -19,18 +19,19 @@ import kotlin.math.absoluteValue
  * occupies `1 - |offset|` of the screen, its neighbour the rest. A settled
  * article is thus 1.0, so the area threshold of SPECS.md §4.5 is met
  * immediately and duration alone decides, as §4.8 states. During a slow
- * swipe neither page stays above 60% long enough, so the gesture marks
+ * flick neither page stays above 60% long enough, so the gesture marks
  * nothing, which is the intended behavior.
  *
  * Pure function over ints and a float, outside any Composable: it is the only
  * delicate part of the measurement and must be testable without Compose or
  * Android, like `visibleFraction` in List mode.
  *
- * @param articleIds article ids in swipe order. The index past the last one
+ * @param articleIds article ids in feed order. The index past the last one
  *   is the end-of-feed page: it is not an article and nothing is timed there.
  * @param currentPage index of the pager's current page.
  * @param currentPageOffsetFraction offset of the current page, in `]-1, 1[`:
- *   positive toward the next article, negative toward the previous one.
+ *   positive toward the next article (below), negative toward the previous
+ *   one (above).
  */
 internal fun pagerVisibility(
     articleIds: List<Long>,

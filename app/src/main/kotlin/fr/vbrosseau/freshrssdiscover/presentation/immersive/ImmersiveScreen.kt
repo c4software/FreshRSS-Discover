@@ -1,5 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,17 +10,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,18 +26,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
 import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
@@ -47,10 +48,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
-import fr.vbrosseau.freshrssdiscover.presentation.discover.message
 import fr.vbrosseau.freshrssdiscover.presentation.discover.sampleVisibility
 import fr.vbrosseau.freshrssdiscover.presentation.feed.AfterRefreshSettles
-import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedCentered
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEmptyMessage
@@ -67,42 +66,61 @@ import kotlinx.coroutines.flow.first
  * Remaining-article threshold below which the next page is requested
  * (SPECS.md §4.4, GOAL-012-T02).
  *
- * Three, not the List mode's five: a swipe advances exactly one article, so
+ * Three, not the List mode's five: a flick advances exactly one article, so
  * three full-screen articles mean at least three gestures plus reading time,
  * which comfortably covers the network round trip. A threshold of one would
- * make swipes hit the loading page at every page boundary.
+ * make flicks hit the loading page at every page boundary.
  */
 private const val PREFETCH_DISTANCE = 3
 
 /** Key of the trailing page, distinct from any article id. */
 private const val TRAILING_PAGE_KEY = "immersive:trailing"
 
-/** Card corner radius, matching Material 3 large surfaces. */
-private val CardShape = RoundedCornerShape(28.dp)
-
 /**
- * Drop shadow of the top card.
+ * Pages composed beyond the visible one, on each side.
  *
- * The shadow is what conveys a stack: without it, the smaller card underneath
- * reads as a drawn frame rather than a second object behind.
+ * One: the next illustration starts loading while the current article is
+ * being read, so a flick lands on a picture rather than on a tinted slot.
+ * More would fetch images for articles that may never be reached.
  */
-private val CardElevation = 6.dp
+private const val PAGES_KEPT_AROUND = 1
 
 /**
- * Rotation pivot of the card, below its bottom edge.
+ * Lines of excerpt shown before the ellipsis.
  *
- * 1.6 times the height from the top, well beyond the card. A central pivot
- * would spin the card like a needle; a pivot below produces the arc of an
- * object pushed aside by hand.
+ * The page does not scroll: on a vertical pager, that gesture is the pager's.
+ * Eight lines of `bodyLarge` are what a phone holds under a title and above
+ * the bottom margin; the tap opens the article, which is where the full text
+ * lives (SPECS.md §4.7).
  */
-private val CardPivot = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 1.6f)
+private const val EXCERPT_MAX_LINES = 8
+
+/** Lines of title before the ellipsis: past three, the excerpt has no room left. */
+private const val TITLE_MAX_LINES = 3
 
 /**
- * Swipe-mode feed: one full-screen article (SPECS.md §4.8).
+ * Where the scrim begins fading in, as a fraction of the page height.
+ *
+ * The upper part of the illustration is left untouched: the scrim is there
+ * for the text, not to dim the picture.
+ */
+private const val SCRIM_START = 0.35f
+
+/**
+ * Opacity of the scrim at the bottom edge.
+ *
+ * Not fully opaque: the picture must still be sensed under the text. At 0.92
+ * the theme background dominates enough for `onSurface` to keep AA contrast
+ * over any photograph, which a lower value cannot guarantee.
+ */
+private const val SCRIM_END_ALPHA = 0.92f
+
+/**
+ * Immersive feed: one article per screen, flicked vertically (SPECS.md §4.8).
  *
  * Stateless with respect to business logic: it renders [uiState] and reports
  * gestures, which keeps it previewable and testable without the injection
- * graph. The only state it owns is the swipe position.
+ * graph. The only state it owns is the page position.
  *
  * @param onArticleShare no default value, as in List mode: an implicit `{}`
  *   would leave a visible but inert button with nothing to flag it.
@@ -124,7 +142,7 @@ fun ImmersiveScreen(
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
-    ReturnToFirstCardAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
+    ReturnToFirstPageAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -146,10 +164,10 @@ fun ImmersiveScreen(
             /*
              * Below the feed, not overlaid. The stale notice persists until
              * dismissed or the feed reloads: as an overlay it would cover the
-             * end of the card's scrollable content, including the share
-             * button, the only command in this mode since the whole card
-             * opens the article (SPECS.md §4.7). A persistent notice takes
-             * its place in the layout; only a transient notice may overlay.
+             * bottom of the page, where the text and the share button live —
+             * the only command in this mode since the whole page opens the
+             * article (SPECS.md §4.7). A persistent notice takes its place in
+             * the layout; only a transient notice may overlay.
              */
             if (uiState.showsStaleNotice) {
                 StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
@@ -192,19 +210,19 @@ private fun StaleFeedNotice(
 }
 
 /**
- * Returns the pager to the first card when a refresh completes.
+ * Returns the pager to the first page when a refresh completes.
  *
  * Counterpart of `ScrollToTopAfterRefresh` in List mode, for the same reason:
  * SPECS.md §4.6 requires the refresh to be visible. Staying on the current
- * card after replacing the whole stack would leave the button with no
+ * page after replacing the whole feed would leave the button with no
  * observable effect.
  *
  * The return happens on the transition from `true` to `false`, not during the
- * refresh: jumping on press would scroll a stack about to be discarded. The
+ * refresh: jumping on press would scroll a feed about to be discarded. The
  * falling-edge detection lives in [AfterRefreshSettles], shared with List.
  */
 @Composable
-private fun ReturnToFirstCardAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
+private fun ReturnToFirstPageAfterRefresh(pagerState: PagerState, isRefreshing: Boolean) {
     AfterRefreshSettles(isRefreshing) { pagerState.scrollToPage(0) }
 }
 
@@ -215,8 +233,9 @@ private fun ImmersiveBody(
     onRetry: () -> Unit,
     onArticleClick: (Long) -> Unit,
     onArticleShare: (Long) -> Unit,
-    // No default: a fallback `rememberPagerState` would create a second swipe
-    // state, out of sync with the one the screen passes to the return-to-top.
+    // No default: a fallback `rememberPagerState` would create a second
+    // page state, out of sync with the one the screen passes to the
+    // return-to-top.
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
@@ -249,14 +268,11 @@ private fun ImmersiveBody(
 }
 
 /**
- * The pager and its accessible alternative.
+ * The vertical pager: one article per page, snapping to the nearest one.
  *
- * The pager fills the remaining space; the navigation bar is always present,
- * never hidden (GOAL-012-T07). A horizontal swipe is usable neither with a
- * screen reader, which reserves that gesture for its own exploration, nor by
- * users lacking wrist precision or mobility. SPECS.md §7.1 requires the app
- * to remain usable; two 48 dp buttons make it fully operable without any
- * drag gesture.
+ * `VerticalPager` rather than a lazy list with snapping: the pager owns the
+ * one-page-per-flick rule, the settled-page notion the visibility sampling
+ * relies on, and the offset the page transition is computed from.
  */
 @Composable
 private fun ArticlePager(
@@ -282,23 +298,29 @@ private fun ArticlePager(
         )
     }
 
-    HorizontalPager(
+    VerticalPager(
         state = pagerState,
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
             .testTag(ImmersiveTestTags.PAGER),
+        beyondViewportPageCount = PAGES_KEPT_AROUND,
         // Stable key: without it, inserting articles at the head would move
         // the displayed article under the finger.
         key = { page -> uiState.articles.getOrNull(page)?.id ?: TRAILING_PAGE_KEY },
     ) { page ->
         val article = uiState.articles.getOrNull(page)
+        val transform = immersivePageTransform(
+            (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
+        )
 
-        ImmersiveCard(pagerState = pagerState, page = page) {
+        ImmersivePage(transform = transform) {
             if (article == null) {
                 TrailingPage(uiState = uiState, onRetry = onRetry)
             } else {
                 ArticlePage(
                     article = article,
+                    transform = transform,
                     onOpen = { onArticleClick(article.id) },
                     onShare = { onArticleShare(article.id) },
                 )
@@ -308,67 +330,42 @@ private fun ArticlePager(
 }
 
 /**
- * One card of the stack and its motion (GOAL-012-T09).
+ * One page and its motion.
  *
- * The geometry is computed by [immersivePageTransform], outside any `Composable`
- * and tested separately; only its application remains here.
- *
- * Three details the pattern depends on:
- *
- * The inset. A card touching the edges cannot rotate: the rotation would
- * expose the background corners and read as a rendering glitch. The margin is
- * what gives the tilt room to exist; it is not decorative.
- *
- * The pivot below the card. A central rotation spins the card like a needle;
- * a pivot beyond the bottom edge produces the arc of an object pushed aside
- * by hand, which is the gesture being imitated.
- *
+ * The geometry is computed by [immersivePageTransform], outside any
+ * `Composable` and tested separately; only its application remains here.
  * `graphicsLayer` rather than layout modifiers: nothing is remeasured on each
- * frame of the gesture. An animated `padding` would relayout a full screen of
- * text for every pixel travelled.
+ * frame of the gesture.
  */
 @Composable
-private fun ImmersiveCard(
-    pagerState: PagerState,
-    page: Int,
+private fun ImmersivePage(
+    transform: ImmersivePageTransform,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val transform = immersivePageTransform(
-        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
-    )
-
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = CardShape,
-        shadowElevation = CardElevation,
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .zIndex(transform.drawOrder)
             .graphicsLayer {
-                translationX = transform.translationXFraction * size.width
-                rotationZ = transform.rotationDegrees
                 scaleX = transform.scale
                 scaleY = transform.scale
                 alpha = transform.alpha
-                transformOrigin = CardPivot
             },
-        content = content,
+        content = { content() },
     )
 }
 
 /**
- * One article, full screen.
+ * One article, filling the screen.
  *
- * Vertically scrollable by necessity: SPECS.md §7.1 requires the app to
- * remain usable at increased font size, where a 900-character excerpt
- * exceeds the screen. Without scrolling the end of the text would be
- * silently unreachable.
+ * Three layers, bottom to top: the illustration as a backdrop, a scrim that
+ * fades into the theme background over the lower part, then the text and
+ * the action rail. The scrim is what lets `onSurface` sit on any photograph
+ * in either theme without a second colour scheme.
  *
- * The whole card opens the article (SPECS.md §4.7), as in List mode. Compose
- * distinguishes tap from drag, so the horizontal gesture is not consumed by
- * the click; `swipingLeftStillWorksWithAClickableCard` verifies it.
+ * The whole page opens the article (SPECS.md §4.7), as in List mode. Compose
+ * distinguishes tap from drag, so the vertical gesture is not consumed by
+ * the click; `flickingUpStillWorksWithAClickablePage` verifies it.
  *
  * `onClickLabel` rather than a visible label: the touch surface announces
  * nothing by itself, and a screen reader needs to know what the tap does.
@@ -376,13 +373,14 @@ private fun ImmersiveCard(
 @Composable
 private fun ArticlePage(
     article: ArticleUiModel,
+    transform: ImmersivePageTransform,
     onOpen: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val openLabel = stringResource(R.string.immersive_open_article)
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .then(
@@ -392,82 +390,173 @@ private fun ArticlePage(
                     Modifier
                 },
             )
-            .verticalScroll(rememberScrollState())
             .testTag(ImmersiveTestTags.page(article.id)),
     ) {
+        TintedBackdrop()
+
         if (article.hasIllustration) {
-            ArticleIllustration(imageUrl = article.imageUrl, testTag = ImmersiveTestTags.ILLUSTRATION)
+            Backdrop(imageUrl = article.imageUrl, translationYFraction = transform.backdropTranslationYFraction)
         }
 
-        ArticleText(article = article, onShare = onShare)
+        Scrim()
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart)
+                .padding(Spacing.md),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            ArticleText(article = article, modifier = Modifier.weight(1f))
+
+            if (article.isOpenable) {
+                ActionRail(onShare = onShare, shareTestTag = ImmersiveTestTags.share(article.id))
+            }
+        }
     }
 }
 
 /**
- * Article text and its share command.
+ * What the page stands on when there is no picture, or none yet.
  *
- * `fillMaxWidth` is not decorative: without it the column shrinks to its
- * text, and the share `align(End)` aligns to the content width instead of
- * the card width. List mode carries the same fix (see `GOAL-017-T02`).
+ * A tint from `primaryContainer` down to the background: full screen, an
+ * article without illustration would otherwise leave two thirds of the page
+ * empty, the hole SPECS.md §4.3 forbids. Under a picture it never shows —
+ * the illustration covers it — but it takes over the instant a load fails,
+ * without a second layout.
  */
 @Composable
-private fun ArticleText(
-    article: ArticleUiModel,
+private fun TintedBackdrop(modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(scheme.primaryContainer, scheme.surface))),
+    )
+}
+
+/**
+ * The illustration as the page's background (SPECS.md §4.3).
+ *
+ * Cropped to fill: full screen, a letterboxed picture would leave two bands
+ * that no scrim can dress. A load failure leaves no trace, as in List mode:
+ * the page then stands on the tinted backdrop alone, indistinguishable from
+ * an article that has none.
+ *
+ * Decorative, no description (SPECS.md §7.1): the feed provides no alt text.
+ *
+ * The parallax is applied here and not on the page: the text must follow the
+ * finger exactly, only the scene behind it lags.
+ */
+@Composable
+private fun Backdrop(
+    imageUrl: String?,
+    translationYFraction: Float,
+    modifier: Modifier = Modifier,
+) {
+    val painter = rememberAsyncImagePainter(model = imageUrl, contentScale = ContentScale.Crop)
+    val state by painter.state.collectAsState()
+
+    if (imageUrl == null || state is AsyncImagePainter.State.Error) return
+
+    Image(
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { translationY = translationYFraction * size.height }
+            .testTag(ImmersiveTestTags.ILLUSTRATION),
+    )
+}
+
+/**
+ * Gradient from nothing to the theme background, over the lower part of the
+ * page.
+ *
+ * Drawn whether or not there is an illustration: without one the gradient is
+ * invisible on its own background, and one code path serves both cases.
+ */
+@Composable
+private fun Scrim(modifier: Modifier = Modifier) {
+    val surface = MaterialTheme.colorScheme.surface
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    SCRIM_START to Color.Transparent,
+                    1f to surface.copy(alpha = SCRIM_END_ALPHA),
+                ),
+            ),
+    )
+}
+
+/**
+ * The commands of the page, stacked at the right edge.
+ *
+ * A rail rather than a row under the text: the text block keeps the whole
+ * width for its lines, and the thumb reaches the rail without crossing them.
+ * Sharing is the only command today; the rail is where the next one lands.
+ */
+@Composable
+private fun ActionRail(
     onShare: () -> Unit,
+    shareTestTag: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(Spacing.md),
+        modifier = modifier.padding(start = Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ArticleShareButton(onShare = onShare, testTag = shareTestTag)
+    }
+}
+
+/**
+ * Source line, title and excerpt, in that order.
+ *
+ * The source first, as everywhere in the feed: without it, interleaving the
+ * feeds would be disorienting (SPECS.md §4.3).
+ */
+@Composable
+private fun ArticleText(article: ArticleUiModel, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        /*
-         * Share on the source line, matching List mode. Placed at the top of
-         * the card rather than after an excerpt that can reach 1,400
-         * characters, which would push the mode's only visible command below
-         * the fold.
-         *
-         * `weight(1f)` on the text, as in List mode: the feed title truncates,
-         * the command is never pushed off the card.
-         */
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(
-                    R.string.immersive_article_meta,
-                    article.feedTitle,
-                    article.publishedAt.label(),
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+        Text(
+            text = stringResource(
+                R.string.immersive_article_meta,
+                article.feedTitle,
+                article.publishedAt.label(),
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
 
-            if (article.isOpenable) {
-                ArticleShareButton(
-                    onShare = onShare,
-                    testTag = ImmersiveTestTags.share(article.id),
-                )
-            }
-        }
-
-        Text(text = article.title, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = article.title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = TITLE_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
 
         if (article.excerpt.isNotBlank()) {
             Text(
                 text = article.excerpt,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = EXCERPT_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
         /*
-         * A link-less article says so, as in List mode: the card is not
+         * A link-less article says so, as in List mode: the page is not
          * clickable and nothing else would signal it; a silent surface is
          * indistinguishable from one that stopped responding (SPECS.md §4.7).
          */
@@ -485,7 +574,7 @@ private fun ArticleText(
 /**
  * Page shown after the last loaded article (GOAL-012-T03).
  *
- * The end of the feed is stated explicitly: a swipe that stops responding is
+ * The end of the feed is stated explicitly: a flick that stops responding is
  * indistinguishable from a failure (SPECS.md §4.4).
  */
 @Composable
@@ -555,23 +644,23 @@ private fun PrefetchNextPage(
     articleCount: Int,
     onLoadMore: () -> Unit,
 ) {
-    // Nothing loads before an actual swipe, as in List mode: the cache with
+    // Nothing loads before an actual gesture, as in List mode: the cache with
     // read articles filtered out can hold fewer pages than the threshold, and
     // the load would then fire without any gesture, reintroducing the launch
     // request SPECS.md §5.1 removed (see List mode's `PrefetchNextPage`).
     // Latched by an effect, not written during composition, as in List.
-    var hasSwiped by remember(pagerState) { mutableStateOf(false) }
+    var hasFlicked by remember(pagerState) { mutableStateOf(false) }
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage > 0 || pagerState.isScrollInProgress }.first { it }
-        hasSwiped = true
+        hasFlicked = true
     }
 
     val shouldLoadMore by remember(pagerState, articleCount) {
         derivedStateOf { pagerState.currentPage >= articleCount - PREFETCH_DISTANCE }
     }
 
-    LaunchedEffect(shouldLoadMore, articleCount, hasSwiped) {
-        if (shouldLoadMore && hasSwiped) onLoadMore()
+    LaunchedEffect(shouldLoadMore, articleCount, hasFlicked) {
+        if (shouldLoadMore && hasFlicked) onLoadMore()
     }
 }
 
@@ -581,7 +670,7 @@ private fun PrefetchNextPage(
  * Periodic, not gesture-driven: a still full-screen article produces no
  * events at all, so a movement-triggered measurement would never report it.
  * The cadence is List mode's [VISIBILITY_SAMPLING_PERIOD_MILLIS]: 5 Hz
- * locates the one-second threshold crossing within 20% without waking the
+ * locates the threshold crossing within one period without waking the
  * device needlessly.
  *
  * `repeatOnLifecycle(RESUMED)` rather than a plain `LaunchedEffect`: a loop

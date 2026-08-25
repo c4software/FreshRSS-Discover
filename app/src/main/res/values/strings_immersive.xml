@@ -1,6 +1,6 @@
 <resources>
     <!--
-      Swipe view: one article, full screen (SPECS.md §4.8). A file of its own
+      Immersive view: one article, full screen, flicked vertically (SPECS.md §4.8). A file of its own
       rather than part of `strings.xml`: Android merges the resources of a
       single folder, and keeping this batch separate avoids making several
       pieces of work converge on one file.
@@ -14,8 +14,8 @@
     <string name="immersive_article_meta">%1$s · %2$s</string>
 
     <!--
-      What tapping the card does (SPECS.md §4.7): open the article in a custom
-      tab. No longer displayed now that the whole card is the command — it
+      What tapping the page does (SPECS.md §4.7): open the article in a custom
+      tab. No longer displayed now that the whole page is the command — it
       serves as `onClickLabel`, and that is the only way a screen reader has of
       knowing what the tap triggers.
     -->
@@ -29,18 +29,13 @@
 
     <!--
       End of the feed (SPECS.md §4.4, GOAL-012-T03). It is stated explicitly: a
-      swipe that stops responding is indistinguishable from a breakdown.
+      flick that stops responding is indistinguishable from a breakdown.
     -->
     <string name="immersive_end_of_feed_title">You have read everything</string>
     <string name="immersive_end_of_feed_body">There is nothing left to discover for now.</string>
 
     <string name="immersive_retry">Retry</string>
 
-    <!--
-      Alternative to the gesture (GOAL-012-T07, SPECS.md §7.1). Short, explicit
-      labels: they are read out as they are by the screen reader, and the
-      context — one article on screen — is enough to know what they refer to.
-    -->
 
     <!-- A feed with no article at all: “you have read everything” would explain nothing. -->
     <string name="immersive_empty_title">Nothing to discover</string>

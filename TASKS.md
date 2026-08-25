@@ -2648,7 +2648,7 @@ right, and the whole page opens the article on a tap.
       (`strings_immersive.xml`), test tags, tests, and the Roborazzi
       references re-recorded under `immersif-*` (pixel-identical to
       `balayage-*`, which are deleted)
-- [ ] `GOAL-038-T02` The immersive page: `VerticalPager` with snap, the
+- [x] `GOAL-038-T02` The immersive page: `VerticalPager` with snap, the
       illustration filling the page under a bottom gradient scrim, source,
       title and excerpt at the bottom, share on a right-hand rail, a
       scale/fade page transition computed by a pure function

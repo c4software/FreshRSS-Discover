@@ -10,7 +10,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedSessionViewModel
 import javax.inject.Inject
 
 /**
- * The feed, one article per screen (SPECS.md §4.8).
+ * The feed, one article per screen, flicked vertically (SPECS.md §4.8).
  *
  * The entire engine lives in [FeedSessionViewModel]: same pages, same marking,
  * same explicit end of feed as List mode, as SPECS.md §4.8 promises. This type

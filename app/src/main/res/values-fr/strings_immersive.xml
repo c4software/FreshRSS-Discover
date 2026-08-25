@@ -1,6 +1,6 @@
 <resources>
     <!--
-      Vue Balayage : un article en plein écran (SPECS.md §4.8). Fichier distinct
+      Vue Immersive : un article en plein écran, parcouru verticalement (SPECS.md §4.8). Fichier distinct
       de `strings.xml` : Android fusionne les ressources d'un même dossier, et
       garder ce lot dans le sien évite de faire converger plusieurs travaux sur
       un unique fichier.
@@ -14,8 +14,8 @@
     <string name="immersive_article_meta">%1$s · %2$s</string>
 
     <!--
-      Ce que fait un appui sur la carte (SPECS.md §4.7) : ouvrir l'article dans
-      un onglet personnalisé. N'est plus affichée depuis que la carte entière
+      Ce que fait un appui sur la page (SPECS.md §4.7) : ouvrir l'article dans
+      un onglet personnalisé. N'est plus affichée depuis que la page entière
       est la commande — elle sert d'`onClickLabel`, et c'est la seule façon
       qu'un lecteur d'écran a de savoir ce que l'appui déclenche.
     -->
@@ -30,18 +30,13 @@
 
     <!--
       Fin du flux (SPECS.md §4.4, GOAL-012-T03). Elle se dit explicitement : un
-      balayage qui cesse de répondre est indistinguable d'une panne.
+      défilement qui cesse de répondre est indistinguable d'une panne.
     -->
     <string name="immersive_end_of_feed_title">Vous avez tout lu</string>
     <string name="immersive_end_of_feed_body">Il n\'y a plus d\'article à découvrir pour le moment.</string>
 
     <string name="immersive_retry">Réessayer</string>
 
-    <!--
-      Alternative au geste (GOAL-012-T07, SPECS.md §7.1). Libellés courts et
-      explicites : ils sont lus tels quels par le lecteur d'écran, et le
-      contexte — un article à l'écran — suffit à savoir de quoi ils parlent.
-    -->
 
     <!-- Flux sans aucun article à montrer : « vous avez tout lu » n'expliquerait rien. -->
     <string name="immersive_empty_title">Rien à découvrir</string>

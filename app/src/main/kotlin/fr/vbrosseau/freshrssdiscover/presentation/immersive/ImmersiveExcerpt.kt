@@ -12,17 +12,12 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
  * Full screen has no such constraint; the value is set at 1,400 characters,
  * cut on a word boundary as in List mode.
  *
- * Two measurements decided the figure:
- *
- * - What the screen holds: at 411 dp, a `bodyLarge` line carries about 48
- *   characters over 24 dp of height. Below a 16/9 illustration, the source
- *   line, and the title, about twenty lines remain (roughly 1,100
- *   characters); without an illustration, about thirty (roughly 1,500).
- *   1,400 fills the screen in both cases with at most a short scroll.
- * - What articles do: the median summary is 1,324 characters (SPECS.md §8,
- *   question 7). At 1,400, the ordinary article is shown whole: truncation
- *   becomes the exception, reserved for feeds publishing outsized summaries,
- *   the exact inverse of List mode where it is the rule.
+ * The page shows a fixed number of lines and ellipsizes the rest
+ * (GOAL-038): this cap no longer decides what is read, it bounds what is
+ * measured. It stays at the figure GOAL-012 calibrated — the median summary
+ * is 1,324 characters (SPECS.md §8, question 7), so the ordinary article
+ * reaches the layout whole and the ellipsis falls where the screen ends,
+ * never where the projection stopped.
  *
  * Why not the whole summary the server sends anyway:
  *

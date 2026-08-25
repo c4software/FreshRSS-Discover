@@ -11,9 +11,10 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedUiState
  * the state itself. What Immersive keeps of its own lives in its projection
  * (`toImmersiveUiModel`) and in [pageCount].
  *
- * The reload of SPECS.md §4.6 is included, but not its gesture: pull-to-refresh
- * is a vertical motion on a list, and full screen there is no list to pull.
- * A button triggers it here, and the state carried is the same: `isRefreshing`.
+ * The reload of SPECS.md §4.6 is included, but not its gesture: a vertical
+ * pull on a pager that already snaps vertically would be two gestures on one
+ * axis. A button triggers it here, and the state carried is the same:
+ * `isRefreshing`.
  */
 typealias ImmersiveUiState = FeedUiState
 
@@ -22,7 +23,7 @@ typealias ImmersiveUiState = FeedUiState
  *
  * The extra page is the Immersive equivalent of List mode's footer: where the end
  * of feed is stated, loading is shown, and failure offers a retry. Without it,
- * swiping would simply stop responding after the last article, which is
+ * flicking would simply stop responding after the last article, which is
  * indistinguishable from a failure (SPECS.md §4.4).
  *
  * Declared here rather than in the shared state: List has no pager, and

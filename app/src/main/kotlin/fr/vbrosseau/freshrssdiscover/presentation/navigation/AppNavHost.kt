@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +29,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
 import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveScreen
 import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.immersive.pageCount
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheet
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapViewModel
@@ -219,14 +221,16 @@ private fun ImmersiveRoute(
 ) {
     val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val pagerState = rememberPagerState { uiState.pageCount }
 
-    PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange)
+    // The settled page, not the current one: mid-flick the recap must not
+    // jump ahead to an article the finger may bring back.
+    PublishDisplayedArticles(uiState.articles, onDisplayedArticlesChange) { pagerState.settledPage }
     val articleOpener = rememberArticleOpener()
     val articleSharer = rememberArticleSharer()
 
     // No list to scroll back in this mode: reselecting the tab goes straight
-    // to the reload, which already restarts the deck from the top
-    // (SPECS.md §4.6).
+    // to the reload, which already returns to the first page (SPECS.md §4.6).
     PublishFeedReselect(
         onFeedReselectChange = onFeedReselectChange,
         onReselect = viewModel::refresh,
@@ -259,6 +263,7 @@ private fun ImmersiveRoute(
         onOfflineNoticeDismiss = viewModel::dismissOfflineOpenNotice,
         onRefresh = viewModel::refresh,
         onStaleNoticeDismiss = viewModel::dismissStaleNotice,
+        pagerState = pagerState,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         modifier = modifier,
     )
@@ -328,7 +333,7 @@ internal fun PublishFeedRefresh(
  * opening on it would retell a part of the feed already left. [firstDisplayedIndex]
  * is a snapshot read, not a value: the scroll moves without recomposing this
  * publisher, so the effect observes it through `snapshotFlow`. The default
- * serves the immersive mode, whose deck always shows its articles from the top.
+ * covers callers with nothing scrolled past.
  */
 @Composable
 internal fun PublishDisplayedArticles(

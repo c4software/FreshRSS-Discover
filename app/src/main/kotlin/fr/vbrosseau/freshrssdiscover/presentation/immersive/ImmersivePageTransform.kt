@@ -1,92 +1,69 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
-/**
- * Maximum tilt of a departing card, in degrees.
- *
- * Twelve and no more: the card fills nearly the whole screen height and the
- * pivot sits below it, so one degree of rotation moves the top corner much
- * farther than on the square thumbnail this pattern comes from. At twenty
- * degrees, the title left the frame before the card had crossed half the
- * screen.
- */
-private const val MAX_ROTATION_DEGREES = 12f
+import kotlin.math.absoluteValue
 
 /**
- * Scale of the card underneath while still fully covered.
+ * Scale of a page that has fully left the viewport.
  *
- * It must read as a waiting card, not the same card blurred: 0.92 is clearly
- * distinct at the edge without the text looking shrunk when it takes the
- * previous card's place.
+ * Slight on purpose: the page must read as settling into place, not as a
+ * thumbnail growing into a screen. Below 0.9 the text visibly reflows in the
+ * eye during the gesture.
  */
-private const val DECK_MIN_SCALE = 0.92f
+private const val MIN_SCALE = 0.94f
 
 /**
- * Residual opacity of a card reaching the screen edge.
+ * Opacity of a page that has fully left the viewport.
  *
- * It does not drop to zero: a card fully fading before leaving the frame
- * looks like it dissolves in place, whereas the gesture says it is being set
- * aside.
+ * Not zero: the neighbour is already partly on screen while the current page
+ * is still mostly there, and a page invisible at the edge would make the
+ * scroll look like it reveals a hole rather than the next article.
  */
-private const val EXIT_MIN_ALPHA = 0.4f
+private const val MIN_ALPHA = 0.55f
 
 /**
- * Transform to apply to a card so it fits in the stack.
+ * Share of the page height the backdrop lags behind the page.
  *
- * @property translationXFraction horizontal offset to add to the one the
- *   pager already applies, as a fraction of a page width.
- * @property drawOrder draw order: the highest value is drawn in front.
+ * The parallax is what makes the illustration feel like a scene behind the
+ * text rather than a picture glued to it. A quarter is enough to be felt;
+ * more, and the top of the image would show its edge mid-gesture.
+ */
+private const val PARALLAX_FRACTION = 0.25f
+
+/**
+ * Transform to apply to an immersive page according to its distance from the
+ * settled position.
+ *
+ * @property scale uniform scale of the whole page.
+ * @property alpha opacity of the whole page.
+ * @property backdropTranslationYFraction vertical offset of the illustration
+ *   alone, as a fraction of the page height, added to the pager's own motion.
  */
 data class ImmersivePageTransform(
-    val translationXFraction: Float,
-    val rotationDegrees: Float,
     val scale: Float,
     val alpha: Float,
-    val drawOrder: Float,
+    val backdropTranslationYFraction: Float,
 )
 
 /**
- * Computes the card stack from the pager position alone.
+ * Computes the page motion from the pager position alone.
  *
- * [pageOffset] is 0 for the settled card, positive as it leaves to the left,
- * and negative for the one waiting behind; this is the pager convention,
+ * [pageOffset] is 0 for the settled page, positive as it leaves upward, and
+ * negative for the one arriving from below; this is the pager convention,
  * `(currentPage - page) + currentPageOffsetFraction`.
  *
- * One symmetric rule: the card with a positive offset is the flying one, the
- * other is the deck. Going forward, the current card leaves left and the next
- * rises behind; going back, the previous one returns from the left onto the
- * top while the current one sinks back into the deck. The same computation
- * renders both directions with no special case.
+ * One symmetric rule, in scale and opacity: the further a page is from the
+ * settled position, the smaller and dimmer it is, whichever way it moves.
+ * The parallax alone is signed — the backdrop lags behind the page, so it is
+ * pushed the way the page came from.
  *
- * The flying card keeps the pager's translation: the pager moves it off
- * screen, and the finger must feel it follow. The card underneath cancels it
- * instead, to stay centered; otherwise it would slide in from the edge like
- * an ordinary page and there would be no stack, just more scrolling.
- *
- * Pure function, outside any `Composable`: the geometry can be tested without
- * rendering, asserting that no card becomes invisible or flipped mid-gesture
- * (AGENTS.md §9).
+ * Pure function, outside any `Composable`: no screenshot shows the middle of
+ * a gesture, so the geometry is asserted here (AGENTS.md §9).
  */
 fun immersivePageTransform(pageOffset: Float): ImmersivePageTransform {
-    if (pageOffset < 0f) {
-        // The deck: centered, scaled, and behind.
-        val revealed = (1f + pageOffset).coerceIn(0f, 1f)
-        return ImmersivePageTransform(
-            translationXFraction = pageOffset,
-            rotationDegrees = 0f,
-            scale = DECK_MIN_SCALE + (1f - DECK_MIN_SCALE) * revealed,
-            alpha = 1f,
-            drawOrder = pageOffset,
-        )
-    }
-
-    val travelled = pageOffset.coerceIn(0f, 1f)
+    val distance = pageOffset.absoluteValue.coerceIn(0f, 1f)
     return ImmersivePageTransform(
-        translationXFraction = 0f,
-        // Negative: the card leaves to the left, so its top tilts left; the
-        // opposite tilt would make it look held back.
-        rotationDegrees = -travelled * MAX_ROTATION_DEGREES,
-        scale = 1f,
-        alpha = 1f - (1f - EXIT_MIN_ALPHA) * travelled,
-        drawOrder = pageOffset,
+        scale = 1f - (1f - MIN_SCALE) * distance,
+        alpha = 1f - (1f - MIN_ALPHA) * distance,
+        backdropTranslationYFraction = pageOffset.coerceIn(-1f, 1f) * PARALLAX_FRACTION,
     )
 }

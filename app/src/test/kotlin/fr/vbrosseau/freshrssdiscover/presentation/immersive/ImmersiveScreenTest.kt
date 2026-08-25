@@ -2,16 +2,16 @@ package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
-import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -125,13 +125,13 @@ class ImmersiveScreenTest {
     }
 
     @Test
-    fun theSecondArticleIsReportedOnceTheSwipeIsDone() {
-        // Reporting follows the swipe: otherwise the first article would stay
+    fun theSecondArticleIsReportedOnceTheFlickIsDone() {
+        // Reporting follows the flick: otherwise the first article would stay
         // the only one ever reported, and the feed would only mark once.
         val reports = mutableListOf<Map<ArticleId, Float>>()
         show(feedOf(uiArticle(id = 1L), uiArticle(id = 2L)), onVisibilityChanged = reports::add)
 
-        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeUp() }
         composeRule.waitUntil { reports.lastOrNull() == mapOf(ArticleId(2L) to 1f) }
 
         assertEquals(mapOf(ArticleId(2L) to 1f), reports.lastOrNull())
@@ -156,7 +156,9 @@ class ImmersiveScreenTest {
         show(feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")))
 
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
-        composeRule.onNodeWithText("Second").assertDoesNotExist()
+        // Composed, not displayed: the next page is kept ready so its
+        // illustration loads before the flick, but it must stay off screen.
+        composeRule.onNodeWithText("Second").assertIsNotDisplayed()
     }
 
     @Test
@@ -169,22 +171,22 @@ class ImmersiveScreenTest {
     }
 
     @Test
-    fun swipingLeftShowsTheNextArticle() {
+    fun flickingUpShowsTheNextArticle() {
         show(feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")))
 
-        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeUp() }
 
         composeRule.onNodeWithText("Second").assertIsDisplayed()
     }
 
     @Test
-    fun swipingRightComesBackToThePreviousArticle() {
+    fun flickingDownComesBackToThePreviousArticle() {
         show(
             feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")),
             initialPage = 1,
         )
 
-        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeRight() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeDown() }
 
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
@@ -251,9 +253,9 @@ class ImmersiveScreenTest {
 
         assertTrue(retried)
         // Already loaded articles are still there: the next-page failure did
-        // not replace the feed with an error screen, and a swipe back finds
+        // not replace the feed with an error screen, and a flick back finds
         // them.
-        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeRight() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeDown() }
         composeRule.onNodeWithText("Premier").assertIsDisplayed()
     }
 
@@ -276,7 +278,7 @@ class ImmersiveScreenTest {
     }
 
     @Test
-    fun theFirstLoadingShowsAnIndicatorAndNothingToSwipe() {
+    fun theFirstLoadingShowsAnIndicatorAndNothingToFlick() {
         show(ImmersiveUiState(phase = DiscoverPhase.InitialLoading))
 
         composeRule.onNodeWithTag(LoadingTestTags.INDICATOR).assertIsDisplayed()
@@ -286,7 +288,7 @@ class ImmersiveScreenTest {
     // ----- Opening and illustration -------------------------------------------
 
     @Test
-    fun tappingTheCardOpensTheArticleShown() {
+    fun tappingThePageOpensTheArticleShown() {
         var opened: Long? = null
         show(feedOf(uiArticle(id = 42L)), onArticleClick = { opened = it })
 
@@ -308,21 +310,21 @@ class ImmersiveScreenTest {
 
     /**
      * The risk the removed open button guarded against: a press taken for an
-     * open during a hesitant swipe. Compose distinguishes `tap` from `drag`,
-     * but that must be verified on the card actually made clickable.
+     * open during a hesitant flick. Compose distinguishes `tap` from `drag`,
+     * but that must be verified on the page actually made clickable.
      */
     @Test
-    fun swipingLeftStillWorksWithAClickableCard() {
+    fun flickingUpStillWorksWithAClickablePage() {
         var opened: Long? = null
         show(
             feedOf(uiArticle(id = 1L, title = "Premier"), uiArticle(id = 2L, title = "Second")),
             onArticleClick = { opened = it },
         )
 
-        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ImmersiveTestTags.PAGER).performTouchInput { swipeUp() }
 
         composeRule.onNodeWithText("Second").assertIsDisplayed()
-        assertNull(opened, "le balayage a été pris pour une ouverture")
+        assertNull(opened, "le geste a été pris pour une ouverture")
     }
 
     // ----- Card sharing (SPECS.md §4.3) ---------------------------------------
@@ -420,8 +422,8 @@ class ImmersiveScreenTest {
 
     @Test
     fun theInvitationDoesNotCoverTheShareAction() {
-        // Full screen, the strip sits on the card: it must not cover the only
-        // control of this mode since the whole card opens the article
+        // Full screen, the strip sits under the page: it must not cover the
+        // only control of this mode since the whole page opens the article
         // (SPECS.md §4.7).
         showStale()
 
@@ -434,23 +436,6 @@ class ImmersiveScreenTest {
         )
     }
 
-    @Test
-    fun theInvitationLeavesTheShareActionReachableOnALongArticle() {
-        // The card content scrolls: with a long excerpt, the share button is
-        // not on screen at rest but must be able to come fully into view. A
-        // strip laid over the card would cover it where scrolling stops.
-        showStale(excerpt = "Un paragraphe interminable. ".repeat(60))
-
-        composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).performScrollTo()
-
-        val notice = composeRule.onNodeWithTag(ImmersiveTestTags.STALE_NOTICE).getBoundsInRoot()
-        val share = composeRule.onNodeWithTag(ImmersiveTestTags.share(1L)).getBoundsInRoot()
-        assertTrue(
-            share.bottom <= notice.top,
-            "la commande de partage reste sous la bandelette même défilée à fond",
-        )
-    }
-
     /**
      * A stale feed with something to read: the notice is due.
      *
@@ -460,12 +445,11 @@ class ImmersiveScreenTest {
     private fun showStale(
         onRefresh: () -> Unit = {},
         onStaleNoticeDismiss: () -> Unit = {},
-        excerpt: String = "Un extrait.",
     ) {
         composeRule.setContent {
             ImmersiveScreen(
                 uiState = ImmersiveUiState(
-                    articles = listOf(uiArticle(excerpt = excerpt)),
+                    articles = listOf(uiArticle()),
                     phase = DiscoverPhase.Idle,
                     isStaleNoticeAvailable = true,
                 ),

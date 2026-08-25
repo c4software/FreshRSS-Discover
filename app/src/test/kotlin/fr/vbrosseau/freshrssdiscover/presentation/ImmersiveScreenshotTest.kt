@@ -17,21 +17,16 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Visual references for the Immersive view (SPECS.md §4.8, GOAL-012-T08).
+ * Visual references for the Immersive view (SPECS.md §4.8, GOAL-038-T02).
  *
- * Three non-interchangeable situations:
+ * Situations that are not interchangeable:
  *
- * - an illustrated article, where the contrast of the banner against the
- *   following text is at stake;
- * - an article without illustration, which must fill the screen without
- *   leaving a hole at the top (SPECS.md §4.3);
- * - the end of the feed, which must be readable: a swipe that stops
+ * - an illustrated article, where the text sits on the scrim over the
+ *   picture: contrast is judged there, in both themes;
+ * - an article without illustration, which stands on the tinted backdrop
+ *   rather than leaving the top of the page empty (SPECS.md §4.3);
+ * - the end of the feed, which must be readable: a flick that stops
  *   responding is indistinguishable from a failure (SPECS.md §4.4).
- *
- * The navigation bar appears on all three: it is the alternative to the
- * gesture (GOAL-012-T07), and its disabled button is exactly the kind of
- * element a textual assertion does not judge; this repo has already shipped
- * an invisible indicator on a disabled button.
  */
 class ImmersiveScreenshotTest : ScreenshotTest() {
 
@@ -44,7 +39,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     @Test
     fun anIllustratedArticleFullScreen() {
         capture("immersif-article-illustre") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
@@ -63,14 +58,13 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     /**
      * Without an illustration, the screen starts with the text.
      *
-     * Also the capture showing the long excerpt chosen for this mode
-     * (SPECS.md §8, question 8): it must fill the screen, not overflow it by
-     * ten pages.
+     * Also the capture showing a long excerpt: it must end in an ellipsis at
+     * the bottom of the page, never run under it (SPECS.md §8, question 8).
      */
     @Test
     fun anArticleWithoutIllustrationFullScreen() {
         capture("immersif-article-sans-illustration") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
@@ -87,16 +81,12 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * The end of the feed, reached by one more swipe.
-     *
-     * The "Next" button is disabled there: nothing comes after. This is where
-     * a disabled label is checked for readability in both themes, so it does
-     * not vanish into the background.
+     * The end of the feed, reached by one more flick.
      */
     @Test
     fun theEndOfTheFeed() {
         capture("immersif-fin-de-flux") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(sampleArticle(id = 1L, title = "Le dernier article du flux")),
                     phase = DiscoverPhase.EndOfFeed,
@@ -107,19 +97,16 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * The stale-feed reload notice, over a full-screen card.
+     * The stale-feed reload notice, under a full-screen page.
      *
-     * Two situations, not one: in List mode the strip sits on a list
-     * background, here on an illustration. Contrast is therefore judged in a
-     * different place, and this repo has already shipped an invisible
-     * indicator on a badly chosen background. Also checks that it does not
-     * cover the share button, the only control of this mode since the whole
-     * card opens the article.
+     * Checks that it takes its own room rather than covering the bottom of
+     * the page, where the text and the share button live — the only control
+     * of this mode since the whole page opens the article.
      */
     @Test
     fun anOldFeedInvitingToReload() {
         capture("immersif-flux-ancien") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
@@ -138,7 +125,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     /**
      * An article without a usable link (SPECS.md §4.7).
      *
-     * The only capture showing what Immersive mode becomes when there is nothing
+     * The only capture showing what the page becomes when there is nothing
      * to do: no share button, and the note that replaces every control.
      * Without it, no image would attest that removing the open button did not
      * take that explanation with it.
@@ -146,7 +133,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     @Test
     fun anArticleWithoutAnyLinkFullScreen() {
         capture("immersif-article-sans-lien") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
@@ -162,13 +149,13 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     /**
-     * The same comparison full screen, where the defect is glaring: the slot
-     * occupies half the height (SPECS.md §4.3).
+     * A tiny picture cropped to the whole page: it is upscaled, which is the
+     * price of a backdrop, and the scrim must still carry the text over it.
      */
     @Test
     fun aTinyIllustrationFullScreenSitsOnItsBackdrop() {
         capture("immersif-illustration-minuscule") {
-            swipe(
+            immersive(
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
@@ -184,7 +171,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     }
 
     @Composable
-    private fun swipe(uiState: ImmersiveUiState, initialPage: Int = 0) {
+    private fun immersive(uiState: ImmersiveUiState, initialPage: Int = 0) {
         ImmersiveScreen(
             uiState = uiState,
             onLoadMore = {},
