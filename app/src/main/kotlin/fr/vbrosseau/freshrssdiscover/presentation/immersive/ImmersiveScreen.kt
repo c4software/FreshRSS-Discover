@@ -25,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -572,10 +572,15 @@ private fun Backdrop(
     val state by painter.state.collectAsState()
     val source = (state as? AsyncImagePainter.State.Success)?.result?.image
 
-    var pageWidthPx by remember { mutableIntStateOf(0) }
-    val sourceWidthPx = source?.width ?: 0
+    var pageSize by remember { mutableStateOf(IntSize.Zero) }
     val sourceRatio = if (source != null && source.height > 0) source.width.toFloat() / source.height else 1f
-    val fit = backdropFit(articleId = articleId, sourceWidthPx = sourceWidthPx, pageWidthPx = pageWidthPx)
+    val fit = backdropFit(
+        articleId = articleId,
+        sourceWidthPx = source?.width ?: 0,
+        sourceHeightPx = source?.height ?: 0,
+        pageWidthPx = pageSize.width,
+        pageHeightPx = pageSize.height,
+    )
     val dressed = supportsBlur && fit != BackdropFit.Full
     val tilted = dressed && fit == BackdropFit.Tilted
 
@@ -593,7 +598,7 @@ private fun Backdrop(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { pageWidthPx = it.width }
+            .onSizeChanged { pageSize = it }
             .graphicsLayer {
                 val transform = immersivePageTransform(pageOffset())
                 translationY = transform.backdropTranslationYFraction * size.height

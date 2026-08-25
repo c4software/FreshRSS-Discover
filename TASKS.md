@@ -2696,6 +2696,11 @@ right, and the whole page opens the article on a tap.
       lambda read inside the `graphicsLayer` blocks, in the draw phase.
       Backdrops crossfade while the pages slide (`backdropAlpha` in the
       transform, tested); the source tint stays out of the moving layer
+- [x] `GOAL-038-T06` After v1.15.0 (2026-08-25): full screen favoured —
+      three draws out of five — **when the picture is large enough** to
+      cover the page (`MIN_FULL_COVERAGE`, 0.6 of the page height at the
+      page's width); a smaller one is framed. `backdropFit` takes the
+      picture's height and the page's, tested
 - [x] `GOAL-038-T05` Device pass on the author's Pixel (2026-08-25), five
       rounds, each closed by "parfait" or the next remark: snap, parallax
       in step with the finger, rail under the thumb, transparent bar,

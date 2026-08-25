@@ -58,7 +58,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
     /**
      * The tilted look, drawn by the article's id (SPECS.md §4.8): the
      * picture set down on the source's tint, leaning one way, with its
-     * shadow. Id 2 is the one that draws it, and leans right.
+     * shadow. Id 4 is the one that draws it, and leans right.
      */
     @Test
     fun aTiltedPictureOnItsSourceTint() {
@@ -67,7 +67,7 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
                 ImmersiveUiState(
                     articles = listOf(
                         sampleArticle(
-                            id = 2L,
+                            id = 4L,
                             title = "Une photographie posée de travers sur la page",
                             imageUrl = LOADABLE_IMAGE_URL,
                         ),

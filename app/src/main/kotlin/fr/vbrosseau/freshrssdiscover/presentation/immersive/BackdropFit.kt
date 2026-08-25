@@ -15,8 +15,33 @@ enum class BackdropFit {
     Native,
 }
 
-/** Number of layouts an article can draw among, [BackdropFit.Native] excluded. */
-private const val VARIANT_COUNT = 3
+/**
+ * The draw, as a table: an article's id picks a slot.
+ *
+ * Three full-screen slots out of five (author's ruling, 2026-08-25): the
+ * picture filling the page is the mode's promise, the two other looks are
+ * the relief that keeps the feed from reading as one long poster. Spread
+ * out rather than grouped, so two consecutive articles seldom share a look.
+ */
+private val DRAW = listOf(
+    BackdropFit.Full,
+    BackdropFit.Framed,
+    BackdropFit.Full,
+    BackdropFit.Tilted,
+    BackdropFit.Full,
+)
+
+/**
+ * Smallest share of the page height a picture must reach, at the page's
+ * width, to be shown full screen.
+ *
+ * Cropped to fill, a picture is enlarged until it covers the page: below
+ * this share the enlargement passes 1.6×, and a photograph at that scale is
+ * soft enough to read as a defect rather than a look (author's ruling,
+ * 2026-08-25, "si la taille est suffisante"). Such a picture falls back to
+ * the framed look, where it is shown at the page's width and no larger.
+ */
+private const val MIN_FULL_COVERAGE = 0.6f
 
 /**
  * Decides how a picture is laid on the page.
@@ -24,24 +49,33 @@ private const val VARIANT_COUNT = 3
  * Variety is the point (author's ruling, 2026-08-25): a feed where every
  * page crops its picture the same way reads as one long poster. So the
  * layout is drawn from the **article's id** — stable, so an article keeps
- * its look from one session to the next, and evenly spread, so three
- * consecutive articles rarely share it. The draw ignores the picture's
- * shape on purpose: a landscape banner cropped full screen loses width and
- * reads as zoomed in, and that is one of the looks, not a defect to avoid.
+ * its look from one session to the next — with the full-screen picture
+ * favoured, see [DRAW]. Full screen is only kept for a picture large enough
+ * to cover the page ([MIN_FULL_COVERAGE]); a smaller one is framed instead.
  *
- * One exception: a picture narrower than the page keeps its native size, as
- * on the List card (SPECS.md §8, question 12) — stretched, a thumbnail is
- * not a look, it is a smear. Unknown sizes crop: never blur on a guess.
+ * One more exception: a picture narrower than the page keeps its native
+ * size, as on the List card (SPECS.md §8, question 12) — stretched, a
+ * thumbnail is not a look, it is a smear. Unknown sizes crop: never blur on
+ * a guess.
  *
- * Pure function, outside any `Composable`, so the draw and the exception
+ * Pure function, outside any `Composable`, so the draw and the exceptions
  * are asserted rather than eyeballed.
  */
-fun backdropFit(articleId: Long, sourceWidthPx: Int, pageWidthPx: Int): BackdropFit {
-    val known = sourceWidthPx > 0 && pageWidthPx > 0
+fun backdropFit(
+    articleId: Long,
+    sourceWidthPx: Int,
+    sourceHeightPx: Int,
+    pageWidthPx: Int,
+    pageHeightPx: Int,
+): BackdropFit {
+    val known = listOf(sourceWidthPx, sourceHeightPx, pageWidthPx, pageHeightPx).all { it > 0 }
+    val drawn = DRAW[Math.floorMod(articleId, DRAW.size.toLong()).toInt()]
+    val heightAtPageWidth = if (known) sourceHeightPx.toFloat() * pageWidthPx / sourceWidthPx else 0f
     return when {
         !known -> BackdropFit.Full
         sourceWidthPx < pageWidthPx -> BackdropFit.Native
-        else -> BackdropFit.entries[Math.floorMod(articleId, VARIANT_COUNT.toLong()).toInt()]
+        drawn == BackdropFit.Full && heightAtPageWidth < pageHeightPx * MIN_FULL_COVERAGE -> BackdropFit.Framed
+        else -> drawn
     }
 }
 
