@@ -570,11 +570,9 @@ private fun Backdrop(
 ) {
     val painter = rememberAsyncImagePainter(model = imageUrl, contentScale = ContentScale.Crop)
     val state by painter.state.collectAsState()
-
-    if (imageUrl == null || state is AsyncImagePainter.State.Error) return
+    val source = (state as? AsyncImagePainter.State.Success)?.result?.image
 
     var pageWidthPx by remember { mutableIntStateOf(0) }
-    val source = (state as? AsyncImagePainter.State.Success)?.result?.image
     val sourceWidthPx = source?.width ?: 0
     val sourceRatio = if (source != null && source.height > 0) source.width.toFloat() / source.height else 1f
     val fit = backdropFit(articleId = articleId, sourceWidthPx = sourceWidthPx, pageWidthPx = pageWidthPx)
@@ -584,9 +582,13 @@ private fun Backdrop(
     /*
      * The tint stays outside the moving layer: it is the page, and the page
      * does not lean or lag — only the photograph set down on it does
-     * (author's ruling, 2026-08-25).
+     * (author's ruling, 2026-08-25). It also stands in while the picture
+     * is not there — still loading, or never coming: a page announcing an
+     * illustration it cannot show used to be plain black (seen on device).
      */
-    if (tilted) SourceBackdrop(feedTitle = feedTitle, modifier = Modifier.crossfading(pageOffset))
+    if (tilted || source == null) SourceBackdrop(feedTitle = feedTitle, modifier = Modifier.crossfading(pageOffset))
+
+    if (imageUrl == null || state is AsyncImagePainter.State.Error) return
 
     Box(
         modifier = modifier
