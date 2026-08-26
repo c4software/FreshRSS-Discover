@@ -1,4 +1,4 @@
-A cleaner return in immersive mode.
+Immersive mode reaches the bottom edge.
 
-• After a long absence, the feed reloads without ever showing the article you left again: a veil covers it at once, then the new first article fades in.
-• If the network is missing, the veil lifts and you get your page back.
+• The navigation bar loses its background: the picture runs under it and fades out, with no band cut off.
+• The text and the share button keep their place, above the bar.

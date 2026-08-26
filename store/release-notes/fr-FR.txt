@@ -1,4 +1,4 @@
-Un retour plus propre en mode immersif.
+Le mode immersif va jusqu'en bas.
 
-• Après une longue absence, le flux se recharge sans jamais réafficher l'article quitté : un voile le couvre aussitôt, puis le nouveau premier article apparaît en fondu.
-• Si le réseau manque, le voile se retire et vous retrouvez votre page.
+• La barre de navigation perd son fond : l'image court dessous et se fond dans un dégradé, sans bande coupée.
+• Le texte et le bouton de partage gardent leur place, au-dessus de la barre.
