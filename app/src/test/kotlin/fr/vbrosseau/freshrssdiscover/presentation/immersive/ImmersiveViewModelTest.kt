@@ -202,6 +202,52 @@ class ImmersiveViewModelTest {
         assertEquals(1, repository.refreshCallCount)
     }
 
+    // ----- The veil over a foreground reload (GOAL-041-T01) -------------------
+
+    @Test
+    fun aColdStartVeilsTheFeedUntilTheReloadSettles() {
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.pendingRefresh = CompletableDeferred()
+
+        viewModel.onForeground()
+        assertTrue(viewModel.isReloadingOnForeground.value)
+
+        repository.completeRefresh(Outcome.Success(ArticlePage(listOf(article(id = 2L)), null)))
+        assertFalse(viewModel.isReloadingOnForeground.value)
+    }
+
+    @Test
+    fun aQuickSwitchToAnotherAppVeilsNothing() {
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.onForeground()
+        viewModel.onBackground()
+        clock.advanceBy(5 * ONE_MINUTE_MILLIS)
+
+        viewModel.onForeground()
+
+        assertFalse(viewModel.isReloadingOnForeground.value)
+    }
+
+    @Test
+    fun aFailedForegroundReloadLiftsTheVeilOnTheFeedTheUserHad() {
+        // The toast says why; a veil that stayed would hide a feed that is
+        // still perfectly readable.
+        repository.enqueuePage(listOf(article(id = 1L)))
+        repository.enqueuePage(listOf(article(id = 2L)))
+        viewModel.onForeground()
+        viewModel.onBackground()
+        clock.advanceBy(30 * ONE_MINUTE_MILLIS)
+        repository.pendingRefresh = CompletableDeferred()
+
+        viewModel.onForeground()
+        assertTrue(viewModel.isReloadingOnForeground.value)
+        repository.completeRefresh(Outcome.Failure(FeedError.NoNetwork))
+
+        assertFalse(viewModel.isReloadingOnForeground.value)
+        assertEquals(listOf(2L), state.articles.map { it.id })
+    }
+
     // ----- Prefetch and end of feed -------------------------------------------
 
     @Test

@@ -42,7 +42,8 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due. GOAL-040 (feed management from the settings)
+**Next task**: `GOAL-041-T01` — the immersive ViewModel exposes whether a
+foreground reload is under way. GOAL-040 (feed management from the settings)
 closed on 2026-08-26, validated on the local stack. Waiting for the author: the device pass on
 GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
@@ -117,6 +118,8 @@ statistics screen).
 | GOAL-037 | A recap of the feed, generated on the device | `[x]` |
 | GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[x]` |
 | GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[x]` |
+| GOAL-040 | Minimal feed management from the settings | `[x]` |
+| GOAL-041 | A foreground reload never shows the previous article again | `[ ]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2826,6 +2829,40 @@ To be **observed** on the local stack before the Goal closes (T05): the
 - [x] `GOAL-040-T05` Validation on the local stack (add, list, remove
       against the real FreshRSS), docs/freshrss-api.md observations
       recorded, SPECS.md §2 and §6, ARCHITECTURE.md §9, closure here
+
+---
+
+## GOAL-041 — A foreground reload never shows the previous article again
+
+**Status: TODO**
+
+Observed by the author on the device (2026-08-26): the 30-minute reload of
+GOAL-039-T02 works, but the previous article stays under the eyes for the
+whole request, then jumps to the new first page — "not very pretty". The
+reference is TikTok, not Reels: the old video is never shown again; a full
+opaque veil with an indicator covers the feed at once, and the new first
+item fades in. Reels keeps the old item frozen under a spinner, which is
+exactly the effect to get rid of. The author chose the veil, with the
+animation on (2026-08-26).
+
+### Decisions
+
+| Point | Decision |
+|---|---|
+| Where the flag lives | In `ImmersiveViewModel`, as its own `StateFlow`: `ImmersiveUiState` is an alias of the state shared with the List, which never reloads on foreground |
+| When it drops | On the falling edge of `isRefreshing`, success or failure alike: on failure the veil lifts and the page the user was on is back, the toast already says why |
+| Return to page 1 | Unchanged (`ReturnToFirstPageAfterRefresh`, instant): it now happens under the veil |
+| Animation | Immediate appearance, fade-out on lifting — a veil that faded in would show the old article through it |
+
+### Tasks
+
+- [x] `GOAL-041-T01` ViewModel: `isReloadingOnForeground`, raised by
+      `onForeground()` when the reload is due, lowered when the refresh
+      settles. ViewModel tests, failure case included
+- [ ] `GOAL-041-T02` Screen: an opaque veil — theme background, loading
+      indicator — over the pager while the flag holds, fading out when it
+      drops; the route passes the flag. Screen test, Roborazzi reference
+- [ ] `GOAL-041-T03` Documentation: SPECS.md §4.8, closure here
 
 ---
 

@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
@@ -8,6 +9,11 @@ import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedSessionViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 /**
@@ -47,6 +53,28 @@ class ImmersiveViewModel @Inject constructor(
     /** True once the screen has been shown: only the first showing is a cold start. */
     private var hasBeenShown = false
 
+    private val _isReloadingOnForeground = MutableStateFlow(false)
+
+    /**
+     * True from a foregrounding that reloads until that reload settles
+     * (GOAL-041). The screen veils the feed for as long as it holds: the
+     * article the user left must never be seen again before the new first
+     * page — the short-video convention, once more.
+     *
+     * Its own flow rather than a field of the shared state: [ImmersiveUiState]
+     * is the List's state under another name, and the List never reloads on
+     * foreground.
+     */
+    val isReloadingOnForeground: StateFlow<Boolean> = _isReloadingOnForeground.asStateFlow()
+
+    init {
+        // Lowered on the refresh's end whatever its outcome: on failure the
+        // veil lifts on the page the user was on, and the toast says why.
+        uiState
+            .onEach { if (!it.isRefreshing) _isReloadingOnForeground.value = false }
+            .launchIn(viewModelScope)
+    }
+
     /**
      * The screen comes to the foreground.
      *
@@ -61,7 +89,12 @@ class ImmersiveViewModel @Inject constructor(
         val due = !hasBeenShown || (away != null && reloadsOnForeground(away, clock.nowEpochMillis()))
         hasBeenShown = true
         lastBackgroundedAtEpochMillis = null
-        if (due) refresh() else onScreenShown()
+        if (due) {
+            _isReloadingOnForeground.value = true
+            refresh()
+        } else {
+            onScreenShown()
+        }
     }
 
     /** The screen leaves the foreground: the absence starts now. */
