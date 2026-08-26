@@ -525,7 +525,16 @@ What this mode implies, and which is not neutral:
   was killed — reloads and opens on the first page; a return to the
   foreground after **30 minutes or more** away does the same, while a
   shorter absence keeps the page under the eyes. The threshold is a named
-  domain constant, inclusive like every threshold here.
+  domain constant, inclusive like every threshold here. **The article that
+  was left is never seen again** (author's ruling, 2026-08-26): from the
+  instant such a reload starts, an opaque veil — the theme's background, a
+  loading indicator — covers the feed, and it fades away once the reload has
+  settled, on the new first page. The veil appears at once and only fades on
+  lifting: one that faded in would show the old article through it. TikTok's
+  way, not Reels', which keeps the old item frozen under a spinner — the
+  effect the author saw on the device and did not want. When the reload
+  fails, the veil lifts on the page the user was on, and the usual notice
+  says why.
 - **The mode is a persistent setting** (§6): the application reopens in the mode
   the user left.
 - **The gesture is usable with a screen reader.** A vertical flick is the very

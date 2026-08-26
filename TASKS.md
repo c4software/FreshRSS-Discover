@@ -42,10 +42,11 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: `GOAL-041-T01` — the immersive ViewModel exposes whether a
-foreground reload is under way. GOAL-040 (feed management from the settings)
+**Next task**: none is due. GOAL-041 (the veil over a foreground reload)
+closed on 2026-08-26. GOAL-040 (feed management from the settings)
 closed on 2026-08-26, validated on the local stack. Waiting for the author: the device pass on
-GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap). Still waiting for the author: the device
+GOAL-041 (the veil after a 30-minute absence) and on
+GOAL-039 (pull on page 1, tab re-tap). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
 statistics screen).
 
@@ -119,7 +120,7 @@ statistics screen).
 | GOAL-038 | Swipe mode becomes a full-screen vertical scroll, TikTok-style | `[x]` |
 | GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[x]` |
 | GOAL-040 | Minimal feed management from the settings | `[x]` |
-| GOAL-041 | A foreground reload never shows the previous article again | `[ ]` |
+| GOAL-041 | A foreground reload never shows the previous article again | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2834,7 +2835,9 @@ To be **observed** on the local stack before the Goal closes (T05): the
 
 ## GOAL-041 — A foreground reload never shows the previous article again
 
-**Status: TODO**
+**Status: DONE** — three tasks, one commit each, full verification observed
+every time, Roborazzi references recorded and looked at. Waiting for the
+author: the device pass (a 30-minute absence, then the veil and the fade).
 
 Observed by the author on the device (2026-08-26): the 30-minute reload of
 GOAL-039-T02 works, but the previous article stays under the eyes for the
@@ -2862,7 +2865,7 @@ animation on (2026-08-26).
 - [x] `GOAL-041-T02` Screen: an opaque veil — theme background, loading
       indicator — over the pager while the flag holds, fading out when it
       drops; the route passes the flag. Screen test, Roborazzi reference
-- [ ] `GOAL-041-T03` Documentation: SPECS.md §4.8, closure here
+- [x] `GOAL-041-T03` Documentation: SPECS.md §4.8, closure here
 
 ---
 
