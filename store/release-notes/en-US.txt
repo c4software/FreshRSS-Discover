@@ -1,6 +1,6 @@
-Immersive mode now reloads like a video feed.
+Manage your feeds from the app.
 
-• Pull down on the first article to reload.
-• Coming back after half an hour, or relaunching the app, starts the feed over with what is new.
-• Tap the Discover tab to return to the first article; tap again to reload.
-• The reload indicator comes down from the top of the screen.
+• In Settings → Manage feeds: the account's feeds, as FreshRSS holds them.
+• Add a feed by its address; the app checks it before sending and says what the server refused.
+• Remove a feed with a tap on the bin, after confirmation.
+• Nothing gets organised here — categories, renaming and sorting stay in FreshRSS.

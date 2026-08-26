@@ -1,6 +1,6 @@
-Le mode Immersif recharge comme un flux vidéo.
+Gérez vos flux depuis l'application.
 
-• Tirez vers le bas sur le premier article pour recharger.
-• Au retour après une demi-heure, ou au relancement de l'app, le flux repart du début avec du neuf.
-• Appuyez sur l'onglet Discover pour revenir au premier article ; encore une fois pour recharger.
-• L'indicateur de rechargement descend du haut de l'écran.
+• Dans Réglages → Gérer les flux : la liste des flux du compte, tels que FreshRSS les tient.
+• Ajoutez un flux par son adresse ; l'app vérifie l'adresse avant l'envoi et dit ce que le serveur refuse.
+• Retirez un flux d'un appui sur la corbeille, après confirmation.
+• Rien n'est organisé ici — catégories, renommage et tri restent dans FreshRSS.
