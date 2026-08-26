@@ -2808,11 +2808,11 @@ To be **observed** on the local stack before the Goal closes (T05): the
       (what an entered address must be before it leaves the device),
       `SubscriptionError`, the `SubscriptionRepository` contract and its
       Fake; pure JVM tests
-- [-] `GOAL-040-T03` Data: `DefaultSubscriptionRepository` — session from
+- [x] `GOAL-040-T03` Data: `DefaultSubscriptionRepository` — session from
       `SessionStore`, `401` invalidates the session like the other
       repositories, `400` becomes `Rejected`; Hilt binding; tests on
       `MockEngine`
-- [ ] `GOAL-040-T04` Interface: a `Feeds` row in the settings' account
+- [-] `GOAL-040-T04` Interface: a `Feeds` row in the settings' account
       section opens a screen of its own (like the statistics): the list,
       a field and an add button, a delete icon per row with confirmation;
       ViewModel, screen and screenshot tests, bilingual strings

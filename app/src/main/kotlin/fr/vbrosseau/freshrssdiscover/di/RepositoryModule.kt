@@ -12,12 +12,14 @@ import fr.vbrosseau.freshrssdiscover.data.network.NetworkAvailability
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultArticleRepository
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultAuthRepository
 import fr.vbrosseau.freshrssdiscover.data.repository.DefaultReadSyncRepository
+import fr.vbrosseau.freshrssdiscover.data.repository.DefaultSubscriptionRepository
 import fr.vbrosseau.freshrssdiscover.domain.auth.AuthRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleRepository
 import fr.vbrosseau.freshrssdiscover.domain.feed.FeedFreshnessRepository
 import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.CacheRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
+import fr.vbrosseau.freshrssdiscover.domain.subscription.SubscriptionRepository
 
 /** Bindings from domain interfaces to their data-layer implementations. */
 @Module
@@ -45,4 +47,7 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSettingsRepository(implementation: SettingsStore): SettingsRepository
+
+    @Binds
+    abstract fun bindSubscriptionRepository(implementation: DefaultSubscriptionRepository): SubscriptionRepository
 }
