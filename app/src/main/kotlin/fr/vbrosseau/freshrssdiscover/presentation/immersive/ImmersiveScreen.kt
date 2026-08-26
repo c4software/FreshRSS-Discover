@@ -1,6 +1,9 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import android.os.Build
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -221,6 +225,9 @@ private const val TOP_SCRIM_START_ALPHA = 0.75f
  * @param topInset height of the transparent bar the pages run under. The
  *   pages ignore it — that is the point — but the offline banner must not:
  *   text under the title would be unreadable.
+ * @param isReloadingOnForeground a foreground reload is under way
+ *   (GOAL-041): the feed is veiled until it settles, so the article the
+ *   user left is never seen again before the new first page.
  */
 @Composable
 fun ImmersiveScreen(
@@ -236,6 +243,7 @@ fun ImmersiveScreen(
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     topInset: Dp = Spacing.none,
+    isReloadingOnForeground: Boolean = false,
 ) {
     ReturnToFirstPageAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
 
@@ -281,6 +289,43 @@ fun ImmersiveScreen(
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+
+        ForegroundReloadVeil(visible = isReloadingOnForeground, modifier = Modifier.matchParentSize())
+    }
+}
+
+/**
+ * Opaque veil over the whole feed while a foreground reload runs (GOAL-041).
+ *
+ * What TikTok does, not Reels: the article the user left is never shown
+ * again — not even frozen under a spinner — and the new first page appears
+ * once the reload has settled. It appears at once and only fades on
+ * lifting: a veil that faded in would show the old article through it.
+ *
+ * Last in its parent, so it covers the notices too, and it consumes every
+ * pointer event: a tap that reached the page underneath would open an
+ * article about to be replaced.
+ */
+@Composable
+private fun ForegroundReloadVeil(visible: Boolean, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = EnterTransition.None,
+        exit = fadeOut(),
+        modifier = modifier,
+    ) {
+        FeedCentered(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.background)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent().changes.forEach { it.consume() }
+                        }
+                    }
+                }
+                .testTag(ImmersiveTestTags.RELOAD_VEIL),
+        ) { LoadingIndicator() }
     }
 }
 

@@ -264,6 +264,7 @@ private fun ImmersiveRoute(
 ) {
     val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isReloadingOnForeground by viewModel.isReloadingOnForeground.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { uiState.pageCount }
 
     PublishFeedFillsScreen(onFeedFillsScreenChange)
@@ -312,6 +313,7 @@ private fun ImmersiveRoute(
         pagerState = pagerState,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         topInset = topInset,
+        isReloadingOnForeground = isReloadingOnForeground,
         modifier = modifier,
     )
 }

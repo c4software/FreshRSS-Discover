@@ -2859,7 +2859,7 @@ animation on (2026-08-26).
 - [x] `GOAL-041-T01` ViewModel: `isReloadingOnForeground`, raised by
       `onForeground()` when the reload is due, lowered when the refresh
       settles. ViewModel tests, failure case included
-- [ ] `GOAL-041-T02` Screen: an opaque veil — theme background, loading
+- [x] `GOAL-041-T02` Screen: an opaque veil — theme background, loading
       indicator — over the pager while the flag holds, fading out when it
       drops; the route passes the flag. Screen test, Roborazzi reference
 - [ ] `GOAL-041-T03` Documentation: SPECS.md §4.8, closure here
