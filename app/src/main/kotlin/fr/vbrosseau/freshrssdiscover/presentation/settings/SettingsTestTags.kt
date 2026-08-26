@@ -5,6 +5,7 @@ object SettingsTestTags {
     const val SERVER_ADDRESS = "settings:server"
     const val USERNAME = "settings:username"
     const val NO_SESSION = "settings:no-session"
+    const val FEEDS = "settings:feeds"
     const val PRESENTATION_LIST = "settings:presentation-list"
     const val PRESENTATION_IMMERSIVE = "settings:presentation-immersive"
     const val PRESENTATION_DESCRIPTION = "settings:presentation-description"

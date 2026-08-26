@@ -204,6 +204,7 @@ class SettingsScreenshotTest : ScreenshotTest() {
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
             onOpenStats = {},
+            onOpenSubscriptions = {},
         )
     }
 

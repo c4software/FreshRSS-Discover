@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Écran des flux (SPECS.md §6) : liste, ajout, retrait. Atteint depuis les
+  réglages, qui ne gardent que la ligne qui l'ouvre (`settings_feeds`).
+-->
+<resources>
+  <string name="subscriptions_title">Flux</string>
+  <string name="subscriptions_help">Les flux de ce compte, tels que FreshRSS les tient. En ajouter un ici y abonne le serveur ; en retirer un le désabonne pour de bon, et ses articles quittent le fil.</string>
+  <string name="subscriptions_url_label">Adresse du flux</string>
+  <string name="subscriptions_url_placeholder">https://exemple.org/flux.xml</string>
+  <string name="subscriptions_add">Ajouter</string>
+  <string name="subscriptions_added">Flux ajouté.</string>
+  <string name="subscriptions_removed">Flux retiré.</string>
+  <string name="subscriptions_empty">Aucun flux pour l\'instant. Ajoutez-en un ci-dessus.</string>
+  <string name="subscriptions_retry">Réessayer</string>
+  <string name="subscriptions_remove">Retirer %1$s</string>
+  <string name="subscriptions_remove_dialog_title">Retirer ce flux ?</string>
+  <string name="subscriptions_remove_dialog_message">%1$s sera désabonné sur le serveur. Ses articles quittent le fil, et rien n\'est conservé.</string>
+  <string name="subscriptions_remove_confirm">Retirer</string>
+  <string name="subscriptions_remove_cancel">Annuler</string>
+
+  <!--
+    Dit avant l'envoi, par `FeedUrl` : le serveur répond un 400 nu à toute
+    adresse qu'il ne peut pas lire, sans un mot sur la raison.
+  -->
+  <string name="subscriptions_error_blank">Saisissez d\'abord l\'adresse d\'un flux.</string>
+  <string name="subscriptions_error_invalid">Ce n\'est pas une adresse web que le serveur pourrait lire.</string>
+  <string name="subscriptions_error_rejected">Le serveur a refusé : aucun flux trouvé à cette adresse, ou il est déjà abonné.</string>
+  <string name="subscriptions_error_no_network">Pas de réseau. Vérifiez la connexion, puis réessayez.</string>
+  <string name="subscriptions_error_server_unreachable">Le serveur ne répond pas. Réessayez dans un instant.</string>
+  <string name="subscriptions_error_session_expired">La session a expiré : reconnectez-vous.</string>
+  <string name="subscriptions_error_unexpected">Quelque chose s\'est mal passé côté serveur. Réessayez dans un instant.</string>
+</resources>

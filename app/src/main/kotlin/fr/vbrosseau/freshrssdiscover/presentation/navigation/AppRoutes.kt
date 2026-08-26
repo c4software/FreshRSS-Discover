@@ -12,4 +12,10 @@ object AppRoutes {
      * and this screen is a detail of the settings — it is left with back.
      */
     const val STATS = "stats"
+
+    /** The account's feeds (SPECS.md §6), a detail of the settings like [STATS]. */
+    const val SUBSCRIPTIONS = "subscriptions"
+
+    /** True for the pushed details, the only routes with somewhere to go back to. */
+    fun isDetail(route: String?): Boolean = route == STATS || route == SUBSCRIPTIONS
 }

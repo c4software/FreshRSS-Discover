@@ -70,9 +70,49 @@ class SettingsScreenTest {
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
                 onOpenStats = {},
+                onOpenSubscriptions = {},
                 onAutoMarkAsReadChange = {},
             )
         }
+    }
+
+    private fun showAccount(account: SettingsAccount?, onOpenSubscriptions: () -> Unit = {}) {
+        composeRule.setContent {
+            SettingsScreen(
+                uiState = SettingsUiState(account = account),
+                onSignOutRequest = {},
+                onSignOutConfirm = {},
+                onSignOutDismiss = {},
+                onVisibleFractionChange = {},
+                onContinuousVisibilityChange = {},
+                onPurgeCache = {},
+                onPresentationChange = {},
+                onReminderEnabledChange = {},
+                onReminderTimeChange = {},
+                onOpenStats = {},
+                onAutoMarkAsReadChange = {},
+                onOpenSubscriptions = onOpenSubscriptions,
+            )
+        }
+    }
+
+    @Test
+    fun theFeedsRowOpensTheFeedsScreen() {
+        var opened = false
+        showAccount(account, onOpenSubscriptions = { opened = true })
+
+        composeRule.onNodeWithTag(SettingsTestTags.FEEDS).performClick()
+
+        assertTrue(opened)
+    }
+
+    /** No account, no feeds to manage: the row would open a screen that can only fail. */
+    @Test
+    fun withoutASessionThereIsNoFeedsRow() {
+        showAccount(account = null)
+
+        composeRule.onNodeWithTag(SettingsTestTags.FEEDS).assertDoesNotExist()
+        composeRule.onNodeWithTag(SettingsTestTags.NO_SESSION).assertIsDisplayed()
     }
 
     /**
@@ -98,6 +138,7 @@ class SettingsScreenTest {
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
                 onOpenStats = {},
+                onOpenSubscriptions = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -194,6 +235,7 @@ class SettingsScreenTest {
                 onReminderEnabledChange = onReminderEnabledChange,
                 onReminderTimeChange = onReminderTimeChange,
                 onOpenStats = onOpenStats,
+                onOpenSubscriptions = {},
                 onAutoMarkAsReadChange = {},
             )
         }
@@ -490,6 +532,7 @@ class SettingsScreenTest {
                 onReminderEnabledChange = {},
                 onReminderTimeChange = {},
                 onOpenStats = {},
+                onOpenSubscriptions = {},
                 onAutoMarkAsReadChange = onAutoMarkAsReadChange,
             )
         }

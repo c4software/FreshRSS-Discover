@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -159,6 +160,17 @@ private fun LoginRoute(modifier: Modifier = Modifier) {
 }
 
 /**
+ * The detail routes are not bar destinations, so they resolve no
+ * `AppDestination`: their titles are named here.
+ */
+@StringRes
+private fun detailTitleOf(route: String?): Int = when (route) {
+    AppRoutes.STATS -> R.string.stats_title
+    AppRoutes.SUBSCRIPTIONS -> R.string.subscriptions_title
+    else -> R.string.app_name
+}
+
+/**
  * Scaffold of the signed-in app: top bar, navigation bar, nav graph.
  *
  * `TopAppBar` is still experimental in Material 3; the opt-in is local rather
@@ -208,16 +220,12 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
         topBar = {
             TopAppBar(
                 title = {
-                    // The statistics route is not a bar destination, so it
-                    // resolves no `AppDestination`: its title is named here.
-                    val titleRes = currentDestination?.labelRes
-                        ?: if (currentRoute == AppRoutes.STATS) R.string.stats_title else R.string.app_name
-                    Text(stringResource(titleRes))
+                    Text(stringResource(currentDestination?.labelRes ?: detailTitleOf(currentRoute)))
                 },
                 navigationIcon = {
-                    // Only the statistics screen is a pushed detail: the two
-                    // bar destinations have nowhere to go back to.
-                    if (currentRoute == AppRoutes.STATS) {
+                    // Only the pushed details go back: the two bar
+                    // destinations have nowhere to go back to.
+                    if (AppRoutes.isDetail(currentRoute)) {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_arrow_back),

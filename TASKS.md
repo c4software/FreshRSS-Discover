@@ -2812,11 +2812,11 @@ To be **observed** on the local stack before the Goal closes (T05): the
       `SessionStore`, `401` invalidates the session like the other
       repositories, `400` becomes `Rejected`; Hilt binding; tests on
       `MockEngine`
-- [-] `GOAL-040-T04` Interface: a `Feeds` row in the settings' account
+- [x] `GOAL-040-T04` Interface: a `Feeds` row in the settings' account
       section opens a screen of its own (like the statistics): the list,
       a field and an add button, a delete icon per row with confirmation;
       ViewModel, screen and screenshot tests, bilingual strings
-- [ ] `GOAL-040-T05` Validation on the local stack (add, list, remove
+- [-] `GOAL-040-T05` Validation on the local stack (add, list, remove
       against the real FreshRSS), docs/freshrss-api.md observations
       recorded, SPECS.md §2 and §6, ARCHITECTURE.md §9, closure here
 

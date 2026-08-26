@@ -11,6 +11,7 @@
     <string name="settings_server_label">Adresse du serveur</string>
     <string name="settings_username_label">Identifiant</string>
     <string name="settings_no_session">Aucune session ouverte.</string>
+    <string name="settings_feeds">Gérer les flux</string>
 
     <!--
       Mode de présentation du flux (SPECS.md §4.8, §6).

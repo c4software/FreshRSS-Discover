@@ -41,6 +41,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsScreen
 import fr.vbrosseau.freshrssdiscover.presentation.stats.StatsViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.subscriptions.SubscriptionsScreen
+import fr.vbrosseau.freshrssdiscover.presentation.subscriptions.SubscriptionsViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
 import kotlinx.coroutines.launch
 
@@ -123,6 +125,7 @@ fun AppNavHost(
         composable(AppRoutes.SETTINGS) {
             SettingsRoute(
                 onOpenStats = { navController.navigate(AppRoutes.STATS) },
+                onOpenSubscriptions = { navController.navigate(AppRoutes.SUBSCRIPTIONS) },
                 modifier = Modifier.padding(contentPadding),
             )
         }
@@ -132,7 +135,28 @@ fun AppNavHost(
         composable(AppRoutes.STATS) {
             StatsRoute(modifier = Modifier.padding(contentPadding))
         }
+
+        composable(AppRoutes.SUBSCRIPTIONS) {
+            SubscriptionsRoute(modifier = Modifier.padding(contentPadding))
+        }
     }
+}
+
+@Composable
+private fun SubscriptionsRoute(modifier: Modifier = Modifier) {
+    val viewModel: SubscriptionsViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    SubscriptionsScreen(
+        uiState = uiState,
+        onDraftChange = viewModel::onDraftChange,
+        onAdd = viewModel::onAdd,
+        onRetry = viewModel::load,
+        onRemoveRequest = viewModel::onRemoveRequest,
+        onRemoveConfirm = viewModel::onRemoveConfirm,
+        onRemoveDismiss = viewModel::onRemoveDismiss,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -511,12 +535,17 @@ internal fun rememberScrollToTopThenRefresh(
 }
 
 @Composable
-private fun SettingsRoute(onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
+private fun SettingsRoute(
+    onOpenStats: () -> Unit,
+    onOpenSubscriptions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     SettingsScreen(
         onOpenStats = onOpenStats,
+        onOpenSubscriptions = onOpenSubscriptions,
         uiState = uiState,
         onSignOutRequest = viewModel::requestSignOut,
         onSignOutConfirm = viewModel::confirmSignOut,

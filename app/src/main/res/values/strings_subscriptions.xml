@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Feeds screen (SPECS.md §6): list, add, remove. Reached from the settings,
+  which keep only the row that opens it (`settings_feeds`).
+-->
+<resources>
+  <string name="subscriptions_title">Feeds</string>
+  <string name="subscriptions_help">The feeds of this account, as FreshRSS holds them. Adding one here subscribes the server to it; removing one unsubscribes it for good, and its articles leave the feed.</string>
+  <string name="subscriptions_url_label">Feed address</string>
+  <string name="subscriptions_url_placeholder">https://example.org/feed.xml</string>
+  <string name="subscriptions_add">Add</string>
+  <string name="subscriptions_added">Feed added.</string>
+  <string name="subscriptions_removed">Feed removed.</string>
+  <string name="subscriptions_empty">No feed yet. Add one above.</string>
+  <string name="subscriptions_retry">Try again</string>
+  <string name="subscriptions_remove">Remove %1$s</string>
+  <string name="subscriptions_remove_dialog_title">Remove this feed?</string>
+  <string name="subscriptions_remove_dialog_message">%1$s will be unsubscribed on the server. Its articles leave the feed, and nothing is kept.</string>
+  <string name="subscriptions_remove_confirm">Remove</string>
+  <string name="subscriptions_remove_cancel">Cancel</string>
+
+  <!--
+    Said before sending, by `FeedUrl`: the server answers a bare 400 to any
+    address it cannot read, without a word on why.
+  -->
+  <string name="subscriptions_error_blank">Type the address of a feed first.</string>
+  <string name="subscriptions_error_invalid">This is not a web address the server could fetch.</string>
+  <string name="subscriptions_error_rejected">The server refused: no feed was found at this address, or it is already subscribed.</string>
+  <string name="subscriptions_error_no_network">No network. Check the connection, then try again.</string>
+  <string name="subscriptions_error_server_unreachable">The server does not respond. Try again in a moment.</string>
+  <string name="subscriptions_error_session_expired">The session has expired: sign in again.</string>
+  <string name="subscriptions_error_unexpected">Something went wrong on the server. Try again in a moment.</string>
+</resources>

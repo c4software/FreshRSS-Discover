@@ -11,6 +11,7 @@
     <string name="settings_server_label">Server address</string>
     <string name="settings_username_label">Username</string>
     <string name="settings_no_session">No session open.</string>
+    <string name="settings_feeds">Manage feeds</string>
 
     <!--
       Feed presentation mode (SPECS.md §4.8, §6).

@@ -90,7 +90,7 @@ fun SettingsScreen(
     onVisibleFractionChange: (Int) -> Unit,
     onContinuousVisibilityChange: (Int) -> Unit,
     /*
-     * All required, no `{}` defaults: `AppNavHost` wires all ten callbacks,
+     * All required, no `{}` defaults: `AppNavHost` wires all eleven callbacks,
      * and a silent default would leave a visible but inert control with
      * nothing flagging it.
      */
@@ -100,6 +100,7 @@ fun SettingsScreen(
     onReminderTimeChange: (ReminderTime) -> Unit,
     onAutoMarkAsReadChange: (Boolean) -> Unit,
     onOpenStats: () -> Unit,
+    onOpenSubscriptions: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -114,7 +115,7 @@ fun SettingsScreen(
          * device. Screenshots could not show it: they render the screen
          * alone, without its scaffold.
          */
-        AccountSection(account = uiState.account)
+        AccountSection(account = uiState.account, onOpenSubscriptions = onOpenSubscriptions)
         HorizontalDivider()
         /*
          * Before automatic marking and right after the account: this is the
@@ -168,7 +169,11 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modifier) {
+private fun AccountSection(
+    account: SettingsAccount?,
+    onOpenSubscriptions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     SettingsSection(title = stringResource(R.string.settings_section_account), modifier = modifier) {
         if (account == null) {
             Text(
@@ -186,6 +191,14 @@ private fun AccountSection(account: SettingsAccount?, modifier: Modifier = Modif
                 label = stringResource(R.string.settings_username_label),
                 value = account.username,
                 testTag = SettingsTestTags.USERNAME,
+            )
+            // Under the account, not in a section of its own: the feeds
+            // belong to that account on that server, and managing them is
+            // the one thing here that talks to it (SPECS.md §6).
+            NavigationRow(
+                label = stringResource(R.string.settings_feeds),
+                onClick = onOpenSubscriptions,
+                testTag = SettingsTestTags.FEEDS,
             )
         }
     }
@@ -445,12 +458,17 @@ private fun ReminderSection(
         // Outside the `if`: the histogram exists whether the reminder fires
         // or not, and hiding the only window into it would make the learned
         // hour unverifiable exactly when the user wonders about it.
-        StatsNavigationRow(onOpenStats = onOpenStats)
+        NavigationRow(
+            label = stringResource(R.string.settings_reading_stats),
+            onClick = onOpenStats,
+            testTag = SettingsTestTags.READING_STATS,
+        )
     }
 }
 
 /**
- * Navigates to the reading statistics screen (SPECS.md §6).
+ * Leads to a screen of its own — the reading statistics, the feeds
+ * (SPECS.md §6).
  *
  * A full-width row with a chevron, not a button: seen on a device, an
  * outlined pill under the fixed-hour help text read as an action belonging
@@ -459,18 +477,18 @@ private fun ReminderSection(
  * others instead of floating at its own width.
  */
 @Composable
-private fun StatsNavigationRow(onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
+private fun NavigationRow(label: String, onClick: () -> Unit, testTag: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = MinTouchTarget)
-            .clickable(onClick = onOpenStats)
-            .testTag(SettingsTestTags.READING_STATS),
+            .clickable(onClick = onClick)
+            .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = stringResource(R.string.settings_reading_stats),
+            text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
@@ -837,6 +855,7 @@ private fun SettingsScreenPreview() {
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
             onOpenStats = {},
+            onOpenSubscriptions = {},
         )
     }
 }
@@ -863,6 +882,7 @@ private fun SettingsScreenSignOutPreview() {
             onReminderTimeChange = {},
             onAutoMarkAsReadChange = {},
             onOpenStats = {},
+            onOpenSubscriptions = {},
         )
     }
 }
