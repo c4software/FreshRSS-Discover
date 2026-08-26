@@ -2804,11 +2804,11 @@ To be **observed** on the local stack before the Goal closes (T05): the
       functions the Detekt configuration allows; a `SubscriptionListDto`; `MockEngine` tests on literal
       bodies, malformed ones included; docs/freshrss-api.md §3.1 completed
       and a new §4.3 for `subscription/edit`
-- [ ] `GOAL-040-T02` Domain: `Subscription`, `SubscriptionId`, `FeedUrl`
+- [x] `GOAL-040-T02` Domain: `Subscription`, `SubscriptionId`, `FeedUrl`
       (what an entered address must be before it leaves the device),
       `SubscriptionError`, the `SubscriptionRepository` contract and its
       Fake; pure JVM tests
-- [ ] `GOAL-040-T03` Data: `DefaultSubscriptionRepository` — session from
+- [-] `GOAL-040-T03` Data: `DefaultSubscriptionRepository` — session from
       `SessionStore`, `401` invalidates the session like the other
       repositories, `400` becomes `Rejected`; Hilt binding; tests on
       `MockEngine`
