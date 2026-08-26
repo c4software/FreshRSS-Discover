@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -242,11 +243,9 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                     FeedRecapAction(recap = feedRecap)
                     FeedRefreshAction(refresh = feedRefresh)
                 },
-                colors = if (feedFillsScreen) {
-                    TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                } else {
-                    TopAppBarDefaults.topAppBarColors()
-                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = animatedTopBarContainer(transparent = feedFillsScreen),
+                ),
             )
         },
         bottomBar = {
@@ -267,4 +266,19 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
             onFeedFillsScreenChange = { feedFillsScreen = it },
         )
     }
+}
+
+/**
+ * Container colour of the title bar, animated between its default and
+ * nothing — like the bottom bar's: leaving the immersive feed for the
+ * settings, both containers return together rather than snapping back.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun animatedTopBarContainer(transparent: Boolean): Color {
+    val color by animateColorAsState(
+        targetValue = if (transparent) Color.Transparent else TopAppBarDefaults.topAppBarColors().containerColor,
+        label = "topAppBarContainer",
+    )
+    return color
 }

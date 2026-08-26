@@ -1,4 +1,3 @@
-Immersive mode reaches the bottom edge.
+A softer transition out of immersive mode.
 
-• The navigation bar loses its background: the picture runs under it and fades out, with no band cut off.
-• The text and the share button keep their place, above the bar.
+• Moving to Settings, the bars' background fades back in instead of snapping.

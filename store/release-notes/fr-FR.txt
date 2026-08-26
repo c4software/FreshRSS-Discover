@@ -1,4 +1,3 @@
-Le mode immersif va jusqu'en bas.
+Une transition plus douce hors du mode immersif.
 
-• La barre de navigation perd son fond : l'image court dessous et se fond dans un dégradé, sans bande coupée.
-• Le texte et le bouton de partage gardent leur place, au-dessus de la barre.
+• En passant aux Paramètres, le fond des barres revient en fondu au lieu de réapparaître d'un coup.

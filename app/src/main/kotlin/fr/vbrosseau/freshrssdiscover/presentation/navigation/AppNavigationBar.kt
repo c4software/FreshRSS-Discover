@@ -1,11 +1,13 @@
 package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -27,6 +29,8 @@ import androidx.navigation.NavHostController
  *   bar already knows.
  * @param transparent no container: over the immersive feed the page runs
  *   under the bar and paints the fade the items stand on (SPECS.md §4.8).
+ *   The change is animated: leaving the feed for the settings, the
+ *   container would otherwise snap back under the tabs.
  */
 @Composable
 fun AppNavigationBar(
@@ -38,10 +42,12 @@ fun AppNavigationBar(
 ) {
     val current = AppDestination.forRoute(currentRoute)
 
-    NavigationBar(
-        modifier = modifier,
-        containerColor = if (transparent) Color.Transparent else NavigationBarDefaults.containerColor,
-    ) {
+    val containerColor by animateColorAsState(
+        targetValue = if (transparent) Color.Transparent else NavigationBarDefaults.containerColor,
+        label = "navigationBarContainer",
+    )
+
+    NavigationBar(modifier = modifier, containerColor = containerColor) {
         AppDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = destination == current,
