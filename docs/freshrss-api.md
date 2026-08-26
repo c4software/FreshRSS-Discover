@@ -627,6 +627,54 @@ Careful: three time units coexist in this API — `ot`/`nt` in seconds,
 
 ---
 
+### 4.3 Subscribing and unsubscribing
+
+*Read in the source on 2026-08-26 (`subscriptionEdit`, `quickadd` and the
+dispatcher of `greader.php`); to be observed on a real server — see §6.*
+
+```
+POST /api/greader.php/reader/api/0/subscription/edit
+Content-Type: application/x-www-form-urlencoded
+
+s=feed/<url>&ac=subscribe                 add
+s=feed/<id>&ac=unsubscribe                remove
+```
+
+- `s` is the stream name. On **subscribe** it carries the feed's **URL**
+  prefixed with `feed/`; a numeric `feed/<id>` is silently skipped by that
+  action. On **unsubscribe** it carries the `feed/<id>` returned by
+  `subscription/list` (§3.1); a URL is looked up by exact match, so the id
+  is the safe form.
+- `ac` is `subscribe`, `unsubscribe` or `edit`; anything else answers `400`.
+- Optional `t` (title) and `a` (`user/-/label/<category>`) exist; the
+  project does not use them — the category then defaults to FreshRSS's
+  default one.
+- **No modification token `T`.** The dispatcher calls `checkToken` on
+  `edit-tag`, `rename-tag`, `disable-tag` and `mark-all-as-read`, and **not**
+  on `subscription/edit` nor `subscription/quickadd`. The `Authorization`
+  header is enough.
+- The parameters are also accepted in the query string (`$_REQUEST`); the
+  project sends a form body, as for `edit-tag`.
+
+Answers:
+
+| Case | Answer |
+|---|---|
+| Added, or removed | `200`, body `OK` in plain text |
+| Address that is not a feed, or cannot be fetched | `400` — `addFeed` threw, the exception is logged server-side, nothing reaches the client but the status |
+| Unknown `feed/<id>` on unsubscribe | `400` |
+| Feed already subscribed (subscribe on an existing URL) | `400` — `searchByUrl` finds it, `feedId > 0`, and the `subscribe` branch falls through to `badRequest()` |
+
+Feed format is guessed from the URL: `json` in the path or the file name
+means JSON Feed, anything else RSS/Atom (`detectFeedKind`).
+
+`subscription/quickadd?quickadd=<url>` adds too, with a JSON body
+(`numResults`, `streamId`, `streamName`). **Not used**: it answers `200` on
+failure as well, with `numResults: 0` and an `error` message; one path with
+a status that says what happened is enough.
+
+---
+
 ## 5. Error codes
 
 | Code | Meaning on the FreshRSS side | Expected handling on the client side |
@@ -668,6 +716,7 @@ accordingly.
 | 4 | Actual presence of `enclosure` depending on the feed | Depends on the source RSS feeds, not on FreshRSS. Partial observation: **absent from every article observed** (§3.4), which is enough to decide not to rely on it |
 | 5 | Number of `i` accepted in an `edit-tag` | Limited in practice by the size of the POST body and PHP's `max_input_vars` (§4.1). The exact value depends on the server's configuration and **has not been observed**; the project works around it by capping its batches at 100 rather than looking for the bound |
 | 6 | Exact form of `frss:priority` | Values come from an enumeration that has not been read |
+| 7 | `subscription/edit` as read in the source (§4.3): `OK` body, `400` on a non-feed address and on an already subscribed one, no `T` required | Established by reading only, on 2026-08-26; the local stack was not running that day (Docker daemon stopped). GOAL-040-T05 observes it |
 
 These points are tracked collectively by the "Open questions" section of
 [TASKS.md](../TASKS.md): each is settled by the Goal that meets it, not by a

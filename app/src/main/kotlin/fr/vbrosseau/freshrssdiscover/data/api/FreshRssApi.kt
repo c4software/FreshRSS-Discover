@@ -17,7 +17,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
-import kotlinx.serialization.SerializationException
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,7 +32,10 @@ import javax.inject.Singleton
 internal const val CLIENT_LOGIN_PATH = "/accounts/ClientLogin"
 
 /**
- * Single point of contact with the Google Reader-compatible FreshRSS API.
+ * Point of contact with the Google Reader-compatible FreshRSS API: session,
+ * articles, read marks. Subscriptions live in [FreshRssSubscriptionApi] —
+ * a second class rather than a thirteenth method here, the line the Detekt
+ * configuration draws for classes; both share the helpers of `ApiCall.kt`.
  *
  * Everything specific to this API — paths, headers, response shapes, tokens —
  * stops here (ARCHITECTURE.md §2.1). None of it must appear above this layer.
@@ -56,7 +58,7 @@ internal class FreshRssApi @Inject constructor(
      * This probe runs before any login attempt: without it, a typo in the
      * address would produce a `401` the user would blame on their password.
      */
-    suspend fun probe(address: ServerAddress): ApiOutcome<Unit> = call {
+    suspend fun probe(address: ServerAddress): ApiOutcome<Unit> = apiCall {
         val response = httpClient.get(address.apiEndpoint)
         when {
             !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
@@ -76,7 +78,7 @@ internal class FreshRssApi @Inject constructor(
      * itself must carry an `Authorization` header, even a fake one, since it
      * is its presence on reception that is checked.
      */
-    suspend fun checkAuthorizationForwarding(address: ServerAddress): ApiOutcome<Boolean> = call {
+    suspend fun checkAuthorizationForwarding(address: ServerAddress): ApiOutcome<Boolean> = apiCall {
         val response = httpClient.get(address.apiEndpoint + COMPATIBILITY_PATH) {
             header(HttpHeaders.Authorization, "GoogleLogin auth=$COMPATIBILITY_PROBE_TOKEN")
         }
@@ -96,7 +98,7 @@ internal class FreshRssApi @Inject constructor(
      * The response is plain text, one `key=value` pair per line. Only `Auth`
      * is kept; `SID` carries the same value and `LSID` is `null`.
      */
-    suspend fun clientLogin(address: ServerAddress, credentials: Credentials): ApiOutcome<AuthToken> = call {
+    suspend fun clientLogin(address: ServerAddress, credentials: Credentials): ApiOutcome<AuthToken> = apiCall {
         val response = httpClient.submitForm(
             url = address.apiEndpoint + CLIENT_LOGIN_PATH,
             formParameters = parameters {
@@ -135,7 +137,7 @@ internal class FreshRssApi @Inject constructor(
         token: AuthToken,
         pageSize: Int,
         cursor: PageCursor? = null,
-    ): ApiOutcome<StreamContentsDto> = call {
+    ): ApiOutcome<StreamContentsDto> = apiCall {
         val response = httpClient.get(address.apiEndpoint + STREAM_CONTENTS_PATH) {
             header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
             parameter(PARAM_COUNT, pageSize)
@@ -144,7 +146,7 @@ internal class FreshRssApi @Inject constructor(
         }
         when {
             !response.status.isSuccess() -> ApiOutcome.HttpError(response.status.value, response.bodyAsText())
-            else -> streamContentsFrom(response.bodyAsText())
+            else -> decodeJson(StreamContentsDto.serializer(), response.bodyAsText(), "stream/contents")
         }
     }
 
@@ -162,7 +164,7 @@ internal class FreshRssApi @Inject constructor(
      * The token is deterministic and reusable: the caller obtains it once and
      * keeps it, re-requesting it after a `401` if needed.
      */
-    suspend fun modificationToken(address: ServerAddress, token: AuthToken): ApiOutcome<ModificationToken> = call {
+    suspend fun modificationToken(address: ServerAddress, token: AuthToken): ApiOutcome<ModificationToken> = apiCall {
         val response = httpClient.get(address.apiEndpoint + TOKEN_PATH) {
             header(HttpHeaders.Authorization, "$AUTHORIZATION_SCHEME${token.value}")
         }
@@ -194,7 +196,7 @@ internal class FreshRssApi @Inject constructor(
         token: AuthToken,
         modificationToken: ModificationToken,
         articleIds: List<ArticleId>,
-    ): ApiOutcome<Unit> = call {
+    ): ApiOutcome<Unit> = apiCall {
         val items = articleIds.map { it.toUnsignedDecimal() }
         Timber.tag(READ_SYNC_TAG).d("edit-tag : %d i envoyés, %s", items.size, items)
 
@@ -222,16 +224,6 @@ internal class FreshRssApi @Inject constructor(
         }
     }
 
-    /**
-     * FreshRSS error bodies are plain text; an unreadable `2xx` is therefore a
-     * malformed body, not a transport failure.
-     */
-    private fun streamContentsFrom(body: String): ApiOutcome<StreamContentsDto> = try {
-        ApiOutcome.Success(FreshRssJson.decodeFromString(StreamContentsDto.serializer(), body))
-    } catch (@Suppress("SwallowedException") failure: SerializationException) {
-        ApiOutcome.MalformedResponse("réponse de stream/contents illisible : ${failure.message}")
-    }
-
     private suspend fun tokenFrom(response: HttpResponse): ApiOutcome<AuthToken> {
         val auth = response.bodyAsText()
             .lineSequence()
@@ -245,21 +237,6 @@ internal class FreshRssApi @Inject constructor(
         }
     }
 
-    /**
-     * Maps every transport exception to [ApiOutcome.TransportError].
-     *
-     * `CancellationException` must keep propagating: catching it would let a
-     * coroutine outlive the cancellation of its scope, while the screen
-     * awaiting it is already gone.
-     */
-    private suspend fun <T> call(block: suspend () -> ApiOutcome<T>): ApiOutcome<T> = try {
-        block()
-    } catch (cancellation: kotlinx.coroutines.CancellationException) {
-        throw cancellation
-    } catch (@Suppress("TooGenericExceptionCaught") failure: Exception) {
-        ApiOutcome.TransportError(failure)
-    }
-
     private companion object {
         const val COMPATIBILITY_PATH = "/check/compatibility"
         const val STREAM_CONTENTS_PATH = "/reader/api/0/stream/contents/reading-list"
@@ -270,7 +247,6 @@ internal class FreshRssApi @Inject constructor(
         const val PARAM_ITEM = "i"
         const val EDIT_TAG_RESPONSE = "OK"
         const val AUTH_PREFIX = "Auth="
-        const val AUTHORIZATION_SCHEME = "GoogleLogin auth="
         const val PARAM_COUNT = "n"
         const val PARAM_CONTINUATION = "c"
         const val PARAM_EXCLUDE_TARGET = "xt"

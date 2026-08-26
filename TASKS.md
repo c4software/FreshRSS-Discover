@@ -42,7 +42,8 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due. Waiting for the author: the device pass on
+**Next task**: `GOAL-040-T01` — feed management from the settings (list,
+add, remove), opened 2026-08-26. Waiting for the author: the device pass on
 GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
 statistics screen).
@@ -2767,6 +2768,57 @@ changes**; the List keeps its behaviour.
       like the List's counterpart
 - [x] `GOAL-039-T04` Documentation: SPECS.md §4.6 table, §4.8, §5.1
       exception; closure of this Goal in TASKS.md
+
+---
+
+## GOAL-040 — Minimal feed management from the settings
+
+**Status: IN PROGRESS** — opened 2026-08-26 at the author's request.
+
+Asked by the author (2026-08-26): manage the feeds from the settings, and
+keep it **minimal** — list, add, remove. Nothing else: no categories, no
+renaming, no sorting; those stay in FreshRSS. This lifts the first exclusion
+of SPECS.md §2, which is updated the way notifications and sharing were.
+
+### What the API allows, read in the source (2026-08-26)
+
+`p/api/greader.php` (edge), read before anything else (AGENTS.md §3):
+
+- `GET reader/api/0/subscription/list?output=json` — already surveyed
+  (docs/freshrss-api.md §3.1); the id is `feed/<decimal>`;
+- `POST reader/api/0/subscription/edit` with `s=feed/<url>` and
+  `ac=subscribe` adds; `s=feed/<id>` and `ac=unsubscribe` removes; the body
+  is `OK`, a refusal is `400`. **No modification token `T`**: unlike
+  `edit-tag`, the dispatcher does not call `checkToken` on this path;
+- `POST reader/api/0/subscription/quickadd?quickadd=<url>` also adds, with a
+  JSON body — **not used**: it answers `200` on failure too, with the error
+  in the body, and one path is enough.
+
+To be **observed** on the local stack before the Goal closes (T05): the
+`OK` body, the `400` on a URL that is not a feed, and the id shape.
+
+### Tasks
+
+- [x] `GOAL-040-T01` API: a `FreshRssSubscriptionApi` (`list`, `subscribe`,
+      `unsubscribe`) next to `FreshRssApi`, which had reached the twelve
+      functions the Detekt configuration allows; a `SubscriptionListDto`; `MockEngine` tests on literal
+      bodies, malformed ones included; docs/freshrss-api.md §3.1 completed
+      and a new §4.3 for `subscription/edit`
+- [ ] `GOAL-040-T02` Domain: `Subscription`, `SubscriptionId`, `FeedUrl`
+      (what an entered address must be before it leaves the device),
+      `SubscriptionError`, the `SubscriptionRepository` contract and its
+      Fake; pure JVM tests
+- [ ] `GOAL-040-T03` Data: `DefaultSubscriptionRepository` — session from
+      `SessionStore`, `401` invalidates the session like the other
+      repositories, `400` becomes `Rejected`; Hilt binding; tests on
+      `MockEngine`
+- [ ] `GOAL-040-T04` Interface: a `Feeds` row in the settings' account
+      section opens a screen of its own (like the statistics): the list,
+      a field and an add button, a delete icon per row with confirmation;
+      ViewModel, screen and screenshot tests, bilingual strings
+- [ ] `GOAL-040-T05` Validation on the local stack (add, list, remove
+      against the real FreshRSS), docs/freshrss-api.md observations
+      recorded, SPECS.md §2 and §6, ARCHITECTURE.md §9, closure here
 
 ---
 
