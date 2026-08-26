@@ -59,6 +59,9 @@ Two ways to go through it, as you prefer: the vertical **list**, or
   its own size, over a blurred background drawn from itself, rather than
   stretched and fuzzy;
 - opening the original article in the browser;
+- **minimal feed management** from the settings: the account's feeds as the
+  server holds them, one added by its address, one removed after
+  confirmation — nothing that organises them;
 - a local cache readable offline, with automatic and manual purge;
 - **a daily reading reminder**, at the hour you usually read — learned from
   your reading habits, or fixed by hand — quoting real titles, and which
@@ -70,8 +73,8 @@ The full specification is in [SPECS.md](./SPECS.md).
 
 ## What it will not do
 
-Subscription management, multiple accounts, widgets, social sharing,
-**background synchronisation**. See [SPECS.md §2](./SPECS.md).
+Organising subscriptions — categories, renaming, sorting — multiple accounts,
+widgets, social sharing, **background synchronisation**. See [SPECS.md §2](./SPECS.md).
 
 The reading reminder is a **local** notification: it opens no connection, and
 that is what sets it apart from background synchronisation, which stays
