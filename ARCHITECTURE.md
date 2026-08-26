@@ -82,7 +82,8 @@ Room, DataStore or Compose.
 
 ### 2.1 What must stay confined to the FreshRSS layer
 
-None of the following must leak above `FreshRssApi` and its repository. A
+None of the following must leak above `FreshRssApi`, `FreshRssSubscriptionApi`
+and their repositories. A
 `ViewModel` handling a `continuation` would be an architectural defect, not a
 shortcut.
 
@@ -93,6 +94,8 @@ shortcut.
   read state;
 - the `continuation` token and its base (decimal) against article identifiers
   (hexadecimal);
+- the `feed/<id>` stream names of subscriptions, and the `s`/`ac` form of
+  `subscription/edit`;
 - the API's three time units (seconds, microseconds, nanoseconds);
 - the peculiar HTTP codes (`501` on `output`, `503` on a disabled API).
 
@@ -517,6 +520,7 @@ domain/                       Pure Kotlin/JVM — decides, knows neither HTTP no
 ├── reminder/                 time, content and learned hour of the reading reminder
 ├── settings/                 reading settings, cache
 ├── shuffle/                  source interleaving
+├── subscription/             the account's feeds: list, add, remove; the address a feed must have
 └── time/                     Clock
 
 app/
@@ -540,6 +544,7 @@ app/
     ├── recap/                digest of the unread: title-bar action, sheet, states
     ├── settings/             settings
     ├── stats/                reading statistics: the histogram behind the reminder hour
+    ├── subscriptions/        the account's feeds, managed from the settings
     ├── immersive/            feed as full-screen pages, flicked vertically
     └── theme/                colours, spacings
 ```

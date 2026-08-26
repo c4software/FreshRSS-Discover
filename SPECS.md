@@ -46,8 +46,9 @@ What that implies, and what structures everything that follows:
 
 Explicitly excluded, so that no Goal introduces them by drift:
 
-- subscription management (adding, removing, sorting) — that is done in
-  FreshRSS;
+- ~~subscription management (adding, removing, sorting)~~ — **lifted in
+  part** on 2026-08-26, see §6: listing, adding and removing feeds are done
+  from the settings. Categories, renaming and sorting stay in FreshRSS;
 - offline reading of the full content of articles;
 - multiple accounts;
 - widgets, quick tiles;
@@ -63,6 +64,14 @@ and introducing them would require updating this document.
 > cache** and connects to nothing. That is what distinguishes a local
 > notification from a background synchronisation, and what makes only one of the
 > two present here.
+>
+> **Feed management too**, at the author's request (2026-08-26): see §6. It
+> is kept to what the account's feeds need to exist — list them, add one by
+> its address, remove one — and nothing of what organises them: no
+> categories, no renaming, no sorting, no import. Each action is a user
+> gesture that talks to the server once, so §7.4 stays true: no connection
+> leaves on its own. The exclusion was written for the first version, and
+> the version is no longer the first.
 >
 > **Sharing too**, at the author's request: see §4.3. It appeared under "social
 > sharing, comments, annotations", and is none of the three — but the exclusion
@@ -763,6 +772,15 @@ that matters.
 The settings screen stays minimal:
 
 - connected server address and login (read only);
+- **feeds**, on a screen of their own reached from the account: the list
+  as the server holds it (title and address), a field and a button to add
+  one by its address, a bin per row that asks for confirmation before
+  removing. The address is checked on the device before leaving (empty,
+  no host, a scheme the server would not fetch); what the server refuses
+  — no feed at that address, or already subscribed — is said as such. The
+  list is re-read from the server after every action, never patched
+  locally. A feed removed is unsubscribed on the server for good; nothing
+  is kept;
 - **feed presentation mode**: List or Immersive (§4.8);
 - **reading reminder**: on or off, and its hour — automatic (learned, §4.9) or
   fixed at a chosen time;
