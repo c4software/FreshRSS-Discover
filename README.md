@@ -199,6 +199,14 @@ succeed. None of this is written in the repository.
 The `release.yml` workflow does the same in CI. It is **never** triggered by a
 `push`: only by hand, or by a `v*` tag.
 
+On a tag, the verified bundle then goes to the Play Store's **internal
+testing** track through [Gradle Play Publisher](https://github.com/Triple-T/gradle-play-publisher),
+with the release notes of `store/release-notes/` (linked from
+`app/src/main/play/release-notes/`). One more secret drives it:
+`PLAY_SERVICE_ACCOUNT_JSON`, the key of a service account invited in the Play
+Console with the right to publish to testing tracks. Without it the `publish*`
+tasks do not exist: a local build never talks to Google.
+
 ### Publishing to the Play Store
 
 > Groundwork **proven**: this is what the application was published with.
@@ -219,7 +227,12 @@ text declared to Google cannot drift from the one held here.
    plays that part — [`store/demo-server/`](./store/demo-server/README.md).
 3. Create a release keystore, **outside the repository**, and put it in the
    repository secrets (see *Production build* above).
-4. Place a `v*` tag: the workflow builds and signs.
+4. Create a service account (Cloud Console → IAM → Service accounts), invite
+   its address in the Play Console (Users and permissions → *Release to
+   testing tracks*), and put its JSON key in the `PLAY_SERVICE_ACCOUNT_JSON`
+   secret. The very first bundle must be uploaded by hand: the API refuses it.
+5. Place a `v*` tag: the workflow builds, signs, publishes a GitHub release
+   and sends the bundle to internal testing.
 
 ---
 

@@ -111,9 +111,31 @@ jobs:
             exit 1
           fi
 
-      - name: Effacer la clé
+      # Le bundle vérifié part en test interne sur la Play Console, avec les
+      # notes de version du dépôt (Gradle Play Publisher). Sur étiquette
+      # seulement : un déclenchement manuel n'a pas de version, et la Play
+      # Console refuserait d'ailleurs un `versionCode` de repli. Le secret
+      # restitué est effacé avec la clé, ci-dessous.
+      - name: Publier en test interne sur le Play Store
+        if: github.ref_type == 'tag'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON_CONTENT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/play-service-account.json
+          RELEASE_KEYSTORE: ${{ runner.temp }}/release.jks
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON_CONTENT" ]; then
+            echo "::error::Le secret PLAY_SERVICE_ACCOUNT_JSON est absent."
+            exit 1
+          fi
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON_CONTENT" > "$PLAY_SERVICE_ACCOUNT_JSON"
+          ./gradlew :app:publishReleaseBundle
+
+      - name: Effacer la clé et le compte de service
         if: always()
-        run: rm -f "$RUNNER_TEMP/release.jks"
+        run: rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/play-service-account.json"
 
       - name: Publier les artefacts
         uses: actions/upload-artifact@v7

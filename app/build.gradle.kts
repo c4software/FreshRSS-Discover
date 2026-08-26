@@ -1,3 +1,4 @@
+import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.File
 
@@ -9,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.playPublisher)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.room)
 }
@@ -230,6 +232,30 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+/*
+ * Publication sur le Play Store, en test interne (Gradle Play Publisher).
+ *
+ * Le plugin n'est actif qu'en présence de la clé du compte de service, lue
+ * dans `PLAY_SERVICE_ACCOUNT_JSON` : en local, comme pour la signature, rien
+ * n'est configuré et les tâches `publish*` restent inertes. Le rendu sur la
+ * Play Console est aussitôt effectif (`COMPLETED`) : un test interne est le
+ * brouillon, une version qui y attend encore une validation n'aide personne.
+ *
+ * Les notes de version sont lues dans `src/main/play/release-notes/`, des liens
+ * vers `store/release-notes/` : un seul texte, versionné à un seul endroit.
+ */
+play {
+    val credentials =
+        providers.environmentVariable("PLAY_SERVICE_ACCOUNT_JSON").orNull
+            ?.let(::File)
+            ?.takeIf(File::exists)
+    enabled.set(credentials != null)
+    if (credentials != null) serviceAccountCredentials.set(credentials)
+    track.set("internal")
+    releaseStatus.set(ReleaseStatus.COMPLETED)
+    defaultToAppBundles.set(true)
 }
 
 kotlin {

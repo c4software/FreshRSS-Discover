@@ -84,9 +84,15 @@ déclarées (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`,
    secrets `RELEASE_KEYSTORE`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
    `RELEASE_KEY_PASSWORD` dans le dépôt GitHub — voir le README racine,
    § *Production build*.
-4. **Produire l'artefact signé** : poser une étiquette `v*`, le workflow
-   `release.yml` construit et signe.
-5. **Vérifier la version** : le `versionName` de l'artefact doit être celui de
+4. **Créer le compte de service** (Cloud Console → IAM → Comptes de service),
+   l'inviter dans la Play Console (Utilisateurs et autorisations → *Publier
+   sur les canaux de test*), et déposer sa clé JSON dans le secret
+   `PLAY_SERVICE_ACCOUNT_JSON`. Le tout premier bundle se dépose à la main :
+   l'API le refuse.
+5. **Produire et publier l'artefact signé** : poser une étiquette `v*`, le
+   workflow `release.yml` construit, signe, et envoie le bundle en **test
+   interne** avec les notes de `release-notes/`.
+6. **Vérifier la version** : le `versionName` de l'artefact doit être celui de
    l'étiquette, sans suffixe. Un nom comme `1.10.0-1-gb5d2c92` signale une
    construction qui ne descend pas directement d'une étiquette : elle n'est pas
    publiable.
