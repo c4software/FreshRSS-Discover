@@ -108,12 +108,11 @@ fun AppNavHost(
                     onDisplayedArticlesChange = recapViewModel::onDisplayedOrderChanged,
                 )
 
-                // Under the top bar, not below it: the page is a picture,
-                // and the bar turns transparent over it (SPECS.md §4.8).
-                // The bottom bar keeps its room — it is opaque.
+                // Under both bars, not between them: the page is a picture,
+                // and the bars turn transparent over it (SPECS.md §4.8).
                 FeedPresentation.Immersive -> ImmersiveRoute(
-                    modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()),
                     topInset = contentPadding.calculateTopPadding(),
+                    bottomInset = contentPadding.calculateBottomPadding(),
                     onFeedFillsScreenChange = onFeedFillsScreenChange,
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
@@ -257,6 +256,7 @@ private fun DiscoverRoute(
 private fun ImmersiveRoute(
     modifier: Modifier = Modifier,
     topInset: Dp = Spacing.none,
+    bottomInset: Dp = Spacing.none,
     onFeedFillsScreenChange: (Boolean) -> Unit = {},
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
@@ -313,6 +313,7 @@ private fun ImmersiveRoute(
         pagerState = pagerState,
         onVisibilityChanged = viewModel::onVisibilityChanged,
         topInset = topInset,
+        bottomInset = bottomInset,
         isReloadingOnForeground = isReloadingOnForeground,
         modifier = modifier,
     )

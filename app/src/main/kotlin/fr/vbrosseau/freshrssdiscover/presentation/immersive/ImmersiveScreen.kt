@@ -137,7 +137,7 @@ private const val SCRIM_START = 0.35f
  * the theme background dominates enough for `onSurface` to keep AA contrast
  * over any photograph, which a lower value cannot guarantee.
  */
-private const val SCRIM_END_ALPHA = 0.92f
+private const val SCRIM_END_ALPHA = 1f
 
 /**
  * Below this background luminance the theme is dark and the text light: the
@@ -225,6 +225,9 @@ private const val TOP_SCRIM_START_ALPHA = 0.75f
  * @param topInset height of the transparent bar the pages run under. The
  *   pages ignore it — that is the point — but the offline banner must not:
  *   text under the title would be unreadable.
+ * @param bottomInset height of the transparent navigation bar the pages run
+ *   under. The picture and its scrim ignore it; the text, the rail and the
+ *   notices stand above it, or the bar would cover them.
  * @param isReloadingOnForeground a foreground reload is under way
  *   (GOAL-041): the feed is veiled until it settles, so the article the
  *   user left is never seen again before the new first page.
@@ -243,6 +246,7 @@ fun ImmersiveScreen(
     pagerState: PagerState = rememberPagerState { uiState.pageCount },
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
     topInset: Dp = Spacing.none,
+    bottomInset: Dp = Spacing.none,
     isReloadingOnForeground: Boolean = false,
 ) {
     ReturnToFirstPageAfterRefresh(pagerState = pagerState, isRefreshing = uiState.isRefreshing)
@@ -263,6 +267,7 @@ fun ImmersiveScreen(
                 modifier = Modifier.weight(1f),
                 pagerState = pagerState,
                 onVisibilityChanged = onVisibilityChanged,
+                bottomInset = bottomInset,
             )
 
             /*
@@ -274,7 +279,11 @@ fun ImmersiveScreen(
              * the layout; only a transient notice may overlay.
              */
             if (uiState.showsStaleNotice) {
-                StaleFeedNotice(onRefresh = onRefresh, onDismiss = onStaleNoticeDismiss)
+                StaleFeedNotice(
+                    onRefresh = onRefresh,
+                    onDismiss = onStaleNoticeDismiss,
+                    modifier = Modifier.padding(bottom = bottomInset),
+                )
             }
         }
 
@@ -286,7 +295,9 @@ fun ImmersiveScreen(
         if (uiState.isOfflineOpenNoticeVisible) {
             OfflineOpenNotice(
                 onDismiss = onOfflineNoticeDismiss,
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = bottomInset),
             )
         }
 
@@ -381,6 +392,7 @@ private fun ImmersiveBody(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
+    bottomInset: Dp = Spacing.none,
 ) {
     val phase = uiState.phase
 
@@ -395,6 +407,7 @@ private fun ImmersiveBody(
             modifier = modifier,
             pagerState = pagerState,
             onVisibilityChanged = onVisibilityChanged,
+            bottomInset = bottomInset,
         )
 
         // An ended session is a wait, not an error: the root router switches
@@ -430,6 +443,7 @@ private fun ArticlePager(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
+    bottomInset: Dp = Spacing.none,
 ) {
     val articleIds = remember(uiState.articles) { uiState.articles.map(ArticleUiModel::id) }
     val refreshState = rememberPullToRefreshState()
@@ -474,6 +488,7 @@ private fun ArticlePager(
             onArticleClick = onArticleClick,
             onArticleShare = onArticleShare,
             pagerState = pagerState,
+            bottomInset = bottomInset,
         )
     }
 }
@@ -486,6 +501,7 @@ private fun Pages(
     onArticleShare: (Long) -> Unit,
     pagerState: PagerState,
     modifier: Modifier = Modifier,
+    bottomInset: Dp = Spacing.none,
 ) {
     VerticalPager(
         state = pagerState,
@@ -514,6 +530,7 @@ private fun Pages(
                     pageOffset = pageOffset,
                     onOpen = { onArticleClick(article.id) },
                     onShare = { onArticleShare(article.id) },
+                    bottomInset = bottomInset,
                 )
             }
         }
@@ -570,6 +587,7 @@ private fun ArticlePage(
     onOpen: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: Dp = Spacing.none,
 ) {
     val openLabel = stringResource(R.string.immersive_open_article)
 
@@ -602,6 +620,7 @@ private fun ArticlePage(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomStart)
+                .padding(bottom = bottomInset)
                 .padding(Spacing.md),
             verticalAlignment = Alignment.Bottom,
         ) {

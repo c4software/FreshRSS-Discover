@@ -206,9 +206,9 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
 
     /*
      * Published by the immersive feed: its pages are pictures, and a bar
-     * with a background would cut a band off every one of them. The bar then
-     * loses its container, the content slides under it, and the page draws
-     * the scrim the title needs (SPECS.md §4.8).
+     * with a background would cut a band off every one of them. Both bars
+     * then lose their container, the content slides under them, and the
+     * page draws the scrims the title and the tabs need (SPECS.md §4.8).
      */
     var feedFillsScreen by remember { mutableStateOf(false) }
 
@@ -254,6 +254,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                 currentRoute = currentRoute,
                 onSelect = navController::navigateToTopLevel,
                 onReselect = { feedReselect?.invoke() },
+                transparent = feedFillsScreen,
             )
         },
     ) { innerPadding ->

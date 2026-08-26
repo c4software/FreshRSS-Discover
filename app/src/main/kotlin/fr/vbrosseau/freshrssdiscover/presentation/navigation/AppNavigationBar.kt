@@ -2,10 +2,12 @@ package fr.vbrosseau.freshrssdiscover.presentation.navigation
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -23,6 +25,8 @@ import androidx.navigation.NavHostController
  *   a "bring me back to the start" on the destination already shown. Routing
  *   both through [onSelect] would force every caller to re-derive what the
  *   bar already knows.
+ * @param transparent no container: over the immersive feed the page runs
+ *   under the bar and paints the fade the items stand on (SPECS.md §4.8).
  */
 @Composable
 fun AppNavigationBar(
@@ -30,10 +34,14 @@ fun AppNavigationBar(
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
     onReselect: (AppDestination) -> Unit = {},
+    transparent: Boolean = false,
 ) {
     val current = AppDestination.forRoute(currentRoute)
 
-    NavigationBar(modifier = modifier) {
+    NavigationBar(
+        modifier = modifier,
+        containerColor = if (transparent) Color.Transparent else NavigationBarDefaults.containerColor,
+    ) {
         AppDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = destination == current,
