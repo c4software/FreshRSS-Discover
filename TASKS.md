@@ -42,8 +42,8 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: `GOAL-040-T01` — feed management from the settings (list,
-add, remove), opened 2026-08-26. Waiting for the author: the device pass on
+**Next task**: none is due. GOAL-040 (feed management from the settings)
+closed on 2026-08-26, validated on the local stack. Waiting for the author: the device pass on
 GOAL-039 (pull on page 1, cold-start and 30-minute reloads, tab re-tap). Still waiting for the author: the device
 observation GOAL-035 left as debt (learned reminder hour, time picker,
 statistics screen).
@@ -2773,14 +2773,14 @@ changes**; the List keeps its behaviour.
 
 ## GOAL-040 — Minimal feed management from the settings
 
-**Status: IN PROGRESS** — opened 2026-08-26 at the author's request. T01 to
-T04 done, one commit each, full verification observed every time; T05's
-documentation is committed, its **observation on the local stack is
-waiting**: the Docker daemon is stopped on the machine and the `docker`
-group has no member, so neither the container nor `test-stack.sh run` can
-start without the author. To be observed next: `subscription/list` after
-an addition, the `OK` body, the `400` on a non-feed address, then the
-screen itself on the emulator.
+**Status: DONE** — five tasks, one commit each, full verification observed
+every time; validated on the local stack on 2026-08-26 (FreshRSS `latest`,
+headless emulator): sign-in, the feeds screen listing the server's sixteen
+feeds, `https://example.org/` refused with the "no feed found" notice,
+`xkcd.com/atom.xml` added and present on the server as `feed/18`, Explosm
+removed after confirmation and gone from the server. The Docker daemon had
+to be started by the author first — the `docker` group has no member on
+the machine.
 
 Asked by the author (2026-08-26): manage the feeds from the settings, and
 keep it **minimal** — list, add, remove. Nothing else: no categories, no
@@ -2823,7 +2823,7 @@ To be **observed** on the local stack before the Goal closes (T05): the
       section opens a screen of its own (like the statistics): the list,
       a field and an add button, a delete icon per row with confirmation;
       ViewModel, screen and screenshot tests, bilingual strings
-- [-] `GOAL-040-T05` Validation on the local stack (add, list, remove
+- [x] `GOAL-040-T05` Validation on the local stack (add, list, remove
       against the real FreshRSS), docs/freshrss-api.md observations
       recorded, SPECS.md §2 and §6, ARCHITECTURE.md §9, closure here
 
