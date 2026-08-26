@@ -2773,7 +2773,14 @@ changes**; the List keeps its behaviour.
 
 ## GOAL-040 — Minimal feed management from the settings
 
-**Status: IN PROGRESS** — opened 2026-08-26 at the author's request.
+**Status: IN PROGRESS** — opened 2026-08-26 at the author's request. T01 to
+T04 done, one commit each, full verification observed every time; T05's
+documentation is committed, its **observation on the local stack is
+waiting**: the Docker daemon is stopped on the machine and the `docker`
+group has no member, so neither the container nor `test-stack.sh run` can
+start without the author. To be observed next: `subscription/list` after
+an addition, the `OK` body, the `400` on a non-feed address, then the
+screen itself on the emulator.
 
 Asked by the author (2026-08-26): manage the feeds from the settings, and
 keep it **minimal** — list, add, remove. Nothing else: no categories, no
