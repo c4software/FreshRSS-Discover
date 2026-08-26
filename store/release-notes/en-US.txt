@@ -1,6 +1,4 @@
-Manage your feeds from the app.
+A cleaner return in immersive mode.
 
-• In Settings → Manage feeds: the account's feeds, as FreshRSS holds them.
-• Add a feed by its address; the app checks it before sending and says what the server refused.
-• Remove a feed with a tap on the bin, after confirmation.
-• Nothing gets organised here — categories, renaming and sorting stay in FreshRSS.
+• After a long absence, the feed reloads without ever showing the article you left again: a veil covers it at once, then the new first article fades in.
+• If the network is missing, the veil lifts and you get your page back.

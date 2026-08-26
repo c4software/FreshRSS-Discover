@@ -1,6 +1,4 @@
-Gérez vos flux depuis l'application.
+Un retour plus propre en mode immersif.
 
-• Dans Réglages → Gérer les flux : la liste des flux du compte, tels que FreshRSS les tient.
-• Ajoutez un flux par son adresse ; l'app vérifie l'adresse avant l'envoi et dit ce que le serveur refuse.
-• Retirez un flux d'un appui sur la corbeille, après confirmation.
-• Rien n'est organisé ici — catégories, renommage et tri restent dans FreshRSS.
+• Après une longue absence, le flux se recharge sans jamais réafficher l'article quitté : un voile le couvre aussitôt, puis le nouveau premier article apparaît en fondu.
+• Si le réseau manque, le voile se retire et vous retrouvez votre page.
