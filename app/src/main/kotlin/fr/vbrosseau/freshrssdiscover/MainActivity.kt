@@ -210,8 +210,16 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
      * with a background would cut a band off every one of them. Both bars
      * then lose their container, the content slides under them, and the
      * page draws the scrims the title and the tabs need (SPECS.md §4.8).
+     *
+     * Combined with the route rather than trusted alone: the feed withdraws
+     * its publication only when disposed, at the **end** of the navigation
+     * transition, and the bars would start their fade once the picture had
+     * already gone — a snap, seen on device (2026-08-26). The route changes
+     * on `navigate`, before the transition: the fade then runs over the
+     * departing page.
      */
     var feedFillsScreen by remember { mutableStateOf(false) }
+    val barsAreTransparent = feedFillsScreen && currentDestination == AppDestination.DISCOVER
 
     Scaffold(
         // The scaffold paints nothing itself: with the bar transparent, its
@@ -244,7 +252,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                     FeedRefreshAction(refresh = feedRefresh)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = animatedTopBarContainer(transparent = feedFillsScreen),
+                    containerColor = animatedTopBarContainer(transparent = barsAreTransparent),
                 ),
             )
         },
@@ -253,7 +261,7 @@ private fun SignedInScaffold(modifier: Modifier = Modifier) {
                 currentRoute = currentRoute,
                 onSelect = navController::navigateToTopLevel,
                 onReselect = { feedReselect?.invoke() },
-                transparent = feedFillsScreen,
+                transparent = barsAreTransparent,
             )
         },
     ) { innerPadding ->
