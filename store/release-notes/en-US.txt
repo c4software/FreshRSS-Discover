@@ -1,3 +1,5 @@
-A softer transition out of immersive mode.
+Immersive mode reloads like the list.
 
-• Moving to Settings, the bars' background fades back in instead of snapping.
+• No more automatic reload when coming back to the app: list and immersive mode now show the same articles, in the same order.
+• Re-tapping the tab returns to the first page, without reloading when already there.
+• A veil covers the feed during every requested reload.
