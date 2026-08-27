@@ -14,6 +14,7 @@ object ImmersiveTestTags {
     const val STALE_NOTICE = "immersive:stale-notice"
     const val STALE_NOTICE_REFRESH = "immersive:stale-notice-refresh"
     const val STALE_NOTICE_DISMISS = "immersive:stale-notice-dismiss"
+    const val RELOAD_VEIL = "immersive:reload-veil"
 
     fun page(id: Long) = "immersive:page:$id"
 

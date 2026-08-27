@@ -531,7 +531,13 @@ What this mode implies, and which is not neutral:
   feed then, and replaced the shared cache under a List that was still
   showing the previous feed — the two modes no longer had the same source,
   against the rule closing this section. Reloading is now a gesture in
-  both modes, and the same gesture (§4.6).
+  both modes, and the same gesture (§4.6). The veil, however, stays
+  (author, 2026-08-27), over **every** requested reload: from the instant
+  it starts, an opaque veil — the theme's background, a loading indicator —
+  covers the feed, and fades away once the reload has settled, on the new
+  first page. It appears at once and only fades on lifting: one that faded
+  in would show the old article through it. On failure it lifts on the page
+  the user was on, and the usual notice says why.
 - **The mode is a persistent setting** (§6): the application reopens in the mode
   the user left.
 - **The gesture is usable with a screen reader.** A vertical flick is the very

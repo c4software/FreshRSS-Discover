@@ -193,6 +193,20 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
         }
     }
 
+    /** The veil of a reload (GOAL-042-T04): opaque, so the article underneath must not show through. */
+    @Test
+    fun aReloadVeilsTheArticle() {
+        capture("immersif-rechargement") {
+            immersive(
+                ImmersiveUiState(
+                    articles = listOf(sampleArticle(id = 1L, title = "L'article qu'il ne faut pas revoir")),
+                    phase = DiscoverPhase.Idle,
+                    isRefreshing = true,
+                ),
+            )
+        }
+    }
+
     @Composable
     private fun immersive(
         uiState: ImmersiveUiState,

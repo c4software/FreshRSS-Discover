@@ -1,6 +1,9 @@
 package fr.vbrosseau.freshrssdiscover.presentation.immersive
 
 import android.os.Build
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -292,6 +296,45 @@ fun ImmersiveScreen(
                     .padding(bottom = bottomInset),
             )
         }
+
+        ReloadVeil(visible = uiState.isRefreshing, modifier = Modifier.matchParentSize())
+    }
+}
+
+/**
+ * Opaque veil over the whole feed while a requested reload runs (SPECS.md
+ * §4.8, GOAL-042-T04).
+ *
+ * The article the user left is never shown again — not even frozen under a
+ * spinner — and the new first page appears once the reload has settled. It
+ * appears at once and only fades on lifting: a veil that faded in would show
+ * the old article through it. The pull indicator spins underneath, unseen:
+ * the veil carries its own.
+ *
+ * Last in its parent, so it covers the notices too, and it consumes every
+ * pointer event: a tap that reached the page underneath would open an
+ * article about to be replaced.
+ */
+@Composable
+private fun ReloadVeil(visible: Boolean, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = EnterTransition.None,
+        exit = fadeOut(),
+        modifier = modifier,
+    ) {
+        FeedCentered(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.background)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent().changes.forEach { it.consume() }
+                        }
+                    }
+                }
+                .testTag(ImmersiveTestTags.RELOAD_VEIL),
+        ) { LoadingIndicator() }
     }
 }
 

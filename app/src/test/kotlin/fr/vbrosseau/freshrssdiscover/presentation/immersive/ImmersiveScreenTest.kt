@@ -375,6 +375,27 @@ class ImmersiveScreenTest {
         assertNull(opened, "le geste a été pris pour une ouverture")
     }
 
+    // ----- The veil over a reload (GOAL-042-T04) ------------------------------
+
+    @Test
+    fun aReloadVeilsTheFeedAndSwallowsTaps() {
+        // A tap through the veil would open an article about to be replaced.
+        var opened: Long? = null
+        show(feedOf(uiArticle(id = 1L)).copy(isRefreshing = true), onArticleClick = { opened = it })
+
+        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).assertIsDisplayed()
+        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).performClick()
+
+        assertNull(opened)
+    }
+
+    @Test
+    fun withoutAReloadThereIsNoVeil() {
+        show(feedOf(uiArticle(id = 1L)))
+
+        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).assertDoesNotExist()
+    }
+
     // ----- Card sharing (SPECS.md §4.3) ---------------------------------------
 
     @Test

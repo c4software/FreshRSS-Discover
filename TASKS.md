@@ -2871,8 +2871,8 @@ animation on (2026-08-26).
 
 ## GOAL-042 — Immersive reloading goes back to the List's rules
 
-**Status: DONE** — three tasks, one commit each, full verification observed
-every time, Roborazzi references verified after the veil's removal. Waiting
+**Status: DONE** — four tasks, one commit each, full verification observed
+every time, Roborazzi references verified. Waiting
 for the author: the device pass (switch List ↔ Immersive, same articles in
 the same order; tab re-tap inert on the first page).
 
@@ -2891,7 +2891,7 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
 | Point | Decision |
 |---|---|
 | Automatic reload | None: the immersive feed obeys SPECS.md §5.1 like the List — the cache is shown, a request leaves only when there is nothing to show |
-| Veil | Gone with the reload it covered |
+| Veil | Kept, but over **every** requested reload — button, pull, tab, stale notice — since there is no automatic one left (author, 2026-08-27, T04) |
 | Tab re-tap | Back to the first page, then reload; **inert on the first page**, like the List's top tap |
 | Pull and button | Unchanged |
 
@@ -2906,6 +2906,10 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
 - [x] `GOAL-042-T02` Tab re-tap: `rememberReturnToFirstPageThenRefresh`
       does nothing on a settled first page, test aligned on the List's
 - [x] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
+- [x] `GOAL-042-T04` The veil comes back, on every requested reload (author,
+      2026-08-27): keyed on `isRefreshing` in the screen alone — button,
+      pull, tab and stale notice all go through it — no ViewModel state;
+      screen test and Roborazzi references restored; SPECS.md §4.8
 
 ---
 
