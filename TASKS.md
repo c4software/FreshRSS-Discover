@@ -2871,7 +2871,10 @@ animation on (2026-08-26).
 
 ## GOAL-042 — Immersive reloading goes back to the List's rules
 
-**Status: IN PROGRESS**
+**Status: DONE** — three tasks, one commit each, full verification observed
+every time, Roborazzi references verified after the veil's removal. Waiting
+for the author: the device pass (switch List ↔ Immersive, same articles in
+the same order; tab re-tap inert on the first page).
 
 Asked by the author (2026-08-27): the immersive reloading "must be done like
 in the List view", and the two modes "must have the same source and order —
@@ -2902,7 +2905,7 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
       showing on a filled cache asks nothing
 - [x] `GOAL-042-T02` Tab re-tap: `rememberReturnToFirstPageThenRefresh`
       does nothing on a settled first page, test aligned on the List's
-- [-] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
+- [x] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
 
 ---
 
