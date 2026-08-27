@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 private const val PAGE_COUNT = 5
 
 /**
- * The immersive reaction to a tab reselection (GOAL-039-T03), in isolation:
+ * The immersive reaction to a tab reselection (GOAL-042-T02), in isolation:
  * the route needs injected ViewModels, while the rule lives entirely in
  * [rememberReturnToFirstPageThenRefresh].
  */
@@ -45,9 +45,9 @@ class ReturnToFirstPageThenRefreshTest {
     }
 
     @Test
-    fun aReselectionAwayFromTheFirstPageComesBackWithoutReloading() {
-        // Two intentions, two taps: the first brings the reader back, and
-        // must not also empty the feed they came back to.
+    fun aReselectionAwayFromTheFirstPageComesBackThenReloads() {
+        // The return is shown, not skipped: the reload only fires once the
+        // pager has settled on the first page (SPECS.md §4.6).
         var refreshed = false
         show(initialPage = 3, onRefresh = { refreshed = true })
 
@@ -55,19 +55,19 @@ class ReturnToFirstPageThenRefreshTest {
         composeRule.waitForIdle()
 
         assertEquals(0, pagerState.settledPage)
-        assertFalse(refreshed)
+        assertTrue(refreshed)
     }
 
     @Test
-    fun aReselectionOnTheFirstPageReloads() {
-        // Unlike the List: on the first item, the tap asks for something new,
-        // the short-video convention (author's ruling, 2026-08-25).
+    fun aReselectionOnTheFirstPageDoesNothing() {
+        // Like the List's top tap: nowhere to bring the reader back to, and
+        // a reload would empty a feed the tap never asked to lose.
         var refreshed = false
         show(initialPage = 0, onRefresh = { refreshed = true })
 
         composeRule.runOnIdle { assertNotNull(reselect)() }
         composeRule.waitForIdle()
 
-        assertTrue(refreshed)
+        assertFalse(refreshed)
     }
 }

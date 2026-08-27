@@ -335,13 +335,9 @@ internal fun PublishFeedFillsScreen(onFeedFillsScreenChange: (Boolean) -> Unit) 
 }
 
 /**
- * The immersive reaction to a tab reselection: back to the first page, or
- * reload when already there (GOAL-039-T03).
- *
- * Unlike the List, the tap on the first page is not inert: the author's
- * ruling (2026-08-25) follows the short-video convention, where tapping the
- * home tab on the first item fetches a fresh feed. Two intentions, two taps:
- * the first brings the reader back, the second asks for something new.
+ * The immersive reaction to a tab reselection: back to the first page, then
+ * reload; inert on a settled first page, like the List's top tap
+ * (SPECS.md §4.6, GOAL-042-T02).
  *
  * Sequenced like the List's: `animateScrollToPage` suspends until the pager
  * has settled, and the reload is only ever asked on a settled first page.
@@ -356,10 +352,11 @@ internal fun rememberReturnToFirstPageThenRefresh(
 
     return remember<() -> Unit>(scope, pagerState, onRefresh) {
         {
-            if (pagerState.settledPage == 0 && !pagerState.isScrollInProgress) {
-                onRefresh()
-            } else {
-                scope.launch { pagerState.animateScrollToPage(0) }
+            if (pagerState.settledPage != 0 || pagerState.isScrollInProgress) {
+                scope.launch {
+                    pagerState.animateScrollToPage(0)
+                    onRefresh()
+                }
             }
         }
     }

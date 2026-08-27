@@ -2900,9 +2900,9 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
       domain rule `reloadsOnForeground` and the veil are deleted with their
       tests and Roborazzi references; a ViewModel test checks that a first
       showing on a filled cache asks nothing
-- [ ] `GOAL-042-T02` Tab re-tap: `rememberReturnToFirstPageThenRefresh`
+- [x] `GOAL-042-T02` Tab re-tap: `rememberReturnToFirstPageThenRefresh`
       does nothing on a settled first page, test aligned on the List's
-- [ ] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
+- [-] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
 
 ---
 
