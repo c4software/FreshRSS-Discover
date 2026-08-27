@@ -375,37 +375,6 @@ class ImmersiveScreenTest {
         assertNull(opened, "le geste a été pris pour une ouverture")
     }
 
-    // ----- The veil over a foreground reload (GOAL-041-T02) -------------------
-
-    @Test
-    fun aForegroundReloadVeilsTheFeedAndSwallowsTaps() {
-        // A tap through the veil would open an article about to be replaced.
-        var opened: Long? = null
-        val uiState = feedOf(uiArticle(id = 1L))
-        composeRule.setContent {
-            ImmersiveScreen(
-                uiState = uiState,
-                onLoadMore = {},
-                onRetry = {},
-                onArticleClick = { opened = it },
-                onArticleShare = {},
-                isReloadingOnForeground = true,
-            )
-        }
-
-        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).assertIsDisplayed()
-        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).performClick()
-
-        assertNull(opened)
-    }
-
-    @Test
-    fun withoutAForegroundReloadThereIsNoVeil() {
-        show(feedOf(uiArticle(id = 1L)))
-
-        composeRule.onNodeWithTag(ImmersiveTestTags.RELOAD_VEIL).assertDoesNotExist()
-    }
-
     // ----- Card sharing (SPECS.md §4.3) ---------------------------------------
 
     @Test

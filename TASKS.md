@@ -2869,6 +2869,43 @@ animation on (2026-08-26).
 
 ---
 
+## GOAL-042 — Immersive reloading goes back to the List's rules
+
+**Status: IN PROGRESS**
+
+Asked by the author (2026-08-27): the immersive reloading "must be done like
+in the List view", and the two modes "must have the same source and order —
+not the case now, visible when switching from one to the other". The two
+requests are one: the cold-start reload of GOAL-039-T02 fired on every
+first showing of the immersive feed — including a switch from the List,
+which creates its ViewModel then — and replaced the shared cache under a
+List ViewModel that was still alive with the previous feed. GOAL-039-T02,
+GOAL-039-T03's first-page reload and GOAL-041 are withdrawn; the pull on
+the first page (GOAL-039-T01) and the bar button stay, as in the List.
+
+### Decisions
+
+| Point | Decision |
+|---|---|
+| Automatic reload | None: the immersive feed obeys SPECS.md §5.1 like the List — the cache is shown, a request leaves only when there is nothing to show |
+| Veil | Gone with the reload it covered |
+| Tab re-tap | Back to the first page, then reload; **inert on the first page**, like the List's top tap |
+| Pull and button | Unchanged |
+
+### Tasks
+
+- [x] `GOAL-042-T01` No automatic reload, no veil: `ImmersiveViewModel`
+      loses `onForeground`/`onBackground`/`isReloadingOnForeground`, the
+      route reports the foreground like the List's (`onScreenShown`), the
+      domain rule `reloadsOnForeground` and the veil are deleted with their
+      tests and Roborazzi references; a ViewModel test checks that a first
+      showing on a filled cache asks nothing
+- [ ] `GOAL-042-T02` Tab re-tap: `rememberReturnToFirstPageThenRefresh`
+      does nothing on a settled first page, test aligned on the List's
+- [ ] `GOAL-042-T03` Documentation: SPECS.md §4.6, §4.8, §5.1; closure here
+
+---
+
 ## Blocked points
 
 Just one, out of our hands:

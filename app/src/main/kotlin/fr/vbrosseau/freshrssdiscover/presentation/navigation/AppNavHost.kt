@@ -264,7 +264,6 @@ private fun ImmersiveRoute(
 ) {
     val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isReloadingOnForeground by viewModel.isReloadingOnForeground.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { uiState.pageCount }
 
     PublishFeedFillsScreen(onFeedFillsScreenChange)
@@ -283,7 +282,7 @@ private fun ImmersiveRoute(
         ),
     )
 
-    ReportForeground(onForeground = viewModel::onForeground, onBackground = viewModel::onBackground)
+    AskTheServerWhenShownEmpty(viewModel::onScreenShown)
 
     FeedEventToasts(viewModel.events)
 
@@ -314,7 +313,6 @@ private fun ImmersiveRoute(
         onVisibilityChanged = viewModel::onVisibilityChanged,
         topInset = topInset,
         bottomInset = bottomInset,
-        isReloadingOnForeground = isReloadingOnForeground,
         modifier = modifier,
     )
 }
@@ -389,19 +387,6 @@ private fun AskTheServerWhenShownEmpty(onScreenShown: () -> Unit) {
     LifecycleResumeEffect(onScreenShown) {
         onScreenShown()
         onPauseOrDispose { }
-    }
-}
-
-/**
- * Both lifecycle edges, for the immersive feed (GOAL-039-T02): it decides
- * on its own whether a foregrounding reloads, and needs the backgrounding
- * instant to do so. Same `RESUMED` reasoning as [AskTheServerWhenShownEmpty].
- */
-@Composable
-private fun ReportForeground(onForeground: () -> Unit, onBackground: () -> Unit) {
-    LifecycleResumeEffect(onForeground, onBackground) {
-        onForeground()
-        onPauseOrDispose { onBackground() }
     }
 }
 

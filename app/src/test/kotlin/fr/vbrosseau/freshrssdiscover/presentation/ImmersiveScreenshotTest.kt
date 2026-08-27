@@ -193,29 +193,10 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
         }
     }
 
-    /**
-     * The veil of a foreground reload (GOAL-041): opaque, so the article
-     * underneath must not show through in either theme.
-     */
-    @Test
-    fun aForegroundReloadVeilsTheArticle() {
-        capture("immersif-rechargement-avant-plan") {
-            immersive(
-                ImmersiveUiState(
-                    articles = listOf(sampleArticle(id = 1L, title = "L'article qu'il ne faut pas revoir")),
-                    phase = DiscoverPhase.Idle,
-                    isRefreshing = true,
-                ),
-                isReloadingOnForeground = true,
-            )
-        }
-    }
-
     @Composable
     private fun immersive(
         uiState: ImmersiveUiState,
         initialPage: Int = 0,
-        isReloadingOnForeground: Boolean = false,
     ) {
         ImmersiveScreen(
             uiState = uiState,
@@ -224,7 +205,6 @@ class ImmersiveScreenshotTest : ScreenshotTest() {
             onArticleClick = {},
             onArticleShare = {},
             pagerState = rememberPagerState(initialPage = initialPage) { uiState.pageCount },
-            isReloadingOnForeground = isReloadingOnForeground,
         )
     }
 }
