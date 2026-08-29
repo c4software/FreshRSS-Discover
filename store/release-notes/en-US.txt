@@ -1,5 +1,5 @@
-Immersive mode reloads like the list.
+The list and immersive mode are now one.
 
-• No more automatic reload when coming back to the app: list and immersive mode now show the same articles, in the same order.
+• Both modes now share the same feed: a list emptied by a reload leaves no articles behind in immersive mode, an article read on one side is read on the other, and paging resumes at the same place.
 • Re-tapping the tab returns to the first page, without reloading when already there.
 • A veil covers the feed during every requested reload.

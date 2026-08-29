@@ -1,5 +1,5 @@
-Le mode immersif recharge comme la liste.
+La liste et le mode immersif ne font plus qu'un.
 
-• Plus de rechargement automatique au retour dans l'application : la liste et le mode immersif montrent désormais les mêmes articles, dans le même ordre.
+• Les deux modes partagent désormais le même flux : une liste vidée par un rechargement ne laisse plus d'articles en mode immersif, un article lu d'un côté est lu de l'autre, et la pagination reprend au même endroit.
 • Rappuyer sur l'onglet revient à la première page, sans recharger si vous y êtes déjà.
 • Un voile couvre le flux pendant chaque rechargement demandé.

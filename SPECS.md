@@ -546,7 +546,14 @@ What this mode implies, and which is not neutral:
 
 The choice of mode **never** changes the order of the articles: a user who
 switches from one to the other finds the feed at the same place, in the same
-order (determinism rule of §4.2).
+order (determinism rule of §4.2). **The two modes show one and the same feed
+state**, not two copies of it: a switch neither reloads nor rebuilds
+anything, and what one mode did — reload, read, page further — is exactly
+what the other shows next. The author observed the contrary on 2026-08-29,
+an empty List and an Immersive mode still showing articles: the two modes
+each held their own feed over one shared cache, and a reload that emptied the
+one left the other untouched. That is no longer possible by construction
+(GOAL-043).
 
 ### 4.9 Reading reminder
 

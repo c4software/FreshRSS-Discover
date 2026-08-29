@@ -122,7 +122,7 @@ statistics screen).
 | GOAL-040 | Minimal feed management from the settings | `[x]` |
 | GOAL-041 | A foreground reload never shows the previous article again | `[x]` |
 | GOAL-042 | Immersive reloading goes back to the List's rules | `[x]` |
-| GOAL-043 | One live feed state for both modes | `[-]` |
+| GOAL-043 | One live feed state for both modes | `[x]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2917,8 +2917,11 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
 
 ## GOAL-043 — One live feed state for both modes
 
-**Status: IN PROGRESS** — T01 done, full verification observed, Roborazzi
-references verified without re-recording.
+**Status: DONE** — two tasks, one commit each, full verification observed
+every time, Roborazzi references verified without re-recording. Waiting for
+the author: the device pass (read everything in the List, reload to "nothing
+to read", switch to Immersive: empty; mark read in Immersive, greyed in the
+List; page far in Immersive, the List is at the same point).
 
 Observed by the author (2026-08-29): the two modes still diverge in use —
 the List empty, a switch to Immersive shows articles anyway. GOAL-029 had
@@ -2953,7 +2956,7 @@ two modes at different pagination points.
       `feed/FeedSharedStateTest` (the reported case: a reload that finds
       nothing leaves nothing to show), `feed/FeedAutomaticMarkingTest`;
       twin "for both modes" cases reduced to one; Roborazzi unchanged
-- [ ] `GOAL-043-T02` Documentation: SPECS.md §4.8, ARCHITECTURE.md (package
+- [x] `GOAL-043-T02` Documentation: SPECS.md §4.8, ARCHITECTURE.md (package
       map, §9.1, the history in §9.10), store release notes; closure here
 
 ---

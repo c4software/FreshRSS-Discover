@@ -320,7 +320,7 @@ consumed by a **stateless** Composable.
   of grace cover a rotation without re-registering everything. That is the case
   of `SettingsViewModel`, which follows the settings and the state of the cache.
   A ViewModel that merely **accumulates the result of its own calls** —
-  `DiscoverViewModel`, `LoginViewModel` — carries a `MutableStateFlow`: there is
+  `FeedViewModel`, `LoginViewModel` — carries a `MutableStateFlow`: there is
   no observation to interrupt, and the sharing policy would have nothing to
   arbitrate. `SessionGate` is an exception in the other direction and starts
   `Eagerly`: the root switch is observed for the whole life of the application,
@@ -553,14 +553,25 @@ app/
 and `immersive/` present the same articles according to SPECS.md §4.8, but
 their layout is not common: a lazy list and a pager have neither the same state
 nor the same visibility measurement. Everything else **is** common, and lives in
-`feed/` since GOAL-029: the engine (`FeedSessionViewModel` — pagination,
-reload, bootstrap, marking, notices), the shared state (`FeedUiState`) and its
+`feed/` since GOAL-029: the engine (`FeedViewModel` — pagination, reload,
+bootstrap, marking, notices), the shared state (`FeedUiState`) and its
 transitions, the terminal composables (offline banner, stale notice, failure
 block, empty feed), the word-boundary truncation, the staleness watcher, the
-illustration slot. Each mode keeps only its wiring: a `@HiltViewModel`
-subclass that names its excerpt projection, screens that bind their strings
+illustration slot. Each mode keeps only its screens, which bind their strings
 and test tags. The displayed article model and the feed's phases stay in
 `discover/`, inherited.
+
+**One instance of that engine, not one per mode** (GOAL-043). The `DISCOVER`
+destination obtains the `FeedViewModel` once, above the mode switch, and
+hands it to whichever route is shown. Until then each route asked Hilt for
+its own subclass, and the two lived side by side under the same back-stack
+entry once both modes had been visited: two article lists, two cursors, two
+read detectors, over one cache that a reload rewrites. The engine was shared,
+its state was not — and a reload that emptied the feed in the List left the
+immersive instance showing what the server no longer returned, the divergence
+SPECS.md §4.8 forbids. The mode's only remaining difference in data, the
+excerpt length, travels on `ArticleUiModel` itself (`excerpt`,
+`immersiveExcerpt`), projected once.
 
 `feed/` has a history that repeats itself: `FeedNotice`, then
 `ArticleIllustration`, then the whole engine started out written **twice**,
@@ -590,9 +601,9 @@ detached a domain decision from its caller.
 | Piece of `:domain` | Consumed by |
 |---|---|
 | `interleaveBySource` (14 tests) | `DefaultArticleRepository` — server page and cache flow |
-| `ReadDetector` (18 tests) | `DiscoverViewModel`, fed by `ArticleVisibility` from the list; `ImmersiveViewModel`, fed by `pagerVisibility` from the pager |
+| `ReadDetector` (18 tests) | `FeedViewModel`, fed by `ArticleVisibility` from the list or `pagerVisibility` from the pager, whichever mode is on screen |
 | `ReadTransmissionScheduler` | `DefaultReadSyncRepository` — batch grouping |
-| `ReadSyncRepository` | `DiscoverViewModel` and `ImmersiveViewModel` (marking, replay at startup), `ReadFlushOnBackgroundObserver` (going into the background) and `DefaultAuthRepository` (sign-out) |
+| `ReadSyncRepository` | `FeedViewModel` (marking, replay at startup), `ReadFlushOnBackgroundObserver` (going into the background) and `DefaultAuthRepository` (sign-out) |
 | `FeedPresentation` | `FeedPresentationViewModel`, which routes the Discover destination to one of the two modes |
 | `FeedFreshness` (15 tests) | `FeedStalenessWatcher`, which both feed ViewModels build on their scope |
 | `FeedFreshnessRepository` | `DefaultArticleRepository` in **writing** (every valid server response) and `FeedStalenessWatcher` in **reading** |
@@ -764,9 +775,9 @@ keeps the decision: the screen says what happens, never what to do about it.
 The rule was long written **twice**, once per ViewModel — defended at the time
 as four lines of guard not worth sharing. GOAL-029 closed the question the
 other way: the guard was never the unit to share, the whole engine was, and it
-now lives once in `FeedSessionViewModel`. The two cases of
-`EmptyFeedAsksServerWhenShownTest` remain, one per mode, exercising the same
-engine through both wirings.
+now lives once in `FeedViewModel` — and, since GOAL-043, runs once: the
+two modes no longer have a ViewModel each, so `EmptyFeedAsksServerWhenShownTest`
+keeps a single case for the rule.
 
 The pull needed one more thing to exist on a screen with no article: something
 that dispatches scroll. `PullableMessage` is a `LazyColumn` of a single item
@@ -801,6 +812,16 @@ executed if it landed after the reload's `retainOnly`. The counter covered the
 display; cancellation covers the display *and* the cache, in one place, since
 the engine itself is now shared (§9.6). A repository test pins the wider
 guarantee: a cancelled page in flight writes nothing to the cache.
+
+Sharing the engine's *code* turned out not to be the end of the story. Each
+mode still built its own instance of it, and the two instances coexisted
+under one back-stack entry: the state — list, cursor, detector — was double
+while the cache underneath was single. A reload in one mode called
+`retainOnly` on rows the other mode was still displaying, and the other mode,
+its cache subscription latched shut by `hasServerContent`, never heard of it.
+GOAL-043 closed that: one `FeedViewModel`, obtained at the destination. The
+lesson of §9.6 holds one level up — what is shared must also be *instantiated*
+once.
 
 Swipe mode (today Immersive) had a second door to the same race: its `loadMore` did not check
 `isRefreshing` — List mode's did — so the pager could *start* a page during
