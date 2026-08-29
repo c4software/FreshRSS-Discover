@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.discover
+package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.FakeArticleRepository
@@ -33,12 +33,12 @@ private val VISIBILITY_THRESHOLD_MILLIS = ReadingSettings.Default.continuousVisi
  * What the automatic-marking switch stops, and what it does not
  * (SPECS.md §4.5, §4.7), in List mode.
  *
- * Kept separate from `DiscoverViewModelTest`: that file reached the size
+ * Kept separate from `FeedViewModelTest`: that file reached the size
  * Detekt refuses to exceed, and the setting forms its own subject with a
  * starting state shared by all its cases and used by no other.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class DiscoverAutomaticMarkingTest {
+class FeedAutomaticMarkingTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
@@ -49,8 +49,8 @@ class DiscoverAutomaticMarkingTest {
     private val clock = FakeClock(NOW_MILLIS)
 
     /** Lazy: the ViewModel loads on creation, on `Dispatchers.Main`. */
-    private val viewModel: DiscoverViewModel by lazy {
-        DiscoverViewModel(
+    private val viewModel: FeedViewModel by lazy {
+        FeedViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,

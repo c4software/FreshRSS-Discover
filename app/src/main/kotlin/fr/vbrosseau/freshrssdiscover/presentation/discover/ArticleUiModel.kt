@@ -20,6 +20,34 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.truncatedAtWord
 const val EXCERPT_MAX_LENGTH = 240
 
 /**
+ * Maximum excerpt length in Immersive mode (SPECS.md §8, question 8).
+ *
+ * List mode stops at 240 characters, calibrated for a card's three lines.
+ * Full screen has no such constraint; the value is set at 1,400 characters,
+ * cut on a word boundary as in List mode.
+ *
+ * The page shows a fixed number of lines and ellipsizes the rest
+ * (GOAL-038): this cap no longer decides what is read, it bounds what is
+ * measured. It stays at the figure GOAL-012 calibrated — the median summary
+ * is 1,324 characters (SPECS.md §8, question 7), so the ordinary article
+ * reaches the layout whole and the ellipsis falls where the screen ends,
+ * never where the projection stopped.
+ *
+ * Why not the whole summary the server sends anyway:
+ *
+ * - It is not the article. SPECS.md §4.7 opens the original link in the
+ *   browser; the feed provides a summary, often the first half of a text cut
+ *   without regard for meaning. Showing it whole would pass off a mid-
+ *   sentence stop as a complete read and remove any reason to open the
+ *   article.
+ * - The cost would be unbounded. The measured maximum is 34,777 characters.
+ *   Without a cap, Compose would measure that paragraph on every
+ *   recomposition, for a page dismissed with one gesture. 1,400 caps the
+ *   cost at 4%.
+ */
+const val IMMERSIVE_EXCERPT_MAX_LENGTH = 1_400
+
+/**
  * An article as the list displays it.
  *
  * Everything is already decided: the excerpt is truncated, the date is
@@ -34,6 +62,14 @@ data class ArticleUiModel(
     val feedTitle: String,
     val publishedAt: RelativeTime,
     val excerpt: String,
+    /**
+     * The same excerpt at the full-screen length (SPECS.md §8, question 8).
+     *
+     * Both lengths on one model rather than one model per mode: the two
+     * modes share a single feed state (GOAL-043), so the article is projected
+     * once, and each screen reads the excerpt cut for it.
+     */
+    val immersiveExcerpt: String = excerpt,
     /**
      * Where to fetch the illustration, `null` when the article announces
      * none.
@@ -95,11 +131,9 @@ fun Article.toUiModel(nowEpochMillis: Long): ArticleUiModel = ArticleUiModel(
     title = title,
     feedTitle = feed.title,
     publishedAt = relativeTimeSince(publishedAtEpochSeconds, nowEpochMillis),
-    excerpt = summary.toExcerpt(),
+    excerpt = summary.truncatedAtWord(EXCERPT_MAX_LENGTH),
+    immersiveExcerpt = summary.truncatedAtWord(IMMERSIVE_EXCERPT_MAX_LENGTH),
     imageUrl = imageUrl,
     url = url,
     isRead = isRead,
 )
-
-/** Word-boundary truncation lives in `truncatedAtWord`, shared with the immersive mode. */
-private fun String.toExcerpt(): String = truncatedAtWord(EXCERPT_MAX_LENGTH)

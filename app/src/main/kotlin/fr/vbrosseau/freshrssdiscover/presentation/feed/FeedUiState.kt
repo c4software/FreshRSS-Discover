@@ -7,6 +7,7 @@ import fr.vbrosseau.freshrssdiscover.domain.feed.FeedError
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.presentation.discover.toUiModel
 
 /**
  * State displayed by both feed modes (SPECS.md §4.8).
@@ -75,15 +76,6 @@ data class FeedUiState(
 }
 
 /**
- * Projects a domain article into its displayable form.
- *
- * The only thing distinguishing the two modes in the transitions below is the
- * excerpt length (SPECS.md §8, question 7). Passing it as a parameter is what
- * lets these transitions be written once.
- */
-typealias ArticleProjection = (Article, Long) -> ArticleUiModel
-
-/**
  * Replaces the list with the delivered page and restarts from the top
  * (SPECS.md §4.6).
  *
@@ -100,9 +92,8 @@ typealias ArticleProjection = (Article, Long) -> ArticleUiModel
 internal fun FeedUiState.refreshedWith(
     page: ArticlePage,
     nowEpochMillis: Long,
-    project: ArticleProjection,
 ): FeedUiState = copy(
-    articles = page.articles.map { article -> project(article, nowEpochMillis) },
+    articles = page.articles.map { article -> article.toUiModel(nowEpochMillis) },
     phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
     isOffline = false,
 )
@@ -122,10 +113,9 @@ internal fun FeedUiState.merging(
     articles: List<Article>,
     nowEpochMillis: Long,
     atHead: Boolean,
-    project: ArticleProjection,
 ): FeedUiState {
     val known = this.articles.mapTo(mutableSetOf(), ArticleUiModel::id)
-    val fresh = articles.filterNot { it.id.value in known }.map { project(it, nowEpochMillis) }
+    val fresh = articles.filterNot { it.id.value in known }.map { it.toUiModel(nowEpochMillis) }
     if (fresh.isEmpty()) return this
 
     return copy(articles = if (atHead) fresh + this.articles else this.articles + fresh)

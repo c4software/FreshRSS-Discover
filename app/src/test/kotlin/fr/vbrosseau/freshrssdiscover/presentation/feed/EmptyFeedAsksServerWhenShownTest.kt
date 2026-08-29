@@ -9,8 +9,6 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -49,15 +47,7 @@ class EmptyFeedAsksServerWhenShownTest {
     private val freshnessRepository = FakeFeedFreshnessRepository()
     private val clock = FakeClock(NOW_MILLIS)
 
-    private fun discoverViewModel() = DiscoverViewModel(
-        articleRepository = repository,
-        readSyncRepository = readSyncRepository,
-        settingsRepository = settingsRepository,
-        freshnessRepository = freshnessRepository,
-        clock = clock,
-    )
-
-    private fun immersiveViewModel() = ImmersiveViewModel(
+    private fun feedViewModel() = FeedViewModel(
         articleRepository = repository,
         readSyncRepository = readSyncRepository,
         settingsRepository = settingsRepository,
@@ -68,10 +58,10 @@ class EmptyFeedAsksServerWhenShownTest {
     // ----- The rule -----------------------------------------------------------
 
     @Test
-    fun listModeAsksTheServerWhenItComesBackWithNothingToShow() {
+    fun anEmptyFeedAsksTheServerWhenItComesBackWithNothingToShow() {
         // Empty cache, server with nothing to return: bootstrap ends in an
         // end-of-feed without articles, the screen of a reader who read it all.
-        val viewModel = discoverViewModel()
+        val viewModel = feedViewModel()
         assertEquals(DiscoverPhase.EndOfFeed, viewModel.uiState.value.phase, "état de départ attendu")
 
         viewModel.onScreenShown()
@@ -83,19 +73,6 @@ class EmptyFeedAsksServerWhenShownTest {
         )
     }
 
-    @Test
-    fun immersiveModeAsksTheServerWhenItComesBackWithNothingToShow() {
-        val viewModel = immersiveViewModel()
-
-        viewModel.onScreenShown()
-
-        assertEquals(
-            1,
-            repository.refreshCallCount,
-            "le mode Balayage porte la même règle : une pile vide y est plus nue encore",
-        )
-    }
-
     /**
      * Two foreground arrivals are worth two attempts, deliberately: the rule
      * is attached to a punctual event, not to the empty state, which persists
@@ -103,7 +80,7 @@ class EmptyFeedAsksServerWhenShownTest {
      */
     @Test
     fun eachReturnToTheForegroundIsWorthOneAttempt() {
-        val viewModel = discoverViewModel()
+        val viewModel = feedViewModel()
 
         viewModel.onScreenShown()
         viewModel.onScreenShown()
@@ -116,7 +93,7 @@ class EmptyFeedAsksServerWhenShownTest {
     @Test
     fun aFeedWithSomethingToShowAsksNothing() {
         repository.cachedArticles.value = listOf(article(id = 1L))
-        val viewModel = discoverViewModel()
+        val viewModel = feedViewModel()
 
         viewModel.onScreenShown()
 
@@ -133,7 +110,7 @@ class EmptyFeedAsksServerWhenShownTest {
         // screen comes to the foreground before it answers. Without the guard,
         // every application launch would go out twice.
         repository.pendingLoad = CompletableDeferred()
-        val viewModel = discoverViewModel()
+        val viewModel = feedViewModel()
         assertEquals(DiscoverPhase.InitialLoading, viewModel.uiState.value.phase, "état de départ attendu")
 
         viewModel.onScreenShown()
@@ -146,7 +123,7 @@ class EmptyFeedAsksServerWhenShownTest {
         // Without this guard, an absent network would be hammered on every
         // return to the screen, while a retry is already offered to the user.
         repository.enqueueFailure(FeedError.NoNetwork)
-        val viewModel = discoverViewModel()
+        val viewModel = feedViewModel()
 
         viewModel.onScreenShown()
 

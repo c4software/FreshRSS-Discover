@@ -28,11 +28,10 @@ import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleOpener
 import fr.vbrosseau.freshrssdiscover.presentation.browser.rememberArticleSharer
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverScreen
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEventToasts
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRefresh
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveScreen
-import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.immersive.pageCount
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
 import fr.vbrosseau.freshrssdiscover.presentation.recap.RecapSheet
@@ -82,6 +81,13 @@ fun AppNavHost(
             val recapViewModel: RecapViewModel = hiltViewModel()
             val recapUiState by recapViewModel.uiState.collectAsStateWithLifecycle()
 
+            // Likewise above the switch, and for the feed itself: one feed
+            // state, whichever mode shows it. Obtained inside each route,
+            // each mode got its own instance, both alive at once over the
+            // same cache, and a reload in one left the other showing
+            // articles that no longer existed (GOAL-043).
+            val feedViewModel: FeedViewModel = hiltViewModel()
+
             PublishFeedRecap(
                 isModelUsable = recapUiState.isModelUsable,
                 onRecap = recapViewModel::onRecapRequested,
@@ -102,6 +108,7 @@ fun AppNavHost(
 
             when (presentation) {
                 FeedPresentation.List -> DiscoverRoute(
+                    viewModel = feedViewModel,
                     modifier = Modifier.padding(contentPadding),
                     onFeedRefreshChange = onFeedRefreshChange,
                     onFeedReselectChange = onFeedReselectChange,
@@ -111,6 +118,7 @@ fun AppNavHost(
                 // Under both bars, not between them: the page is a picture,
                 // and the bars turn transparent over it (SPECS.md §4.8).
                 FeedPresentation.Immersive -> ImmersiveRoute(
+                    viewModel = feedViewModel,
                     topInset = contentPadding.calculateTopPadding(),
                     bottomInset = contentPadding.calculateBottomPadding(),
                     onFeedFillsScreenChange = onFeedFillsScreenChange,
@@ -168,12 +176,12 @@ private fun StatsRoute(modifier: Modifier = Modifier) {
 
 @Composable
 private fun DiscoverRoute(
+    viewModel: FeedViewModel,
     modifier: Modifier = Modifier,
     onFeedRefreshChange: (FeedRefresh?) -> Unit = {},
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
     onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
 ) {
-    val viewModel: DiscoverViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Hoisted from the screen so the tab reselection can drive the scroll:
@@ -254,6 +262,7 @@ private fun DiscoverRoute(
 
 @Composable
 private fun ImmersiveRoute(
+    viewModel: FeedViewModel,
     modifier: Modifier = Modifier,
     topInset: Dp = Spacing.none,
     bottomInset: Dp = Spacing.none,
@@ -262,7 +271,6 @@ private fun ImmersiveRoute(
     onFeedReselectChange: ((() -> Unit)?) -> Unit = {},
     onDisplayedArticlesChange: (List<ArticleId>) -> Unit = {},
 ) {
-    val viewModel: ImmersiveViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { uiState.pageCount }
 

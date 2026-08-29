@@ -121,6 +121,8 @@ statistics screen).
 | GOAL-039 | Immersive-mode reloading, the way short-video feeds do it | `[x]` |
 | GOAL-040 | Minimal feed management from the settings | `[x]` |
 | GOAL-041 | A foreground reload never shows the previous article again | `[x]` |
+| GOAL-042 | Immersive reloading goes back to the List's rules | `[x]` |
+| GOAL-043 | One live feed state for both modes | `[-]` |
 
 The state carried here is that of the Goal's own section, which is
 authoritative. Goals are broken down into tasks by `/goal` at the moment of
@@ -2910,6 +2912,49 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
       2026-08-27): keyed on `isRefreshing` in the screen alone — button,
       pull, tab and stale notice all go through it — no ViewModel state;
       screen test and Roborazzi references restored; SPECS.md §4.8
+
+---
+
+## GOAL-043 — One live feed state for both modes
+
+**Status: IN PROGRESS** — T01 done, full verification observed, Roborazzi
+references verified without re-recording.
+
+Observed by the author (2026-08-29): the two modes still diverge in use —
+the List empty, a switch to Immersive shows articles anyway. GOAL-029 had
+merged the *code* of the engine (`FeedSessionViewModel`), GOAL-042 the
+reload rules; what was still double was the **state**. `DiscoverRoute` and
+`ImmersiveRoute` each obtained their own `@HiltViewModel` subclass, both
+kept alive by the same `DISCOVER` back-stack entry once both modes had been
+visited: two article lists, two cursors, two read detectors, two staleness
+watchers, over one cache. A mode that had received a server page stopped
+listening to the cache (`hasServerContent`), so a reload in the List that
+returned nothing — and emptied the cache with `retainOnly` — left the
+immersive instance showing articles the server no longer returned. The same
+mechanism left a marking made in one mode ungreyed in the other, and put the
+two modes at different pagination points.
+
+### Decisions
+
+| Point | Decision |
+|---|---|
+| One ViewModel | `FeedSessionViewModel` becomes the concrete `@HiltViewModel` `FeedViewModel`; `DiscoverViewModel` and `ImmersiveViewModel` are deleted, no compatibility kept |
+| Scope | Obtained **once** in `composable(AppRoutes.DISCOVER)`, above the mode switch, like `RecapViewModel`; both routes receive it. Switching modes creates and destroys nothing |
+| Projection | `ArticleUiModel` carries both excerpts, `excerpt` (240) and `immersiveExcerpt` (1,400), computed once by `toUiModel`; the per-mode projection and `toImmersiveUiModel` disappear. Cost: one more bounded string per article, the bound SPECS.md §8 question 8 already accepts |
+| Type aliases | `DiscoverUiState` and `ImmersiveUiState` stay: each screen names its state under its own name, and the alias costs nothing |
+| Read detector | One, shared: only one mode is on screen at a time |
+| Not done here | The remaining presentation-side doubles — prefetch distance 5 (List) vs 3 (Immersive), two footer/trailing-page phase mappings, distinct empty and end-of-feed wordings — are layout, not feed logic, and are left as they are |
+
+### Tasks
+
+- [x] `GOAL-043-T01` One `FeedViewModel`, obtained at the destination and
+      passed to both routes; both excerpts on `ArticleUiModel`; the two
+      ViewModel test suites merged into `feed/FeedViewModelTest` and
+      `feed/FeedSharedStateTest` (the reported case: a reload that finds
+      nothing leaves nothing to show), `feed/FeedAutomaticMarkingTest`;
+      twin "for both modes" cases reduced to one; Roborazzi unchanged
+- [ ] `GOAL-043-T02` Documentation: SPECS.md §4.8, ARCHITECTURE.md (package
+      map, §9.1, the history in §9.10), store release notes; closure here
 
 ---
 

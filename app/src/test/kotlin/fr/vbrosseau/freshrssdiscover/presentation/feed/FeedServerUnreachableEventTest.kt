@@ -9,7 +9,6 @@ import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -46,8 +45,8 @@ class FeedServerUnreachableEventTest {
     private val collectorScope = CoroutineScope(dispatcher)
 
     /** Lazy: the ViewModel loads on creation, on `Dispatchers.Main`. */
-    private val viewModel: DiscoverViewModel by lazy {
-        DiscoverViewModel(
+    private val viewModel: FeedViewModel by lazy {
+        FeedViewModel(
             articleRepository = repository,
             readSyncRepository = FakeReadSyncRepository(),
             settingsRepository = FakeSettingsRepository(),

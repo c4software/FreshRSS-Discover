@@ -9,7 +9,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedUiState
  * An alias rather than a class: two twin states existed here and diverged
  * (the reload projected excerpts at the List length). See [FeedUiState] for
  * the state itself. What Immersive keeps of its own lives in its projection
- * (`toImmersiveUiModel`) and in [pageCount].
+ * (`ArticleUiModel.immersiveExcerpt`) and in [pageCount].
  *
  * The reload of SPECS.md §4.6 is included, but not its gesture: a vertical
  * pull on a pager that already snaps vertically would be two gestures on one

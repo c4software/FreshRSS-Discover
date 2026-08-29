@@ -12,8 +12,6 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -59,21 +57,10 @@ class RefreshDiscardsStalePagesTest {
     private val freshnessRepository = FakeFeedFreshnessRepository()
     private val clock = FakeClock(NOW_MILLIS)
 
-    private fun discoverViewModel(): DiscoverViewModel {
+    private fun feedViewModel(): FeedViewModel {
         // First feed page, served at startup on an empty cache.
         repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        return DiscoverViewModel(
-            articleRepository = repository,
-            readSyncRepository = readSyncRepository,
-            settingsRepository = settingsRepository,
-            freshnessRepository = freshnessRepository,
-            clock = clock,
-        )
-    }
-
-    private fun immersiveViewModel(): ImmersiveViewModel {
-        repository.enqueuePage(listOf(article(id = 1L)), nextCursor = PageCursor("c1"))
-        return ImmersiveViewModel(
+        return FeedViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
@@ -83,8 +70,8 @@ class RefreshDiscardsStalePagesTest {
     }
 
     @Test
-    fun listModeDropsThePageThatWasInFlightWhenTheReloadArrived() {
-        val viewModel = discoverViewModel()
+    fun theReloadDropsThePageThatWasInFlightWhenTheReloadArrived() {
+        val viewModel = feedViewModel()
         repository.pendingLoad = CompletableDeferred()
         viewModel.loadMore()
 
@@ -111,8 +98,8 @@ class RefreshDiscardsStalePagesTest {
      * mark as broken a feed that was just replaced in front of the user.
      */
     @Test
-    fun listModeDropsAStaleFailureToo() {
-        val viewModel = discoverViewModel()
+    fun theReloadDropsAStaleFailureToo() {
+        val viewModel = feedViewModel()
         repository.pendingLoad = CompletableDeferred()
         viewModel.loadMore()
 
@@ -124,32 +111,16 @@ class RefreshDiscardsStalePagesTest {
         assertFalse(viewModel.uiState.value.isOffline, "l'échec d'une requête désavouée ne dit rien du régime")
     }
 
-    @Test
-    fun immersiveModeDropsThePageThatWasInFlightWhenTheReloadArrived() {
-        val viewModel = immersiveViewModel()
-        repository.pendingLoad = CompletableDeferred()
-        viewModel.loadMore()
-
-        repository.enqueuePage(listOf(article(id = 2L)), nextCursor = PageCursor("r1"))
-        viewModel.refresh()
-        repository.completeLoad(Outcome.Success(ArticlePage(listOf(article(id = 3L)), PageCursor("c3"))))
-
-        assertEquals(listOf(2L), viewModel.uiState.value.articles.map { it.id })
-
-        repository.enqueuePage(listOf(article(id = 4L)), nextCursor = null)
-        viewModel.loadMore()
-        assertEquals(PageCursor("r1"), repository.requestedCursors.last())
-    }
-
     /**
-     * The other entry point of the same race, specific to Immersive mode:
-     * `loadMore` did not check `isRefreshing` (List mode did), so the pager
-     * could start a page during the refresh with the old traversal's cursor.
-     * Exactly the divergence ARCHITECTURE.md §9.6 says to track.
+     * The other entry point of the same race, once specific to Immersive
+     * mode: its `loadMore` did not check `isRefreshing` (List mode did), so
+     * the pager could start a page during the refresh with the old
+     * traversal's cursor. Exactly the divergence ARCHITECTURE.md §9.6 says
+     * to track, and the reason there is one ViewModel now.
      */
     @Test
-    fun immersiveModeStartsNoPageDuringAReload() {
-        val viewModel = immersiveViewModel()
+    fun noPageStartsDuringAReload() {
+        val viewModel = feedViewModel()
         val loadsBefore = repository.loadCallCount
 
         repository.pendingRefresh = CompletableDeferred()

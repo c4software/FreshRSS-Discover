@@ -2,6 +2,7 @@ package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.vbrosseau.freshrssdiscover.READ_SYNC_TAG
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * One-shot facts the screen surfaces as a toast.
@@ -48,30 +50,29 @@ enum class FeedEvent {
 }
 
 /**
- * The feed engine, shared by List and immersive modes (SPECS.md §4.8).
+ * The feed, one instance for both List and Immersive modes (SPECS.md §4.8).
  *
  * SPECS.md §4.8 says both modes carry the same content and the same reading
  * and loading rules; only the presentation changes. Pagination, refresh,
- * cache bootstrap, marking, and notices live once here, and each mode only
- * provides its projection ([project]), that is, its excerpt length.
+ * cache bootstrap, marking, and notices live once here.
  *
- * Two twin ViewModels previously existed and diverged twice (ARCHITECTURE.md
- * §9.6): the immersive mode's `loadMore` without the `isRefreshing` guard (fixed
- * in GOAL-028), then a swipe refresh projecting excerpts at the List length.
- * Each fix had to be ported twice, with two test suites.
- *
- * A base class rather than a delegated object: the screen's eight public
- * gestures are the engine itself, and method-by-method delegation would only
- * copy them into each mode.
+ * One instance, not one per mode, and that is the point (GOAL-043). Two twin
+ * ViewModels once existed and diverged twice in code (ARCHITECTURE.md §9.6);
+ * GOAL-029 merged the engine into an abstract base, but each mode still
+ * instantiated its own subclass, so the *state* stayed double: two article
+ * lists, two cursors, two read detectors, over one cache that a reload
+ * rewrites. Once a mode had received a server page it stopped listening to
+ * the cache, and a reload emptying the feed in the List left the immersive
+ * instance showing articles the server no longer returned. The destination
+ * now obtains this ViewModel once and hands it to whichever mode is shown.
  */
-abstract class FeedSessionViewModel(
+@HiltViewModel
+class FeedViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
     private val readSyncRepository: ReadSyncRepository,
     settingsRepository: SettingsRepository,
     freshnessRepository: FeedFreshnessRepository,
     private val clock: Clock,
-    /** Projection from a domain article to its card; the only point distinguishing the modes. */
-    private val project: ArticleProjection,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
@@ -244,7 +245,7 @@ abstract class FeedSessionViewModel(
                  */
                 val now = clock.nowEpochMillis()
                 if (!hasServerContent) {
-                    _uiState.update { it.merging(cached, now, atHead = false, project = project) }
+                    _uiState.update { it.merging(cached, now, atHead = false) }
                 }
                 if (!hasDecidedBootstrap) {
                     hasDecidedBootstrap = true
@@ -364,7 +365,7 @@ abstract class FeedSessionViewModel(
                     // is judged against it.
                     paginationTail = listOfNotNull(result.value.articles.lastOrNull())
                     hasServerContent = true
-                    _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis(), project) }
+                    _uiState.update { it.refreshedWith(result.value, clock.nowEpochMillis()) }
                 }
 
                 is Outcome.Failure -> {
@@ -531,7 +532,7 @@ abstract class FeedSessionViewModel(
              * reordering. Subsequent pages extend the feed: their place is
              * at the end.
              */
-            state.merging(page.articles, now, atHead = !hasServerContent, project = project)
+            state.merging(page.articles, now, atHead = !hasServerContent)
                 .copy(
                     phase = if (page.hasMore) DiscoverPhase.Idle else DiscoverPhase.EndOfFeed,
                     isOffline = false,

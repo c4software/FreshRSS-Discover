@@ -6,8 +6,6 @@ import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.immersive.ImmersiveViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
@@ -66,8 +64,8 @@ class RefreshFlushesPendingMarksTest {
     private fun flushesCausedByRefresh(atStartup: Int): Int = flushesWhenRefreshStarted - atStartup
 
     @Test
-    fun listModeTransmitsWhatWasReadBeforeAskingTheServerAgain() {
-        val viewModel = DiscoverViewModel(
+    fun theReloadTransmitsWhatWasReadBeforeAskingTheServerAgain() {
+        val viewModel = FeedViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
@@ -83,27 +81,6 @@ class RefreshFlushesPendingMarksTest {
             1,
             flushesCausedByRefresh(atStartup),
             "le rechargement doit transmettre les marquages en attente avant d'interroger le serveur",
-        )
-    }
-
-    @Test
-    fun immersiveModeTransmitsWhatWasReadBeforeAskingTheServerAgain() {
-        val viewModel = ImmersiveViewModel(
-            articleRepository = repository,
-            readSyncRepository = readSyncRepository,
-            settingsRepository = settingsRepository,
-            freshnessRepository = freshnessRepository,
-            clock = clock,
-        )
-        val atStartup = readSyncRepository.flushCallCount
-        recordFlushCountAtRefresh()
-
-        viewModel.refresh()
-
-        assertEquals(
-            1,
-            flushesCausedByRefresh(atStartup),
-            "le mode Balayage porte la même règle : un correctif d'un seul côté ferait diverger les deux modes",
         )
     }
 }

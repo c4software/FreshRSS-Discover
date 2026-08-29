@@ -909,9 +909,9 @@ private fun ArticleText(article: ArticleUiModel, modifier: Modifier = Modifier) 
             overflow = TextOverflow.Ellipsis,
         )
 
-        if (article.excerpt.isNotBlank()) {
+        if (article.immersiveExcerpt.isNotBlank()) {
             Text(
-                text = article.excerpt,
+                text = article.immersiveExcerpt,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = EXCERPT_MAX_LINES,

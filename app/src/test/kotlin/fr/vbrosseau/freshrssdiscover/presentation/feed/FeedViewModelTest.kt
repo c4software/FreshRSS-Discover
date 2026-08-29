@@ -1,4 +1,4 @@
-package fr.vbrosseau.freshrssdiscover.presentation.discover
+package fr.vbrosseau.freshrssdiscover.presentation.feed
 
 import fr.vbrosseau.freshrssdiscover.domain.core.Outcome
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
@@ -14,6 +14,9 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.ReadingSettings
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
+import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
+import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,7 +45,7 @@ private const val SEVEN_HOURS_MILLIS = 7L * ONE_HOUR_MILLIS
 private const val TWELVE_HOURS_MILLIS = 12L * ONE_HOUR_MILLIS
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class DiscoverViewModelTest {
+class FeedViewModelTest {
     /**
      * Kept at hand: the staleness cases advance its virtual scheduler,
      * otherwise the periodic wake-up would really wait.
@@ -60,8 +63,8 @@ class DiscoverViewModelTest {
      * `Dispatchers.Main`. A property initializer would run before
      * [MainDispatcherRule] has substituted it.
      */
-    private val viewModel: DiscoverViewModel by lazy {
-        DiscoverViewModel(
+    private val viewModel: FeedViewModel by lazy {
+        FeedViewModel(
             articleRepository = repository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,

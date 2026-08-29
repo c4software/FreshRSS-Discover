@@ -39,7 +39,7 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGate
 import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverViewModel
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
@@ -264,7 +264,7 @@ class AppGraphTest {
         // a throwing `init` would surface here.
         val sessionGate = SessionGateViewModel(authRepository)
         val login = LoginViewModel(authRepository)
-        val discover = DiscoverViewModel(
+        val feed = FeedViewModel(
             articleRepository = articleRepository,
             readSyncRepository = readSyncRepository,
             settingsRepository = settingsRepository,
@@ -285,14 +285,14 @@ class AppGraphTest {
             // far proved timing-sensitive on CI — the phase (v1.8.0),
             // `isRefreshing` (v1.16.0), then the article list (v1.17.2).
             // What this test establishes is construction; the state is the
-            // business of `DiscoverViewModelTest`, on a test dispatcher.
-            assertNotNull(discover.uiState.value)
+            // business of `FeedViewModelTest`, on a test dispatcher.
+            assertNotNull(feed.uiState.value)
             assertFalse(settings.uiState.value.isSignOutConfirmationVisible)
         } finally {
             // Jobs launched in an `init` would otherwise outlive the test and
             // land on a torn-down Robolectric environment, the trap described
             // by `TestApplication`.
-            listOf(sessionGate, login, discover, settings).forEach(ViewModel::cancelScope)
+            listOf(sessionGate, login, feed, settings).forEach(ViewModel::cancelScope)
         }
     }
 }

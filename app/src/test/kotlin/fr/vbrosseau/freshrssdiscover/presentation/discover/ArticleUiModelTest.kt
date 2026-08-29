@@ -100,4 +100,53 @@ class ArticleUiModelTest {
     fun anUnreadArticleArrivesUnread() {
         assertFalse(article(id = 1L, isRead = false).toUiModel(nowEpochMillis = 0L).isRead)
     }
+
+    // ----- The full-screen excerpt (SPECS.md §8, question 8) ------------------
+
+    @Test
+    fun theFullScreenExcerptIsLongerThanTheCardExcerpt() {
+        // The whole point of SPECS.md §8 question 8: full screen shows more
+        // than the three lines of a card.
+        assertTrue(IMMERSIVE_EXCERPT_MAX_LENGTH > EXCERPT_MAX_LENGTH)
+    }
+
+    @Test
+    fun aShortSummaryGivesTheSameExcerptToBothModes() {
+        val model = article(summary = "Un extrait court.").toUiModel(NOW_MILLIS)
+
+        assertEquals(model.excerpt, model.immersiveExcerpt)
+    }
+
+    @Test
+    fun aLongSummaryIsCutOnAWordBoundaryForTheFullScreenToo() {
+        val summary = "mot ".repeat(1_000)
+
+        val excerpt = article(summary = summary).toUiModel(NOW_MILLIS).immersiveExcerpt
+
+        assertTrue(excerpt.length <= IMMERSIVE_EXCERPT_MAX_LENGTH + 1)
+        assertTrue(excerpt.length > EXCERPT_MAX_LENGTH)
+        assertTrue(excerpt.endsWith("mot…"), excerpt.takeLast(10))
+    }
+
+    @Test
+    fun aFullScreenSummaryWithoutAnySpaceIsCutOutright() {
+        // Token or URL: with no word boundary, the cut is hard.
+        val summary = "a".repeat(IMMERSIVE_EXCERPT_MAX_LENGTH * 2)
+
+        val excerpt = article(summary = summary).toUiModel(NOW_MILLIS).immersiveExcerpt
+
+        assertEquals(IMMERSIVE_EXCERPT_MAX_LENGTH + 1, excerpt.length)
+        assertTrue(excerpt.endsWith("…"))
+    }
+
+    @Test
+    fun aFullScreenSummaryExactlyAtTheLimitKeepsItsLastWord() {
+        // The bound is inclusive: nothing is removed, so nothing is flagged.
+        val summary = "a".repeat(IMMERSIVE_EXCERPT_MAX_LENGTH)
+
+        val excerpt = article(summary = summary).toUiModel(NOW_MILLIS).immersiveExcerpt
+
+        assertEquals(summary, excerpt)
+        assertFalse(excerpt.endsWith("…"))
+    }
 }
