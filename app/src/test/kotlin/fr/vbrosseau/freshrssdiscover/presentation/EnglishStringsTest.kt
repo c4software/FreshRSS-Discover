@@ -73,7 +73,6 @@ class EnglishStringsTest {
         R.string.feed_refresh,
         R.string.feed_stale_notice,
         R.string.feed_article_share,
-        R.string.immersive_end_of_feed_title,
         R.string.immersive_article_no_link,
         R.string.immersive_offline_banner,
         R.string.settings_section_account,

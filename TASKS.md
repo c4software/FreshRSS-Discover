@@ -2917,8 +2917,9 @@ the first page (GOAL-039-T01) and the bar button stay, as in the List.
 
 ## GOAL-043 — One live feed state for both modes
 
-**Status: DONE** — two tasks, one commit each, full verification observed
-every time, Roborazzi references verified without re-recording. Waiting for
+**Status: DONE** — three tasks, one commit each, full verification observed
+every time, Roborazzi references verified (T03 re-recorded the immersive
+end-of-feed pair, on purpose). Waiting for
 the author: the device pass (read everything in the List, reload to "nothing
 to read", switch to Immersive: empty; mark read in Immersive, greyed in the
 List; page far in Immersive, the List is at the same point).
@@ -2946,7 +2947,7 @@ two modes at different pagination points.
 | Projection | `ArticleUiModel` carries both excerpts, `excerpt` (240) and `immersiveExcerpt` (1,400), computed once by `toUiModel`; the per-mode projection and `toImmersiveUiModel` disappear. Cost: one more bounded string per article, the bound SPECS.md §8 question 8 already accepts |
 | Type aliases | `DiscoverUiState` and `ImmersiveUiState` stay: each screen names its state under its own name, and the alias costs nothing |
 | Read detector | One, shared: only one mode is on screen at a time |
-| Not done here | The remaining presentation-side doubles — prefetch distance 5 (List) vs 3 (Immersive), two footer/trailing-page phase mappings, distinct empty and end-of-feed wordings — are layout, not feed logic, and are left as they are |
+| Presentation doubles (T03, author's request) | Unified where the rule is the same: one `PrefetchNextPage` effect in `feed/` (each mode keeps its distance, 5 cards vs 3 pages, and its position reading), one `FeedFailureOrRetry` for the offline decision, one `FeedEndOfFeedMessage` and one `FeedEmptyMessage` with **the List's words in both modes** — the `immersive_empty_*`, `immersive_end_of_feed_*` and `immersive_retry` strings are deleted. Left as they are because the spec wants them different: the pull on an empty screen (List only, §4.6), the veil (Immersive only, §4.8), and the two return-to-top wrappers, which read two different position states |
 
 ### Tasks
 
@@ -2958,6 +2959,10 @@ two modes at different pagination points.
       twin "for both modes" cases reduced to one; Roborazzi unchanged
 - [x] `GOAL-043-T02` Documentation: SPECS.md §4.8, ARCHITECTURE.md (package
       map, §9.1, the history in §9.10), store release notes; closure here
+- [x] `GOAL-043-T03` Presentation doubles unified (author, 2026-08-29):
+      `feed/PrefetchNextPage`, `FeedFailureOrRetry`, `FeedEndOfFeedMessage`,
+      `FeedEmptyMessage` bind their own strings; immersive-only wordings
+      deleted; `immersif-fin-de-flux-*` re-recorded and looked at
 
 ---
 

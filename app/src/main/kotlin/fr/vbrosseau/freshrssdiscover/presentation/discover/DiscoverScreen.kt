@@ -23,17 +23,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,14 +43,14 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleIllustration
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedCentered
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEmptyMessage
-import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureBlock
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEndOfFeedMessage
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureOrRetry
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
-import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.PrefetchNextPage
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
-import kotlinx.coroutines.flow.first
 
 /**
  * Number of remaining articles below which the next page is requested.
@@ -208,7 +203,13 @@ private fun FeedBody(
             onRefresh = onRefresh,
             modifier = modifier,
         ) {
-            FailureBlock(failure = phase.failure, onRetry = onRetry)
+            FeedFailureOrRetry(
+                uiState = uiState,
+                failure = phase.failure,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(DiscoverTestTags.FAILURE),
+                retryModifier = Modifier.testTag(DiscoverTestTags.RETRY),
+            )
         }
 
         else -> PullableMessage(
@@ -301,8 +302,17 @@ private fun ArticleList(
     onVisibilityChanged: ((Map<ArticleId, Float>) -> Unit)? = null,
 ) {
     PrefetchNextPage(
-        listState = listState,
+        positionState = listState,
         articleCount = uiState.articles.size,
+        hasMoved = {
+            listState.firstVisibleItemIndex > 0 ||
+                listState.firstVisibleItemScrollOffset > 0 ||
+                listState.isScrollInProgress
+        },
+        isNearEnd = {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= 0 && lastVisible >= uiState.articles.size - PREFETCH_DISTANCE
+        },
         onLoadMore = onLoadMore,
     )
 
@@ -386,55 +396,6 @@ private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifi
         modifier = modifier.testTag(DiscoverTestTags.OFFLINE_NOTICE),
         actionModifier = Modifier.testTag(DiscoverTestTags.OFFLINE_NOTICE_DISMISS),
     )
-}
-
-/**
- * Requests the next page before reaching the bottom (SPECS.md §4.4).
- *
- * `derivedStateOf` avoids relaunching the effect on every pixel scrolled:
- * only crossing the threshold matters. The article count is part of the key
- * too: a page shorter than the threshold would otherwise leave the condition
- * true without ever re-triggering the load, and the feed would stop silently.
- *
- * Nothing is requested before an actual scroll. Launch no longer hits the
- * network (SPECS.md §5.1), but the cache filtered of read articles sometimes
- * fits entirely on screen: the bottom was then reached without any gesture
- * and the load fired anyway, reintroducing the request that had just been
- * removed. Observed on device: the last-server-contact date still changed on
- * every open.
- */
-@Composable
-private fun PrefetchNextPage(
-    listState: LazyListState,
-    articleCount: Int,
-    onLoadMore: () -> Unit,
-) {
-    // Detected on position, not on gesture: a programmatic scroll counts
-    // too, and `isScrollInProgress` alone would miss it. Remembered rather
-    // than derived because it is a settled fact: once the user has entered
-    // the feed, pagination follows without requiring a gesture per page.
-    // Latched in an effect, not written during composition: a snapshot write
-    // in the Composable body is the pattern to avoid.
-    var hasScrolled by remember(listState) { mutableStateOf(false) }
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            listState.firstVisibleItemIndex > 0 ||
-                listState.firstVisibleItemScrollOffset > 0 ||
-                listState.isScrollInProgress
-        }.first { it }
-        hasScrolled = true
-    }
-
-    val shouldLoadMore by remember(listState, articleCount) {
-        derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisible >= 0 && lastVisible >= articleCount - PREFETCH_DISTANCE
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore, articleCount, hasScrolled) {
-        if (shouldLoadMore && hasScrolled) onLoadMore()
-    }
 }
 
 /**
@@ -646,29 +607,15 @@ private fun FeedFooter(
         when (phase) {
             DiscoverPhase.LoadingMore -> LoadingIndicator()
 
-            DiscoverPhase.EndOfFeed -> Text(
-                text = stringResource(R.string.discover_end_of_feed),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(Spacing.lg)
-                    .testTag(DiscoverTestTags.END_OF_FEED),
-            )
+            DiscoverPhase.EndOfFeed -> FeedEndOfFeedMessage(Modifier.testTag(DiscoverTestTags.END_OF_FEED))
 
-            /*
-             * Offline, the banner has already stated the cause at the top of
-             * the feed: repeating it in red under the last article would turn
-             * two signals into an alarm while what is displayed still works
-             * (SPECS.md §5.2). Only the retry remains; that is what
-             * SPECS.md §4.4 requires, not the color.
-             */
-            is DiscoverPhase.Failed ->
-                if (uiState.showsOfflineBanner) {
-                    RetryAction(onRetry)
-                } else {
-                    FailureBlock(failure = phase.failure, onRetry = onRetry)
-                }
+            is DiscoverPhase.Failed -> FeedFailureOrRetry(
+                uiState = uiState,
+                failure = phase.failure,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(DiscoverTestTags.FAILURE),
+                retryModifier = Modifier.testTag(DiscoverTestTags.RETRY),
+            )
 
             // Nothing to say: the feed continues, or the session is ending.
             DiscoverPhase.Idle,
@@ -680,36 +627,8 @@ private fun FeedFooter(
 }
 
 @Composable
-private fun FailureBlock(
-    failure: DiscoverFailure,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FeedFailureBlock(
-        failure = failure,
-        retryLabel = stringResource(R.string.discover_retry),
-        onRetry = onRetry,
-        modifier = modifier.testTag(DiscoverTestTags.FAILURE),
-        retryModifier = Modifier.testTag(DiscoverTestTags.RETRY),
-    )
-}
-
-@Composable
-private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    FeedRetryAction(
-        label = stringResource(R.string.discover_retry),
-        onRetry = onRetry,
-        modifier = modifier.testTag(DiscoverTestTags.RETRY),
-    )
-}
-
-@Composable
 private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
-    FeedEmptyMessage(
-        title = stringResource(R.string.discover_empty_title),
-        body = stringResource(R.string.discover_empty_body),
-        modifier = modifier.testTag(DiscoverTestTags.EMPTY),
-    )
+    FeedEmptyMessage(modifier.testTag(DiscoverTestTags.EMPTY))
 }
 
 /** Footer key, distinct from any article identifier. */

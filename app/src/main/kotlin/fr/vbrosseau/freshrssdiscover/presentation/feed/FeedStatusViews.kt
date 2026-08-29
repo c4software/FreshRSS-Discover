@@ -122,6 +122,55 @@ internal fun FeedFailureBlock(
 }
 
 /** The retry action alone; the list footer shows it without the message when offline. */
+/**
+ * A failed page, as the feed's tail states it (SPECS.md §4.4 and §5.2).
+ *
+ * Offline, the banner has already stated the cause at the top of the feed:
+ * repeating it in red under the last article would turn two signals into an
+ * alarm while what is displayed still works. Only the retry remains; that is
+ * what SPECS.md §4.4 requires, not the color. Decided once for both modes.
+ */
+@Composable
+internal fun FeedFailureOrRetry(
+    uiState: FeedUiState,
+    failure: DiscoverFailure,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    retryModifier: Modifier = Modifier,
+) {
+    if (uiState.showsOfflineBanner) {
+        FeedRetryAction(
+            label = stringResource(R.string.discover_retry),
+            onRetry = onRetry,
+            modifier = retryModifier,
+        )
+    } else {
+        FeedFailureBlock(
+            failure = failure,
+            retryLabel = stringResource(R.string.discover_retry),
+            onRetry = onRetry,
+            modifier = modifier,
+            retryModifier = retryModifier,
+        )
+    }
+}
+
+/**
+ * The end of the feed, stated explicitly: a list that stops growing, or a
+ * flick that stops responding, is indistinguishable from a breakdown
+ * (SPECS.md §4.4). The same words in both modes.
+ */
+@Composable
+internal fun FeedEndOfFeedMessage(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.discover_end_of_feed),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier.padding(Spacing.lg),
+    )
+}
+
 @Composable
 internal fun FeedRetryAction(
     label: String,
@@ -141,11 +190,10 @@ internal fun FeedRetryAction(
  * under an empty list would explain nothing, hence a message of its own.
  */
 @Composable
-internal fun FeedEmptyMessage(
-    title: String,
-    body: String,
-    modifier: Modifier = Modifier,
-) {
+internal fun FeedEmptyMessage(modifier: Modifier = Modifier) {
+    val title = stringResource(R.string.discover_empty_title)
+    val body = stringResource(R.string.discover_empty_body)
+
     Column(
         modifier = modifier.padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,

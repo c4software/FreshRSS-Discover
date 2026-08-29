@@ -28,20 +28,6 @@
     <string name="immersive_article_no_link">This article provides no link to open.</string>
 
     <!--
-      End of the feed (SPECS.md §4.4, GOAL-012-T03). It is stated explicitly: a
-      flick that stops responding is indistinguishable from a breakdown.
-    -->
-    <string name="immersive_end_of_feed_title">You have read everything</string>
-    <string name="immersive_end_of_feed_body">There is nothing left to discover for now.</string>
-
-    <string name="immersive_retry">Retry</string>
-
-
-    <!-- A feed with no article at all: “you have read everything” would explain nothing. -->
-    <string name="immersive_empty_title">Nothing to discover</string>
-    <string name="immersive_empty_body">All your subscriptions are up to date. Come back later.</string>
-
-    <!--
       Offline mode (SPECS.md §5.2). Neither “error” nor “failure”: what the user
       has in front of them works — these are their articles.
     -->

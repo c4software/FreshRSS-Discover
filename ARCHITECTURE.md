@@ -557,8 +557,10 @@ nor the same visibility measurement. Everything else **is** common, and lives in
 bootstrap, marking, notices), the shared state (`FeedUiState`) and its
 transitions, the terminal composables (offline banner, stale notice, failure
 block, empty feed), the word-boundary truncation, the staleness watcher, the
-illustration slot. Each mode keeps only its screens, which bind their strings
-and test tags. The displayed article model and the feed's phases stay in
+illustration slot, the prefetch effect (each mode brings its position
+reading and its distance), the tail's failure-or-retry decision, and the
+empty and end-of-feed messages with their words. Each mode keeps only its
+screens, which bind their test tags. The displayed article model and the feed's phases stay in
 `discover/`, inherited.
 
 **One instance of that engine, not one per mode** (GOAL-043). The `DISCOVER`

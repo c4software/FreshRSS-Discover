@@ -31,12 +31,10 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -52,7 +50,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -68,7 +65,6 @@ import fr.vbrosseau.freshrssdiscover.R
 import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.presentation.LoadingIndicator
 import fr.vbrosseau.freshrssdiscover.presentation.discover.ArticleUiModel
-import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
 import fr.vbrosseau.freshrssdiscover.presentation.discover.label
@@ -77,14 +73,14 @@ import fr.vbrosseau.freshrssdiscover.presentation.feed.AfterRefreshSettles
 import fr.vbrosseau.freshrssdiscover.presentation.feed.ArticleShareButton
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedCentered
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEmptyMessage
-import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureBlock
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedEndOfFeedMessage
+import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedFailureOrRetry
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedNotice
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedOfflineBanner
-import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedRetryAction
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedStaleNotice
+import fr.vbrosseau.freshrssdiscover.presentation.feed.PrefetchNextPage
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
 import fr.vbrosseau.freshrssdiscover.presentation.theme.Spacing
-import kotlinx.coroutines.flow.first
 
 /**
  * Remaining-article threshold below which the next page is requested
@@ -414,7 +410,13 @@ private fun ImmersiveBody(
             phase == DiscoverPhase.SessionEnded -> FeedCentered(modifier) { LoadingIndicator() }
 
         phase is DiscoverPhase.Failed -> FeedCentered(modifier) {
-            FailureBlock(failure = phase.failure, onRetry = onRetry)
+            FeedFailureOrRetry(
+                uiState = uiState,
+                failure = phase.failure,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(ImmersiveTestTags.FAILURE),
+                retryModifier = Modifier.testTag(ImmersiveTestTags.RETRY),
+            )
         }
 
         else -> FeedCentered(modifier) { EmptyFeedMessage() }
@@ -446,7 +448,13 @@ private fun ArticlePager(
     val articleIds = remember(uiState.articles) { uiState.articles.map(ArticleUiModel::id) }
     val refreshState = rememberPullToRefreshState()
 
-    PrefetchNextPage(pagerState = pagerState, articleCount = articleIds.size, onLoadMore = onLoadMore)
+    PrefetchNextPage(
+        positionState = pagerState,
+        articleCount = articleIds.size,
+        hasMoved = { pagerState.currentPage > 0 || pagerState.isScrollInProgress },
+        isNearEnd = { pagerState.currentPage >= articleIds.size - PREFETCH_DISTANCE },
+        onLoadMore = onLoadMore,
+    )
 
     if (onVisibilityChanged != null) {
         ObserveArticleVisibility(
@@ -949,82 +957,24 @@ private fun TrailingPage(
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (val phase = uiState.phase) {
-            DiscoverPhase.EndOfFeed -> EndOfFeedMessage()
+            DiscoverPhase.EndOfFeed -> FeedEndOfFeedMessage(
+                Modifier
+                    .padding(Spacing.md)
+                    .testTag(ImmersiveTestTags.END_OF_FEED),
+            )
 
-            /*
-             * Offline, the top banner already states the cause: repeating it
-             * in red would turn two signals into an alarm while the displayed
-             * content still works (SPECS.md §5.2). Only the retry remains.
-             */
-            is DiscoverPhase.Failed ->
-                if (uiState.showsOfflineBanner) {
-                    RetryAction(onRetry)
-                } else {
-                    FailureBlock(failure = phase.failure, onRetry = onRetry)
-                }
+            is DiscoverPhase.Failed -> FeedFailureOrRetry(
+                uiState = uiState,
+                failure = phase.failure,
+                onRetry = onRetry,
+                modifier = Modifier.testTag(ImmersiveTestTags.FAILURE),
+                retryModifier = Modifier.testTag(ImmersiveTestTags.RETRY),
+            )
 
             // Feed still loading or session ending: either way this page is
             // a wait, and shows it.
             else -> LoadingIndicator()
         }
-    }
-}
-
-@Composable
-private fun EndOfFeedMessage(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .padding(Spacing.xl)
-            .testTag(ImmersiveTestTags.END_OF_FEED),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            text = stringResource(R.string.immersive_end_of_feed_title),
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(R.string.immersive_end_of_feed_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-/**
- * Requests the next page before the last article is reached (GOAL-012-T02).
- *
- * `derivedStateOf` avoids restarting the effect for every pixel of the
- * gesture: only crossing the threshold matters. The article count is part of
- * the key: a page shorter than the threshold would otherwise leave the
- * condition true without ever re-triggering the load, silently stalling the
- * feed.
- */
-@Composable
-private fun PrefetchNextPage(
-    pagerState: PagerState,
-    articleCount: Int,
-    onLoadMore: () -> Unit,
-) {
-    // Nothing loads before an actual gesture, as in List mode: the cache with
-    // read articles filtered out can hold fewer pages than the threshold, and
-    // the load would then fire without any gesture, reintroducing the launch
-    // request SPECS.md §5.1 removed (see List mode's `PrefetchNextPage`).
-    // Latched by an effect, not written during composition, as in List.
-    var hasFlicked by remember(pagerState) { mutableStateOf(false) }
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage > 0 || pagerState.isScrollInProgress }.first { it }
-        hasFlicked = true
-    }
-
-    val shouldLoadMore by remember(pagerState, articleCount) {
-        derivedStateOf { pagerState.currentPage >= articleCount - PREFETCH_DISTANCE }
-    }
-
-    LaunchedEffect(shouldLoadMore, articleCount, hasFlicked) {
-        if (shouldLoadMore && hasFlicked) onLoadMore()
     }
 }
 
@@ -1084,36 +1034,8 @@ private fun OfflineOpenNotice(onDismiss: () -> Unit, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun FailureBlock(
-    failure: DiscoverFailure,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FeedFailureBlock(
-        failure = failure,
-        retryLabel = stringResource(R.string.immersive_retry),
-        onRetry = onRetry,
-        modifier = modifier.testTag(ImmersiveTestTags.FAILURE),
-        retryModifier = Modifier.testTag(ImmersiveTestTags.RETRY),
-    )
-}
-
-@Composable
-private fun RetryAction(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    FeedRetryAction(
-        label = stringResource(R.string.immersive_retry),
-        onRetry = onRetry,
-        modifier = modifier.testTag(ImmersiveTestTags.RETRY),
-    )
-}
-
-@Composable
 private fun EmptyFeedMessage(modifier: Modifier = Modifier) {
-    FeedEmptyMessage(
-        title = stringResource(R.string.immersive_empty_title),
-        body = stringResource(R.string.immersive_empty_body),
-        modifier = modifier.testTag(ImmersiveTestTags.EMPTY),
-    )
+    FeedEmptyMessage(modifier.testTag(ImmersiveTestTags.EMPTY))
 }
 
 @Preview(showBackground = true)

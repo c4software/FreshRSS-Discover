@@ -29,20 +29,6 @@
     <string name="immersive_article_no_link">Cet article ne fournit aucun lien à ouvrir.</string>
 
     <!--
-      Fin du flux (SPECS.md §4.4, GOAL-012-T03). Elle se dit explicitement : un
-      défilement qui cesse de répondre est indistinguable d'une panne.
-    -->
-    <string name="immersive_end_of_feed_title">Vous avez tout lu</string>
-    <string name="immersive_end_of_feed_body">Il n\'y a plus d\'article à découvrir pour le moment.</string>
-
-    <string name="immersive_retry">Réessayer</string>
-
-
-    <!-- Flux sans aucun article à montrer : « vous avez tout lu » n'expliquerait rien. -->
-    <string name="immersive_empty_title">Rien à découvrir</string>
-    <string name="immersive_empty_body">Tous vos abonnements sont à jour. Revenez plus tard.</string>
-
-    <!--
       Régime hors ligne (SPECS.md §5.2). Ni « erreur » ni « échec » : ce que
       l'utilisateur a sous les yeux fonctionne, ce sont ses articles.
     -->
