@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import fr.vbrosseau.freshrssdiscover.MainActivity
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderPlan
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTone
 import org.junit.Test
@@ -39,7 +40,8 @@ class AndroidReminderNotifierTest {
         tone: ReminderTone = ReminderTone.Waiting,
         unreadCount: Int = 12,
         titles: List<String> = listOf("Un titre", "Un autre"),
-    ) = ReminderPlan(tone = tone, unreadCount = unreadCount, titles = titles)
+        quotedIds: List<ArticleId> = listOf(ArticleId(1L), ArticleId(2L)),
+    ) = ReminderPlan(tone = tone, unreadCount = unreadCount, titles = titles, quotedIds = quotedIds)
 
     private fun posted(): List<Notification> = shadowOf(systemNotifications).allNotifications
 

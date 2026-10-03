@@ -1,6 +1,7 @@
 package fr.vbrosseau.freshrssdiscover.domain.reminder
 
 import fr.vbrosseau.freshrssdiscover.domain.feed.Article
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 
 /** Number of titles quoted in a reminder. */
 const val REMINDER_TITLE_COUNT: Int = 2
@@ -39,11 +40,16 @@ enum class ReminderTone {
  *
  * @property titles the quoted titles, in feed order. They come from the
  *   articles themselves: content, not UI labels, so nothing to translate.
+ * @property quotedIds the articles behind [titles], in the same order. They
+ *   are what lets a touch on the reminder open the feed on what it announced:
+ *   the feed's own order comes from another sample of the cache, and titles
+ *   alone cannot find an article again.
  */
 data class ReminderPlan(
     val tone: ReminderTone,
     val unreadCount: Int,
     val titles: List<String>,
+    val quotedIds: List<ArticleId>,
 )
 
 /**
@@ -69,9 +75,12 @@ fun reminderPlanFor(
     // and the list access would fail.
     val tone = tones[Math.floorMod(dayIndex, tones.size.toLong()).toInt()]
 
+    val quoted = unread.take(REMINDER_TITLE_COUNT)
+
     return ReminderPlan(
         tone = tone,
         unreadCount = unread.size,
-        titles = unread.take(REMINDER_TITLE_COUNT).map(Article::title),
+        titles = quoted.map(Article::title),
+        quotedIds = quoted.map(Article::id),
     )
 }

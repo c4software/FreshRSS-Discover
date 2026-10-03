@@ -1,5 +1,6 @@
 package fr.vbrosseau.freshrssdiscover.domain.reminder
 
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.feed.article
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,6 +29,22 @@ class ReminderPlanTest {
             )
 
         assertEquals(listOf("Premier", "Deuxième"), plan?.titles)
+    }
+
+    @Test
+    fun theReminderKnowsWhichArticlesItQuotesInTheOrderItQuotesThem() {
+        val plan =
+            reminderPlanFor(
+                unread =
+                    listOf(
+                        article(id = 7L, title = "Premier"),
+                        article(id = 3L, title = "Deuxième"),
+                        article(id = 9L, title = "Troisième"),
+                    ),
+                dayIndex = 0,
+            )
+
+        assertEquals(listOf(ArticleId(7L), ArticleId(3L)), plan?.quotedIds)
     }
 
     @Test
