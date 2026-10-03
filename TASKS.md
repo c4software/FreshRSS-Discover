@@ -49,7 +49,10 @@ One point remains blocked, out of our hands:
 `GOAL-001-T17` — AGP 9.3.1 still crashes on `lintAnalyzeDebugUnitTest`, retried
 on 2026-08-08. It will be lifted by an AGP version, not by code from here.
 
-**Next task**: none is due. GOAL-041 (the veil over a foreground reload)
+**Next task**: none is due. GOAL-044 (touching the reminder opens the feed on
+the articles it quotes) closed on 2026-10-03, validated on the local stack in
+List mode; waiting for the author: the device pass, Immersive mode included.
+GOAL-041 (the veil over a foreground reload)
 closed on 2026-08-26. GOAL-040 (feed management from the settings)
 closed on 2026-08-26, validated on the local stack. Waiting for the author: the device pass on
 GOAL-041 (the veil after a 30-minute absence) and on
@@ -130,7 +133,7 @@ statistics screen).
 | GOAL-041 | A foreground reload never shows the previous article again | `[x]` |
 | GOAL-042 | Immersive reloading goes back to the List's rules | `[x]` |
 | GOAL-043 | One live feed state for both modes | `[x]` |
-| GOAL-044 | Touching the reminder opens the feed on the articles it quotes | `[-]` |
+| GOAL-044 | Touching the reminder opens the feed on the articles it quotes | `[x]` |
 
 The state carried here is that of the Goal's own section when it is still
 detailed below; a Goal entirely `[x]` keeps only this row, and its detail lives
@@ -329,38 +332,6 @@ verified on arrival — goes in the right direction for a signed artefact.
       itself — plugins or scripts. `--warning-mode all` will name them. Distinct
       from `T01`, and of a different scope: this one touches the build, not the
       integration chain
-
----
-
-## GOAL-044 — Touching the reminder opens the feed on the articles it quotes
-
-**Status: IN PROGRESS**
-
-Asked by the author (2026-10-03): the reminder works, but touching it only
-opens the application — the articles it quoted are not the ones the feed
-shows first. The cause is two different samples of one cache: the reminder
-quotes the head of `unreadFromCache` (unread only, interleaved among
-themselves), the feed bootstraps from `observeCachedArticles` (read articles
-included, interleaved among a different set). Same cache, two orders.
-
-### Decisions
-
-| Point | Decision |
-|---|---|
-| What "opens the articles" means | The feed opens **on** them: quoted articles first, in the notification's order, the rest of the cache after. No browser is opened — a reminder quoting two articles cannot open two tabs, and the feed is where one follows the other |
-| Where the order is decided | In `FeedViewModel`, at the cache's first emission — before anything is displayed, so rule 3 of SPECS.md §4.2 (no reordering of what is shown) is untouched |
-| How the ids travel | Intent extra → `MainActivity` → `ReminderOpening`, `@ActivityRetainedScoped`, consumed once by the feed. The tap recreates the activity (`CLEAR_TOP`), hence a fresh ViewModel every time |
-
-### Tasks
-
-- [x] `GOAL-044-T01` `ReminderPlan` carries the ids of the quoted articles,
-      in the order of the titles
-- [x] `GOAL-044-T02` The notification's intent carries them, `MainActivity`
-      hands them over, the feed shows them first in both modes; SPECS.md
-      §4.9, ARCHITECTURE.md §9.4
-- [-] `GOAL-044-T03` Validation on the local stack (headless emulator and
-      real FreshRSS): reminder posted, touched, quoted articles at the head;
-      stack shut down; closure here
 
 ---
 

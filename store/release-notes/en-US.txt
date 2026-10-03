@@ -1,5 +1,3 @@
-The list and immersive mode are now one.
+The reminder opens on what it announces.
 
-• Both modes now share the same feed: a list emptied by a reload leaves no articles behind in immersive mode, an article read on one side is read on the other, and paging resumes at the same place.
-• Re-tapping the tab returns to the first page, without reloading when already there.
-• A veil covers the feed during every requested reload.
+• Touching the reminder notification now opens the feed on the articles it quotes, one after the other, in the same order.
