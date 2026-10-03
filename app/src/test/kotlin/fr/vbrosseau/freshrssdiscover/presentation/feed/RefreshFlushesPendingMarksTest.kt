@@ -6,6 +6,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
@@ -71,6 +72,7 @@ class RefreshFlushesPendingMarksTest {
             settingsRepository = settingsRepository,
             freshnessRepository = freshnessRepository,
             clock = clock,
+            reminderOpening = ReminderOpening(),
         )
         val atStartup = readSyncRepository.flushCallCount
         recordFlushCountAtRefresh()

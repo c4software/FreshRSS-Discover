@@ -42,6 +42,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.SessionGateViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.feed.FeedViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.login.LoginViewModel
 import fr.vbrosseau.freshrssdiscover.presentation.settings.SettingsViewModel
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import fr.vbrosseau.freshrssdiscover.reminder.ReminderScheduler
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -270,6 +271,7 @@ class AppGraphTest {
             settingsRepository = settingsRepository,
             freshnessRepository = freshnessRepository,
             clock = clock,
+            reminderOpening = ReminderOpening(),
         )
         val settings = SettingsViewModel(
             authRepository,

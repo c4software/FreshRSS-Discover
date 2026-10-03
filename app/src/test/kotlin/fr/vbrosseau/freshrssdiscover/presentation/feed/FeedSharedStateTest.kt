@@ -11,6 +11,7 @@ import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.EXCERPT_MAX_LENGTH
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Rule
@@ -48,6 +49,7 @@ class FeedSharedStateTest {
             settingsRepository = settingsRepository,
             freshnessRepository = freshnessRepository,
             clock = clock,
+            reminderOpening = ReminderOpening(),
         )
     }
 

@@ -170,6 +170,28 @@ class AndroidReminderNotifierTest {
     }
 
     @Test
+    fun touchingTheReminderCarriesTheArticlesItQuotes() {
+        val quoted = listOf(ArticleId(42L), ArticleId(7L))
+        notifier.show(plan(quotedIds = quoted))
+
+        val intent = shadowOf(onlyPosted().contentIntent).savedIntent
+
+        assertEquals(quoted, intent.quotedArticleIds())
+    }
+
+    @Test
+    fun aSecondReminderCarriesItsOwnArticlesNotTheFirstOnes() {
+        // The pending intent is reused under a constant request code: without
+        // `FLAG_UPDATE_CURRENT`, the extras of the first reminder would stay.
+        notifier.show(plan(quotedIds = listOf(ArticleId(1L))))
+        notifier.show(plan(quotedIds = listOf(ArticleId(2L))))
+
+        val intent = shadowOf(onlyPosted().contentIntent).savedIntent
+
+        assertEquals(listOf(ArticleId(2L)), intent.quotedArticleIds())
+    }
+
+    @Test
     fun theReminderDisappearsOnceItHasBeenTouched() {
         notifier.show(plan())
 

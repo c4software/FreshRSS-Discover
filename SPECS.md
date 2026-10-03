@@ -611,6 +611,16 @@ excludes background synchronisation.
 instead of stacking up beside it: a stack of daily reminders says nothing more
 than a single one, and gets swept away with one gesture without being read.
 
+**Touching it opens the feed on the articles it quotes.** The quoted articles
+come first, one after the other, in the order the reminder gave them; the rest
+of the feed follows (author's request, 2026-10-03). A reminder that names two
+articles and then opens on two others has promised something the application
+does not deliver. This holds in both presentation modes (§4.8): the List opens
+with them at the top, the Immersive mode on the first one, the second a flick
+away. It opens the feed, not the browser — two quoted articles cannot be two
+tabs, and reading them in the feed is what marks them read. An article that
+has left the cache since the reminder was posted is simply not there.
+
 **Opening the application clears it.** The reminder has done its job by the time
 the user arrives; leaving it in the shade would make it a leftover.
 

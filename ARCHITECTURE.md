@@ -660,6 +660,21 @@ Three refusals precede any notification, and their **order** matters: no session
 switched off; then empty cache. The first two do not arm the next day's reminder,
 the third does — tomorrow there may be something to read.
 
+**A touch on the reminder reaches the feed without crossing the composition**
+(GOAL-044). The reminder quotes the head of `unreadFromCache`; the feed
+bootstraps from `observeCachedArticles`, which samples the same cache with the
+read articles in — two sets, hence two shuffles, and the quoted articles were
+not the ones shown first. `ReminderPlan.quotedIds` now travels as an intent
+extra; `MainActivity` hands it, on a first creation only, to `ReminderOpening`
+— `@ActivityRetainedScoped`, since the touch recreates the activity
+(`CLEAR_TOP` on a standard launch mode) — and `FeedViewModel` takes it at the
+cache's **first** emission, placing those articles ahead of the sample. Before
+anything is displayed, which is the point: a method called from the screen
+would race the cache and move articles under a list already shown, and would
+then need a scroll to undo what it did. The handover is consumed once, so a
+feed rebuilt under the same activity (sign-out, sign-in) does not reopen on a
+reminder already answered.
+
 **The hour it aims at is learned where reading is recorded.** The reading-hour
 histogram (`ReadingHistogram`, SPECS.md §4.9) is fed by
 `DefaultReadSyncRepository.markAsRead` — the single point both presentation

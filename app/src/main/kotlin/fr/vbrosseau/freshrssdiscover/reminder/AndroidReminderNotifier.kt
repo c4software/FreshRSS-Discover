@@ -10,6 +10,7 @@ import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.vbrosseau.freshrssdiscover.MainActivity
 import fr.vbrosseau.freshrssdiscover.R
+import fr.vbrosseau.freshrssdiscover.domain.feed.ArticleId
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderPlan
 import fr.vbrosseau.freshrssdiscover.domain.reminder.ReminderTone
 import javax.inject.Inject
@@ -31,7 +32,11 @@ private const val CHANNEL_ID = "rappel-de-lecture"
  */
 private const val REMINDER_NOTIFICATION_ID = 1
 
-/** No data varies between reminders: a single request code suffices. */
+/**
+ * A single request code suffices: the quoted articles vary between reminders,
+ * but only the latest reminder exists, and `FLAG_UPDATE_CURRENT` gives it the
+ * latest extras.
+ */
 private const val OPEN_APPLICATION_REQUEST_CODE = 0
 
 /**
@@ -71,7 +76,7 @@ class AndroidReminderNotifier @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openApplication())
+            .setContentIntent(openApplication(plan.quotedIds))
             .build()
 
         notifications.notify(REMINDER_NOTIFICATION_ID, notification)
@@ -105,7 +110,8 @@ class AndroidReminderNotifier @Inject constructor(
     }
 
     /**
-     * Opens the application on tap.
+     * Opens the application on tap, on the articles the reminder quotes: the
+     * intent carries their ids to the feed (see [ReminderOpening]).
      *
      * `FLAG_IMMUTABLE`: since Android 12 a `PendingIntent` must declare its
      * mutability, and omitting it throws at construction. Immutable is right
@@ -113,10 +119,12 @@ class AndroidReminderNotifier @Inject constructor(
      * to the system would let another app change its destination.
      *
      * `FLAG_UPDATE_CURRENT` because the id is constant: without it, today's
-     * reminder would reuse the intent of the first reminder ever posted.
+     * reminder would reuse the intent of the first reminder ever posted, and
+     * open the feed on the articles that one quoted.
      */
-    private fun openApplication(): PendingIntent {
+    private fun openApplication(quotedIds: List<ArticleId>): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
+            .quoting(quotedIds)
             // The reminder fires outside any activity stack: without
             // `NEW_TASK` there would be no task to place the screen in.
             // `CLEAR_TOP` brings an already-running app to the foreground

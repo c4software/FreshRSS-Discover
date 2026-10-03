@@ -18,6 +18,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.ReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.SettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.Clock
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,7 @@ class FeedViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     freshnessRepository: FeedFreshnessRepository,
     private val clock: Clock,
+    private val reminderOpening: ReminderOpening,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
@@ -243,9 +245,28 @@ class FeedViewModel @Inject constructor(
                  * without reordering or removing anything. Past the first
                  * server page, nothing more is added (see [hasServerContent]).
                  */
+                /*
+                 * The articles quoted by the reminder that opened the
+                 * application go ahead of the cache's first sample, in the
+                 * reminder's order (SPECS.md §4.9, GOAL-044). Then and never
+                 * after: nothing is displayed yet, so placing them first
+                 * reorders nothing the reader has seen (rule 3 of SPECS.md
+                 * §4.2). The reminder and the feed sample the same cache
+                 * differently — unread only for one, read included for the
+                 * other — and their two shuffles do not agree on what comes
+                 * first.
+                 *
+                 * By id rather than picked out of the sample: the sample is
+                 * bounded, and a quoted article can sit beyond the bound
+                 * behind newer read ones.
+                 */
+                val quoted =
+                    if (hasDecidedBootstrap) emptyList() else articleRepository.cachedByIds(reminderOpening.take())
                 val now = clock.nowEpochMillis()
                 if (!hasServerContent) {
-                    _uiState.update { it.merging(cached, now, atHead = false) }
+                    _uiState.update {
+                        it.merging((quoted + cached).distinctBy(Article::id), now, atHead = false)
+                    }
                 }
                 if (!hasDecidedBootstrap) {
                     hasDecidedBootstrap = true

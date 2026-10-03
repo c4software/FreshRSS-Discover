@@ -355,10 +355,10 @@ included, interleaved among a different set). Same cache, two orders.
 
 - [x] `GOAL-044-T01` `ReminderPlan` carries the ids of the quoted articles,
       in the order of the titles
-- [ ] `GOAL-044-T02` The notification's intent carries them, `MainActivity`
+- [x] `GOAL-044-T02` The notification's intent carries them, `MainActivity`
       hands them over, the feed shows them first in both modes; SPECS.md
       §4.9, ARCHITECTURE.md §9.4
-- [ ] `GOAL-044-T03` Validation on the local stack (headless emulator and
+- [-] `GOAL-044-T03` Validation on the local stack (headless emulator and
       real FreshRSS): reminder posted, touched, quoted articles at the head;
       stack shut down; closure here
 

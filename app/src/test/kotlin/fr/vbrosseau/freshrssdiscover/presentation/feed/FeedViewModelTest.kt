@@ -17,6 +17,7 @@ import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverFailure
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
 import fr.vbrosseau.freshrssdiscover.presentation.discover.RelativeTime
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -70,6 +71,7 @@ class FeedViewModelTest {
             settingsRepository = settingsRepository,
             freshnessRepository = freshnessRepository,
             clock = clock,
+            reminderOpening = ReminderOpening(),
         )
     }
 

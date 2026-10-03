@@ -9,6 +9,7 @@ import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
 import fr.vbrosseau.freshrssdiscover.presentation.discover.DiscoverPhase
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -53,6 +54,7 @@ class EmptyFeedAsksServerWhenShownTest {
         settingsRepository = settingsRepository,
         freshnessRepository = freshnessRepository,
         clock = clock,
+        reminderOpening = ReminderOpening(),
     )
 
     // ----- The rule -----------------------------------------------------------

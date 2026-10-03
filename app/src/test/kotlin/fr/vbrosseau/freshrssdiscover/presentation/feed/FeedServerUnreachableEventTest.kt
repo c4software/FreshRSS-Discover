@@ -9,6 +9,7 @@ import fr.vbrosseau.freshrssdiscover.domain.read.FakeReadSyncRepository
 import fr.vbrosseau.freshrssdiscover.domain.settings.FakeSettingsRepository
 import fr.vbrosseau.freshrssdiscover.domain.time.FakeClock
 import fr.vbrosseau.freshrssdiscover.presentation.MainDispatcherRule
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -52,6 +53,7 @@ class FeedServerUnreachableEventTest {
             settingsRepository = FakeSettingsRepository(),
             freshnessRepository = FakeFeedFreshnessRepository(),
             clock = FakeClock(NOW_MILLIS),
+            reminderOpening = ReminderOpening(),
         )
     }
 

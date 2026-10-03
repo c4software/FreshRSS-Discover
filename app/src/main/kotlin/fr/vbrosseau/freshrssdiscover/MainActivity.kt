@@ -51,6 +51,8 @@ import fr.vbrosseau.freshrssdiscover.presentation.permission.StartupPermissionsR
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecap
 import fr.vbrosseau.freshrssdiscover.presentation.recap.FeedRecapAction
 import fr.vbrosseau.freshrssdiscover.presentation.theme.AppTheme
+import fr.vbrosseau.freshrssdiscover.reminder.ReminderOpening
+import fr.vbrosseau.freshrssdiscover.reminder.quotedArticleIds
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -73,6 +75,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     internal lateinit var reminderOnForeground: ReminderOnForegroundObserver
 
+    @Inject
+    internal lateinit var reminderOpening: ReminderOpening
+
     /**
      * Built with the activity, not in `onCreate`: the result contract must be
      * registered before the started state.
@@ -84,6 +89,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(readFlushOnBackground)
         lifecycle.addObserver(reminderOnForeground)
+        // Only on a first creation: a rotation replays the same intent, and
+        // the reminder it carries has already been answered.
+        if (savedInstanceState == null) reminderOpening.openedOn(intent.quotedArticleIds())
         // Neither awaited nor blocking: the UI mounts right after, whatever
         // the answers. See `permissionsToAskAtStartup` for what
         // `savedInstanceState` decides here.
